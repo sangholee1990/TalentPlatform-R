@@ -2,9 +2,13 @@
 #=====================================
 # Set Env
 #=====================================
-Sys.setlocale("LC_ALL", "English")
+Sys.setlocale("LC_ALL", "Korean")
 options(encoding = "UTF-8")
-Sys.setenv(LANG = "en_US.UTF-8")
+Sys.setenv(LANG = "ko_KR.UTF-8")
+
+# Sys.setlocale("LC_ALL", "English")
+# options(encoding = "UTF-8")
+# Sys.setenv(LANG = "en_US.UTF-8")
 
 globalVar = new.env()
 
@@ -16,7 +20,7 @@ globalVar$config = getwd()
 globalVar$inpConfig = paste(globalVar$config, 'INPUT', 'knowledgeIn', sep='/')
 globalVar$figConfig = paste(globalVar$config, 'FIG', 'knowledgeIn', sep='/')
 globalVar$outConfig = paste(globalVar$config, 'OUTPUT', 'knowledgeIn', sep='/')
-globalVar$logConfig = paste(globalVar$config, 'LOG', 'o2job', sep='/')
+globalVar$logConfig = paste(globalVar$config, 'LOG', 'knowledgeIn', sep='/')
 globalVar$systemConfig = paste(globalVar$config, 'CONFIG', 'system.cfg', sep='/')
 
 # key
@@ -7308,7 +7312,6 @@ total %% 21
 # 각 회귀계수에 대한 유의성 (Pr)은 0.0387 및 <2e-16로서 통계적으로 유의합니다.
 # 전체 회귀모형에 대한 설명력 (R-squared) 및 유의성 (p-value)는 0.9954 및 2.2e-16로서 유의합니다.
 
-# 
 library(tidyverse)
 library(easycsv)
 library(Hmisc)
@@ -7334,3 +7337,379 @@ for (fileInfo in fileList) {
     outFileInfo = stringr::str_replace_all(fileInfo, "Input", "Output")
     readr::write_csv(x = dataL1, path = outFileInfo)
 }
+
+
+#==========================================
+# 교재 연습문제 2장
+#==========================================
+library(readr)
+library(lubridate)
+
+dtDate = readr::parse_date("1945-08-15", "%Y-%m-%d")
+
+getWday = lubridate::wday(dtDate, label = TRUE, abbr = FALSE)
+getWday
+
+#==========================================
+# 교재 연습문제 4장
+#==========================================
+mywage = function(weeklyWorkingTime) {
+    refHourlyWage = 1.0
+    refWeeklyWorkingTime = 40
+    
+    if (weeklyWorkingTime > refWeeklyWorkingTime) {
+        workingTime = refWeeklyWorkingTime + ((weeklyWorkingTime - refWeeklyWorkingTime) * 1.5)
+    } else {
+        workingTime = weeklyWorkingTime
+    }
+    
+    result = refHourlyWage * workingTime
+    
+    return (result)
+}
+
+mywage(10)
+mywage(50)
+mywage(60)
+mywage(70)
+
+#==========================================
+# 교재 연습문제 5장
+#==========================================
+n = as.numeric(readline("[INFO] n : "))
+p = as.numeric(readline("[INFO] p : "))
+
+seqList = seq(1, n)
+sum = sum(seqList ** p, na.rm = TRUE)
+
+
+#==========================================
+# 교재 연습문제 8장
+#==========================================
+library(readr)
+library(tidyverse)
+library(rapport)
+library(ggplot2)
+library(scales)
+
+# 2번 문제
+fileInfo = Sys.glob(paste0(globalVar$inpConfig, "/rpy/nutrient2.csv"))
+data = readr::read_csv(file = fileInfo)
+
+dataL1 = data %>%
+    dplyr::na_if(0) %>%
+    dplyr::select(everything()) %>%
+    dplyr::summarise_all(funs(sum(is.na(.))))
+
+dataL1
+
+# summary(dataL1)
+dataL2 = data %>%
+    dplyr::na_if(0) %>%
+    dplyr::select(everything()) %>%
+    dplyr::summarise_all(funs(
+        mean(., na.rm = TRUE) # 평균
+        , sd(., na.rm = TRUE) # 표준편차
+        , min(., na.rm = TRUE) # 최솟값
+        , max(., na.rm = TRUE) # 최댓값
+        , median(., na.rm = TRUE) # 중앙값
+        , quantile(., 0.25, na.rm = TRUE) # 제1사분위수
+        , quantile(., 0.75, na.rm = TRUE) # 제3사분위수
+    ))
+
+dplyr::glimpse(dataL2)
+
+dataL2 = data %>%
+    dplyr::na_if(0) %>%
+    tidyr::gather(-id, key = "key", value = "val")
+
+# 상자그림
+ggplot(dataL2, aes(x = key, y = val, fill = key)) +
+    geom_boxplot(alpha = 0.6) +
+    ylim(0, 5000)
+
+# 히스토그램
+ggplot(dataL2, aes(x = val, fill = key)) +
+    geom_histogram(binwidth = 100, alpha = 0.6) + 
+    xlim(0, 5000) + 
+    ylim(0, 1000)
+ 
+
+# 3번 문제
+fileList = Sys.glob(paste0(globalVar$inpConfig, "/rpy/pima2.csv"))
+data = readr::read_csv(file = fileList)
+
+dataL1 = data %>%
+    dplyr::group_by(diabetes) %>%
+    dplyr::summarise(cnt = n()) %>%
+    dplyr::mutate(ratio = (cnt / sum(cnt, na.rm = TRUE)) * 100)
+
+# 막대그림
+ggplot(dataL1, aes(x = diabetes, y = cnt, fill = diabetes)) +
+  geom_bar(stat = "identity") + 
+  geom_text(aes(label = cnt), vjust = 1.6, color = "white", size = 5) 
+
+# 원그림
+ggplot(dataL1, aes(x = "", y = ratio, fill = diabetes)) +
+  geom_bar(width = 1, stat = "identity") +
+  coord_polar("y", start = 0) +
+  theme(axis.text.x=element_blank()) +
+  geom_text(aes(y = ratio/2.0 + c(0, cumsum(ratio)[-length(ratio)]), 
+                label = scales::percent(ratio/100)), size = 5) + 
+  theme_minimal()+
+  theme(
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank(),
+    panel.border = element_blank(),
+    panel.grid=element_blank(),
+    axis.ticks = element_blank(),
+    plot.title=element_text(size=14, face="bold")
+  )
+
+
+# 2번 문제
+dataL2 = data %>%
+  dplyr::na_if(0) %>%
+  dplyr::select(glucose, pregnant, triceps, insulin, mass, pedigree, age, diabetes) %>%
+  dplyr::group_by(diabetes) %>%
+  dplyr::summarise_all(funs(
+    mean(., na.rm = TRUE) # 평균
+    , min(., na.rm = TRUE) # 최솟값
+    , max(., na.rm = TRUE) # 최댓값
+    , median(., na.rm = TRUE) # 중앙값
+    , quantile(., 0.25, na.rm = TRUE) # 제1사분위수
+    , quantile(., 0.75, na.rm = TRUE) # 제3사분위수
+  ))
+
+dplyr::glimpse(dataL2)
+
+
+dataL3 = data %>%
+  dplyr::na_if(0) %>%
+  dplyr::select(glucose, pregnant, triceps, insulin, mass, pedigree, age, diabetes) %>%
+  tidyr::gather(-diabetes, key = "key", value = "val")
+
+# 히스토그램
+ggplot(dataL3, aes(x = val, fill = diabetes)) +
+  geom_histogram(binwidth = 50, alpha = 0.6) +
+  facet_wrap(~ key)
+
+# 상자 그림
+ggplot(dataL3, aes(x = key, y = val, fill = diabetes)) +
+  geom_boxplot()
+  
+# 3번 문제
+dataL4 = data %>%
+  dplyr::mutate(type = dplyr::case_when(
+    20 <= age & age <= 30 ~ "20-30"
+    , 31 <= age & age <= 40 ~ "31-40"
+    , 41 <= age & age <= 50 ~ "41-50"
+    , TRUE ~ "50+"
+  ))
+
+tableL4 = table(dataL4$diabetes, dataL4$type)
+
+ggplot(dataL4, aes(x = type, fill = diabetes)) +
+  geom_bar(position = "dodge")
+
+# 4번 문제
+dataL4 = data %>%
+  dplyr::mutate(type = dplyr::case_when(
+    0 <= pregnant & pregnant <= 5 ~ "0-5"
+    , 6 <= pregnant & pregnant <= 10 ~ "6-10"
+    , TRUE ~ "10+"
+  ))
+
+tableL4 = table(dataL4$diabetes, dataL4$type)
+
+ggplot(dataL4, aes(x = type, fill = diabetes)) +
+  geom_bar(position = "dodge")
+
+# 5번 문제
+dataL5 = dataL4 %>%
+  dplyr::group_by(diabetes, type) %>%
+  dplyr::summarise_all(funs(
+    mean(., na.rm = TRUE) # 평균
+    , sd(., na.rm = TRUE) # 표준편차
+  ))
+
+dplyr::glimpse(dataL5)
+
+
+#==========================================
+# 교재 연습문제 9장
+#==========================================
+library(MASS)
+library(moonBook)
+library(webr)
+library(ggplot2)
+library(tidyverse)
+
+# 2번 문제
+data = data.frame(
+  Placebo = c(105, 119, 100, 97, 96, 101, 94, 95, 98)
+  , Caffeine = c(96, 99, 94, 89, 96, 93, 88, 105, 88)
+)
+
+dataL1 = data %>%
+  tidyr::gather(key = "key", value = "val")
+
+# P값이 0.53으로서 귀무가설 기각하지 못함 (두 캡슐의 분산 차이가 없다)
+# 따라서 등분산 조건 (var.equal = TRUE)
+fTest = var.test(val ~ key, data = dataL1)
+
+plot(fTest) + xlim(0, 3)
+
+# P값이 0.063로서 귀무가설 기각 (두 캡슐의 차이가 있다)
+tTest = t.test(val ~ key, data = dataL1, var.equal = TRUE)
+tTest
+
+plot(tTest) + xlim(-5, 5)
+
+
+# 3번 문제
+fileList = Sys.glob(paste0(globalVar$inpConfig, "/rpy/mtcars.csv"))
+data = readr::read_csv(file = fileList)
+
+# 자동차 기어의 종류
+dataL1 = data %>%
+  dplyr::select(am, mpg) %>%
+  tidyr::gather(key = "key", value = "val")
+
+# P값이 0.01으로서 귀무가설 기각 (두 변수간의 분산 차이가 있다)
+# 따라서 상이한 분산 조건 (var.equal = FALSE)
+fTest = var.test(val ~ key, data = dataL1)
+fTest
+
+plot(fTest) + xlim(0, 3)
+
+# P값이 0.01 이하로서 귀무가설 기각 (두 변수간의 차이가 있다)
+tTest = t.test(val ~ key, data = dataL1, var.equal = FALSE)
+tTest
+
+plot(tTest) + xlim(-5, 5)
+
+
+# 자동차 엔진 종류
+dataL1 = data %>%
+  dplyr::select(vs, mpg) %>%
+  tidyr::gather(key = "key", value = "val")
+
+# P값이 0.01 이하로서 귀무가설 기각 (두 변수간의 분산 차이가 있다)
+# 따라서 상이한 분산 조건 (var.equal = FALSE)
+fTest = var.test(val ~ key, data = dataL1)
+fTest
+
+plot(fTest) + xlim(0, 3)
+
+# P값이 0.01 이하로서 귀무가설 기각 (두 변수간의 차이가 있다)
+tTest = t.test(val ~ key, data = dataL1, var.equal = FALSE)
+tTest
+
+plot(tTest) + xlim(-5, 5)
+
+
+
+#==========================================
+# 교재 연습문제 10장
+#==========================================
+library(GGally)
+
+# 연습문제 1번
+fileInfo = Sys.glob(paste0(globalVar$inpConfig, "/rpy/computer.csv"))
+data = readr::read_csv(file = fileInfo)
+
+dataL1 = data %>%
+  dplyr::select(erp, myct, mmax, cach, chmin, chmax, prpe)
+
+# 산점도
+ggpairs(dataL1)
+
+# 상관계수 행렬
+cor(dataL1)
+
+# 다중 선형 회귀모형
+lmFit = lm(erp ~ myct + mmax + cach + chmin + chmax, data = dataL1)
+summary(lmFit)
+
+# 연습문제 2번
+fileInfo = Sys.glob(paste0(globalVar$inpConfig, "/rpy/mtcars.csv"))
+data = readr::read_csv(file = fileInfo)
+
+dataL1 = data %>%
+  dplyr::select(-X1)
+
+lmFit = lm(mpg ~ ., data = dataL1)
+
+stepAic = MASS::stepAIC(lmFit, direction = "both")
+
+summary(stepAic)
+
+
+#==========================================
+# 교재 연습문제 11장
+#==========================================
+# 연습문제 1번
+fileInfo = Sys.glob(paste0(globalVar$inpConfig, "/rpy/bateriasoap.csv"))
+data = readr::read_csv(file = fileInfo)
+
+data$Method = as.factor(data$Method)
+
+fit = aov(BacterialCounts ~ Method, data = data)
+
+tukeyTest = TukeyHSD(fit)
+tukeyTest
+
+plot(tukeyTest)
+
+# 연습문제 2번
+fileInfo = Sys.glob(paste0(globalVar$inpConfig, "/rpy/downloading.csv"))
+data = readr::read_csv(file = fileInfo)
+
+data$TimeofDay = as.factor(data$TimeofDay)
+
+fit = aov(`Time(Sec)` ~ TimeofDay, data = data)
+
+tukeyTest = TukeyHSD(fit)
+tukeyTest
+
+plot(tukeyTest)
+
+# 2007년, 2012년, 2017년 인플레이션이 높은 5개 지역을 표시하는 바 그래프를 그리시오.
+# 그릴 때 각 연도별로 인플레이션이 높은 지역순으로 나열하시오.
+
+library(tidytext)
+library(tidyr)
+library(ggplot2)
+library(tidyverse)
+library(readxl)
+library(forcats)
+
+fileList = Sys.glob(paste0(globalVar$inpConfig, "/inflation.xlsx"))
+data = readxl::read_excel(path = fileList, sheet = "데이터")
+
+dataL1 = data %>%
+  dplyr::na_if("-") %>%
+  na.omit() %>%
+  tidyr::gather(-region, key = "year", value = "val") %>%
+  readr::type_convert()
+  
+
+dataL2 = dataL1 %>% 
+  filter(year %in% c(2007, 2012, 2017)) %>% 
+  group_by(year) %>% 
+  top_n(5, region) %>% 
+  ungroup()
+
+dataL3 = dataL2 %>%
+  dplyr::group_by(region) %>%
+  dplyr::summarise(meanVal = mean(val, na.rm = TRUE)) %>%
+  dplyr::arrange(desc(meanVal))
+
+
+dataL2$region = forcats::fct_relevel(dataL2$region, dataL3$region)
+
+ggplot(dataL2, aes(x = as.factor(year), y = val, fill = region)) +
+  geom_col(stat = "identity", position="dodge") +
+  facet_wrap(. ~ region, ncol = 5, scale="free") +
+  labs(x = "지역", y = "연도", fill="")
