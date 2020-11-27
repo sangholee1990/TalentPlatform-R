@@ -7558,17 +7558,21 @@ dataL1 = data %>%
 # 따라서 등분산 조건 (var.equal = TRUE)
 fTest = var.test(val ~ key, data = dataL1)
 
-plot(fTest) + xlim(0, 3)
+plot(fTest) + 
+  xlim(0, 3) +
+  ggsave(filename = paste(globalVar$figConfig, "fTest.png", sep = "/"), width = 10, height = 6, dpi = 600)
 
 # P값이 0.063로서 귀무가설 기각 (두 캡슐의 차이가 있다)
 tTest = t.test(val ~ key, data = dataL1, var.equal = TRUE)
 tTest
 
-plot(tTest) + xlim(-5, 5)
+plot(tTest) + 
+  xlim(-5, 5) +
+  ggsave(filename = paste(globalVar$figConfig, "tTest.png", sep = "/"), width = 10, height = 6, dpi = 600)
 
 
 # 3번 문제
-fileList = Sys.glob(paste0(globalVar$inpConfig, "/rpy/mtcars.csv"))
+fileInfo = Sys.glob(paste0(globalVar$inpConfig, "/rpy/mtcars.csv"))
 data = readr::read_csv(file = fileList)
 
 # 자동차 기어의 종류
@@ -7581,13 +7585,17 @@ dataL1 = data %>%
 fTest = var.test(val ~ key, data = dataL1)
 fTest
 
-plot(fTest) + xlim(0, 3)
+plot(fTest) + 
+  xlim(0, 3) +
+  ggsave(filename = paste(globalVar$figConfig, "fTest.png", sep = "/"), width = 10, height = 6, dpi = 600)
 
 # P값이 0.01 이하로서 귀무가설 기각 (두 변수간의 차이가 있다)
 tTest = t.test(val ~ key, data = dataL1, var.equal = FALSE)
 tTest
 
-plot(tTest) + xlim(-5, 5)
+plot(tTest) + 
+  xlim(-5, 5) +
+  ggsave(filename = paste(globalVar$figConfig, "tTest.png", sep = "/"), width = 10, height = 6, dpi = 600)
 
 
 # 자동차 엔진 종류
@@ -7600,13 +7608,17 @@ dataL1 = data %>%
 fTest = var.test(val ~ key, data = dataL1)
 fTest
 
-plot(fTest) + xlim(0, 3)
+plot(fTest) + 
+  xlim(0, 3) +
+  ggsave(filename = paste(globalVar$figConfig, "fTest.png", sep = "/"), width = 10, height = 6, dpi = 600)
 
 # P값이 0.01 이하로서 귀무가설 기각 (두 변수간의 차이가 있다)
 tTest = t.test(val ~ key, data = dataL1, var.equal = FALSE)
 tTest
 
-plot(tTest) + xlim(-5, 5)
+plot(tTest) + 
+  xlim(-5, 5) +
+  ggsave(filename = paste(globalVar$figConfig, "tTest.png", sep = "/"), width = 10, height = 6, dpi = 600)
 
 
 
