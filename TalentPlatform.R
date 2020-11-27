@@ -11922,4 +11922,3 @@ tTest
 plot(tTest) +
   xlim(-5, 5) # +
   # ggsave(filename = paste(globalVar$figConfig, "tTest.png", sep = "/"), width = 10, height = 6, dpi = 600)
-
