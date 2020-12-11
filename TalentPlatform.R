@@ -1,34 +1,40 @@
-
 #=====================================
 # Set Env
 #=====================================
-# Sys.setlocale("LC_ALL", "Korean")
+# Sys.setlocale("LC_ALL", "C")
 # options(encoding = "UTF-8")
 # Sys.setenv(LANG = "ko_KR.UTF-8")
-# 
+
+Sys.setlocale("LC_ALL", "Korean")
+options(encoding = "UTF-8")
+Sys.setenv(LANG = "ko_KR.UTF-8")
+
 # Sys.setlocale("LC_ALL", "English")
 # options(encoding = "UTF-8")
 # Sys.setenv(LANG = "en_US.UTF-8")
 
 globalVar = new.env()
 
-globalVar$optDig = 2
+globalVar$optDig = 10
 globalVar$memLimit = 9999999999999
 
 # config
 globalVar$config = getwd()
-# globalVar$config = "D:/04. 재능플랫폼/Github/TalentPlatform-R"
+# globalVar$config = "D:/04. TalentPlatform/Github/TalentPlatform-R"
 globalVar$inpConfig = paste(globalVar$config, 'INPUT', 'o2job', sep = '/')
 globalVar$figConfig = paste(globalVar$config, 'FIG', 'o2job', sep = '/')
 globalVar$outConfig = paste(globalVar$config, 'OUTPUT', 'o2job', sep = '/')
 globalVar$logConfig = paste(globalVar$config, 'LOG', 'o2job', sep = '/')
 globalVar$mapConfig = paste(globalVar$config, 'CONFIG', 'MAP_INFO', sep = '/')
 globalVar$systemConfig = paste(globalVar$config, 'CONFIG', 'system.cfg', sep = '/')
+globalVar$seleniumConfig = paste(globalVar$config, 'CONFIG', 'selenium', sep = '/')
 
 # key
 configInfo = yaml::yaml.load_file(globalVar$systemConfig)
 globalVar$googleKey = configInfo$default$googleKey
 globalVar$dataKey = configInfo$default$dataKey
+globalVar$naverKeyId = configInfo$default$naverKeyId
+globalVar$naverKeyPw = configInfo$default$naverKeyPw
 
 utils::ls.str(globalVar)
 
@@ -48,17 +54,17 @@ tryCatch(
   expr = {
     # 주 소스 코드
     main = FALSE
-    
-    log4r::info(log, paste0("main : ", main))
+
+    log4r::info(log, paste0("[START] Main : ", main))
 
   }
   , warning = function(warning) { log4r::warn(log, warning) }
   , error = function(error) { log4r::error(log, error) }
-  , finally = { 
-    
+  , finally = {
+
     main = TRUE
-    
-    log4r::info(log, paste0("main : ", main))
+
+    log4r::info(log, paste0("[END] Main : ", main))
   }
 )
 
@@ -66,6 +72,7 @@ tryCatch(
 # Set Data
 #=====================================
 options(digits = globalVar$optDig)
+options(java.parameters = "-Xmx8192m")
 memory.limit(size = globalVar$memLimit)
 
 library(ggmap)
@@ -74,7 +81,10 @@ ggmap::register_google(key = globalVar$googleKey)
 # 패키지 업데이트
 # update.packages(ask = FALSE)
 
-
+# 주석 단계
+# ====
+# ****
+# ++++
 
 #===============================================================================================
 # Routine : Main R program
@@ -5718,6 +5728,8 @@ library(moonBook)
 library(webr)
 library(tidyverse)
 library(ggstatsplot)
+library(useful)
+
 # install.packages("officer", dep = TRUE)
 
 # y1=c(45, 87, 123, 120, 70)
@@ -7212,73 +7224,72 @@ colnames(data) = c("date", "service", "user", "visitMin", "visitDay")
 dataL1 = na.omit(data)
 
 dataL2 = dataL1 %>%
-    dplyr::mutate(
-        sDate = as.character(date)
-        , dtDate = readr::parse_date(sDate, "%Y%m")
-        , dtMonth = lubridate::month(dtDate)
-    )
+  dplyr::mutate(
+    sDate = as.character(date)
+    , dtDate = readr::parse_date(sDate, "%Y%m")
+    , dtMonth = lubridate::month(dtDate)
+  )
 
 # 11년 전체 서비스에 대한 월별 유저 수 / 월별 방문일수 / 월별 방문 시간
 dataL3 = dataL2 %>%
-    dplyr::group_by(dtMonth) %>%
-    dplyr::summarise(
-        cnt = n()
-        , sumVisitHour = sum(visitMin, na.rm = TRUE) / 60.0
-        , sumVisitDay = sum(visitDay, na.rm = TRUE)
-    ) %>%
-    as.data.frame()
+  dplyr::group_by(dtMonth) %>%
+  dplyr::summarise(
+    cnt = n()
+    , sumVisitHour = sum(visitMin, na.rm = TRUE) / 60.0
+    , sumVisitDay = sum(visitDay, na.rm = TRUE)
+  ) %>%
+  as.data.frame()
 
 dplyr::tbl_df(dataL3)
 
 xlsx::write.xlsx2(dataL3, file = paste(globalVar$outConfig, "Web_Visitor2.xlsx", sep = "/"), sheetName = "s01", append = TRUE, row.names = FALSE, col.names = TRUE)
 
 
-
 # 11년 서비스별 : 월별 유저 수 / 월별 방문일수 / 월별 방문 시간
 dataL3 = dataL2 %>%
-    dplyr::group_by(service, dtMonth) %>%
-    dplyr::summarise(
-        cnt = n()
-        , sumVisitHour = sum(visitMin, na.rm = TRUE) / 60.0
-        , sumVisitDay = sum(visitDay, na.rm = TRUE)
-    ) %>%
-    dplyr::arrange(service, dtMonth) %>%
-    as.data.frame()
+  dplyr::group_by(service, dtMonth) %>%
+  dplyr::summarise(
+    cnt = n()
+    , sumVisitHour = sum(visitMin, na.rm = TRUE) / 60.0
+    , sumVisitDay = sum(visitDay, na.rm = TRUE)
+  ) %>%
+  dplyr::arrange(service, dtMonth) %>%
+  as.data.frame()
 
 dplyr::tbl_df(dataL3)
 xlsx::write.xlsx2(dataL3, file = paste(globalVar$outConfig, "Web_Visitor2.xlsx", sep = "/"), sheetName = "s02", append = TRUE, row.names = FALSE, col.names = TRUE)
 
 # 서비스 중 어떤 것이 가장 방문 일수가 작은가
 dataL3 = dataL2 %>%
-    dplyr::group_by(service) %>%
-    dplyr::summarise(
-        cnt = n()
-        , sumVisitHour = sum(visitMin, na.rm = TRUE) / 60.0
-        , sumVisitDay = sum(visitDay, na.rm = TRUE)
-    ) %>%
-    dplyr::arrange(sumVisitDay) %>%
-    as.data.frame()
+  dplyr::group_by(service) %>%
+  dplyr::summarise(
+    cnt = n()
+    , sumVisitHour = sum(visitMin, na.rm = TRUE) / 60.0
+    , sumVisitDay = sum(visitDay, na.rm = TRUE)
+  ) %>%
+  dplyr::arrange(sumVisitDay) %>%
+  as.data.frame()
 
 dplyr::tbl_df(dataL3)
 xlsx::write.xlsx2(dataL3, file = paste(globalVar$outConfig, "Web_Visitor2.xlsx", sep = "/"), sheetName = "s03", append = TRUE, row.names = FALSE, col.names = TRUE)
 
 # 서비스 중 특정 시즌에 유저가 많다든가 적은 (시즌을 타는) 서비스가 있는가
 dataL3 = dataL2 %>%
-    dplyr::mutate(type = dplyr::case_when(
-        3 <= dtMonth & dtMonth <= 5 ~ "spring"
-        , 6 <= dtMonth & dtMonth <= 8 ~ "summer"
-        , 9 <= dtMonth & dtMonth <= 11 ~ "fall"
-        , 12 <= dtMonth | dtMonth <= 2 ~ "winte"
-        , TRUE ~ "NULL"
-    )) %>%
-    dplyr::group_by(type, service) %>%
-    dplyr::summarise(
-        cnt = n()
-        , sumVisitHour = sum(visitMin, na.rm = TRUE) / 60.0
-        , sumVisitDay = sum(visitDay, na.rm = TRUE)
-    ) %>%
-    dplyr::arrange(sumVisitDay) %>%
-    as.data.frame()
+  dplyr::mutate(type = dplyr::case_when(
+    3 <= dtMonth & dtMonth <= 5 ~ "spring"
+    , 6 <= dtMonth & dtMonth <= 8 ~ "summer"
+    , 9 <= dtMonth & dtMonth <= 11 ~ "fall"
+    , 12 <= dtMonth | dtMonth <= 2 ~ "winte"
+    , TRUE ~ "NULL"
+  )) %>%
+  dplyr::group_by(type, service) %>%
+  dplyr::summarise(
+    cnt = n()
+    , sumVisitHour = sum(visitMin, na.rm = TRUE) / 60.0
+    , sumVisitDay = sum(visitDay, na.rm = TRUE)
+  ) %>%
+  dplyr::arrange(sumVisitDay) %>%
+  as.data.frame()
 xlsx::write.xlsx2(dataL3, file = paste(globalVar$outConfig, "Web_Visitor2.xlsx", sep = "/"), sheetName = "s04", append = TRUE, row.names = FALSE, col.names = TRUE)
 
 dplyr::tbl_df(dataL3)
@@ -7287,18 +7298,18 @@ dplyr::tbl_df(dataL3)
 # 충성도 고객이 높은 서비스가 어떤 것인가? 
 #	* 충성도 높은 고객 : (방문 일수가 30 이상 AND 방문 시간 500분 이상으로 가정)
 dataL3 = dataL2 %>%
-    dplyr::filter(
-        visitDay >= 30
-        , (visitMin / 60) >= 500
-    ) %>%
-    dplyr::group_by(service) %>%
-    dplyr::summarise(
-        cnt = n()
-        , meanVisitHour = mean(visitMin, na.rm = TRUE) / 60.0
-        , meanVisitDay = mean(visitDay, na.rm = TRUE)
-    ) %>%
-    dplyr::arrange(desc(cnt)) %>%
-    as.data.frame()
+  dplyr::filter(
+    visitDay >= 30
+    , (visitMin / 60) >= 500
+  ) %>%
+  dplyr::group_by(service) %>%
+  dplyr::summarise(
+    cnt = n()
+    , meanVisitHour = mean(visitMin, na.rm = TRUE) / 60.0
+    , meanVisitDay = mean(visitDay, na.rm = TRUE)
+  ) %>%
+  dplyr::arrange(desc(cnt)) %>%
+  as.data.frame()
 xlsx::write.xlsx2(dataL3, file = paste(globalVar$outConfig, "Web_Visitor2.xlsx", sep = "/"), sheetName = "s05", append = TRUE, row.names = FALSE, col.names = TRUE)
 
 dplyr::tbl_df(dataL3)
@@ -7306,18 +7317,18 @@ dplyr::tbl_df(dataL3)
 # 충성도가 낮은 고객이 많은 서비스가 어떤 것인가 ?
 #	* 충성도가 낮은 고객 : (방문일수 5이하 OR 방문 시간 10 이하로 가정)
 dataL3 = dataL2 %>%
-    dplyr::filter(
-        visitDay <= 5
-        , (visitMin / 60) <= 10
-    ) %>%
-    dplyr::group_by(service) %>%
-    dplyr::summarise(
-        cnt = n()
-        , meanVisitHour = mean(visitMin, na.rm = TRUE) / 60.0
-        , meanVisitDay = mean(visitDay, na.rm = TRUE)
-    ) %>%
-    dplyr::arrange(desc(cnt)) %>%
-    as.data.frame()
+  dplyr::filter(
+    visitDay <= 5
+    , (visitMin / 60) <= 10
+  ) %>%
+  dplyr::group_by(service) %>%
+  dplyr::summarise(
+    cnt = n()
+    , meanVisitHour = mean(visitMin, na.rm = TRUE) / 60.0
+    , meanVisitDay = mean(visitDay, na.rm = TRUE)
+  ) %>%
+  dplyr::arrange(desc(cnt)) %>%
+  as.data.frame()
 xlsx::write.xlsx2(dataL3, file = paste(globalVar$outConfig, "Web_Visitor2.xlsx", sep = "/"), sheetName = "s06", append = TRUE, row.names = FALSE, col.names = TRUE)
 
 # 유저가 중복되는 것이 많은 서비스가 어떤 것인가?
@@ -7326,32 +7337,32 @@ xlsx::write.xlsx2(dataL3, file = paste(globalVar$outConfig, "Web_Visitor2.xlsx",
 
 # 서비스에 따라 중복 개수
 dataL3 = dataL2 %>%
-    dplyr::group_by(service) %>%
-    dplyr::summarise(
-        cnt = n()
-        , distServiceCnt = n_distinct(service)
-        , distUserCnt = n_distinct(user)
-        , meanVisitMin = mean(visitMin, na.rm = TRUE) / 60.0
-        , meanVisitHour = mean(visitDay, na.rm = TRUE)
-    ) %>%
-    dplyr::arrange(desc(distUserCnt)) %>%
-    as.data.frame()
+  dplyr::group_by(service) %>%
+  dplyr::summarise(
+    cnt = n()
+    , distServiceCnt = n_distinct(service)
+    , distUserCnt = n_distinct(user)
+    , meanVisitMin = mean(visitMin, na.rm = TRUE) / 60.0
+    , meanVisitHour = mean(visitDay, na.rm = TRUE)
+  ) %>%
+  dplyr::arrange(desc(distUserCnt)) %>%
+  as.data.frame()
 xlsx::write.xlsx2(dataL3, file = paste(globalVar$outConfig, "Web_Visitor2.xlsx", sep = "/"), sheetName = "s07", append = TRUE, row.names = FALSE, col.names = TRUE)
 
 dataL3
 
 # 유저에 따라 중복 개수
 dataL3 = dataL2 %>%
-    dplyr::group_by(user) %>%
-    dplyr::summarise(
-        cnt = n()
-        , distServiceCnt = n_distinct(service)
-        , distUserCnt = n_distinct(user)
-        , meanVisitMin = mean(visitMin, na.rm = TRUE) / 60.0
-        , meanVisitHour = mean(visitDay, na.rm = TRUE)
-    ) %>%
-    dplyr::arrange(desc(distServiceCnt)) %>%
-    as.data.frame()
+  dplyr::group_by(user) %>%
+  dplyr::summarise(
+    cnt = n()
+    , distServiceCnt = n_distinct(service)
+    , distUserCnt = n_distinct(user)
+    , meanVisitMin = mean(visitMin, na.rm = TRUE) / 60.0
+    , meanVisitHour = mean(visitDay, na.rm = TRUE)
+  ) %>%
+  dplyr::arrange(desc(distServiceCnt)) %>%
+  as.data.frame()
 xlsx::write.xlsx2(dataL3, file = paste(globalVar$outConfig, "Web_Visitor2.xlsx", sep = "/"), sheetName = "s08", append = TRUE, row.names = FALSE, col.names = TRUE)
 
 dataL3
@@ -7370,27 +7381,27 @@ dataL3
 library(dplyr)
 
 data = data.frame(
-    height = c(185, 166, 172, 180, 163, 170, 177)
-    , weight =  c(80, 73, 72, 100, 72, 67, 75)
+  height = c(185, 166, 172, 180, 163, 170, 177)
+  , weight = c(80, 73, 72, 100, 72, 67, 75)
 )
 
 dataL1 = data %>%
-    dplyr::mutate(bmi = (weight / height^2) * 10000.0) %>%
-    dplyr::filter(bmi > 26) %>%
-    dplyr::select(weight)
+  dplyr::mutate(bmi = (weight / height^2) * 10000.0) %>%
+  dplyr::filter(bmi > 26) %>%
+  dplyr::select(weight)
 
 dataL1
 
 data2 = data.frame(
-    radius = c(1, 2.5, 3, 4.5, 5, 6.7)
-    , height =  c(2, 4, 6, 8, 10, 12)
+  radius = c(1, 2.5, 3, 4.5, 5, 6.7)
+  , height = c(2, 4, 6, 8, 10, 12)
 )
 
 data2L1 = data2 %>%
-    dplyr::mutate(
-        area = pi * (radius^2)
-        , volume = pi * (radius^2) * height
-    )
+  dplyr::mutate(
+    area = pi * (radius^2)
+    , volume = pi * (radius^2) * height
+  )
 
 data2L1
 
@@ -7411,36 +7422,36 @@ data = ggplot2::midwest
 
 # 1.(10점) popadults는 해당 지역의 성인 인구(number of adults), poptotal은 전체 인구(total population)를 나타냅니다. midwest 데이터에 '전체 인구 대비 미성년 인구 백분율' 변수(child_ratio)를 추가하시오.
 
-dataL1 = data %>% 
-    dplyr::mutate(child_ratio = (popadults / poptotal) * 100)
+dataL1 = data %>%
+  dplyr::mutate(child_ratio = (popadults / poptotal) * 100)
 
 dataL1
 
 # 2.(10점) 미성년 인구 백분율이 가장 높은 상위 10개 county(지역)의 미성년 인구 백분율을 출력하시오.
 dataL1 %>%
-    dplyr::arrange(desc(child_ratio)) %>%
-    dplyr::top_n(10) %>%
-    dplyr::select(county, child_ratio)
+  dplyr::arrange(desc(child_ratio)) %>%
+  dplyr::top_n(10) %>%
+  dplyr::select(county, child_ratio)
 
 
 # 3.(10점) 다음 분류표의 기준에 따라 미성년비율 등급 변수(grade)를 추가하고, 각 등급에 몇 개의 지역이 있는지 출력하시오.
 dataL1 %>%
-    dplyr::mutate(grade = dplyr::case_when(
-        child_ratio >= 45.0 ~ "large"
-        , 30.0 <= child_ratio & child_ratio < 45.0 ~ "middle"
-        , child_ratio < 30.0 ~ "small"
-        , TRUE ~ "NA"
-    )) %>%
-    dplyr::group_by(grade) %>%
-    dplyr::summarise(n = n())
+  dplyr::mutate(grade = dplyr::case_when(
+    child_ratio >= 45.0 ~ "large"
+    , 30.0 <= child_ratio & child_ratio < 45.0 ~ "middle"
+    , child_ratio < 30.0 ~ "small"
+    , TRUE ~ "NA"
+  )) %>%
+  dplyr::group_by(grade) %>%
+  dplyr::summarise(n = n())
 
 # 4.(10점) popasian은 해당 지역의 아시아인 인구를 나타냅니다. '전체 인구 대비 아시아인 인구 백분율' 변수(asian_ratio)를 추가하고, 하위 5개 지역의 state(주), county(지역명), 아시아인 인구 백분율(asian_ratio)을 출력하시오.
 
-data %>% 
-    dplyr::mutate(asian_ratio = (popasian / poptotal) * 100) %>%
-    dplyr::arrange(asian_ratio) %>%
-    dplyr::top_n(-5) %>%
-    dplyr::select(state, county, asian_ratio)
+data %>%
+  dplyr::mutate(asian_ratio = (popasian / poptotal) * 100) %>%
+  dplyr::arrange(asian_ratio) %>%
+  dplyr::top_n(-5) %>%
+  dplyr::select(state, county, asian_ratio)
 
 
 #===============================================================================================
@@ -7456,7 +7467,7 @@ data %>%
 library(readr)
 library(tidyverse)
 
-# "E:/04. 재능플랫폼/Github/TalentPlatform-R/INPUT/o2job 서울시 코로나19 확진자 현황.csv"
+# "E:/04. TalentPlatform/Github/TalentPlatform-R/INPUT/o2job 서울시 코로나19 확진자 현황.csv"
 fileList = Sys.glob(paste(globalVar$inpConfig, "서울시 코로나19 확진자 현황.csv", sep = "/"))
 data = readr::read_csv(file = fileList, locale = locale("ko", encoding = "EUC-KR"))
 
@@ -7472,7 +7483,7 @@ dataL1 = data %>%
   dplyr::summarise(cnt = n())
 
 label = paste0(dataL1$type, " ", round((dataL1$cnt / sum(dataL1$cnt, na.rm = TRUE) * 100)), "%")
-pie(dataL1$cnt, labels = label, col=rainbow(5), main="국내외 접촉력 비율")
+pie(dataL1$cnt, labels = label, col = rainbow(5), main = "국내외 접촉력 비율")
 
 # 바차트 작성
 dataL2 = data %>%
@@ -7494,7 +7505,7 @@ dataL3 = data %>%
   ))
 
 count = table(dataL3$type, dataL3$지역)
-barplot(count, main="3개 구의 환자상태", col=rainbow(3), legend = rownames(count))
+barplot(count, main = "3개 구의 환자상태", col = rainbow(3), legend = rownames(count))
 
 #===============================================================================================
 # Routine : Main R program
@@ -7533,12 +7544,12 @@ paste(dataNA$key, collapse = ", ")
 
 # 엑셀 파일에서 NA값을 제거
 dataL1 = data %>%
-    dplyr::select(- c( "ID", "취미_어떤", "행태_술빈도", "행태_술량", "대화_총개수", "소통_총개수", "행태_담배년", "행태_담배갑", "행태_담배갑년", "행태_담배갑년gr", "행태_술빈도", "행태_술량", "행태_운동종류", "행태_교육종류", "병력_고혈압나이", "병력_고혈압기간", "병력_고혈압20년yn", "병력_당뇨나이", "병력_골다공증", "병력_골다공증나이", "병력_치주나이", "병력_머리사고나이", "병력_마취나이", "병력_총개수", "관리_총개수", "관리_치매어렵이유", "관리_치매어렵이유123", "변화_총개수")) %>%
-    readr::type_convert() %>%
-    na.omit()
+  dplyr::select(-c("ID", "취미_어떤", "행태_술빈도", "행태_술량", "대화_총개수", "소통_총개수", "행태_담배년", "행태_담배갑", "행태_담배갑년", "행태_담배갑년gr", "행태_술빈도", "행태_술량", "행태_운동종류", "행태_교육종류", "병력_고혈압나이", "병력_고혈압기간", "병력_고혈압20년yn", "병력_당뇨나이", "병력_골다공증", "병력_골다공증나이", "병력_치주나이", "병력_머리사고나이", "병력_마취나이", "병력_총개수", "관리_총개수", "관리_치매어렵이유", "관리_치매어렵이유123", "변화_총개수")) %>%
+  readr::type_convert() %>%
+  na.omit()
 
 # 자료형 변환
-dataL2 = dataL1 %>% 
+dataL2 = dataL1 %>%
   # dplyr::select(진단_yn, dplyr::contains("yn")) %>%
   dplyr::select(진단_yn, dplyr::contains("인지")) %>%
   hablar::convert(fct(contains("yn")))
@@ -7598,23 +7609,23 @@ data = data.frame(
 data$type = forcats::fct_relevel(data$type, c("성별", "나이", "교육", "직업(과거)", "의료보장", "주 관리기관"))
 
 # variable 정렬
-data$variable = forcats::fct_relevel(data$variable,  c("남자", "여자","70대 이하", "80대 이상", "무학/초등", "중고등", "대학이상", "없음", "있음", "의료급여", "건강보험", "민간병원", "보건소"))
+data$variable = forcats::fct_relevel(data$variable, c("남자", "여자", "70대 이하", "80대 이상", "무학/초등", "중고등", "대학이상", "없음", "있음", "의료급여", "건강보험", "민간병원", "보건소"))
 
-ggplot(data, aes(x = variable, y = value, fill = group, label=round(value,1))) +
-  geom_bar(position = "dodge", stat="identity") +
+ggplot(data, aes(x = variable, y = value, fill = group, label = round(value, 1))) +
+  geom_bar(position = "dodge", stat = "identity") +
   theme(legend.position = "top") +
-  geom_text(aes(group=group),position=position_dodge(width=0.9), size=5,vjust=-0.5,hjust=0.5) +
+  geom_text(aes(group = group), position = position_dodge(width = 0.9), size = 5, vjust = -0.5, hjust = 0.5) +
   ylim(0, 100) +
-  facet_wrap( ~ type, scale="free") +
-  labs(x = "구분", y = "특성", fill="", subtitle = "대상자 특성") + 
-  scale_fill_manual(values=c("#00bfc4", "#f8766d")) +
-  theme(text = element_text(size=18)) + 
-  ggsave(filename = paste(globalVar$figConfig, "Img_020.png", sep="/"), width = 12, height = 8, dpi = 600)
+  facet_wrap(~type, scale = "free") +
+  labs(x = "구분", y = "특성", fill = "", subtitle = "대상자 특성") +
+  scale_fill_manual(values = c("#00bfc4", "#f8766d")) +
+  theme(text = element_text(size = 18)) +
+  ggsave(filename = paste(globalVar$figConfig, "Img_020.png", sep = "/"), width = 12, height = 8, dpi = 600)
 
 
 # 건강관리 및 최근변화
 dataL1 = data.frame(
-  minCi  = c(0.37, 0.21, 0.47, 0.31, 0.52, 0.72, 0.52, 0.94, 1.14, 0.91, 0.86, 0.62, 0.41, 0.76,  0.30, 0.29, 0.23, 2.31, 1.18,  0.87, 1.78)
+  minCi = c(0.37, 0.21, 0.47, 0.31, 0.52, 0.72, 0.52, 0.94, 1.14, 0.91, 0.86, 0.62, 0.41, 0.76, 0.30, 0.29, 0.23, 2.31, 1.18, 0.87, 1.78)
   , rr = c(0.54, 0.45, 0.71, 0.52, 0.77, 0.86, 0.73, 1.05, 2.00, 1.22, 1.19, 0.83, 0.64, 0.87, 0.54, 0.49, 1.33, 6.00, 1.91, 1.48, 2.81)
   , maxCi = c(0.79, 0.95, 1.07, 0.86, 1.13, 1.03, 1.04, 1.17, 3.50, 1.62, 1.64, 1.11, 1.00, 1.00, 0.98, 0.82, 7.72, 15.57, 3.07, 2.51, 4.43)
   , p = c(0.001, 0.025, 0.083, 0.005, 0.167, 0.060, 0.425, 0.015, 0.204, 0.3, 0.194, 0.037, 0.021, 0.064, 0.064, 0.064, 0.749, 0.001, 0.008, 0.003, 0.003)
@@ -7630,23 +7641,22 @@ dataL1 = data.frame(
   ))
 
 # pVal 정렬
-dataL1$pVal = forcats::fct_relevel(dataL1$pVal,  c("", "0.10", "0.05", "0.01"))
+dataL1$pVal = forcats::fct_relevel(dataL1$pVal, c("", "0.10", "0.05", "0.01"))
 
 
-ggplot(data=dataL1, aes(x=rr, y=sampleNum)) +
-  geom_errorbarh(aes(xmin=minCi, xmax=maxCi, color  = pVal), size = 1) +
-  geom_point(aes(color=pVal), size = 3)  + 
-  geom_vline(xintercept = mean(dataL1$rr, na.rm = TRUE), size =1, color="black") +
+ggplot(data = dataL1, aes(x = rr, y = sampleNum)) +
+  geom_errorbarh(aes(xmin = minCi, xmax = maxCi, color = pVal), size = 1) +
+  geom_point(aes(color = pVal), size = 3) +
+  geom_vline(xintercept = mean(dataL1$rr, na.rm = TRUE), size = 1, color = "black") +
   scale_y_reverse() +
-  geom_label(aes(x=-7.8, y=sampleNum, label=paste0(type), fill = group), fontface = "bold", colour = "white", size = 4.5, hjust="inward", vjust="center") +  
-  geom_text(aes(x=-5, y=sampleNum, label=paste("RR :", round(rr, 2))), size = 4.5, hjust="inward") +
-  geom_text(aes(x=-2.5, y=sampleNum, label=paste("P : ", p, sep="")), size = 4.5, hjust="inward") +
+  geom_label(aes(x = -7.8, y = sampleNum, label = paste0(type), fill = group), fontface = "bold", colour = "white", size = 4.5, hjust = "inward", vjust = "center") +
+  geom_text(aes(x = -5, y = sampleNum, label = paste("RR :", round(rr, 2))), size = 4.5, hjust = "inward") +
+  geom_text(aes(x = -2.5, y = sampleNum, label = paste("P : ", p, sep = "")), size = 4.5, hjust = "inward") +
   theme(legend.position = "top") +
   scale_x_continuous(expand = c(0, 0), limits = c(-8, 16)) +
-  labs(x = "RR (95% CI)", y = "특성", color="P-Value", fill="", subtitle = "건강관리 및 최근변화") +
-  theme(text = element_text(size=18)) +
-  ggsave(filename = paste(globalVar$figConfig, "Img_021.png", sep="/"), width = 12, height = 8, dpi = 600)
-
+  labs(x = "RR (95% CI)", y = "특성", color = "P-Value", fill = "", subtitle = "건강관리 및 최근변화") +
+  theme(text = element_text(size = 18)) +
+  ggsave(filename = paste(globalVar$figConfig, "Img_021.png", sep = "/"), width = 12, height = 8, dpi = 600)
 
 
 # 소통, 어울림 및 형태
@@ -7667,19 +7677,19 @@ dataL3 = data.frame(
   ))
 
 
-ggplot(data=dataL3, aes(x=rr, y=sampleNum)) +
-  geom_errorbarh(aes(xmin=minCi, xmax=maxCi, color  = pVal), size = 1) +
-  geom_point(aes(color=pVal), size = 3)  + 
-  geom_vline(xintercept = mean(dataL3$rr, na.rm = TRUE), size =1, color="black") +
+ggplot(data = dataL3, aes(x = rr, y = sampleNum)) +
+  geom_errorbarh(aes(xmin = minCi, xmax = maxCi, color = pVal), size = 1) +
+  geom_point(aes(color = pVal), size = 3) +
+  geom_vline(xintercept = mean(dataL3$rr, na.rm = TRUE), size = 1, color = "black") +
   scale_y_reverse() +
-  geom_label(aes(x=-1.9, y=sampleNum, label=paste0(type), fill = group), fontface = "bold", colour = "white", size = 4.5, hjust="inward", vjust="center") +  
-  geom_text(aes(x=-1.0, y=sampleNum, label=paste("RR :", round(rr, 2))), size = 4.5, hjust="inward") +
-  geom_text(aes(x=-0.5, y=sampleNum, label=paste("P : ", p, sep="")), size = 4.5, hjust="inward") +
+  geom_label(aes(x = -1.9, y = sampleNum, label = paste0(type), fill = group), fontface = "bold", colour = "white", size = 4.5, hjust = "inward", vjust = "center") +
+  geom_text(aes(x = -1.0, y = sampleNum, label = paste("RR :", round(rr, 2))), size = 4.5, hjust = "inward") +
+  geom_text(aes(x = -0.5, y = sampleNum, label = paste("P : ", p, sep = "")), size = 4.5, hjust = "inward") +
   theme(legend.position = "top") +
   scale_x_continuous(expand = c(0, 0), limits = c(-2, 2)) +
-  labs(x = "RR (95% CI)", y = "특성", color="P-Value", fill="", subtitle = "소통, 어울림 및 형태") +
-  theme(text = element_text(size=18)) +
-  ggsave(filename = paste(globalVar$figConfig, "Img_022.png", sep="/"), width = 12, height = 8, dpi = 600)
+  labs(x = "RR (95% CI)", y = "특성", color = "P-Value", fill = "", subtitle = "소통, 어울림 및 형태") +
+  theme(text = element_text(size = 18)) +
+  ggsave(filename = paste(globalVar$figConfig, "Img_022.png", sep = "/"), width = 12, height = 8, dpi = 600)
 
 # 긴급 시 동행, 주위와 대화, 소통
 dataL4 = data.frame(
@@ -7693,18 +7703,18 @@ dataL4 = data.frame(
 dataL4$type = forcats::fct_relevel(dataL4$type, c("긴급 시 동행", "주위와 대화", "소통"))
 
 # variable 정렬
-dataL4$variable = forcats::fct_relevel(dataL4$variable,  c("있다", "없다"))
+dataL4$variable = forcats::fct_relevel(dataL4$variable, c("있다", "없다"))
 
-ggplot(dataL4, aes(x = variable, y = value, fill = group, label=round(value,1))) +
-  geom_bar(position = "dodge", stat="identity") +
+ggplot(dataL4, aes(x = variable, y = value, fill = group, label = round(value, 1))) +
+  geom_bar(position = "dodge", stat = "identity") +
   theme(legend.position = "top") +
-  geom_text(aes(group=group),position=position_dodge(width=0.9), size=5,vjust=-0.5,hjust=0.5) +
+  geom_text(aes(group = group), position = position_dodge(width = 0.9), size = 5, vjust = -0.5, hjust = 0.5) +
   ylim(0, 100) +
-  facet_wrap( ~ type, scale="free") +
-  labs(x = "구분", y = "특성", fill="", subtitle = "대상자 특성") + 
-  scale_fill_manual(values=c("#00bfc4", "#f8766d")) +
-  theme(text = element_text(size=18)) + 
-  ggsave(filename = paste(globalVar$figConfig, "Img_023.png", sep="/"), width = 12, height = 8, dpi = 600)
+  facet_wrap(~type, scale = "free") +
+  labs(x = "구분", y = "특성", fill = "", subtitle = "대상자 특성") +
+  scale_fill_manual(values = c("#00bfc4", "#f8766d")) +
+  theme(text = element_text(size = 18)) +
+  ggsave(filename = paste(globalVar$figConfig, "Img_023.png", sep = "/"), width = 12, height = 8, dpi = 600)
 
 
 #===============================================================================================
@@ -7735,60 +7745,60 @@ data = readxl::read_excel(path = fileList, sheet = 1)
 # 성별, 연령, 학력, 소득, 건강상태, 근로환경만족도
 # Q34 (근무형태)
 dataQ34 = data %>%
-  dplyr::select(! c("Q34_1_1", "Q34_1_4_ETC")) %>%
-  dplyr::select(ID, dplyr::contains("Q34"))# %>%
-  # tidyr::gather(-ID, key = "key", value = "val") %>%
-  # dplyr::mutate(
-  #   q34 = dplyr::case_when(
-  #     val == 1 ~ 1
-  #     , val == 2 ~ 0
-  #     , TRUE ~ NA_real_
-  #   )
-  # ) %>%
-  # dplyr::group_by(ID) %>%
-  # dplyr::summarise(sumQ34 = sum(q34, na.rm = TRUE))
-  
+  dplyr::select(!c("Q34_1_1", "Q34_1_4_ETC")) %>%
+  dplyr::select(ID, dplyr::contains("Q34")) # %>%
+# tidyr::gather(-ID, key = "key", value = "val") %>%
+# dplyr::mutate(
+#   q34 = dplyr::case_when(
+#     val == 1 ~ 1
+#     , val == 2 ~ 0
+#     , TRUE ~ NA_real_
+#   )
+# ) %>%
+# dplyr::group_by(ID) %>%
+# dplyr::summarise(sumQ34 = sum(q34, na.rm = TRUE))
+
 # Q57번 (차별)
 tmpDataQ57 = data %>%
-    dplyr::select(ID, dplyr::contains("Q57")) %>%
-    tidyr::gather(-ID, key = "key", value = "val") 
+  dplyr::select(ID, dplyr::contains("Q57")) %>%
+  tidyr::gather(-ID, key = "key", value = "val")
 
 tmpDataQ57$val = replace(tmpDataQ57$val, tmpDataQ57$val == 2, 0)
 
 dataQ57 = tmpDataQ57 %>%
-    dplyr::mutate(
-        q57 = dplyr::case_when(
-            val == 1 ~ 1
-            , val == 2 ~ 0
-            , TRUE ~ NA_real_
-        )
-    ) %>%
-    dplyr::group_by(ID) %>%
-    dplyr::summarise(sumQ57 = sum(q57, na.rm = TRUE))
+  dplyr::mutate(
+    q57 = dplyr::case_when(
+      val == 1 ~ 1
+      , val == 2 ~ 0
+      , TRUE ~ NA_real_
+    )
+  ) %>%
+  dplyr::group_by(ID) %>%
+  dplyr::summarise(sumQ57 = sum(q57, na.rm = TRUE))
 dataL1$Q34_5 = replace(dataL1$Q34_5, dataL1$Q34_5 == 2, 0)
 
 # Q64번 (폭력경험)
 tmpDataQ64 = data %>%
-    dplyr::select(! dplyr::contains("KQ64")) %>%
-    dplyr::select(ID, dplyr::contains("Q64")) %>%
-    tidyr::gather(-ID, key = "key", value = "val") 
+  dplyr::select(!dplyr::contains("KQ64")) %>%
+  dplyr::select(ID, dplyr::contains("Q64")) %>%
+  tidyr::gather(-ID, key = "key", value = "val")
 
 tmpDataQ64$val = replace(tmpDataQ64$val, tmpDataQ64$val == 2, 0)
 
 dataQ64 = tmpDataQ64 %>%
-    dplyr::mutate(
-        q64 = dplyr::case_when(
-            val == 1 ~ 1
-            , val == 2 ~ 0
-            , TRUE ~ NA_real_
-        )
-    ) %>%
-    dplyr::group_by(ID) %>%
-    dplyr::summarise(sumQ64 = sum(q64, na.rm = TRUE))
+  dplyr::mutate(
+    q64 = dplyr::case_when(
+      val == 1 ~ 1
+      , val == 2 ~ 0
+      , TRUE ~ NA_real_
+    )
+  ) %>%
+  dplyr::group_by(ID) %>%
+  dplyr::summarise(sumQ64 = sum(q64, na.rm = TRUE))
 
 
 dataL1 = data %>%
-  dplyr::select(! c("Q34_1_1", "Q34_1_4_ETC")) %>%
+  dplyr::select(!c("Q34_1_1", "Q34_1_4_ETC")) %>%
   dplyr::select(ID, HH02_01_A, HH02_01_B, EF1, EF11, Q60, Q69, dplyr::contains("Q34")) %>%
   dplyr::mutate(
     typeHH02_01_A = dplyr::case_when(
@@ -7806,16 +7816,16 @@ dataL1 = data %>%
       , TRUE ~ "NULL"
     )
     , typeEF1 = dplyr::case_when(
-      # EF1 == 1 ~ "무학 또는 초등학교 졸업 미만"
-      # , EF1 == 2 ~ "초등학교 졸업"
-      EF1 == 1 ~ "NULL"
+    # EF1 == 1 ~ "무학 또는 초등학교 졸업 미만"
+    # , EF1 == 2 ~ "초등학교 졸업"
+    EF1 == 1 ~ "NULL"
       , EF1 == 2 ~ "NULL"
       , EF1 == 3 ~ "중학교 졸업"
       , EF1 == 4 ~ "고등학교 졸업"
       , EF1 == 5 ~ "전문 대학교 졸업"
       , EF1 == 6 ~ "대학교 졸업"
       , EF1 == 7 ~ "대학원 재학 이상"
-      # , EF1 == 9 ~ "거절"
+    # , EF1 == 9 ~ "거절"
       , EF1 == 9 ~ "NULL"
       , TRUE ~ "NULL"
     )
@@ -7853,30 +7863,30 @@ dataL1 = data %>%
       , TRUE ~ "NULL"
     )
     , typeQ34_1 = dplyr::case_when(
-        Q34_1 == 1 ~ "예"
-        , Q34_1 == 2 ~ "아니다"
-        , TRUE ~ "NULL"
+      Q34_1 == 1 ~ "예"
+      , Q34_1 == 2 ~ "아니다"
+      , TRUE ~ "NULL"
     )
-      , typeQ34_2 = dplyr::case_when(
-          Q34_2 == 1 ~ "예"
-          , Q34_2 == 2 ~ "아니다"
-          , TRUE ~ "NULL"
-      )
-      , typeQ34_3 = dplyr::case_when(
-          Q34_3 == 1 ~ "예"
-          , Q34_3 == 2 ~ "아니다"
-          , TRUE ~ "NULL"
-      )
-      , typeQ34_4 = dplyr::case_when(
-          Q34_4 == 1 ~ "예"
-          , Q34_4 == 2 ~ "아니다"
-          , TRUE ~ "NULL"
-      )
-      , typeQ34_5 = dplyr::case_when(
-          Q34_5 == 1 ~ "예"
-          , Q34_5 == 2 ~ "아니다"
-          , TRUE ~ "NULL"
-      )
+    , typeQ34_2 = dplyr::case_when(
+      Q34_2 == 1 ~ "예"
+      , Q34_2 == 2 ~ "아니다"
+      , TRUE ~ "NULL"
+    )
+    , typeQ34_3 = dplyr::case_when(
+      Q34_3 == 1 ~ "예"
+      , Q34_3 == 2 ~ "아니다"
+      , TRUE ~ "NULL"
+    )
+    , typeQ34_4 = dplyr::case_when(
+      Q34_4 == 1 ~ "예"
+      , Q34_4 == 2 ~ "아니다"
+      , TRUE ~ "NULL"
+    )
+    , typeQ34_5 = dplyr::case_when(
+      Q34_5 == 1 ~ "예"
+      , Q34_5 == 2 ~ "아니다"
+      , TRUE ~ "NULL"
+    )
   ) %>%
   # dplyr::left_join(dataQ34, by = c("ID" = "ID")) %>%
   dplyr::left_join(dataQ57, by = c("ID" = "ID")) %>%
@@ -7900,7 +7910,7 @@ set.seed(1)
 ind = sample(1:nrow(dataL1), 1000)
 
 # 해당 인덱스에 따라 자료 할당
-dataL2 = dataL1[ind, ]
+dataL2 = dataL1[ind,]
 
 dplyr::tbl_df(dataL2)
 
@@ -7909,17 +7919,17 @@ dplyr::tbl_df(dataL2)
 #==================================
 # paste(unique(dataL2$typeQ34_1), collapse = ", ")
 
-dataL2$typeHH02_01_A =forcats::fct_relevel(dataL2$typeHH02_01_A, c("남", "여"))
+dataL2$typeHH02_01_A = forcats::fct_relevel(dataL2$typeHH02_01_A, c("남", "여"))
 dataL2$typeAge = forcats::fct_relevel(dataL2$typeAge, c("30세 미만", "30-40세 미만", "40-50세 미만", "50-60세 미만", "60세 이상"))
-dataL2$typeEF1 =forcats::fct_relevel(dataL2$typeEF1, c("중학교 졸업", "고등학교 졸업", "전문 대학교 졸업", "대학교 졸업", "대학원 재학 이상"))
-dataL2$typeEF11 =forcats::fct_relevel(dataL2$typeEF11, c("100만 미만", "100-200만 미만", "200-300만 미만", "300-400만 미만", "400-500만 미만", "500만 이상"))
-dataL2$typeQ60 =forcats::fct_relevel(dataL2$typeQ60, c("매우 좋다", "좋은 편이다", "보통이다", "나쁜 편이다"))
-dataL2$typeQ69 =forcats::fct_relevel(dataL2$typeQ69, c("매우 만족한다", "만족한다", "별로 만족하지 않는다", "전혀 만족하지 않는다"))
-dataL2$typeQ34_1 =forcats::fct_relevel(dataL2$typeQ34_1, c("예", "아니오"))
+dataL2$typeEF1 = forcats::fct_relevel(dataL2$typeEF1, c("중학교 졸업", "고등학교 졸업", "전문 대학교 졸업", "대학교 졸업", "대학원 재학 이상"))
+dataL2$typeEF11 = forcats::fct_relevel(dataL2$typeEF11, c("100만 미만", "100-200만 미만", "200-300만 미만", "300-400만 미만", "400-500만 미만", "500만 이상"))
+dataL2$typeQ60 = forcats::fct_relevel(dataL2$typeQ60, c("매우 좋다", "좋은 편이다", "보통이다", "나쁜 편이다"))
+dataL2$typeQ69 = forcats::fct_relevel(dataL2$typeQ69, c("매우 만족한다", "만족한다", "별로 만족하지 않는다", "전혀 만족하지 않는다"))
+dataL2$typeQ34_1 = forcats::fct_relevel(dataL2$typeQ34_1, c("예", "아니오"))
 dataL2$typeQ34_2 = forcats::fct_relevel(dataL2$typeQ34_2, c("예", "아니오"))
-dataL2$typeQ34_3 =forcats::fct_relevel(dataL2$typeQ34_3, c("예", "아니오"))
-dataL2$typeQ34_4 =forcats::fct_relevel(dataL2$typeQ34_4, c("예", "아니오"))
-dataL2$typeQ34_5 =forcats::fct_relevel(dataL2$typeQ34_5, c("예", "아니오"))
+dataL2$typeQ34_3 = forcats::fct_relevel(dataL2$typeQ34_3, c("예", "아니오"))
+dataL2$typeQ34_4 = forcats::fct_relevel(dataL2$typeQ34_4, c("예", "아니오"))
+dataL2$typeQ34_5 = forcats::fct_relevel(dataL2$typeQ34_5, c("예", "아니오"))
 
 
 dataL2 %>%
@@ -7936,7 +7946,7 @@ dataL2 %>%
   dplyr::mutate(
     ratio = (cnt / sum(cnt, na.rm = TRUE)) * 100
     , label = paste0(cnt, " (", ratio, ")")
-    )
+  )
 
 dataL2 %>%
   dplyr::group_by(typeEF1) %>%
@@ -7974,14 +7984,14 @@ dataL2 %>%
 colList = c("typeQ34_1", "typeQ34_2", "typeQ34_3", "typeQ34_4", "typeQ34_5")
 
 for (i in 1:length(colList)) {
-    dataL2 %>%
-        dplyr::group_by(get(colList[i], dataL2)) %>%
-        dplyr::summarise(cnt = n()) %>%
-        dplyr::mutate(
-            ratio = (cnt / sum(cnt, na.rm = TRUE)) * 100
-            , label = paste0(cnt, " (", ratio, ")")
-        ) %>%
-        dplyr::glimpse()
+  dataL2 %>%
+    dplyr::group_by(get(colList[i], dataL2)) %>%
+    dplyr::summarise(cnt = n()) %>%
+    dplyr::mutate(
+      ratio = (cnt / sum(cnt, na.rm = TRUE)) * 100
+      , label = paste0(cnt, " (", ratio, ")")
+    ) %>%
+    dplyr::glimpse()
 }
 
 
@@ -7989,15 +7999,15 @@ for (i in 1:length(colList)) {
 # Table 2
 #==================================
 dataL2 %>%
-  dplyr::select(! dplyr::contains("type")) %>%
+  dplyr::select(!dplyr::contains("type")) %>%
   dplyr::select(dplyr::contains(c("Q34", "Q57", "Q64"))) %>%
   dplyr::summarise_all(funs(
-      mean(., na.rm = TRUE) # 평균
-      , sd(., na.rm = TRUE) # 표준편차
-      , min(., na.rm = TRUE)
-      , max(., na.rm = TRUE)
-    )) %>%
-    round(2) %>%
+    mean(., na.rm = TRUE) # 평균
+    , sd(., na.rm = TRUE) # 표준편차
+    , min(., na.rm = TRUE)
+    , max(., na.rm = TRUE)
+  )) %>%
+  round(2) %>%
   dplyr::glimpse()
 
 
@@ -8008,10 +8018,10 @@ dataL2 %>%
 typeList = c("typeHH02_01_A", "typeAge", "typeEF1", "typeEF11", "typeQ60", "typeQ69")
 # typeNameList = c("성별", "연령", "학력", "소득", "건강상태", "근로만족도")
 colList = dataL2 %>%
-    dplyr::select(! dplyr::contains("type")) %>%
-    # dplyr::select(dplyr::contains(c("Q34", "Q57", "Q64"))) %>%
-    dplyr::select(dplyr::contains(c("Q34"))) %>%
-    colnames()
+  dplyr::select(!dplyr::contains("type")) %>%
+  # dplyr::select(dplyr::contains(c("Q34", "Q57", "Q64"))) %>%
+  dplyr::select(dplyr::contains(c("Q34"))) %>%
+  colnames()
 
 # colNameList = c("매일 근무시간의 길이가 같다", "매주 근무 일수가 같다", "매주 근무시간대가 같다", "출퇴근 시각이 정해져 있다", "교대 근무를 한다", "연령 차별", "인종, 출신 민족, 피부색에 따른 차별", "국적에 따른 차별", "성차별", "종교에 따른 차별", "장애에 따른 차별", "동성애와 같은 성적 지향에 따른 차별", "학벌에 따른 차별", "출신 지역에 따른 차별", "고용 형태(비정규직 등)에 따른 차별", "언어폭력", "원하지 않는 성적 관심", "위협", "모욕적 행동")
 
@@ -8019,37 +8029,37 @@ dataL3 = data.frame()
 dataL4 = data.frame()
 
 for (i in 1:length(typeList)) {
-    for (j in 1:length(colList)) {
-        
-        rsAov = aov(get(colList[j], dataL2) ~ get(typeList[i], dataL2), data = dataL2) %>%
-            summary %>%
-            unlist()
-        
-        tmpData = tibble(
-            # typeName = typeNameList[i]
-            type = typeList[i]
-            , col = colList[j]
-            # , colName = colNameList[j]
-            , fVal = rsAov[7] %>% round(2)
-            , pVal = rsAov[9] %>% round(2)
-        ) %>%
-        dplyr::mutate(label = paste0(fVal, " (", pVal, ")"))
-        
-        dataL3 = dplyr::bind_rows(dataL3, tmpData)
-    }
-    
-    tmpData2 = dataL2 %>%
-        dplyr::group_by(type = get(typeList[i], dataL2)) %>%
-        dplyr::select(! dplyr::contains("type")) %>%
-        # dplyr::select(dplyr::contains(c("Q34", "Q57", "Q64"))) %>%
-        dplyr::select(dplyr::contains(c("Q34"))) %>%
-        dplyr::summarise_all(funs(
-            mean(., na.rm = TRUE) %>% round(2) # 평균
-            , sd(., na.rm = TRUE) %>% round(2) # 표준편차
-            # , n() # 자료 개수
-        ))
-    
-    dataL4 = dplyr::bind_rows(dataL4, tmpData2)
+  for (j in 1:length(colList)) {
+
+    rsAov = aov(get(colList[j], dataL2) ~ get(typeList[i], dataL2), data = dataL2) %>%
+      summary %>%
+      unlist()
+
+    tmpData = tibble(
+    # typeName = typeNameList[i]
+    type = typeList[i]
+      , col = colList[j]
+    # , colName = colNameList[j]
+      , fVal = rsAov[7] %>% round(2)
+      , pVal = rsAov[9] %>% round(2)
+    ) %>%
+      dplyr::mutate(label = paste0(fVal, " (", pVal, ")"))
+
+    dataL3 = dplyr::bind_rows(dataL3, tmpData)
+  }
+
+  tmpData2 = dataL2 %>%
+    dplyr::group_by(type = get(typeList[i], dataL2)) %>%
+    dplyr::select(!dplyr::contains("type")) %>%
+    # dplyr::select(dplyr::contains(c("Q34", "Q57", "Q64"))) %>%
+    dplyr::select(dplyr::contains(c("Q34"))) %>%
+    dplyr::summarise_all(funs(
+      mean(., na.rm = TRUE) %>% round(2) # 평균
+      , sd(., na.rm = TRUE) %>% round(2) # 표준편차
+      # , n() # 자료 개수
+    ))
+
+  dataL4 = dplyr::bind_rows(dataL4, tmpData2)
 }
 
 xlsx::write.xlsx2(dataL3, file = paste0(globalVar$outConfig, "/Survery.xlsx"), sheetName = "dataL3_3", append = TRUE, row.names = FALSE, col.names = TRUE)
@@ -8153,23 +8163,23 @@ colList2 = c("sumQ57", "sumQ64")
 dataL5 = data.frame()
 
 for (j in 1:length(colList2)) {
-    for (i in 1:length(colList)) {
-        corTest = cor.test(get(colList[i], dataL2), get(colList2[j], dataL2))
-        
-        tmpData = tibble(
-            colI = colList[i]
-            , colJ = colList2[j]
-            # , colNameI = colNameList[i]
-            # , colNameJ = colNameList[j]
-            , corVal = corTest$estimate %>% round(2)
-            , pVal = corTest$p.value %>% round(2)
-        ) %>%
-        dplyr::mutate(
-            label = paste0(corVal, " (", pVal, ")")
-        )
-        
-        dataL5 = dplyr::bind_rows(dataL5, tmpData)
-    }
+  for (i in 1:length(colList)) {
+    corTest = cor.test(get(colList[i], dataL2), get(colList2[j], dataL2))
+
+    tmpData = tibble(
+      colI = colList[i]
+      , colJ = colList2[j]
+      # , colNameI = colNameList[i]
+      # , colNameJ = colNameList[j]
+      , corVal = corTest$estimate %>% round(2)
+      , pVal = corTest$p.value %>% round(2)
+    ) %>%
+      dplyr::mutate(
+        label = paste0(corVal, " (", pVal, ")")
+      )
+
+    dataL5 = dplyr::bind_rows(dataL5, tmpData)
+  }
 }
 
 xlsx::write.xlsx2(dataL5, file = paste0(globalVar$outConfig, "/Survery.xlsx"), sheetName = "dataL5", append = TRUE, row.names = FALSE, col.names = TRUE)
@@ -8195,14 +8205,14 @@ library(scales)
 data = data.frame(
   year = seq(1986, 2019)
   , paperCnt = c(18, 8, 36, 49, 65, 59, 64, 59, 63, 61, 59, 57, 57, 63, 66, 69, 71, 85, 74, 79, 83, 84, 85, 94, 99, 113, 129, 135, 137, 143, 173, 182, 173, 169)
-  , v1 = c(433,	836,	880,	882,	1090,	1117,	1016,	990,	1011,	1056,	1019,	1139,	988,	772,	1103,	1182,	1179,	1190,	1136,	1295,	1169,	1177,	1605,	1249,	1249,	1643,	1406,	1853,	1578,	1599,	2639,	1793,	1548,	1638)
-  , v2 = c(647,	586,	1315,	937,	1805,	1076,	1108,	1047,	1317,	1898,	2148,	1658,	1729,	1700,	1118,	1656,	1214,	1212,	1319,	1324,	1585,	1426,	1429,	1466,	1466,	1290,	2078,	1918,	1025,	1244,	2983,	2102,	1720,	1808)
-  , v3 = c(280,	177,	484,	229,	407,	543,	1081,	450,	677,	749,	752,	1423,	1108,	951,	1033,	732,	669,	1003,	988,	506,	926,	742,	610,	1010,	1010,	1476,	1787,	1722,	1176,	1135,	2452,	1870,	1268,	1107)
+  , v1 = c(433, 836, 880, 882, 1090, 1117, 1016, 990, 1011, 1056, 1019, 1139, 988, 772, 1103, 1182, 1179, 1190, 1136, 1295, 1169, 1177, 1605, 1249, 1249, 1643, 1406, 1853, 1578, 1599, 2639, 1793, 1548, 1638)
+  , v2 = c(647, 586, 1315, 937, 1805, 1076, 1108, 1047, 1317, 1898, 2148, 1658, 1729, 1700, 1118, 1656, 1214, 1212, 1319, 1324, 1585, 1426, 1429, 1466, 1466, 1290, 2078, 1918, 1025, 1244, 2983, 2102, 1720, 1808)
+  , v3 = c(280, 177, 484, 229, 407, 543, 1081, 450, 677, 749, 752, 1423, 1108, 951, 1033, 732, 669, 1003, 988, 506, 926, 742, 610, 1010, 1010, 1476, 1787, 1722, 1176, 1135, 2452, 1870, 1268, 1107)
   # , gdpNor = c(rep(NA, 14), 18928, 20223, 21277, 21887, 23707, 24735, 24358, 24758, 27241, 28484, 29880, 32228, 33212, 33614, 33949, 34137, 36103, 36382, 35671, NA)
-  , gdpNor = c(rep(NA, 4), 16354.1,	16737.0,	16415.9,	16406.3,	16997.7,	17132.0,	17222.0,	16784.4,	17538.6,	18688.1, 18927.5,	20222.8,	21276.7,	21887.4,	23707.0,	24734.8, 24357.9, 24757.6,	27241.2,	28483.5,	29879.9,	32227.8,	33211.9,	33614.2,	33949.4,	34136.7,	36103.3,	36381.8,	35670.5,	35278.6)
+  , gdpNor = c(rep(NA, 4), 16354.1, 16737.0, 16415.9, 16406.3, 16997.7, 17132.0, 17222.0, 16784.4, 17538.6, 18688.1, 18927.5, 20222.8, 21276.7, 21887.4, 23707.0, 24734.8, 24357.9, 24757.6, 27241.2, 28483.5, 29879.9, 32227.8, 33211.9, 33614.2, 33949.4, 34136.7, 36103.3, 36381.8, 35670.5, 35278.6)
   , gdpSou = c(rep(NA, 14), 651634, 707021, 784741, 837365, 908439, 957448, 1005602, 1089660, 1154217, 1205348, 1322611, 1388937, 1440111, 1500819, 1562929, 1658020, 1740780, 1835698, 1893497, NA)
   # , gdpRatNor = c(rep(NA, 14), 0.4, 3.8, 1.2, 1.8, 2.1, 3.8, -1.0, -1.2, 3.1, -0.9, -0.5, 0.8, 1.3, 1.1, 1.0, -1.1, 3.9, -3.5, -4.1, NA)
-  , gdpRatNor = c(rep(NA, 4), -4.3,	-4.4,	-7.1,	-4.5,	-2.1,	-4.4,	-3.4,	-6.5,	-0.9,	6.1,	0.4,	3.8,	1.2,	1.8,	2.1,	3.8,	-1.0,	-1.2,	3.1,	-0.9,	-0.5,	0.8,	1.3,	1.1,	1.0,	-1.1,	3.9,	-3.5,	-4.1,	0.4)
+  , gdpRatNor = c(rep(NA, 4), -4.3, -4.4, -7.1, -4.5, -2.1, -4.4, -3.4, -6.5, -0.9, 6.1, 0.4, 3.8, 1.2, 1.8, 2.1, 3.8, -1.0, -1.2, 3.1, -0.9, -0.5, 0.8, 1.3, 1.1, 1.0, -1.1, 3.9, -3.5, -4.1, 0.4)
   , gdpRatSou = c(rep(NA, 14), 0.0, 4.9, 7.7, 3.1, 5.2, 4.3, 5.3, 5.8, 3.0, 0.8, 6.8, 3.7, 2.4, 3.2, 3.2, 2.8, 2.9, 3.2, 2.7, NA)
 )
 
@@ -8222,29 +8232,27 @@ ggData = dataL1 %>%
     "토픽1 (기업화)" = var1
     , "토픽2 (민영화)" = var2
     , "토픽3 (자유화)" = var3
-    ) %>%
+  ) %>%
   tidyr::gather(-dtDate, key = "key", value = "val")
 
-ggplot(ggData, aes(x = dtDate, y = val, color = key, label=round(val, 0))) +
+ggplot(ggData, aes(x = dtDate, y = val, color = key, label = round(val, 0))) +
   geom_line(size = 2) +
-  scale_x_date(labels = date_format("%y"), date_breaks = "1 years", limits = c(as.Date("1985-01-01"), as.Date("2019-01-01")), date_minor_breaks = "1 years") + 
+  scale_x_date(labels = date_format("%y"), date_breaks = "1 years", limits = c(as.Date("1985-01-01"), as.Date("2019-01-01")), date_minor_breaks = "1 years") +
   ylim(0, 105) +
-  labs(x = "년도", y = "토픽 지수", color="", subtitle = "시계열 LDA-토픽모델링 분석 결과") + 
-  theme(text = element_text(size=18))  + 
-  ggsave(filename = paste(globalVar$figConfig, "Img_031.png", sep="/"), width = 12, height = 8, dpi = 600)
+  labs(x = "년도", y = "토픽 지수", color = "", subtitle = "시계열 LDA-토픽모델링 분석 결과") +
+  theme(text = element_text(size = 18)) +
+  ggsave(filename = paste(globalVar$figConfig, "Img_031.png", sep = "/"), width = 12, height = 8, dpi = 600)
 
 
-
-ggplot(ggData, aes(x = dtDate, y = val, fill = key, label=round(val, 0))) +
-  geom_bar(position = "dodge", stat="identity") +
+ggplot(ggData, aes(x = dtDate, y = val, fill = key, label = round(val, 0))) +
+  geom_bar(position = "dodge", stat = "identity") +
   theme(legend.position = "top") +
-  geom_text(aes(group=key),position=position_dodge(width=0.9), size=5,vjust=-0.5,hjust=0.5) +
+  geom_text(aes(group = key), position = position_dodge(width = 0.9), size = 5, vjust = -0.5, hjust = 0.5) +
   ylim(0, 105) +
-  facet_wrap( ~ key, scale="free") +
-  labs(x = "", y = "", fill="", subtitle = "") + 
-  theme(text = element_text(size=18)) + 
-  ggsave(filename = paste(globalVar$figConfig, "Img_030.png", sep="/"), width = 12, height = 8, dpi = 600)
-
+  facet_wrap(~key, scale = "free") +
+  labs(x = "", y = "", fill = "", subtitle = "") +
+  theme(text = element_text(size = 18)) +
+  ggsave(filename = paste(globalVar$figConfig, "Img_030.png", sep = "/"), width = 12, height = 8, dpi = 600)
 
 
 # Table 3.4
@@ -8268,10 +8276,10 @@ dataL1 %>%
   round(2)
 
 dataL1 %>%
-    dplyr::select(v1, v2, v3, gdpNor, gdpRatNor) %>%
-    na.omit() %>%
-    cor() %>%
-    round(2)
+  dplyr::select(v1, v2, v3, gdpNor, gdpRatNor) %>%
+  na.omit() %>%
+  cor() %>%
+  round(2)
 
 
 xlsx::write.xlsx2(dataL1, file = paste0(globalVar$outConfig, "/Gdp_Rat.xlsx"), sheetName = "RAW", append = TRUE, row.names = FALSE, col.names = TRUE)
@@ -8294,7 +8302,9 @@ lm(gdpNor ~ scaleVar2, data = dataL2) %>% summary()
 lm(gdpNor ~ scaleVar3, data = dataL2) %>% summary()
 
 
-lmFit = lm(gdpNor ~ scaleVar1*scaleVar2 + scaleVar1*scaleVar3 + scaleVar2*scaleVar3, data = dataL2)
+lmFit = lm(gdpNor ~ scaleVar1 * scaleVar2 +
+  scaleVar1 * scaleVar3 +
+  scaleVar2 * scaleVar3, data = dataL2)
 # lmFit = lm(gdpNor ~ scaleVar1 + scaleVar2 + scaleVar3 + scaleVar1*scaleVar2 + scaleVar1*scaleVar3 + scaleVar2*scaleVar3, data = dataL2)
 summary(lmFit)
 MASS::stepAIC(lmFit, direction = "both") %>% summary()
@@ -8319,7 +8329,9 @@ lm(gdpRatNor ~ scaleVar2, data = dataL2) %>% summary()
 lm(gdpRatNor ~ scaleVar3, data = dataL2) %>% summary()
 
 # lmFit = lm(gdpRatNor ~ scaleVar1 + scaleVar2 + scaleVar3 + scaleVar1*scaleVar2 + scaleVar1*scaleVar3 + scaleVar2*scaleVar3, data = dataL2)
-lmFit = lm(gdpRatNor ~ scaleVar1*scaleVar2 + scaleVar1*scaleVar3 + scaleVar2*scaleVar3, data = dataL2)
+lmFit = lm(gdpRatNor ~ scaleVar1 * scaleVar2 +
+  scaleVar1 * scaleVar3 +
+  scaleVar2 * scaleVar3, data = dataL2)
 summary(lmFit)
 MASS::stepAIC(lmFit, direction = "both") %>% summary()
 stepFitGdpRat = MASS::stepAIC(lmFit, direction = "both")
@@ -8340,7 +8352,7 @@ ggData = dataL2 %>%
   dplyr::mutate(
     stepFitGdp = predict(stepFitGdp)
     , stepFitGdpRat = predict(stepFitGdpRat)
-    ) %>%
+  ) %>%
   dplyr::select(dtDate, gdpNor, stepFitGdp) %>%
   dplyr::rename(
     "GDP (북한)" = gdpNor
@@ -8348,12 +8360,12 @@ ggData = dataL2 %>%
   ) %>%
   tidyr::gather(-dtDate, key = "key", value = "val")
 
-ggplot(ggData, aes(x = dtDate, y = val, color = key, label=round(val, 0))) +
+ggplot(ggData, aes(x = dtDate, y = val, color = key, label = round(val, 0))) +
   geom_line(size = 2) +
-  scale_x_date(labels = date_format("%y"), date_breaks = "1 years", limits = c(as.Date("1990-01-01"), as.Date("2018-01-01")), date_minor_breaks = "1 years") + 
-  labs(x = "년도", y = "GDP", color="", subtitle = "북한 GDP 그래프") + 
-  theme(text = element_text(size=18))  + 
-  ggsave(filename = paste(globalVar$figConfig, "Img_033.png", sep="/"), width = 12, height = 8, dpi = 600)
+  scale_x_date(labels = date_format("%y"), date_breaks = "1 years", limits = c(as.Date("1990-01-01"), as.Date("2018-01-01")), date_minor_breaks = "1 years") +
+  labs(x = "년도", y = "GDP", color = "", subtitle = "북한 GDP 그래프") +
+  theme(text = element_text(size = 18)) +
+  ggsave(filename = paste(globalVar$figConfig, "Img_033.png", sep = "/"), width = 12, height = 8, dpi = 600)
 
 
 ggData = dataL2 %>%
@@ -8368,12 +8380,12 @@ ggData = dataL2 %>%
   ) %>%
   tidyr::gather(-dtDate, key = "key", value = "val")
 
-ggplot(ggData, aes(x = dtDate, y = val, color = key, label=round(val, 0))) +
+ggplot(ggData, aes(x = dtDate, y = val, color = key, label = round(val, 0))) +
   geom_line(size = 2) +
-  scale_x_date(labels = date_format("%y"), date_breaks = "1 years", limits = c(as.Date("1990-01-01"), as.Date("2018-01-01")), date_minor_breaks = "1 years") + 
-  labs(x = "년도", y = "경제 성장률", color="", subtitle = "북한 경제 성장률 그래프") + 
-  theme(text = element_text(size=18))  + 
-  ggsave(filename = paste(globalVar$figConfig, "Img_034.png", sep="/"), width = 12, height = 8, dpi = 600)
+  scale_x_date(labels = date_format("%y"), date_breaks = "1 years", limits = c(as.Date("1990-01-01"), as.Date("2018-01-01")), date_minor_breaks = "1 years") +
+  labs(x = "년도", y = "경제 성장률", color = "", subtitle = "북한 경제 성장률 그래프") +
+  theme(text = element_text(size = 18)) +
+  ggsave(filename = paste(globalVar$figConfig, "Img_034.png", sep = "/"), width = 12, height = 8, dpi = 600)
 
 xlsx::write.xlsx2(ggData, file = paste0(globalVar$outConfig, "/Gdp_Rat.xlsx"), sheetName = "L5", append = TRUE, row.names = FALSE, col.names = TRUE)
 
@@ -8417,12 +8429,12 @@ ggData = data %>%
 ggData$manufacturer = forcats::fct_relevel(ggData$manufacturer, ggData$manufacturer)
 
 ggplot(ggData, aes(x = manufacturer, y = meanCty, fill = manufacturer)) +
-  geom_bar(position = "dodge", stat="identity") +
+  geom_bar(position = "dodge", stat = "identity") +
   geom_text(aes(label = round(meanCty, 2)), vjust = 1.6, color = "white", size = 4) +
-  labs(x = "제조업체", y = "도시 연비", fill="", subtitle = "자동차 제조업체에 따른 도시 연비 그래프") + 
-  theme(text = element_text(size=18)) + 
+  labs(x = "제조업체", y = "도시 연비", fill = "", subtitle = "자동차 제조업체에 따른 도시 연비 그래프") +
+  theme(text = element_text(size = 18)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  ggsave(filename = paste(globalVar$figConfig, "Img_035.png", sep="/"), width = 12, height = 8, dpi = 600)
+  ggsave(filename = paste(globalVar$figConfig, "Img_035.png", sep = "/"), width = 12, height = 8, dpi = 600)
 
 summary(ggData)
 
@@ -8462,13 +8474,13 @@ ggscatter(dataL3, x = "meanCty", y = "meanHwy", color = "black", add = "reg.line
   annotate("text", x = 10, y = 33, size = 5, label = sprintf("R = %s (P < %.3f)", corVal, pVal), hjust = 0) +
   annotate("text", x = 10, y = 31, size = 5, label = sprintf("Bias = %s", biasVal), hjust = 0) +
   annotate("text", x = 10, y = 29, size = 5, label = sprintf("RMSE = %s", rmseVal), hjust = 0) +
-  xlim(10, 35) + 
+  xlim(10, 35) +
   ylim(10, 35) +
   theme_bw() +
   labs(title = "", x = "도시 연비", y = "고속도로 연비", subtitle = "도시 연비와 고속도로 연비의 산점도") +
   coord_equal() +
-  theme(text = element_text(size=18)) + 
-  ggsave(filename = paste(globalVar$figConfig, "Img_036.png", sep="/"), width = 6, height = 6, dpi = 600)
+  theme(text = element_text(size = 18)) +
+  ggsave(filename = paste(globalVar$figConfig, "Img_036.png", sep = "/"), width = 6, height = 6, dpi = 600)
 
 
 #===============================================================================================
@@ -8498,21 +8510,21 @@ data = data.frame(
 ggData = data %>%
   dplyr::mutate(
     key4 = key3 / 1000000
-  ) 
+  )
 
 dataL1 = data %>%
   dplyr::arrange(key4)
- 
+
 ggData$key1 = forcats::fct_relevel(ggData$key1, dataL1$key1)
 
 ggplot(ggData, aes(x = key1, y = key4, fill = key2)) +
-  geom_bar(position = "dodge", stat="identity") +
+  geom_bar(position = "dodge", stat = "identity") +
   geom_text(aes(label = round(key2, 2)), vjust = 1.6, color = "white", size = 6) +
-  labs(x = "", y = "수수료 [단위 : 백만원]", fill="판매수", subtitle = "이름에 따른 수수료 그래프") + 
-  theme(text = element_text(size=18)) + 
+  labs(x = "", y = "수수료 [단위 : 백만원]", fill = "판매수", subtitle = "이름에 따른 수수료 그래프") +
+  theme(text = element_text(size = 18)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  scale_fill_viridis(direction = -1) + 
-  ggsave(filename = paste(globalVar$figConfig, "Img_036.png", sep="/"), width = 12, height = 8, dpi = 600)
+  scale_fill_viridis(direction = -1) +
+  ggsave(filename = paste(globalVar$figConfig, "Img_036.png", sep = "/"), width = 12, height = 8, dpi = 600)
 
 
 #===============================================================================================
@@ -8541,134 +8553,134 @@ dplyr::tbl_df(data)
 # 성별
 #==========================================
 dataL1 = dplyr::bind_rows(
-    data.frame(table(data$SEX_NM, data$INTRST_FASHN_AT), type =  "패션주목")
-    , data.frame(table(data$SEX_NM, data$INTRST_PC_AT), type = "가격주목")
-    , data.frame(table(data$SEX_NM, data$INTRST_HEALTH_AT), type = "건강주목")
-    , data.frame(table(data$SEX_NM, data$INTRST_WDOMOUTH_AT), type = "입소문주목")
-    , data.frame(table(data$SEX_NM, data$INTRST_QLITY_AT), type = "품질주목")
-    , data.frame(table(data$SEX_NM, data$INTRST_SAFE_AT), type = "안전주목")
-    , data.frame(table(data$SEX_NM, data$INTRST_EXPRN_AT), type = "체험주목")
-    , data.frame(table(data$SEX_NM, data$INTRST_BRAND_AT), type = "브랜드주목")
+  data.frame(table(data$SEX_NM, data$INTRST_FASHN_AT), type = "패션주목")
+  , data.frame(table(data$SEX_NM, data$INTRST_PC_AT), type = "가격주목")
+  , data.frame(table(data$SEX_NM, data$INTRST_HEALTH_AT), type = "건강주목")
+  , data.frame(table(data$SEX_NM, data$INTRST_WDOMOUTH_AT), type = "입소문주목")
+  , data.frame(table(data$SEX_NM, data$INTRST_QLITY_AT), type = "품질주목")
+  , data.frame(table(data$SEX_NM, data$INTRST_SAFE_AT), type = "안전주목")
+  , data.frame(table(data$SEX_NM, data$INTRST_EXPRN_AT), type = "체험주목")
+  , data.frame(table(data$SEX_NM, data$INTRST_BRAND_AT), type = "브랜드주목")
 )
-    
+
 dataL2 = dataL1 %>%
-    dplyr::group_by(type, Var1) %>%
-    dplyr::summarise(cnt = sum(Freq, na.rm = TRUE))
+  dplyr::group_by(type, Var1) %>%
+  dplyr::summarise(cnt = sum(Freq, na.rm = TRUE))
 
 dataL3 = dataL1 %>%
-    dplyr::left_join(dataL2, by = c("type" = "type", "Var1" = "Var1")) %>%
-    dplyr::mutate(
-        val = (Freq / cnt) *  100.0
-        , isYn = dplyr::case_when(
-            Var2 == "Y" ~ "있다"
-            , Var2 == "N" ~ "없다"
-            , TRUE ~ "NULL"
-        ) 
-    )%>%
-    dplyr::rename(
-        "key" = Var1
+  dplyr::left_join(dataL2, by = c("type" = "type", "Var1" = "Var1")) %>%
+  dplyr::mutate(
+    val = (Freq / cnt) * 100.0
+    , isYn = dplyr::case_when(
+      Var2 == "Y" ~ "있다"
+      , Var2 == "N" ~ "없다"
+      , TRUE ~ "NULL"
     )
+  ) %>%
+  dplyr::rename(
+    "key" = Var1
+  )
 
-ggplot(dataL3, aes(x = key, y = val, fill = isYn, label=round(val, 1))) +
-    geom_bar(position = "dodge", stat="identity") +
-    theme(legend.position = "top") +
-    geom_text(aes(group=isYn), position=position_dodge(width=0.9), size=5, vjust=1.6, hjust=0.5, color = "white") +
-    ylim(0, 100) +
-    facet_wrap( ~ type, scale="free") +
-    labs(x = "성별", y = "비율", fill="", subtitle = "") + 
-    theme(text = element_text(size=18)) + 
-    ggsave(filename = paste(globalVar$figConfig, "Img_040.png", sep="/"), width = 15, height = 10, dpi = 600)
+ggplot(dataL3, aes(x = key, y = val, fill = isYn, label = round(val, 1))) +
+  geom_bar(position = "dodge", stat = "identity") +
+  theme(legend.position = "top") +
+  geom_text(aes(group = isYn), position = position_dodge(width = 0.9), size = 5, vjust = 1.6, hjust = 0.5, color = "white") +
+  ylim(0, 100) +
+  facet_wrap(~type, scale = "free") +
+  labs(x = "성별", y = "비율", fill = "", subtitle = "") +
+  theme(text = element_text(size = 18)) +
+  ggsave(filename = paste(globalVar$figConfig, "Img_040.png", sep = "/"), width = 15, height = 10, dpi = 600)
 
 #==========================================
 # 나이
 #==========================================
 dataL1 = dplyr::bind_rows(
-    data.frame(table(data$YEAR_NM, data$INTRST_FASHN_AT), type =  "패션주목")
-    , data.frame(table(data$YEAR_NM, data$INTRST_PC_AT), type = "가격주목")
-    , data.frame(table(data$YEAR_NM, data$INTRST_HEALTH_AT), type = "건강주목")
-    , data.frame(table(data$YEAR_NM, data$INTRST_WDOMOUTH_AT), type = "입소문주목")
-    , data.frame(table(data$YEAR_NM, data$INTRST_QLITY_AT), type = "품질주목")
-    , data.frame(table(data$YEAR_NM, data$INTRST_SAFE_AT), type = "안전주목")
-    , data.frame(table(data$YEAR_NM, data$INTRST_EXPRN_AT), type = "체험주목")
-    , data.frame(table(data$YEAR_NM, data$INTRST_BRAND_AT), type = "브랜드주목")
+  data.frame(table(data$YEAR_NM, data$INTRST_FASHN_AT), type = "패션주목")
+  , data.frame(table(data$YEAR_NM, data$INTRST_PC_AT), type = "가격주목")
+  , data.frame(table(data$YEAR_NM, data$INTRST_HEALTH_AT), type = "건강주목")
+  , data.frame(table(data$YEAR_NM, data$INTRST_WDOMOUTH_AT), type = "입소문주목")
+  , data.frame(table(data$YEAR_NM, data$INTRST_QLITY_AT), type = "품질주목")
+  , data.frame(table(data$YEAR_NM, data$INTRST_SAFE_AT), type = "안전주목")
+  , data.frame(table(data$YEAR_NM, data$INTRST_EXPRN_AT), type = "체험주목")
+  , data.frame(table(data$YEAR_NM, data$INTRST_BRAND_AT), type = "브랜드주목")
 )
 
 dataL2 = dataL1 %>%
-    dplyr::group_by(type, Var1) %>%
-    dplyr::summarise(cnt = sum(Freq, na.rm = TRUE))
+  dplyr::group_by(type, Var1) %>%
+  dplyr::summarise(cnt = sum(Freq, na.rm = TRUE))
 
 dataL3 = dataL1 %>%
-    dplyr::left_join(dataL2, by = c("type" = "type", "Var1" = "Var1")) %>%
-    dplyr::mutate(
-        val = (Freq / cnt) *  100.0
-        , isYn = dplyr::case_when(
-            Var2 == "Y" ~ "있다"
-            , Var2 == "N" ~ "없다"
-            , TRUE ~ "NULL"
-        ) 
-    )%>%
-    dplyr::rename(
-        "key" = Var1
+  dplyr::left_join(dataL2, by = c("type" = "type", "Var1" = "Var1")) %>%
+  dplyr::mutate(
+    val = (Freq / cnt) * 100.0
+    , isYn = dplyr::case_when(
+      Var2 == "Y" ~ "있다"
+      , Var2 == "N" ~ "없다"
+      , TRUE ~ "NULL"
     )
+  ) %>%
+  dplyr::rename(
+    "key" = Var1
+  )
 
-ggplot(dataL3, aes(x = key, y = val, fill = isYn, label=round(val, 0))) +
-    geom_bar(position = "dodge", stat="identity") +
-    theme(legend.position = "top") +
-    geom_text(aes(group=isYn), position=position_dodge(width=0.9), size=5, vjust=1.6, hjust=0.5, color = "white") +
-    ylim(0, 100) +
-    facet_wrap( ~ type, scale="free") +
-    labs(x = "나이", y = "비율", fill="", subtitle = "") + 
-    theme(text = element_text(size=18)) + 
-    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-    ggsave(filename = paste(globalVar$figConfig, "Img_041.png", sep="/"), width = 15, height = 10, dpi = 600)
+ggplot(dataL3, aes(x = key, y = val, fill = isYn, label = round(val, 0))) +
+  geom_bar(position = "dodge", stat = "identity") +
+  theme(legend.position = "top") +
+  geom_text(aes(group = isYn), position = position_dodge(width = 0.9), size = 5, vjust = 1.6, hjust = 0.5, color = "white") +
+  ylim(0, 100) +
+  facet_wrap(~type, scale = "free") +
+  labs(x = "나이", y = "비율", fill = "", subtitle = "") +
+  theme(text = element_text(size = 18)) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  ggsave(filename = paste(globalVar$figConfig, "Img_041.png", sep = "/"), width = 15, height = 10, dpi = 600)
 
 
 #==========================================
 # 혼인상태
 #==========================================
 dataL1 = dplyr::bind_rows(
-    data.frame(table(data$MRRG_NM, data$INTRST_FASHN_AT), type =  "패션주목")
-    , data.frame(table(data$MRRG_NM, data$INTRST_PC_AT), type = "가격주목")
-    , data.frame(table(data$MRRG_NM, data$INTRST_HEALTH_AT), type = "건강주목")
-    , data.frame(table(data$MRRG_NM, data$INTRST_WDOMOUTH_AT), type = "입소문주목")
-    , data.frame(table(data$MRRG_NM, data$INTRST_QLITY_AT), type = "품질주목")
-    , data.frame(table(data$MRRG_NM, data$INTRST_SAFE_AT), type = "안전주목")
-    , data.frame(table(data$MRRG_NM, data$INTRST_EXPRN_AT), type = "체험주목")
-    , data.frame(table(data$MRRG_NM, data$INTRST_BRAND_AT), type = "브랜드주목")
+  data.frame(table(data$MRRG_NM, data$INTRST_FASHN_AT), type = "패션주목")
+  , data.frame(table(data$MRRG_NM, data$INTRST_PC_AT), type = "가격주목")
+  , data.frame(table(data$MRRG_NM, data$INTRST_HEALTH_AT), type = "건강주목")
+  , data.frame(table(data$MRRG_NM, data$INTRST_WDOMOUTH_AT), type = "입소문주목")
+  , data.frame(table(data$MRRG_NM, data$INTRST_QLITY_AT), type = "품질주목")
+  , data.frame(table(data$MRRG_NM, data$INTRST_SAFE_AT), type = "안전주목")
+  , data.frame(table(data$MRRG_NM, data$INTRST_EXPRN_AT), type = "체험주목")
+  , data.frame(table(data$MRRG_NM, data$INTRST_BRAND_AT), type = "브랜드주목")
 )
 
 dataL2 = dataL1 %>%
-    dplyr::group_by(type, Var1) %>%
-    dplyr::summarise(cnt = sum(Freq, na.rm = TRUE))
+  dplyr::group_by(type, Var1) %>%
+  dplyr::summarise(cnt = sum(Freq, na.rm = TRUE))
 
 dataL3 = dataL1 %>%
-    dplyr::left_join(dataL2, by = c("type" = "type", "Var1" = "Var1")) %>%
-    dplyr::mutate(
-        val = (Freq / cnt) *  100.0
-        , isYn = dplyr::case_when(
-            Var2 == "Y" ~ "있다"
-            , Var2 == "N" ~ "없다"
-            , TRUE ~ "NULL"
-        ) 
-    )%>%
-    dplyr::rename(
-        "key" = Var1
+  dplyr::left_join(dataL2, by = c("type" = "type", "Var1" = "Var1")) %>%
+  dplyr::mutate(
+    val = (Freq / cnt) * 100.0
+    , isYn = dplyr::case_when(
+      Var2 == "Y" ~ "있다"
+      , Var2 == "N" ~ "없다"
+      , TRUE ~ "NULL"
     )
+  ) %>%
+  dplyr::rename(
+    "key" = Var1
+  )
 
-ggplot(dataL3, aes(x = type, y = val, fill = isYn, group=isYn, label=round(val, 0))) +
-    geom_bar(position = "dodge", stat="identity") +
-    theme(legend.position = "top") +
-    # geom_text_repel(position=position_dodge(width=0.5), size=5, color = "white") +
-    ylim(0, 100) +
-    labs(x = "혼인상태", y = "비율", fill="", subtitle = "") + 
-    facet_wrap( ~ key) +
-    coord_polar() +
-    theme_bw() +
-    theme(
-        axis.text.x = element_text(face = "bold")
-        , text = element_text(size=18)
-    ) +
-    ggsave(filename = paste(globalVar$figConfig, "Img_042.png", sep="/"), width = 15, height = 8, dpi = 600)
+ggplot(dataL3, aes(x = type, y = val, fill = isYn, group = isYn, label = round(val, 0))) +
+  geom_bar(position = "dodge", stat = "identity") +
+  theme(legend.position = "top") +
+  # geom_text_repel(position=position_dodge(width=0.5), size=5, color = "white") +
+  ylim(0, 100) +
+  labs(x = "혼인상태", y = "비율", fill = "", subtitle = "") +
+  facet_wrap(~key) +
+  coord_polar() +
+  theme_bw() +
+  theme(
+    axis.text.x = element_text(face = "bold")
+    , text = element_text(size = 18)
+  ) +
+  ggsave(filename = paste(globalVar$figConfig, "Img_042.png", sep = "/"), width = 15, height = 8, dpi = 600)
 
 # ggplot(dataL3, aes(x = key, y = val, fill = isYn, label=round(val, 0))) +
 #     geom_bar(position = "dodge", stat="identity") +
@@ -8682,109 +8694,106 @@ ggplot(dataL3, aes(x = type, y = val, fill = isYn, group=isYn, label=round(val, 
 #     ggsave(filename = paste(globalVar$figConfig, "Img_042.png", sep="/"), width = 15, height = 10, dpi = 600)
 
 
-
-
 #==========================================
 # 가정상태
 #==========================================
 dataL1 = dplyr::bind_rows(
-    data.frame(table(data$CHLDRN_NM, data$INTRST_FASHN_AT), type =  "패션주목")
-    , data.frame(table(data$CHLDRN_NM, data$INTRST_PC_AT), type = "가격주목")
-    , data.frame(table(data$CHLDRN_NM, data$INTRST_HEALTH_AT), type = "건강주목")
-    , data.frame(table(data$CHLDRN_NM, data$INTRST_WDOMOUTH_AT), type = "입소문주목")
-    , data.frame(table(data$CHLDRN_NM, data$INTRST_QLITY_AT), type = "품질주목")
-    , data.frame(table(data$CHLDRN_NM, data$INTRST_SAFE_AT), type = "안전주목")
-    , data.frame(table(data$CHLDRN_NM, data$INTRST_EXPRN_AT), type = "체험주목")
-    , data.frame(table(data$CHLDRN_NM, data$INTRST_BRAND_AT), type = "브랜드주목")
+  data.frame(table(data$CHLDRN_NM, data$INTRST_FASHN_AT), type = "패션주목")
+  , data.frame(table(data$CHLDRN_NM, data$INTRST_PC_AT), type = "가격주목")
+  , data.frame(table(data$CHLDRN_NM, data$INTRST_HEALTH_AT), type = "건강주목")
+  , data.frame(table(data$CHLDRN_NM, data$INTRST_WDOMOUTH_AT), type = "입소문주목")
+  , data.frame(table(data$CHLDRN_NM, data$INTRST_QLITY_AT), type = "품질주목")
+  , data.frame(table(data$CHLDRN_NM, data$INTRST_SAFE_AT), type = "안전주목")
+  , data.frame(table(data$CHLDRN_NM, data$INTRST_EXPRN_AT), type = "체험주목")
+  , data.frame(table(data$CHLDRN_NM, data$INTRST_BRAND_AT), type = "브랜드주목")
 )
 
 dataL2 = dataL1 %>%
-    dplyr::group_by(type, Var1) %>%
-    dplyr::summarise(cnt = sum(Freq, na.rm = TRUE))
+  dplyr::group_by(type, Var1) %>%
+  dplyr::summarise(cnt = sum(Freq, na.rm = TRUE))
 
 dataL3 = dataL1 %>%
-    dplyr::left_join(dataL2, by = c("type" = "type", "Var1" = "Var1")) %>%
-    dplyr::mutate(
-        val = (Freq / cnt) *  100.0
-        , isYn = dplyr::case_when(
-            Var2 == "Y" ~ "있다"
-            , Var2 == "N" ~ "없다"
-            , TRUE ~ "NULL"
-        ) 
-    )%>%
-    dplyr::rename(
-        "key" = Var1
+  dplyr::left_join(dataL2, by = c("type" = "type", "Var1" = "Var1")) %>%
+  dplyr::mutate(
+    val = (Freq / cnt) * 100.0
+    , isYn = dplyr::case_when(
+      Var2 == "Y" ~ "있다"
+      , Var2 == "N" ~ "없다"
+      , TRUE ~ "NULL"
     )
+  ) %>%
+  dplyr::rename(
+    "key" = Var1
+  )
 
-ggplot(dataL3, aes(x = key, y = val, fill = isYn, label=round(val, 0))) +
-    geom_bar(position = "dodge", stat="identity") +
-    theme(legend.position = "top") +
-    geom_text(aes(group=isYn), position=position_dodge(width=0.9), size=5, vjust=1.6, hjust=0.5, color = "white") +
-    ylim(0, 100) +
-    facet_wrap( ~ type, scale="free") +
-    labs(x = "가정상태", y = "비율", fill="", subtitle = "") + 
-    theme(text = element_text(size=18)) + 
-    # theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-    ggsave(filename = paste(globalVar$figConfig, "Img_043.png", sep="/"), width = 15, height = 10, dpi = 600)
-
+ggplot(dataL3, aes(x = key, y = val, fill = isYn, label = round(val, 0))) +
+  geom_bar(position = "dodge", stat = "identity") +
+  theme(legend.position = "top") +
+  geom_text(aes(group = isYn), position = position_dodge(width = 0.9), size = 5, vjust = 1.6, hjust = 0.5, color = "white") +
+  ylim(0, 100) +
+  facet_wrap(~type, scale = "free") +
+  labs(x = "가정상태", y = "비율", fill = "", subtitle = "") +
+  theme(text = element_text(size = 18)) +
+  # theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  ggsave(filename = paste(globalVar$figConfig, "Img_043.png", sep = "/"), width = 15, height = 10, dpi = 600)
 
 
 #==========================================
 # 자산지수
 #==========================================
 dataL1 = dplyr::bind_rows(
-    data.frame(table(data$ASSETS_IDEX_NM, data$INTRST_FASHN_AT), type =  "패션주목")
-    , data.frame(table(data$ASSETS_IDEX_NM, data$INTRST_PC_AT), type = "가격주목")
-    , data.frame(table(data$ASSETS_IDEX_NM, data$INTRST_HEALTH_AT), type = "건강주목")
-    , data.frame(table(data$ASSETS_IDEX_NM, data$INTRST_WDOMOUTH_AT), type = "입소문주목")
-    , data.frame(table(data$ASSETS_IDEX_NM, data$INTRST_QLITY_AT), type = "품질주목")
-    , data.frame(table(data$ASSETS_IDEX_NM, data$INTRST_SAFE_AT), type = "안전주목")
-    , data.frame(table(data$ASSETS_IDEX_NM, data$INTRST_EXPRN_AT), type = "체험주목")
-    , data.frame(table(data$ASSETS_IDEX_NM, data$INTRST_BRAND_AT), type = "브랜드주목")
+  data.frame(table(data$ASSETS_IDEX_NM, data$INTRST_FASHN_AT), type = "패션주목")
+  , data.frame(table(data$ASSETS_IDEX_NM, data$INTRST_PC_AT), type = "가격주목")
+  , data.frame(table(data$ASSETS_IDEX_NM, data$INTRST_HEALTH_AT), type = "건강주목")
+  , data.frame(table(data$ASSETS_IDEX_NM, data$INTRST_WDOMOUTH_AT), type = "입소문주목")
+  , data.frame(table(data$ASSETS_IDEX_NM, data$INTRST_QLITY_AT), type = "품질주목")
+  , data.frame(table(data$ASSETS_IDEX_NM, data$INTRST_SAFE_AT), type = "안전주목")
+  , data.frame(table(data$ASSETS_IDEX_NM, data$INTRST_EXPRN_AT), type = "체험주목")
+  , data.frame(table(data$ASSETS_IDEX_NM, data$INTRST_BRAND_AT), type = "브랜드주목")
 )
 
 dataL2 = dataL1 %>%
-    dplyr::group_by(type, Var1) %>%
-    dplyr::summarise(cnt = sum(Freq, na.rm = TRUE))
+  dplyr::group_by(type, Var1) %>%
+  dplyr::summarise(cnt = sum(Freq, na.rm = TRUE))
 
 dataL3 = dataL1 %>%
-    dplyr::left_join(dataL2, by = c("type" = "type", "Var1" = "Var1")) %>%
-    dplyr::mutate(
-        val = (Freq / cnt) *  100.0
-        , isYn = dplyr::case_when(
-            Var2 == "Y" ~ "있다"
-            , Var2 == "N" ~ "없다"
-            , TRUE ~ "NULL"
-        ) 
-    )%>%
-    dplyr::rename(
-        "key" = Var1
+  dplyr::left_join(dataL2, by = c("type" = "type", "Var1" = "Var1")) %>%
+  dplyr::mutate(
+    val = (Freq / cnt) * 100.0
+    , isYn = dplyr::case_when(
+      Var2 == "Y" ~ "있다"
+      , Var2 == "N" ~ "없다"
+      , TRUE ~ "NULL"
     )
+  ) %>%
+  dplyr::rename(
+    "key" = Var1
+  )
 
-ggplot(dataL3, aes(x = type, y = val, fill = isYn, group=isYn, label=round(val, 0))) +
-    geom_bar(position = "dodge", stat="identity") +
-    theme(legend.position = "top") +
-    # geom_text_repel(position=position_dodge(width=0.5), size=5, color = "white") +
-    ylim(0, 100) +
-    labs(x = "자산지수", y = "비율", fill="", subtitle = "") + 
-    facet_wrap( ~ key) +
-    coord_polar() +
-    theme_bw() +
-    theme(
-        axis.text.x = element_text(face = "bold")
-        , text = element_text(size=18)
-    ) +
-    ggsave(filename = paste(globalVar$figConfig, "Img_044.png", sep="/"), width = 15, height = 8, dpi = 600)
+ggplot(dataL3, aes(x = type, y = val, fill = isYn, group = isYn, label = round(val, 0))) +
+  geom_bar(position = "dodge", stat = "identity") +
+  theme(legend.position = "top") +
+  # geom_text_repel(position=position_dodge(width=0.5), size=5, color = "white") +
+  ylim(0, 100) +
+  labs(x = "자산지수", y = "비율", fill = "", subtitle = "") +
+  facet_wrap(~key) +
+  coord_polar() +
+  theme_bw() +
+  theme(
+    axis.text.x = element_text(face = "bold")
+    , text = element_text(size = 18)
+  ) +
+  ggsave(filename = paste(globalVar$figConfig, "Img_044.png", sep = "/"), width = 15, height = 8, dpi = 600)
 
-    # ggplot(dataL3, aes(x = key, y = val, fill = isYn, label=round(val, 0))) +
-    #     geom_bar(position = "dodge", stat="identity") +
-    #     theme(legend.position = "top") +
-    #     geom_text(aes(group=isYn), position=position_dodge(width=0.9), size=5, vjust=1.6, hjust=0.5, color = "white") +
-    #     ylim(0, 100) +
-    #     facet_wrap( ~ type, scale ="free") +
-    #     labs(x = "가정상태", y = "비율", fill="", subtitle = "") + 
-    #     theme(text = element_text(size=18)) +
-    #     ggsave(filename = paste(globalVar$figConfig, "Img_044.png", sep="/"), width = 15, height = 8, dpi = 600)
+# ggplot(dataL3, aes(x = key, y = val, fill = isYn, label=round(val, 0))) +
+#     geom_bar(position = "dodge", stat="identity") +
+#     theme(legend.position = "top") +
+#     geom_text(aes(group=isYn), position=position_dodge(width=0.9), size=5, vjust=1.6, hjust=0.5, color = "white") +
+#     ylim(0, 100) +
+#     facet_wrap( ~ type, scale ="free") +
+#     labs(x = "가정상태", y = "비율", fill="", subtitle = "") +
+#     theme(text = element_text(size=18)) +
+#     ggsave(filename = paste(globalVar$figConfig, "Img_044.png", sep="/"), width = 15, height = 8, dpi = 600)
 
 
 #===============================================================================================
@@ -8811,30 +8820,29 @@ library(MESS) # calculate auc
 #top 20 most common words".
 # https://blogs.rstudio.com/ai/posts/2017-12-07-text-classification-with-keras/
 #Lists are the R objects which contain elements of different types like − numbers, strings, vectors and another list inside it. A list can also contain a matrix or a function as its elements. 
-p                   =     2500
-imdb                =     dataset_imdb(num_words = p, skip_top = 00) #, skip_top = 10
-train_data          =     imdb$train$x
-train_labels        =     imdb$train$y
-test_data           =     imdb$test$x
-test_labels         =     imdb$test$y
+p = 2500
+imdb = dataset_imdb(num_words = p, skip_top = 00) #, skip_top = 10
+train_data = imdb$train$x
+train_labels = imdb$train$y
+test_data = imdb$test$x
+test_labels = imdb$test$y
 
 ##아래 아홉줄은 제가 작성한 코드입니다... 많이 허접하지만, 대충 뭘 하려는지 느낌이 오실거라 생각됩니다.문제는 제대로 작동을 안한다는거죠..
 
-numberWords.train   =   max(sapply(train_data, max))
-numberWords.test    =   max(sapply(test_data, max))
+numberWords.train = max(sapply(train_data, max))
+numberWords.test = max(sapply(test_data, max))
 
-positive_train_data=subset(imdb$train$x, imdb$train$y==1)
-tenpro_positive_train_data=head(positive_train_data, 1250)
+positive_train_data = subset(imdb$train$x, imdb$train$y == 1)
+tenpro_positive_train_data = head(positive_train_data, 1250)
 
-positive_train_labels = subset(imdb$train$y, imdb$train$y==1)
-tenpro_positive_labels_data=head(positive_train_labels, 1250)
+positive_train_labels = subset(imdb$train$y, imdb$train$y == 1)
+tenpro_positive_labels_data = head(positive_train_labels, 1250)
 
-negative_train_data=subset(imdb$train$x, imdb$train$y==0)
-negative_train_labels=subset(imdb$train$y, imdb$train$y==0)
+negative_train_data = subset(imdb$train$x, imdb$train$y == 0)
+negative_train_labels = subset(imdb$train$y, imdb$train$y == 0)
 
-new_train_data=rbind(negative_train_data, tenpro_positive_train_data)
-new_train_labels=rbind(tenpro_positive_) ##does not work. It should include 13250 elements not 25000.
-
+new_train_data = rbind(negative_train_data, tenpro_positive_train_data)
+new_train_labels = rbind(tenpro_positive_) ##does not work. It should include 13250 elements not 25000.
 
 
 ##sub_imdb=subset(imdb$train$x, imdb$train$y==0)
@@ -8847,19 +8855,17 @@ new_train_labels=rbind(tenpro_positive_) ##does not work. It should include 1325
 
 str(train_data[[1]])
 
-word_index                   =     dataset_imdb_word_index() #word_index is a named list mapping words to an integer index
-reverse_word_index           =     names(word_index) # Reverses it, mapping integer indices to words
-names(reverse_word_index)    =     word_index
-
-
+word_index = dataset_imdb_word_index() #word_index is a named list mapping words to an integer index
+reverse_word_index = names(word_index) # Reverses it, mapping integer indices to words
+names(reverse_word_index) = word_index
 
 
 index.to.review <- function(index) {
-    decoded_review <- sapply(train_data[[index]], function(index) {
-        word <- if (index >= 3) reverse_word_index[[as.character(index - 3)]]
-        if (!is.null(word)) word else "?"
-    }) 
-    return(decoded_review)
+  decoded_review <- sapply(train_data[[index]], function(index) {
+    word <- if (index >= 3) reverse_word_index[[as.character(index - 3)]]
+    if (!is.null(word)) word else "?"
+  })
+  return(decoded_review)
 }
 
 cat(index.to.review(10))
@@ -8869,43 +8875,43 @@ cat(index.to.review(10))
 
 
 vectorize_sequences <- function(sequences, dimension = p) {
-    results <- matrix(0, nrow = length(sequences), ncol = dimension)
-    for (i in 1:length(sequences))
-        results[i, sequences[[i]]] <- 1
-    results
+  results <- matrix(0, nrow = length(sequences), ncol = dimension)
+  for (i in 1:length(sequences))
+    results[i, sequences[[i]]] <- 1
+  results
 }
 
 
-X.train          =        vectorize_sequences(train_data)
-X.test           =        vectorize_sequences(test_data)
+X.train = vectorize_sequences(train_data)
+X.test = vectorize_sequences(test_data)
 
 #str(X.train[1,])
-y.train          =        as.numeric(train_labels)
-n.train          =        length(y.train)
-y.test           =        as.numeric(test_labels)
-n.test           =        length(y.test)
+y.train = as.numeric(train_labels)
+n.train = length(y.train)
+y.test = as.numeric(test_labels)
+n.test = length(y.test)
 
 
 #fit                     =        glm(y.train ~ X.train, family = "binomial")
-library(glmnet) 
-fit                     =        glmnet(X.train, y.train, family = "binomial", lambda=0.0)
+library(glmnet)
+fit = glmnet(X.train, y.train, family = "binomial", lambda = 0.0)
 
-beta0.hat               =        fit$a0
-beta.hat                =        as.vector(fit$beta)
+beta0.hat = fit$a0
+beta.hat = as.vector(fit$beta)
 
 # (a) What are the top 10 words associated with positive reviews?
-print(paste("word most associated with positive reviews = ", reverse_word_index[[as.character((which.max(beta.hat)-3))]]))
+print(paste("word most associated with positive reviews = ", reverse_word_index[[as.character((which.max(beta.hat) - 3))]]))
 
 # (b) What are the top 10 words associated with negative reviews?
-print(paste("word most associated with negative reviews = ", reverse_word_index[[as.character((which.min(beta.hat)-3))]]))
+print(paste("word most associated with negative reviews = ", reverse_word_index[[as.character((which.min(beta.hat) - 3))]]))
 
 # (c) How can we identify the review in the training set that is hardest to classify? Find it and present the review. (1 point)
-prob.train              =        exp(X.train %*% beta.hat +  beta0.hat  )/(1 + exp(X.train %*% beta.hat +  beta0.hat  ))
+prob.train = exp(X.train %*% beta.hat + beta0.hat) / (1 + exp(X.train %*% beta.hat + beta0.hat))
 
 
-hardest.to.classify     =        which.min(abs(prob.train-0.5))
-most.positive           =        which.max(prob.train)
-most.negative           =        which.min(prob.train)
+hardest.to.classify = which.min(abs(prob.train - 0.5))
+most.positive = which.max(prob.train)
+most.negative = which.min(prob.train)
 print(paste("-------------------------------------------------------------"))
 print(paste("The hardest review to classify for this logisitc regression model is:  "))
 cat(index.to.review(hardest.to.classify))
@@ -8918,75 +8924,77 @@ cat(index.to.review(most.negative))
 print(paste("-------------------------------------------------------------"))
 
 
-distance.P     =    (X.train[y.train==1, ] %*% beta.hat + beta0.hat) 
-distance.N     =    X.train[y.train==0, ] %*% beta.hat + beta0.hat 
+distance.P = (X.train[y.train == 1,] %*% beta.hat + beta0.hat)
+distance.N = X.train[y.train == 0,] %*% beta.hat + beta0.hat
 
-breakpoints = pretty( (min(c(distance.P,distance.N))-0.001):max(c(distance.P,distance.N)),n=200)
+breakpoints = pretty((min(c(distance.P, distance.N)) - 0.001):max(c(distance.P, distance.N)), n = 200)
 # n=200 above refers to the number of bins used in the histogram
 # the large the number of bins, the higher the level of detail we see
-hg.pos = hist(distance.P, breaks=breakpoints,plot=FALSE) # Save first
-hg.neg = hist(distance.N, breaks=breakpoints,plot=FALSE) # Save second
-color1 = rgb(0,0,230,max = 255, alpha = 80, names = "lt.blue")
-color2 = rgb(255,0,0, max = 255, alpha = 80, names = "lt.pink")
+hg.pos = hist(distance.P, breaks = breakpoints, plot = FALSE) # Save first
+hg.neg = hist(distance.N, breaks = breakpoints, plot = FALSE) # Save second
+color1 = rgb(0, 0, 230, max = 255, alpha = 80, names = "lt.blue")
+color2 = rgb(255, 0, 0, max = 255, alpha = 80, names = "lt.pink")
 
 library(latex2exp)
 
-plot(hg.pos,col=color1,xlab=TeX('$x^T  \\beta +  \\beta_0$'),main =   paste("train: histogram  ")) # Plot 1st histogram using a transparent color
-plot(hg.neg,col=color2,add=TRUE) # Add 2nd histogram using different color
+plot(hg.pos, col = color1, xlab = TeX('$x^T  \\beta +  \\beta_0$'), main = paste("train: histogram  ")) # Plot 1st histogram using a transparent color
+plot(hg.neg, col = color2, add = TRUE) # Add 2nd histogram using different color
 
 
-prob.test               =        exp(X.test %*% beta.hat +  beta0.hat  )/(1 + exp(X.test %*% beta.hat +  beta0.hat  ))
-dt                      =        0.01
-thta                    =        1-seq(0,1, by=dt)
-thta.length             =        length(thta)
-FPR.train               =        matrix(0, thta.length)
-TPR.train               =        matrix(0, thta.length)
-FPR.test                =        matrix(0, thta.length)
-TPR.test                =        matrix(0, thta.length)
+prob.test = exp(X.test %*% beta.hat + beta0.hat) / (1 + exp(X.test %*% beta.hat + beta0.hat))
+dt = 0.01
+thta = 1 - seq(0, 1, by = dt)
+thta.length = length(thta)
+FPR.train = matrix(0, thta.length)
+TPR.train = matrix(0, thta.length)
+FPR.test = matrix(0, thta.length)
+TPR.test = matrix(0, thta.length)
 
 # The ROC curve is a popular graphic for simultaneously displaying the ROC curve two types of errors for all possible thresholds. 
 # The name “ROC” is historic, and comes from communications theory. It is an acronym for receiver operating characteristics.
 # ROC curves are useful for comparing different classifiers, since they take into account all possible thresholds.
 # varying the classifier threshold changes its true positive and false positive rate. 
 
-for (i in c(1:thta.length)){
-    # calculate the FPR and TPR for train data 
-    y.hat.train             =        ifelse(prob.train > thta[i], 1, 0) #table(y.hat.train, y.train)
-    FP.train                =        sum(y.train[y.hat.train==1] == 0) # false positives = negatives in the data that were predicted as positive
-    TP.train                =        sum(y.hat.train[y.train==1] == 1) # true positives = positives in the data that were predicted as positive
-    P.train                 =        sum(y.train==1) # total positives in the data
-    N.train                 =        sum(y.train==0) # total negatives in the data
-    FPR.train[i]            =        FP.train/N.train # false positive rate = type 1 error = 1 - specificity
-    TPR.train[i]            =        TP.train/P.train # true positive rate = 1 - type 2 error = sensitivity
-    
-    # calculate the FPR and TPR for test data 
-    y.hat.test              =        ifelse(prob.test > thta[i], 1, 0)
-    FP.test                 =        sum(y.test[y.hat.test==1] == 0) # false positives = negatives in the data that were predicted as positive
-    TP.test                 =        sum(y.hat.test[y.test==1] == 1) # true positives = positives in the data that were predicted as positive
-    P.test                  =        sum(y.test==1) # total positives in the data
-    N.test                  =        sum(y.test==0) # total negatives in the data
-    FPR.test[i]             =        FP.test/N.test # false positive rate = type 1 error = 1 - specificity
-    TPR.test[i]             =        TP.test/P.test # true positive rate = 1 - type 2 error = sensitivity    
-    # print(paste("K=", K, " ki=",ki, ", K-fold CV=", Kfold.CV.err[i]))
+for (i in c(1:thta.length)) {
+  # calculate the FPR and TPR for train data
+  y.hat.train = ifelse(prob.train > thta[i], 1, 0) #table(y.hat.train, y.train)
+  FP.train = sum(y.train[y.hat.train == 1] == 0) # false positives = negatives in the data that were predicted as positive
+  TP.train = sum(y.hat.train[y.train == 1] == 1) # true positives = positives in the data that were predicted as positive
+  P.train = sum(y.train == 1) # total positives in the data
+  N.train = sum(y.train == 0) # total negatives in the data
+  FPR.train[i] = FP.train / N.train # false positive rate = type 1 error = 1 - specificity
+  TPR.train[i] = TP.train / P.train # true positive rate = 1 - type 2 error = sensitivity
+
+  # calculate the FPR and TPR for test data
+  y.hat.test = ifelse(prob.test > thta[i], 1, 0)
+  FP.test = sum(y.test[y.hat.test == 1] == 0) # false positives = negatives in the data that were predicted as positive
+  TP.test = sum(y.hat.test[y.test == 1] == 1) # true positives = positives in the data that were predicted as positive
+  P.test = sum(y.test == 1) # total positives in the data
+  N.test = sum(y.test == 0) # total negatives in the data
+  FPR.test[i] = FP.test / N.test # false positive rate = type 1 error = 1 - specificity
+  TPR.test[i] = TP.test / P.test # true positive rate = 1 - type 2 error = sensitivity
+  # print(paste("K=", K, " ki=",ki, ", K-fold CV=", Kfold.CV.err[i]))
 }
 #auc.train = auc(FPR.train, TPR.train)
-auc.train     =       sum((TPR.train[1:(thta.length-1)] + 0.5 * diff(TPR.train)) * diff(FPR.train))
-auc.test      =       sum((TPR.test[1:(thta.length-1)] + 0.5 * diff(TPR.test)) * diff(FPR.test))
+auc.train = sum((TPR.train[1:(thta.length - 1)] + 0.5 * diff(TPR.train)) * diff(FPR.train))
+auc.test = sum((TPR.test[1:(thta.length - 1)] + 0.5 * diff(TPR.test)) * diff(FPR.test))
 
-print(paste("train AUC =",sprintf("%.4f", auc.train)))
-print(paste("test AUC  =",sprintf("%.4f", auc.test)))
+print(paste("train AUC =", sprintf("%.4f", auc.train)))
+print(paste("test AUC  =", sprintf("%.4f", auc.test)))
 
 
 library(ggplot2)
 
-errs.train      =   as.data.frame(cbind(FPR.train, TPR.train))
-errs.train      =   data.frame(x=errs.train$V1,y=errs.train$V2,type="Train")
-errs.test       =   as.data.frame(cbind(FPR.test, TPR.test))
-errs.test       =   data.frame(x=errs.test$V1,y=errs.test$V2,type="Test")
-errs            =   rbind(errs.train, errs.test)
+errs.train = as.data.frame(cbind(FPR.train, TPR.train))
+errs.train = data.frame(x = errs.train$V1, y = errs.train$V2, type = "Train")
+errs.test = as.data.frame(cbind(FPR.test, TPR.test))
+errs.test = data.frame(x = errs.test$V1, y = errs.test$V2, type = "Test")
+errs = rbind(errs.train, errs.test)
 
-ggplot(errs) + geom_line(aes(x,y,color=type)) + labs(x="False positive rate", y="True positive rate") +
-    ggtitle("ROC curve",(sprintf("train AUC=%.4f,test AUC =%0.4f",auc.train,auc.test)))
+ggplot(errs) +
+  geom_line(aes(x, y, color = type)) +
+  labs(x = "False positive rate", y = "True positive rate") +
+  ggtitle("ROC curve", (sprintf("train AUC=%.4f,test AUC =%0.4f", auc.train, auc.test)))
 
 
 #===============================================================================================
@@ -9052,16 +9060,16 @@ summary(data)
 dataL1 = data %>%
   dplyr::select(`Q'TY`, `NET AMOUNT`, `UID`, `PORDUCT GENDER`, `TRANS DATE`, `UID`) %>%
   dplyr::filter(
-    `Q'TY` > 0 
-    , `NET AMOUNT` > 0 
-    , ! is.na(UID)
+    `Q'TY` > 0
+    , `NET AMOUNT` > 0
+    , !is.na(UID)
   ) %>%
   dplyr::mutate(
     dtDate = readr::parse_date(as.character(`TRANS DATE`), "%Y%m%d")
     , dtYear = lubridate::year(dtDate)
     , val = `Q'TY` * `NET AMOUNT` / 100000
-    )
-  
+  )
+
 summary(dataL2)
 
 topPer70 = mean(dataL2$meanVal, na.rm = TRUE) + (sd(dataL2$meanVal, na.rm = TRUE))
@@ -9078,16 +9086,15 @@ dataL2 = dataL1 %>%
 
 # 1. 구매력이 큰 사람이 많다 (벨커브)
 ggplot(dataL2, aes(x = meanVal, colour = type, fill = type)) +
-  geom_histogram(aes(y=..density..), binwidth = 0.2,  colour="black", fill="white") +
+  geom_histogram(aes(y = ..density..), binwidth = 0.2, colour = "black", fill = "white") +
   geom_density(alpha = 0.2) +
   stat_function(fun = dnorm, args = list(mean = mean(dataL2$meanVal, na.rm = TRUE), sd = sd(dataL2$meanVal, na.rm = TRUE)), col = 'blue') +
   geom_rug(aes(x = meanVal, y = 0), position = position_jitter(height = 0)) +
-  labs(x = "구매력 [단위 : 1,000,000]", y = "밀도 함수", colour = "특성", fill="특성", subtitle = "") +
+  labs(x = "구매력 [단위 : 1,000,000]", y = "밀도 함수", colour = "특성", fill = "특성", subtitle = "") +
   xlim(0, 20) +
   ylim(0, 0.35) +
-  theme(text = element_text(size=18)) +
+  theme(text = element_text(size = 18)) +
   ggsave(filename = "FIG/o2job/Img_050.png", width = 12, height = 6, dpi = 600)
-  
 
 
 # 2. 초기에는 구매력이 적었지만 점점 구매력이 상승중인 사람들에게만 노출시켜서 구매를 하게끔 할 것 이다.
@@ -9149,15 +9156,15 @@ summary(lmFitTop)
 
 ggplot(dataL3, aes(x = dtYear, y = meanVal, colour = type, shape = type)) +
   geom_point(size = 3) +
-  geom_smooth(method='loess', formula = y ~ x, se = FALSE) +
-  labs(x = "년도", y = "구매력 [단위 : 1,000,000]", shape="특성", colour="특성", fill="", subtitle = "") +
+  geom_smooth(method = 'loess', formula = y ~ x, se = FALSE) +
+  labs(x = "년도", y = "구매력 [단위 : 1,000,000]", shape = "특성", colour = "특성", fill = "", subtitle = "") +
   # annotate("text", x = 2011, y = 7.75, size = 5, label = sprintf("Y = %.2f X - %.2f", 0.0034, 3.2693), hjust = 0, color = hue_pal()(1)) +
   # annotate("text", x = 2011, y = 7.25, size = 5, label = sprintf("Y = %.2f X - %.2f", 0.2101, 419.6287), hjust = 0, color = hue_pal()(2)) +
   annotate("text", x = 2011, y = 7.75, size = 5, label = sprintf("Span is %.2f (DF : %.2f)", 0.75, 2), hjust = 0, color = hue_pal()(1)) +
   annotate("text", x = 2011, y = 7.25, size = 5, label = sprintf("Span is %.2f (DF : %.2f)", 0.75, 2), hjust = 0, color = hue_pal()(2)) +
   xlim(2010, 2020) +
   ylim(0, 8) +
-  theme(text = element_text(size=18)) +
+  theme(text = element_text(size = 18)) +
   ggsave(filename = "FIG/o2job/Img_051.png", width = 10, height = 8, dpi = 600)
 
 #===============================================================================================
@@ -9202,43 +9209,43 @@ dplyr::tbl_df(data2)
 # data2L1$dtReqDate
 
 data2L1 = data2 %>%
-    na.omit() %>%
-    dplyr::filter(계절현상 %in% c("개화", "단풍시작")) %>%
-    tidyr::gather(-c(X1, 계절관측, 계절현상, 연도), key = "key", value = "val") %>%
-    dplyr::mutate(
-        dtDate = lubridate::parse_date_time2(val, "%m.%d")
-        , dtMonth = lubridate::month(dtDate)
-        , dtDay = lubridate::day(dtDate)
-        , sDate = paste(연도, dtMonth, dtDay, sep = "-")
-        , dtReqDate = readr::parse_date(sDate, "%Y-%m-%d")
-        , dtYear = lubridate::year(dtReqDate)
-        , dtReqJul = lubridate::yday(dtReqDate)
-    )
+  na.omit() %>%
+  dplyr::filter(계절현상 %in% c("개화", "단풍시작")) %>%
+  tidyr::gather(-c(X1, 계절관측, 계절현상, 연도), key = "key", value = "val") %>%
+  dplyr::mutate(
+    dtDate = lubridate::parse_date_time2(val, "%m.%d")
+    , dtMonth = lubridate::month(dtDate)
+    , dtDay = lubridate::day(dtDate)
+    , sDate = paste(연도, dtMonth, dtDay, sep = "-")
+    , dtReqDate = readr::parse_date(sDate, "%Y-%m-%d")
+    , dtYear = lubridate::year(dtReqDate)
+    , dtReqJul = lubridate::yday(dtReqDate)
+  )
 
 dataL1 = data %>%
-    # dplyr::select(date, 강릉_AOT40, 강릉_temp, 강릉_RH) %>%
-    dplyr::mutate(
-        dtYear = lubridate::year(date)
-        , dtJul = lubridate::yday(date)
-    ) %>%
-    # dplyr::left_join(data2L1, by = c("dtYear" = "dtYear")) %>%
-    dplyr::left_join(data2L1, by = c("date" = "dtReqDate")) %>%
-    dplyr::filter(
-        계절관측 == "벚나무"
-        , 계절현상 == "개화"
-        # , key == "강릉"
-    ) %>%
-    dplyr::mutate(
-        dtDiff = dtReqJul - dtJul 
-    ) %>%
-    dplyr::arrange(date) %>%
-    na.omit() %>%
-    dplyr::select(강릉_AOT40, 강릉_temp, 강릉_RH, dtReqJul) %>%
-    dplyr::rename(
-        aot = "강릉_AOT40"
-        , temp = "강릉_temp"
-        , rh = "강릉_RH"
-    )
+  # dplyr::select(date, 강릉_AOT40, 강릉_temp, 강릉_RH) %>%
+  dplyr::mutate(
+    dtYear = lubridate::year(date)
+    , dtJul = lubridate::yday(date)
+  ) %>%
+  # dplyr::left_join(data2L1, by = c("dtYear" = "dtYear")) %>%
+  dplyr::left_join(data2L1, by = c("date" = "dtReqDate")) %>%
+  dplyr::filter(
+    계절관측 == "벚나무"
+    , 계절현상 == "개화"
+    # , key == "강릉"
+  ) %>%
+  dplyr::mutate(
+    dtDiff = dtReqJul - dtJul
+  ) %>%
+  dplyr::arrange(date) %>%
+  na.omit() %>%
+  dplyr::select(강릉_AOT40, 강릉_temp, 강릉_RH, dtReqJul) %>%
+  dplyr::rename(
+    aot = "강릉_AOT40"
+    , temp = "강릉_temp"
+    , rh = "강릉_RH"
+  )
 
 
 # 표준화 방법 (0 - 1 변환)
@@ -9248,15 +9255,15 @@ dataL1$rh = scales::rescale(dataL1$rh)
 
 
 dataL1 %>%
-    dplyr::select(강릉_AOT40, 강d릉_temp, 강릉_RH, dtJul) %>%
-    ggpairs(.) + 
-    theme(text = element_text(size=18)) + 
-    ggsave(filename = paste(globalVar$figConfig, "Img_060_ggpairs.png", sep="/"), width = 12, height = 8, dpi = 600)
+  dplyr::select(강릉_AOT40, 강d릉_temp, 강릉_RH, dtJul) %>%
+  ggpairs(.) +
+  theme(text = element_text(size = 18)) +
+  ggsave(filename = paste(globalVar$figConfig, "Img_060_ggpairs.png", sep = "/"), width = 12, height = 8, dpi = 600)
 
 dataL1 %>%
-    dplyr::select(강릉_AOT40, 강릉_temp, 강릉_RH, dtJul) %>%
-    cor()
-    
+  dplyr::select(강릉_AOT40, 강릉_temp, 강릉_RH, dtJul) %>%
+  cor()
+
 
 trainData = dataL1
 testData = dataL1
@@ -9270,8 +9277,8 @@ ind = nrow(dataL1)
 # ind = sample(1:nrow(dataL1), nrow(dataL1) * 0.6)
 
 # 해당 인덱스에 따라 자료 할당
-trainData = dataL1[-ind, ]
-testData = dataL1[ind, ]
+trainData = dataL1[-ind,]
+testData = dataL1[ind,]
 
 # 훈련 데이터셋 확인
 dplyr::tbl_df(trainData)
@@ -9299,29 +9306,29 @@ summary(lmFit)
 predictions = predict(lmFit, newdata = testData)
 
 resultData = dplyr::bind_rows(resultData
-    , data.frame(
-        type = "MLR"
-        , pred = predictions
-        , real = testData$dtReqJul
-        )
-    )
+  , data.frame(
+    type = "MLR"
+    , pred = predictions
+    , real = testData$dtReqJul
+  )
+)
 
 #===============================================
 # neuralnet 방법
 #===============================================
 neuralModel = neuralnet::neuralnet(
-    formula = form 
-    , data = trainData
-    , hidden = c(10)
-    # , hidden = c(64)
-    , learningrate = 0.01
-    , threshold = 0.01   
-    , stepmax = 50000
-    , rep = 2
+  formula = form
+  , data = trainData
+  , hidden = c(10)
+  # , hidden = c(64)
+  , learningrate = 0.01
+  , threshold = 0.01
+  , stepmax = 50000
+  , rep = 2
 )
 
 
-png(file = paste(globalVar$figConfig, "Img_060_HiddenLayer.png", sep='/'), width = 10, height = 5, units="in", res = 1200)
+png(file = paste(globalVar$figConfig, "Img_060_HiddenLayer.png", sep = '/'), width = 10, height = 5, units = "in", res = 1200)
 plot(neuralModel, rep = 'best')
 dev.off()
 
@@ -9329,11 +9336,11 @@ rsPredictions = neuralnet::compute(neuralModel, testData)
 predictions = rsPredictions$net.result
 
 resultData = dplyr::bind_rows(resultData
-    , data.frame(
-        type = "ANN"
-        , pred = predictions
-        , real = testData$dtReqJul
-    )
+  , data.frame(
+    type = "ANN"
+    , pred = predictions
+    , real = testData$dtReqJul
+  )
 )
 
 
@@ -9347,27 +9354,26 @@ h2o.init()
 x = c("aot", "temp", "rh")
 
 
-
 # trainData$dtReqJul
 # a
 
 # model = h2o::h2o.deeplearning(x=x, y=yVar, training_frame = as.h2o(trainData))
 
 model = h2o::h2o.deeplearning(
-    x = x
-    , y = yVar
-    , training_frame = as.h2o(trainData)
-    # , nfolds = 1
-    # , stopping_metric = 'RMSE'
-    # , epochs = 400
-    # , overwrite_with_best_model = TRUE
-    # , activation = 'Tanh'
-    # , input_dropout_ratio = 0.1
-    , hidden = c(64, 64)
-    # , l1 = 0
-    , loss = 'Automatic'
-    , distribution = 'AUTO'
-    )
+  x = x
+  , y = yVar
+  , training_frame = as.h2o(trainData)
+  # , nfolds = 1
+  # , stopping_metric = 'RMSE'
+  # , epochs = 400
+  # , overwrite_with_best_model = TRUE
+  # , activation = 'Tanh'
+  # , input_dropout_ratio = 0.1
+  , hidden = c(64, 64)
+  # , l1 = 0
+  , loss = 'Automatic'
+  , distribution = 'AUTO'
+)
 
 summary(model)
 
@@ -9375,11 +9381,11 @@ rsPredictions = as.data.frame(predict(model, as.h2o(testData)))
 predictions = rsPredictions$predict
 
 resultData = dplyr::bind_rows(resultData
-    , data.frame(
-        type = "DL"
-        , pred = predictions
-        , real = testData$dtReqJul
-    )
+  , data.frame(
+    type = "DL"
+    , pred = predictions
+    , real = testData$dtReqJul
+  )
 )
 
 #=====================================
@@ -9388,9 +9394,9 @@ resultData = dplyr::bind_rows(resultData
 actualValues = testData$dtReqJul
 
 result = data.frame(
-    predictions
-    , actualValues
-) 
+  predictions
+  , actualValues
+)
 
 xAxis = result$predictions
 yAxis = result$actualValues
@@ -9398,20 +9404,18 @@ yAxis = result$actualValues
 # plot(yAxis, col = "red")
 # points(xAxis)
 
-plot(xAxis, yAxis, col='blue', main='Recl vs Predicted', pch=1, type="p", xlab="Actual", ylab="Predicted")
+plot(xAxis, yAxis, col = 'blue', main = 'Recl vs Predicted', pch = 1, type = "p", xlab = "Actual", ylab = "Predicted")
 
 cor(xAxis, yAxis)
 Metrics::bias(xAxis, yAxis)
 Metrics::rmse(xAxis, yAxis)
 
-abline(0, 1, col="black")
-
-
+abline(0, 1, col = "black")
 
 
 # 다중선형회귀모형
 resultDataL1 = resultData %>%
-    dplyr::filter(type == "MLR")
+  dplyr::filter(type == "MLR")
 
 xAxis = resultDataL1$pred
 yAxis = resultDataL1$real
@@ -9423,22 +9427,22 @@ biasVal = round(Metrics::bias(xAxis, yAxis), 2)
 rmseVal = round(Metrics::rmse(xAxis, yAxis), 2)
 
 ggscatter(resultDataL1, x = "pred", y = "real", color = "black", add = "reg.line", conf.int = TRUE, add.params = list(color = "blue", fill = "lightblue")) +
-    stat_regline_equation(label.x = 80, label.y = 100, size = 5) +
-    annotate("text", x = 80, y = 97.5, size = 5, label = sprintf("R = %s (P < %.3f)", corVal, pVal), hjust = 0) +
-    annotate("text", x = 80, y = 95, size = 5, label = sprintf("Bias = %s", biasVal), hjust = 0) +
-    annotate("text", x = 80, y = 92.5, size = 5, label = sprintf("RMSE = %s", rmseVal), hjust = 0) +
-    xlim(80, 100) + 
-    ylim(80, 100) + 
-    theme_bw() +
-    labs(title = "", x = "예측", y = "실제", subtitle = "다중선형회귀모형") +
-    coord_equal() +
-    theme(text = element_text(size=18)) + 
-    ggsave(filename = paste(globalVar$figConfig, "Img_060_MLR.png", sep="/"), width = 6, height = 6, dpi = 600)
+  stat_regline_equation(label.x = 80, label.y = 100, size = 5) +
+  annotate("text", x = 80, y = 97.5, size = 5, label = sprintf("R = %s (P < %.3f)", corVal, pVal), hjust = 0) +
+  annotate("text", x = 80, y = 95, size = 5, label = sprintf("Bias = %s", biasVal), hjust = 0) +
+  annotate("text", x = 80, y = 92.5, size = 5, label = sprintf("RMSE = %s", rmseVal), hjust = 0) +
+  xlim(80, 100) +
+  ylim(80, 100) +
+  theme_bw() +
+  labs(title = "", x = "예측", y = "실제", subtitle = "다중선형회귀모형") +
+  coord_equal() +
+  theme(text = element_text(size = 18)) +
+  ggsave(filename = paste(globalVar$figConfig, "Img_060_MLR.png", sep = "/"), width = 6, height = 6, dpi = 600)
 
 
 # ANN
 resultDataL1 = resultData %>%
-    dplyr::filter(type == "ANN")
+  dplyr::filter(type == "ANN")
 
 xAxis = resultDataL1$pred
 yAxis = resultDataL1$real
@@ -9450,22 +9454,22 @@ biasVal = round(Metrics::bias(xAxis, yAxis), 2)
 rmseVal = round(Metrics::rmse(xAxis, yAxis), 2)
 
 ggscatter(resultDataL1, x = "pred", y = "real", color = "black", add = "reg.line", conf.int = TRUE, add.params = list(color = "blue", fill = "lightblue")) +
-    stat_regline_equation(label.x = 80, label.y = 100, size = 5) +
-    annotate("text", x = 80, y = 97.5, size = 5, label = sprintf("R = %s (P < %.3f)", corVal, pVal), hjust = 0) +
-    annotate("text", x = 80, y = 95, size = 5, label = sprintf("Bias = %s", biasVal), hjust = 0) +
-    annotate("text", x = 80, y = 92.5, size = 5, label = sprintf("RMSE = %s", rmseVal), hjust = 0) +
-    xlim(80, 100) + 
-    ylim(80, 100) + 
-    theme_bw() +
-    labs(title = "", x = "예측", y = "실제", subtitle = "인공신경망") +
-    coord_equal() +
-    theme(text = element_text(size=18)) + 
-    ggsave(filename = paste(globalVar$figConfig, "Img_060_ANN.png", sep="/"), width = 6, height = 6, dpi = 600)
+  stat_regline_equation(label.x = 80, label.y = 100, size = 5) +
+  annotate("text", x = 80, y = 97.5, size = 5, label = sprintf("R = %s (P < %.3f)", corVal, pVal), hjust = 0) +
+  annotate("text", x = 80, y = 95, size = 5, label = sprintf("Bias = %s", biasVal), hjust = 0) +
+  annotate("text", x = 80, y = 92.5, size = 5, label = sprintf("RMSE = %s", rmseVal), hjust = 0) +
+  xlim(80, 100) +
+  ylim(80, 100) +
+  theme_bw() +
+  labs(title = "", x = "예측", y = "실제", subtitle = "인공신경망") +
+  coord_equal() +
+  theme(text = element_text(size = 18)) +
+  ggsave(filename = paste(globalVar$figConfig, "Img_060_ANN.png", sep = "/"), width = 6, height = 6, dpi = 600)
 
 
 # DL
 resultDataL1 = resultData %>%
-    dplyr::filter(type == "DL")
+  dplyr::filter(type == "DL")
 
 xAxis = resultDataL1$pred
 yAxis = resultDataL1$real
@@ -9477,19 +9481,17 @@ biasVal = round(Metrics::bias(xAxis, yAxis), 2)
 rmseVal = round(Metrics::rmse(xAxis, yAxis), 2)
 
 ggscatter(resultDataL1, x = "pred", y = "real", color = "black", add = "reg.line", conf.int = TRUE, add.params = list(color = "blue", fill = "lightblue")) +
-    stat_regline_equation(label.x = 80, label.y = 100, size = 5) +
-    annotate("text", x = 80, y = 97.5, size = 5, label = sprintf("R = %s (P < %.3f)", corVal, pVal), hjust = 0) +
-    annotate("text", x = 80, y = 95, size = 5, label = sprintf("Bias = %s", biasVal), hjust = 0) +
-    annotate("text", x = 80, y = 92.5, size = 5, label = sprintf("RMSE = %s", rmseVal), hjust = 0) +
-    xlim(80, 100) + 
-    ylim(80, 100) + 
-    theme_bw() +
-    labs(title = "", x = "예측", y = "실측", subtitle = "딥러닝") +
-    coord_equal() +
-    theme(text = element_text(size=18)) + 
-    ggsave(filename = paste(globalVar$figConfig, "Img_060_DL.png", sep="/"), width = 6, height = 6, dpi = 600)
-
-
+  stat_regline_equation(label.x = 80, label.y = 100, size = 5) +
+  annotate("text", x = 80, y = 97.5, size = 5, label = sprintf("R = %s (P < %.3f)", corVal, pVal), hjust = 0) +
+  annotate("text", x = 80, y = 95, size = 5, label = sprintf("Bias = %s", biasVal), hjust = 0) +
+  annotate("text", x = 80, y = 92.5, size = 5, label = sprintf("RMSE = %s", rmseVal), hjust = 0) +
+  xlim(80, 100) +
+  ylim(80, 100) +
+  theme_bw() +
+  labs(title = "", x = "예측", y = "실측", subtitle = "딥러닝") +
+  coord_equal() +
+  theme(text = element_text(size = 18)) +
+  ggsave(filename = paste(globalVar$figConfig, "Img_060_DL.png", sep = "/"), width = 6, height = 6, dpi = 600)
 
 
 #===============================================
@@ -9497,19 +9499,19 @@ ggscatter(resultDataL1, x = "pred", y = "real", color = "black", add = "reg.line
 #===============================================
 
 inDataL2 = dataL1 %>%
-    dplyr::select(강릉_AOT40, 강릉_temp, 강릉_RH) %>%
-    # scale() %>%
-    as.matrix()
+  dplyr::select(강릉_AOT40, 강릉_temp, 강릉_RH) %>%
+  # scale() %>%
+  as.matrix()
 
 outDataL2 = dataL1 %>%
-    dplyr::select(dtJul) %>%
-    # scale() %>%
-    as.matrix()
+  dplyr::select(dtJul) %>%
+  # scale() %>%
+  as.matrix()
 
 neurons = 4
 
-data<-mlptrain(inDataL2, neurons = 64, outDataL2, it=10000);
-mlp(x,data$weight,data$dist,data$neurons,data$actfns)
+data <- mlptrain(inDataL2, neurons = 64, outDataL2, it = 10000);
+mlp(x, data$weight, data$dist, data$neurons, data$actfns)
 
 
 # mlptrain
@@ -9574,7 +9576,7 @@ library(png)
 # hue_pal()(2)
 
 BWS_SCORE <- function(data = data) {
-  
+
   result_data <- data %>%
     dplyr::mutate(
       B_W01 = b1 - w1
@@ -9590,7 +9592,7 @@ BWS_SCORE <- function(data = data) {
       , B_W11 = b11 - w11
       , B_W12 = b12 - w12
       , B_W13 = b13 - w13
-      , BWMEAN01 = (b1 - w1) / ((b1 + w1) * questnum) 
+      , BWMEAN01 = (b1 - w1) / ((b1 + w1) * questnum)
       , BWMEAN02 = (b2 - w2) / ((b2 + w2) * questnum)
       , BWMEAN03 = (b3 - w3) / ((b3 + w3) * questnum)
       , BWMEAN04 = (b4 - w4) / ((b4 + w4) * questnum)
@@ -9603,23 +9605,23 @@ BWS_SCORE <- function(data = data) {
       , BWMEAN11 = (b11 - w11) / ((b11 + w11) * questnum)
       , BWMEAN12 = (b12 - w12) / ((b12 + w12) * questnum)
       , BWMEAN13 = (b13 - w13) / ((b13 + w13) * questnum)
-      , BWSQRT01 = sqrt(b1/w1)
-      , BWSQRT02 = sqrt(b2/w2)
-      , BWSQRT03 = sqrt(b3/w3)
-      , BWSQRT04 = sqrt(b4/w4)
-      , BWSQRT05 = sqrt(b5/w5)
-      , BWSQRT06 = sqrt(b6/w6)
-      , BWSQRT07 = sqrt(b7/w7)
-      , BWSQRT08 = sqrt(b8/w8)
-      , BWSQRT09 = sqrt(b9/w9)
-      , BWSQRT10 = sqrt(b10/w10)
-      , BWSQRT11 = sqrt(b11/w11)
-      , BWSQRT12 = sqrt(b12/w12)
-      , BWSQRT13 = sqrt(b13/w13)
-      )
-  
+      , BWSQRT01 = sqrt(b1 / w1)
+      , BWSQRT02 = sqrt(b2 / w2)
+      , BWSQRT03 = sqrt(b3 / w3)
+      , BWSQRT04 = sqrt(b4 / w4)
+      , BWSQRT05 = sqrt(b5 / w5)
+      , BWSQRT06 = sqrt(b6 / w6)
+      , BWSQRT07 = sqrt(b7 / w7)
+      , BWSQRT08 = sqrt(b8 / w8)
+      , BWSQRT09 = sqrt(b9 / w9)
+      , BWSQRT10 = sqrt(b10 / w10)
+      , BWSQRT11 = sqrt(b11 / w11)
+      , BWSQRT12 = sqrt(b12 / w12)
+      , BWSQRT13 = sqrt(b13 / w13)
+    )
+
   return(result_data)
-  
+
 }
 
 
@@ -9634,7 +9636,7 @@ data_human = data_human %>%
   dplyr::distinct()
 
 data_human$id <- as.numeric(data_human$id)
-full_data <- dplyr::inner_join(data_wind,data_human,by=c("id"))
+full_data <- dplyr::inner_join(data_wind, data_human, by = c("id"))
 
 ## BWS 분석 데이터셋 만들기 ##
 questnum = 4.0
@@ -9666,156 +9668,150 @@ full_data_PARTR_ALL <- full_data_L1 %>%
   dplyr::select(B_W01:BWSQRT13)
 
 out_data <- matrix(data = full_data_PARTR_ALL, nrow = 13, ncol = 3)
-out_data_L1 <- as.data.frame(out_data,row.names = yindex)
+out_data_L1 <- as.data.frame(out_data, row.names = yindex)
 colnames(out_data_L1) <- xindex
 
 
-
-fwrite(out_data_L1, paste(globalVar$outConfig, "BWS/all.csv", sep="/"), row.names = TRUE)
+fwrite(out_data_L1, paste(globalVar$outConfig, "BWS/all.csv", sep = "/"), row.names = TRUE)
 
 for (i in sex_full) {
-  
+
   ## 전체 데이터 탐색 ##
   full_data_PARTR_ALL <- full_data_L1 %>%
     dplyr::filter(sex == i) %>%
     dplyr::group_by(sex) %>%
     dplyr::summarise_all(funs(mean(., na.rm = TRUE))) %>%
     dplyr::select(B_W01:BWSQRT13)
-  
+
   Sys.sleep(3)
-  
+
   out_data <- matrix(data = full_data_PARTR_ALL, nrow = 13, ncol = 3)
-  out_data_L1 <- as.data.frame(out_data,row.names = yindex)
+  out_data_L1 <- as.data.frame(out_data, row.names = yindex)
   colnames(out_data_L1) <- xindex
-  
-  fwrite(out_data_L1, paste(globalVar$outConfig, paste0("BWS/sex_", i, ".csv"), sep="/"), row.names = TRUE)
+
+  fwrite(out_data_L1, paste(globalVar$outConfig, paste0("BWS/sex_", i, ".csv"), sep = "/"), row.names = TRUE)
 }
 
 
 for (i in age_full) {
-  
+
   ## 전체 데이터 탐색 ##
   full_data_PARTR_ALL <- full_data_L1 %>%
     dplyr::filter(age == i) %>%
     dplyr::group_by(age) %>%
     dplyr::summarise_all(funs(mean(., na.rm = TRUE))) %>%
     dplyr::select(B_W01:BWSQRT13)
-  
+
   Sys.sleep(2)
-  
+
   out_data <- matrix(data = full_data_PARTR_ALL, nrow = 13, ncol = 3)
-  out_data_L1 <- as.data.frame(out_data,row.names = yindex)
+  out_data_L1 <- as.data.frame(out_data, row.names = yindex)
   colnames(out_data_L1) <- xindex
-  
-  fwrite(out_data_L1, paste(globalVar$outConfig, paste0("BWS/age_", i, ".csv"), sep="/"), row.names = TRUE)
-  
-  
+
+  fwrite(out_data_L1, paste(globalVar$outConfig, paste0("BWS/age_", i, ".csv"), sep = "/"), row.names = TRUE)
+
+
 }
 
 
 for (i in nfam_full) {
-  
+
   ## 전체 데이터 탐색 ##
   full_data_PARTR_ALL <- full_data_L1 %>%
     dplyr::filter(nfam == i) %>%
     dplyr::group_by(nfam) %>%
     dplyr::summarise_all(funs(mean(., na.rm = TRUE))) %>%
     dplyr::select(B_W01:BWSQRT13)
-  
+
   Sys.sleep(2)
-  
+
   out_data <- matrix(data = full_data_PARTR_ALL, nrow = 13, ncol = 3)
-  out_data_L1 <- as.data.frame(out_data,row.names = yindex)
+  out_data_L1 <- as.data.frame(out_data, row.names = yindex)
   colnames(out_data_L1) <- xindex
-  
-  fwrite(out_data_L1, paste(globalVar$outConfig, paste0("BWS/nfam_", i, ".csv"), sep="/"), row.names = TRUE)
-  
+
+  fwrite(out_data_L1, paste(globalVar$outConfig, paste0("BWS/nfam_", i, ".csv"), sep = "/"), row.names = TRUE)
+
 }
 
 
-
-
 for (i in edu_full) {
-  
+
   ## 전체 데이터 탐색 ##
   full_data_PARTR_ALL <- full_data_L1 %>%
     dplyr::filter(edu == i) %>%
     dplyr::group_by(edu) %>%
     dplyr::summarise_all(funs(mean(., na.rm = TRUE))) %>%
     dplyr::select(B_W01:BWSQRT13)
-  
+
   Sys.sleep(2)
-  
+
   out_data <- matrix(data = full_data_PARTR_ALL, nrow = 13, ncol = 3)
-  out_data_L1 <- as.data.frame(out_data,row.names = yindex)
+  out_data_L1 <- as.data.frame(out_data, row.names = yindex)
   colnames(out_data_L1) <- xindex
-  
-  fwrite(out_data_L1, paste(globalVar$outConfig, paste0("BWS/edu_", i, ".csv"), sep="/"), row.names = TRUE)
+
+  fwrite(out_data_L1, paste(globalVar$outConfig, paste0("BWS/edu_", i, ".csv"), sep = "/"), row.names = TRUE)
 }
 
 for (i in income_full) {
-  
+
   ## 전체 데이터 탐색 ##
   full_data_PARTR_ALL <- full_data_L1 %>%
     dplyr::filter(income == i) %>%
     dplyr::group_by(income) %>%
     dplyr::summarise_all(funs(mean(., na.rm = TRUE))) %>%
     dplyr::select(B_W01:BWSQRT13)
-  
+
   Sys.sleep(2)
-  
+
   out_data <- matrix(data = full_data_PARTR_ALL, nrow = 13, ncol = 3)
-  out_data_L1 <- as.data.frame(out_data,row.names = yindex)
+  out_data_L1 <- as.data.frame(out_data, row.names = yindex)
   colnames(out_data_L1) <- xindex
-  
-  fwrite(out_data_L1, paste(globalVar$outConfig, paste0("BWS/income_", i, ".csv"), sep="/"), row.names = TRUE)
-  
-  
+
+  fwrite(out_data_L1, paste(globalVar$outConfig, paste0("BWS/income_", i, ".csv"), sep = "/"), row.names = TRUE)
+
+
 }
 
 
 for (i in job_full) {
-  
+
   ## 전체 데이터 탐색 ##
   full_data_PARTR_ALL <- full_data_L1 %>%
     dplyr::filter(job == i) %>%
     dplyr::group_by(job) %>%
     dplyr::summarise_all(funs(mean(., na.rm = TRUE))) %>%
     dplyr::select(B_W01:BWSQRT13)
-  
+
   Sys.sleep(2)
-  
+
   out_data <- matrix(data = full_data_PARTR_ALL, nrow = 13, ncol = 3)
-  out_data_L1 <- as.data.frame(out_data,row.names = yindex)
+  out_data_L1 <- as.data.frame(out_data, row.names = yindex)
   colnames(out_data_L1) <- xindex
-  
-  fwrite(out_data_L1, paste(globalVar$outConfig, paste0("BWS/job_", i, ".csv"), sep="/"), row.names = TRUE)
+
+  fwrite(out_data_L1, paste(globalVar$outConfig, paste0("BWS/job_", i, ".csv"), sep = "/"), row.names = TRUE)
 }
 
 
-
 for (i in marr_full) {
-  
+
   ## 전체 데이터 탐색 ##
   full_data_PARTR_ALL <- full_data_L1 %>%
     dplyr::filter(marr == i) %>%
     dplyr::group_by(marr) %>%
     dplyr::summarise_all(funs(mean(., na.rm = TRUE))) %>%
     dplyr::select(B_W01:BWSQRT13)
-  
+
   Sys.sleep(2)
-  
+
   out_data <- matrix(data = full_data_PARTR_ALL, nrow = 13, ncol = 3)
-  out_data_L1 <- as.data.frame(out_data,row.names = yindex)
+  out_data_L1 <- as.data.frame(out_data, row.names = yindex)
   colnames(out_data_L1) <- xindex
-  
-  fwrite(out_data_L1, paste(globalVar$outConfig, paste0("BWS/marr_", i, ".csv"), sep="/"), row.names = TRUE)
+
+  fwrite(out_data_L1, paste(globalVar$outConfig, paste0("BWS/marr_", i, ".csv"), sep = "/"), row.names = TRUE)
 }
 
 
-
 ################# 전체 데이터 테이블화 #####################
-
 
 
 ## 전체 데이터 탐색 ##
@@ -9842,25 +9838,25 @@ full_data_PARTR_ALL <- full_data_L1 %>%
 
 
 dataL1_all = full_data_PARTR_ALL %>%
-  tidyr::gather(-all, key="key", val="val")
+  tidyr::gather(-all, key = "key", val = "val")
 
 dataL1_all$key = forcats::fct_relevel(dataL1_all$key, yindex)
 
 ggplot(dataL1_all, aes(x = key, y = val, fill = key)) +
-  geom_bar(position="dodge", stat="identity", color="black") +
-  geom_text(aes(x=key, y=val, label = round(val, 2)), size = 5, color="white", vjust=2, position = position_dodge(width=0.9)) +
-  geom_hline(yintercept=1) +
-  labs(x = "", y = "선호도 점수", fill="", subtitle = "[전체] 항목에 따른 선호도 점수") + 
-  theme(text = element_text(size=18)) + 
+  geom_bar(position = "dodge", stat = "identity", color = "black") +
+  geom_text(aes(x = key, y = val, label = round(val, 2)), size = 5, color = "white", vjust = 2, position = position_dodge(width = 0.9)) +
+  geom_hline(yintercept = 1) +
+  labs(x = "", y = "선호도 점수", fill = "", subtitle = "[전체] 항목에 따른 선호도 점수") +
+  theme(text = element_text(size = 18)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  ggsave(filename = paste(globalVar$figConfig, "BWS/full.png", sep="/"), width = 12, height = 8, dpi = 600)
+  ggsave(filename = paste(globalVar$figConfig, "BWS/full.png", sep = "/"), width = 12, height = 8, dpi = 600)
 
 
 ## 성별에 따른 항목별 스코어 차이 ##
 full_data_PARTR_SEX <- full_data_L1 %>%
   dplyr::group_by(sex) %>%
   dplyr::summarise_all(funs(mean(., na.rm = TRUE))) %>%
-  dplyr::select(sex,BWSQRT01:BWSQRT13) %>%
+  dplyr::select(sex, BWSQRT01:BWSQRT13) %>%
   dplyr::rename(
     "색" = "BWSQRT01"
     , "향" = "BWSQRT02"
@@ -9878,25 +9874,25 @@ full_data_PARTR_SEX <- full_data_L1 %>%
   )
 
 dataL1_sex = full_data_PARTR_SEX %>%
-  tidyr::gather(-sex, key="key", val="val")
+  tidyr::gather(-sex, key = "key", val = "val")
 
 dataL1_sex$key = forcats::fct_relevel(dataL1_sex$key, yindex)
 
 ggplot(dataL1_sex, aes(x = key, y = val, fill = sex)) +
-  geom_bar(position="dodge", stat="identity", color="black") +
-  geom_text(aes(x=key, y=val, label = round(val, 1)), size = 5, color="white", vjust=2, position = position_dodge(width=0.9)) +
-  geom_hline(yintercept=1) +
-  labs(x = "", y = "선호도 점수", fill="", subtitle = "[성별] 항목에 따른 선호도 점수") + 
-  theme(text = element_text(size=18)) + 
+  geom_bar(position = "dodge", stat = "identity", color = "black") +
+  geom_text(aes(x = key, y = val, label = round(val, 1)), size = 5, color = "white", vjust = 2, position = position_dodge(width = 0.9)) +
+  geom_hline(yintercept = 1) +
+  labs(x = "", y = "선호도 점수", fill = "", subtitle = "[성별] 항목에 따른 선호도 점수") +
+  theme(text = element_text(size = 18)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  ggsave(filename = paste(globalVar$figConfig, "BWS/sex.png", sep="/"), width = 12, height = 8, dpi = 600)
+  ggsave(filename = paste(globalVar$figConfig, "BWS/sex.png", sep = "/"), width = 12, height = 8, dpi = 600)
 
 
 ## 나이에 따른 항목별 스코어 차이 ##
 full_data_PARTR_AGE <- full_data_L1 %>%
   dplyr::group_by(age) %>%
   dplyr::summarise_all(funs(mean(., na.rm = TRUE))) %>%
-  dplyr::select(age,BWSQRT01:BWSQRT13) %>%
+  dplyr::select(age, BWSQRT01:BWSQRT13) %>%
   dplyr::rename(
     "색" = "BWSQRT01"
     , "향" = "BWSQRT02"
@@ -9915,25 +9911,25 @@ full_data_PARTR_AGE <- full_data_L1 %>%
 
 
 dataL1_age = full_data_PARTR_AGE %>%
-  tidyr::gather(-age, key="key", val="val")
+  tidyr::gather(-age, key = "key", val = "val")
 
 dataL1_age$key = forcats::fct_relevel(dataL1_age$key, yindex)
 
 ggplot(dataL1_age, aes(x = key, y = val, fill = age)) +
-  geom_bar(position="dodge", stat="identity", color="black") +
+  geom_bar(position = "dodge", stat = "identity", color = "black") +
   # geom_text(aes(x=key, y=val, label = round(val, 1)), size = 5, color="white", vjust=2, position = position_dodge(width=0.9),size = 2) +
-  geom_hline(yintercept=1) +
-  labs(x = "", y = "선호도 점수", fill="", subtitle = "[나이] 항목에 따른 선호도 점수") + 
-  theme(text = element_text(size=18)) + 
+  geom_hline(yintercept = 1) +
+  labs(x = "", y = "선호도 점수", fill = "", subtitle = "[나이] 항목에 따른 선호도 점수") +
+  theme(text = element_text(size = 18)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  ggsave(filename = paste(globalVar$figConfig, "BWS/age.png", sep="/"), width = 12, height = 8, dpi = 600)
+  ggsave(filename = paste(globalVar$figConfig, "BWS/age.png", sep = "/"), width = 12, height = 8, dpi = 600)
 
 
 ## nfam에 따른 항목별 스코어 차이 ##
 full_data_PARTR_nfam <- full_data_L1 %>%
   dplyr::group_by(nfam) %>%
   dplyr::summarise_all(funs(mean(., na.rm = TRUE))) %>%
-  dplyr::select(nfam,BWSQRT01:BWSQRT13) %>%
+  dplyr::select(nfam, BWSQRT01:BWSQRT13) %>%
   dplyr::rename(
     "색" = "BWSQRT01"
     , "향" = "BWSQRT02"
@@ -9951,27 +9947,26 @@ full_data_PARTR_nfam <- full_data_L1 %>%
   )
 
 
-
 dataL1_nfam = full_data_PARTR_nfam %>%
-  tidyr::gather(-nfam, key="key", val="val")
+  tidyr::gather(-nfam, key = "key", val = "val")
 
 dataL1_nfam$key = forcats::fct_relevel(dataL1_nfam$key, yindex)
 
 ggplot(dataL1_nfam, aes(x = key, y = val, fill = nfam)) +
-  geom_bar(position="dodge", stat="identity", color="black") +
-  geom_text(aes(x=key, y=val, label = round(val, 0)), size = 5, color="white", vjust=2, position = position_dodge(width=0.9),size = 2) +
-  geom_hline(yintercept=1) +
-  labs(x = "", y = "선호도 점수", fill="", subtitle = "항목에 따른 선호도 점수") + 
-  theme(text = element_text(size=18)) + 
+  geom_bar(position = "dodge", stat = "identity", color = "black") +
+  geom_text(aes(x = key, y = val, label = round(val, 0)), size = 5, color = "white", vjust = 2, position = position_dodge(width = 0.9), size = 2) +
+  geom_hline(yintercept = 1) +
+  labs(x = "", y = "선호도 점수", fill = "", subtitle = "항목에 따른 선호도 점수") +
+  theme(text = element_text(size = 18)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  ggsave(filename = paste(globalVar$figConfig, "BWS/nfam.png", sep="/"), width = 12, height = 8, dpi = 600)
+  ggsave(filename = paste(globalVar$figConfig, "BWS/nfam.png", sep = "/"), width = 12, height = 8, dpi = 600)
 
 
 ## edu에 따른 항목별 스코어 차이 ##
 full_data_PARTR_edu <- full_data_L1 %>%
   dplyr::group_by(edu) %>%
   dplyr::summarise_all(funs(mean(., na.rm = TRUE))) %>%
-  dplyr::select(edu,BWSQRT01:BWSQRT13) %>%
+  dplyr::select(edu, BWSQRT01:BWSQRT13) %>%
   dplyr::rename(
     "색" = "BWSQRT01"
     , "향" = "BWSQRT02"
@@ -9989,26 +9984,25 @@ full_data_PARTR_edu <- full_data_L1 %>%
   )
 
 dataL1_edu = full_data_PARTR_edu %>%
-  tidyr::gather(-edu, key="key", val="val")
+  tidyr::gather(-edu, key = "key", val = "val")
 
 dataL1_edu$key = forcats::fct_relevel(dataL1_edu$key, yindex)
 
 ggplot(dataL1_edu, aes(x = key, y = val, fill = edu)) +
-  geom_bar(position="dodge", stat="identity", color="black") +
-  geom_text(aes(x=key, y=val, label = round(val, 0)), size = 5, color="white", vjust=2, position = position_dodge(width=0.9),size = 2) +
-  geom_hline(yintercept=1) +
-  labs(x = "", y = "선호도 점수", fill="", subtitle = "[교육] 항목에 따른 선호도 점수") + 
-  theme(text = element_text(size=18)) + 
+  geom_bar(position = "dodge", stat = "identity", color = "black") +
+  geom_text(aes(x = key, y = val, label = round(val, 0)), size = 5, color = "white", vjust = 2, position = position_dodge(width = 0.9), size = 2) +
+  geom_hline(yintercept = 1) +
+  labs(x = "", y = "선호도 점수", fill = "", subtitle = "[교육] 항목에 따른 선호도 점수") +
+  theme(text = element_text(size = 18)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  ggsave(filename = paste(globalVar$figConfig, "BWS/edu.png", sep="/"), width = 12, height = 8, dpi = 600)
-
+  ggsave(filename = paste(globalVar$figConfig, "BWS/edu.png", sep = "/"), width = 12, height = 8, dpi = 600)
 
 
 ## income에 따른 항목별 스코어 차이 ##
 full_data_PARTR_income <- full_data_L1 %>%
   dplyr::group_by(income) %>%
   dplyr::summarise_all(funs(mean(., na.rm = TRUE))) %>%
-  dplyr::select(income,BWSQRT01:BWSQRT13) %>%
+  dplyr::select(income, BWSQRT01:BWSQRT13) %>%
   dplyr::rename(
     "색" = "BWSQRT01"
     , "향" = "BWSQRT02"
@@ -10026,28 +10020,26 @@ full_data_PARTR_income <- full_data_L1 %>%
   )
 
 
-
 dataL1_income = full_data_PARTR_income %>%
-  tidyr::gather(-income, key="key", val="val")
+  tidyr::gather(-income, key = "key", val = "val")
 
 dataL1_income$key = forcats::fct_relevel(dataL1_income$key, yindex)
 
 ggplot(dataL1_income, aes(x = key, y = val, fill = income)) +
-  geom_bar(position="dodge", stat="identity", color="black") +
-  geom_text(aes(x=key, y=val, label = round(val, 0)), size = 5, color="white", vjust=2, position = position_dodge(width=0.9),size = 2) +
-  geom_hline(yintercept=1) +
-  labs(x = "", y = "선호도 점수", fill="", subtitle = "[수입] 항목에 따른 선호도 점수") + 
-  theme(text = element_text(size=18)) + 
+  geom_bar(position = "dodge", stat = "identity", color = "black") +
+  geom_text(aes(x = key, y = val, label = round(val, 0)), size = 5, color = "white", vjust = 2, position = position_dodge(width = 0.9), size = 2) +
+  geom_hline(yintercept = 1) +
+  labs(x = "", y = "선호도 점수", fill = "", subtitle = "[수입] 항목에 따른 선호도 점수") +
+  theme(text = element_text(size = 18)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  ggsave(filename = paste(globalVar$figConfig, "BWS/income.png", sep="/"), width = 12, height = 8, dpi = 600)
-  
+  ggsave(filename = paste(globalVar$figConfig, "BWS/income.png", sep = "/"), width = 12, height = 8, dpi = 600)
 
 
 ## job에 따른 항목별 스코어 차이 ##
 full_data_PARTR_job <- full_data_L1 %>%
   dplyr::group_by(job) %>%
   dplyr::summarise_all(funs(mean(., na.rm = TRUE))) %>%
-  dplyr::select(job,BWSQRT01:BWSQRT13) %>%
+  dplyr::select(job, BWSQRT01:BWSQRT13) %>%
   dplyr::rename(
     "색" = "BWSQRT01"
     , "향" = "BWSQRT02"
@@ -10066,26 +10058,25 @@ full_data_PARTR_job <- full_data_L1 %>%
 
 
 dataL1_job = full_data_PARTR_job %>%
-  tidyr::gather(-job, key="key", val="val")
+  tidyr::gather(-job, key = "key", val = "val")
 
 dataL1_job$key = forcats::fct_relevel(dataL1_job$key, yindex)
 
 ggplot(dataL1_job, aes(x = key, y = val, fill = job)) +
-  geom_bar(position="dodge", stat="identity", color="black") +
-  geom_text(aes(x=key, y=val, label = round(val, 0)), size = 5, color="white", vjust=2, position = position_dodge(width=0.9),size = 2) +
-  geom_hline(yintercept=1) +
-  labs(x = "", y = "선호도 점수", fill="", subtitle = "[직업] 항목에 따른 선호도 점수") + 
-  theme(text = element_text(size=18)) + 
+  geom_bar(position = "dodge", stat = "identity", color = "black") +
+  geom_text(aes(x = key, y = val, label = round(val, 0)), size = 5, color = "white", vjust = 2, position = position_dodge(width = 0.9), size = 2) +
+  geom_hline(yintercept = 1) +
+  labs(x = "", y = "선호도 점수", fill = "", subtitle = "[직업] 항목에 따른 선호도 점수") +
+  theme(text = element_text(size = 18)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  ggsave(filename = paste(globalVar$figConfig, "BWS/job.png", sep="/"), width = 12, height = 8, dpi = 600)
-
+  ggsave(filename = paste(globalVar$figConfig, "BWS/job.png", sep = "/"), width = 12, height = 8, dpi = 600)
 
 
 ## marr에 따른 항목별 스코어 차이 ##
 full_data_PARTR_marr <- full_data_L1 %>%
   dplyr::group_by(marr) %>%
   dplyr::summarise_all(funs(mean(., na.rm = TRUE))) %>%
-  dplyr::select(marr,BWSQRT01:BWSQRT13) %>%
+  dplyr::select(marr, BWSQRT01:BWSQRT13) %>%
   dplyr::rename(
     "색" = "BWSQRT01"
     , "향" = "BWSQRT02"
@@ -10103,19 +10094,18 @@ full_data_PARTR_marr <- full_data_L1 %>%
   )
 
 dataL1_marr = full_data_PARTR_marr %>%
-  tidyr::gather(-marr, key="key", val="val")
+  tidyr::gather(-marr, key = "key", val = "val")
 
 dataL1_marr$key = forcats::fct_relevel(dataL1_marr$key, yindex)
 
 ggplot(dataL1_marr, aes(x = key, y = val, fill = marr)) +
-  geom_bar(position="dodge", stat="identity", color="black") +
-  geom_text(aes(x=key, y=val, label = round(val, 0)), size = 5, color="white", vjust=2, position = position_dodge(width=0.9),size = 2) +
-  geom_hline(yintercept=1) +
-  labs(x = "", y = "선호도 점수", fill="", subtitle = "항목에 따른 선호도 점수") + 
-  theme(text = element_text(size=18)) + 
+  geom_bar(position = "dodge", stat = "identity", color = "black") +
+  geom_text(aes(x = key, y = val, label = round(val, 0)), size = 5, color = "white", vjust = 2, position = position_dodge(width = 0.9), size = 2) +
+  geom_hline(yintercept = 1) +
+  labs(x = "", y = "선호도 점수", fill = "", subtitle = "항목에 따른 선호도 점수") +
+  theme(text = element_text(size = 18)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  ggsave(filename = paste(globalVar$figConfig, "BWS/marr.png", sep="/"), width = 12, height = 8, dpi = 600)
-
+  ggsave(filename = paste(globalVar$figConfig, "BWS/marr.png", sep = "/"), width = 12, height = 8, dpi = 600)
 
 
 #======================================================
@@ -10138,295 +10128,377 @@ library(png)
 library(xlsx)
 library(fs)
 
-
 set.seed(1)
+
+serviceName = "LSH0064"
 
 # fileInfo = Sys.glob(paste(globalVar$inpConfig, "kyung123.csv", sep = "/"))
 # fileInfo = Sys.glob(paste(globalVar$inpConfig, "kyung1_20201110.csv", sep = "/"))
 fileList = Sys.glob(paste(globalVar$inpConfig, "KYUNG/*.csv", sep = "/"))
 
-# fileInfo = "E:/04. 재능플랫폼/Github/TalentPlatform-R/INPUT/o2job/KYUNG/kyung1234.csv"
-    
+# fileInfo = "E:/04. TalentPlatform/Github/TalentPlatform-R/INPUT/o2job/KYUNG/kyung1234.csv"
+
+#********************************************************
+# 연관규칙 생성
+#********************************************************
 for (fileInfo in fileList) {
+        
+  fileName = tools::file_path_sans_ext(fs::path_file(fileInfo))
+  
+  data = readr::read_csv(fileInfo) %>%
+    dplyr::select(-salad, -sandwich) %>%
+    dplyr::rename(
+      "id" = "X1"
+      , "스테이크" = "steak"
+      , "파스타" = "pasta"
+      , "치즈" = "cheese"
+      , "과일" = "fruit"
+      , "피자" = "pizza"
+      , "리조또" = "risotto"
+      , "생선" = "fish"
+      , "치킨" = "chiken"
+      , "초콜릿" = "chocolate"
+      , "한식" = "koreanfood"
+      , "중식" = "chinesefood"
+      , "일식" = "japanesefood"
+      , "기타" = "theothers"
+      )
+  
+  if (nrow(data) < 0) { next }
+  
+  # 연관 규칙
+  foodlist = c()
+  # i = 1
+  for (i in unique(data$id)) {
     
-    fileName = tools::file_path_sans_ext(fs::path_file(fileInfo))
-    data = read.csv(fileInfo, header=TRUE, sep=",", stringsAsFactors = FALSE)
+    data_part = data %>%
+      dplyr::filter(id == i) %>%
+      dplyr::select(-id) %>%
+      t() %>%
+      dplyr::as_data_frame(rownames = "foodname") %>%
+      dplyr::filter(V1 == 1)
+    
+    foodlist_part = as.vector(list(data_part$foodname))
+    foodlist_part2 = as.factor(data_part$foodname)
+    
+    
+    if (length(foodlist_part2) == 1) {
+      next
+    }
+    
+    foodlist = append(foodlist, foodlist_part)
+  }
+  
+  if (length(foodlist) < 0) { next }
+  
+  # 바이너리 코드를 transactions으로 변환하세요.
+  trans = as(foodlist, "transactions")
+  
+  # 최소규칙 지지도 = 0.01, 최소규칙 신뢰도 = 0.01로 규칙
+  rules = arules::apriori(trans, parameter = list(supp=0.001, conf=0.5))
+  # rulesPlot = head(sort(rules, by = "lift"), 30)
+  rulesPlot = head(sort(rules, by = "lift"), 10)
+  
+  # 시각화
+  saveImg = sprintf("%s/Img_%s_%s.png", globalVar$figConfig, serviceName, fileName)
+  
+  png(file = saveImg, width = 8, height = 5, units = "in", res = 600)
+  plot(rulesPlot, method = "graph", control = list(type = "items"))
+  dev.off()
+}
 
-    log4r::info(log, paste0("fileInfo : ", fileName))
-    
-    fileInfo2 = Sys.glob(paste(globalVar$inpConfig, "와인음용별.xlsx", sep = "/"))
-    data2 = xlsx::read.xlsx2(file = fileInfo2, sheetName = "Sheet1") 
-    
-    dataL1 = data2 %>%
-      readr::type_convert() %>%
-      # dplyr::left_join(data, by = c("id" = "id")) %>%
-      dplyr::left_join(data, by = c("id" = "X")) %>%
-      na.omit()
-    
-    levelList = sort(unique(dataL1$level))
-    freList = sort(unique(dataL1$fre))
-    dayList = sort(unique(dataL1$day))
-    drinkpList = sort(unique(dataL1$drinkp))
-    
-    
-    # levelInfo = 1
-    
-    #=======================================
-    # 지식수준 (levelList)
-    #=======================================
-    for (levelInfo in levelList) {
-      
-      log4r::info(log, paste0("levelInfo : ", levelInfo))
-      
-      saveFile = paste0("WineType/WindType_", fileName, "_levelInfo_", levelInfo, ".csv")
-      saveImg = paste0("WineType/WindType_", fileName, "_levelInfo_", levelInfo, ".png")
-    
-      dataL2 = dataL1 %>%
-        dplyr::filter(level == levelInfo) %>%
-        dplyr::select(- c("level", "fre", "day", "drinkp"))
-      
-      
-      # 연관 규칙
-      foodlist = c()
-      for (i in unique(dataL2$id)) {
-        
-        data_part = dataL2 %>%
-          dplyr::filter(id == i) %>%
-          dplyr::select(-id) %>%
-          t() %>%
-          dplyr::as_data_frame(rownames = "foodname") %>%
-          dplyr::filter(V1 == 1)
-        
-        foodlist_part = as.vector(list(data_part$foodname))
-        foodlist_part2 = as.factor(data_part$foodname)
-        
-        
-        if (length(foodlist_part2) == 1) {
-          next
-        }
-        
-        foodlist = append(foodlist, foodlist_part)
-      }
-      
-      transactions = as(foodlist, "transactions")
-      
-      # Implementing Apriori Algorithm
-      # rules = apriori(transactions, parameter = list(supp=0.01, conf=0.5, minlen=2, maxlen=3))
-      rules = apriori(transactions, parameter = list(supp=0.1, conf=0.5))
-      
-      if (length(rules) == 0) { next }
-      
-      rules_dt = data.table( 
-        lhs = labels( lhs(rules) )
-        , rhs = labels( rhs(rules) )
-        , quality(rules) 
-      )[ order(-lift), ]
-      
-      
-      write.csv(rules_dt, paste(globalVar$outConfig, saveFile, sep="/"))
-      
-      subrules2 = head(sort(rules, by="confidence"),length(rules))
-      ig = plot(subrules2, method="graph", control=list(type="items") )
-      ig_df = get.data.frame( ig, what = "both" )
-      
-      png(file = paste(globalVar$figConfig, saveImg, sep='/'), width = 8, height = 5, units="in", res = 600)
-      plot(subrules2, method="graph", control=list(type="items") )
-      dev.off()
-    }
-    
-    
-    #=======================================
-    # 음용횟수 (freList)
-    #=======================================
-    for (freInfo in freList) {
-      
-      log4r::info(log, paste0("freInfo : ", freInfo))
-      
-      saveFile = paste0("WineType/WindType_", fileName, "_freInfo_", freInfo, ".csv")
-      saveImg = paste0("WineType/WindType_", fileName, "_freInfo_", freInfo, ".png")
-      
-      dataL2 = dataL1 %>%
-        dplyr::filter(fre == freInfo) %>%
-        dplyr::select(- c("level", "fre", "day", "drinkp"))
-      
-      # 연관 규칙
-      foodlist = c()
-      for (i in unique(dataL2$id)) {
-        
-        data_part = dataL2 %>%
-          dplyr::filter(id == i) %>%
-          dplyr::select(-id) %>%
-          t() %>%
-          dplyr::as_data_frame(rownames = "foodname") %>%
-          dplyr::filter(V1 == 1)
-        
-        foodlist_part = as.vector(list(data_part$foodname))
-        foodlist_part2 = as.factor(data_part$foodname)
-        
-        
-        if (length(foodlist_part2) == 1) {
-          next
-        }
-        
-        foodlist = append(foodlist, foodlist_part)
-      }
-      
-      transactions = as(foodlist, "transactions")
-      
-      # Implementing Apriori Algorithm
-      # rules = apriori(transactions, parameter = list(supp=0.01, conf=0.5, minlen=2, maxlen=3))
-      rules = apriori(transactions, parameter = list(supp=0.1, conf=0.5))
-      
-      if (length(rules) == 0) { next }
-      
-      rules_dt = data.table( 
-        lhs = labels( lhs(rules) )
-        , rhs = labels( rhs(rules) )
-        , quality(rules) 
-      )[ order(-lift), ]
-      
-      
-      write.csv(rules_dt, paste(globalVar$outConfig, saveFile, sep="/"))
-      
-      subrules2 = head(sort(rules, by="confidence"),length(rules))
-      ig = plot(subrules2, method="graph", control=list(type="items") )
-      ig_df = get.data.frame( ig, what = "both" )
-      
-      png(file = paste(globalVar$figConfig, saveImg, sep='/'), width = 8, height = 5, units="in", res = 600)
-      plot(subrules2, method="graph", control=list(type="items") )
-      dev.off()
-      
-    }
-    
-    
-    #=======================================
-    # 음용기간 (dayList)
-    #=======================================
-    for (dayInfo in dayList) {
-      
-      log4r::info(log, paste0("dayInfo : ", dayInfo))
 
-      saveFile = paste0("WineType/WindType_", fileName, "_dayInfo_", dayInfo, ".csv")
-      saveImg = paste0("WineType/WindType_", fileName, "_dayInfo_", dayInfo, ".png")
-      
-      dataL2 = dataL1 %>%
-        dplyr::filter(day == dayInfo) %>%
-        dplyr::select(- c("level", "fre", "day", "drinkp"))
-      
-      
-      # 연관 규칙
-      foodlist = c()
-      for (i in unique(dataL2$id)) {
-        
-        data_part = dataL2 %>%
-          dplyr::filter(id == i) %>%
-          dplyr::select(-id) %>%
-          t() %>%
-          dplyr::as_data_frame(rownames = "foodname") %>%
-          dplyr::filter(V1 == 1)
-        
-        foodlist_part = as.vector(list(data_part$foodname))
-        foodlist_part2 = as.factor(data_part$foodname)
-        
-        
-        if (length(foodlist_part2) == 1) {
-          next
-        }
-        
-        foodlist = append(foodlist, foodlist_part)
+#*********************************************************************************************
+# 와인음용 병합하여 연관규칙 생성
+#*********************************************************************************************
+fileList = Sys.glob(paste(globalVar$inpConfig, "KYUNG/*.csv", sep = "/"))
+
+# fileInfo = "E:/04. TalentPlatform/Github/TalentPlatform-R/INPUT/o2job/KYUNG/kyung1234.csv"
+
+for (fileInfo in fileList) {
+
+  fileName = tools::file_path_sans_ext(fs::path_file(fileInfo))
+  data = read.csv(fileInfo, header = TRUE, sep = ",", stringsAsFactors = FALSE)
+
+  log4r::info(log, paste0("fileInfo : ", fileName))
+
+  fileInfo2 = Sys.glob(paste(globalVar$inpConfig, "와인음용별.xlsx", sep = "/"))
+  data2 = xlsx::read.xlsx2(file = fileInfo2, sheetName = "Sheet1")
+
+  dataL1 = data2 %>%
+    readr::type_convert() %>%
+    # dplyr::left_join(data, by = c("id" = "id")) %>%
+    dplyr::left_join(data, by = c("id" = "X")) %>%
+    na.omit()
+  
+  
+  levelList = sort(unique(dataL1$level))
+  freList = sort(unique(dataL1$fre))
+  dayList = sort(unique(dataL1$day))
+  drinkpList = sort(unique(dataL1$drinkp))
+
+
+  # levelInfo = 1
+
+  #=======================================
+  # 지식수준 (levelList)
+  #=======================================
+  for (levelInfo in levelList) {
+
+    log4r::info(log, paste0("levelInfo : ", levelInfo))
+
+    saveFile = paste0("WineType/WindType_", fileName, "_levelInfo_", levelInfo, ".csv")
+    saveImg = paste0("WineType/WindType_", fileName, "_levelInfo_", levelInfo, ".png")
+
+    dataL2 = dataL1 %>%
+      dplyr::filter(level == levelInfo) %>%
+      dplyr::select(-c("level", "fre", "day", "drinkp"))
+
+
+    # 연관 규칙
+    foodlist = c()
+    for (i in unique(dataL2$id)) {
+
+      data_part = dataL2 %>%
+        dplyr::filter(id == i) %>%
+        dplyr::select(-id) %>%
+        t() %>%
+        dplyr::as_data_frame(rownames = "foodname") %>%
+        dplyr::filter(V1 == 1)
+
+      foodlist_part = as.vector(list(data_part$foodname))
+      foodlist_part2 = as.factor(data_part$foodname)
+
+
+      if (length(foodlist_part2) == 1) {
+        next
       }
-      
-      transactions = as(foodlist, "transactions")
-      
-      # Implementing Apriori Algorithm
-      # rules = apriori(transactions, parameter = list(supp=0.01, conf=0.5, minlen=2, maxlen=3))
-      rules = apriori(transactions, parameter = list(supp=0.1, conf=0.5))
-      
-      if (length(rules) == 0) { next }
-      
-      rules_dt = data.table( 
-        lhs = labels( lhs(rules) )
-        , rhs = labels( rhs(rules) )
-        , quality(rules) 
-      )[ order(-lift), ]
-      
-      
-      write.csv(rules_dt, paste(globalVar$outConfig, saveFile, sep="/"))
-      
-      subrules2 = head(sort(rules, by="confidence"),length(rules))
-      ig = plot(subrules2, method="graph", control=list(type="items") )
-      ig_df = get.data.frame( ig, what = "both" )
-      
-      png(file = paste(globalVar$figConfig, saveImg, sep='/'), width = 8, height = 5, units="in", res = 600)
-      plot(subrules2, method="graph", control=list(type="items") )
-      dev.off()
-      
+
+      foodlist = append(foodlist, foodlist_part)
     }
+
+    transactions = as(foodlist, "transactions")
     
-    #=======================================
-    # 음용장소 (drinkpList)
-    #=======================================
-    for (drinkpInfo in drinkpList) {
-      
-      log4r::info(log, paste0("drinkpInfo : ", drinkpInfo))
-        
-      saveFile = paste0("WineType/WindType_", fileName, "_drinkpInfo_", drinkpInfo, ".csv")
-      saveImg = paste0("WineType/WindType_", fileName, "_drinkpInfo_", drinkpInfo, ".png")
-      
-      dataL2 = dataL1 %>%
-          dplyr::filter(drinkp == drinkpInfo) %>%
-          dplyr::select(- c("level", "fre", "day", "drinkp"))
-      
-      
-      # 연관 규칙
-      foodlist = c()
-      for (i in unique(dataL2$id)) {
-          
-          data_part = dataL2 %>%
-              dplyr::filter(id == i) %>%
-              dplyr::select(-id) %>%
-              t() %>%
-              dplyr::as_data_frame(rownames = "foodname") %>%
-              dplyr::filter(V1 == 1)
-          
-          foodlist_part = as.vector(list(data_part$foodname))
-          foodlist_part2 = as.factor(data_part$foodname)
-          
-          
-          if (length(foodlist_part2) == 1) {
-              next
-          }
-          
-          foodlist = append(foodlist, foodlist_part)
+    
+    # rules = apriori(transactions, parameter = list(supp=0.01, conf=0.5, minlen=2, maxlen=3))
+
+    # Implementing Apriori Algorithm
+    # rules = apriori(transactions, parameter = list(supp=0.01, conf=0.5, minlen=2, maxlen=3))
+    rules = apriori(transactions, parameter = list(supp = 0.1, conf = 0.5))
+
+    if (length(rules) == 0) { next }
+
+    rules_dt = data.table(
+      lhs = labels(lhs(rules))
+      , rhs = labels(rhs(rules))
+      , quality(rules)
+    )[order(-lift),]
+
+
+    write.csv(rules_dt, paste(globalVar$outConfig, saveFile, sep = "/"))
+
+    subrules2 = head(sort(rules, by = "confidence"), length(rules))
+    ig = plot(subrules2, method = "graph", control = list(type = "items"))
+    ig_df = get.data.frame(ig, what = "both")
+
+    png(file = paste(globalVar$figConfig, saveImg, sep = '/'), width = 8, height = 5, units = "in", res = 600)
+    plot(subrules2, method = "graph", control = list(type = "items"))
+    dev.off()
+  }
+
+
+  #=======================================
+  # 음용횟수 (freList)
+  #=======================================
+  for (freInfo in freList) {
+
+    log4r::info(log, paste0("freInfo : ", freInfo))
+
+    saveFile = paste0("WineType/WindType_", fileName, "_freInfo_", freInfo, ".csv")
+    saveImg = paste0("WineType/WindType_", fileName, "_freInfo_", freInfo, ".png")
+
+    dataL2 = dataL1 %>%
+      dplyr::filter(fre == freInfo) %>%
+      dplyr::select(-c("level", "fre", "day", "drinkp"))
+
+    # 연관 규칙
+    foodlist = c()
+    for (i in unique(dataL2$id)) {
+
+      data_part = dataL2 %>%
+        dplyr::filter(id == i) %>%
+        dplyr::select(-id) %>%
+        t() %>%
+        dplyr::as_data_frame(rownames = "foodname") %>%
+        dplyr::filter(V1 == 1)
+
+      foodlist_part = as.vector(list(data_part$foodname))
+      foodlist_part2 = as.factor(data_part$foodname)
+
+
+      if (length(foodlist_part2) == 1) {
+        next
       }
-      
-      transactions = as(foodlist, "transactions")
-      
-      # Implementing Apriori Algorithm
-      # rules = apriori(transactions, parameter = list(supp=0.01, conf=0.5, minlen=2, maxlen=3))
-      rules = apriori(transactions, parameter = list(supp=0.1, conf=0.5))
-      
-      if (length(rules) == 0) { next }
-      
-      rules_dt = data.table( 
-          lhs = labels( lhs(rules) )
-          , rhs = labels( rhs(rules) )
-          , quality(rules) 
-      )[ order(-lift), ]
-      
-      
-      write.csv(rules_dt, paste(globalVar$outConfig, saveFile, sep="/"))
-      
-      subrules2 = head(sort(rules, by="confidence"),length(rules))
-      ig = plot(subrules2, method="graph", control=list(type="items") )
-      ig_df = get.data.frame( ig, what = "both" )
-      
-      png(file = paste(globalVar$figConfig, saveImg, sep='/'), width = 8, height = 5, units="in", res = 600)
-      plot(subrules2, method="graph", control=list(type="items") )
-      dev.off()
-      
+
+      foodlist = append(foodlist, foodlist_part)
     }
-    
+
+    transactions = as(foodlist, "transactions")
+
+    # Implementing Apriori Algorithm
+    # rules = apriori(transactions, parameter = list(supp=0.01, conf=0.5, minlen=2, maxlen=3))
+    rules = apriori(transactions, parameter = list(supp = 0.1, conf = 0.5))
+
+    if (length(rules) == 0) { next }
+
+    rules_dt = data.table(
+      lhs = labels(lhs(rules))
+      , rhs = labels(rhs(rules))
+      , quality(rules)
+    )[order(-lift),]
+
+
+    write.csv(rules_dt, paste(globalVar$outConfig, saveFile, sep = "/"))
+
+    subrules2 = head(sort(rules, by = "confidence"), length(rules))
+    ig = plot(subrules2, method = "graph", control = list(type = "items"))
+    ig_df = get.data.frame(ig, what = "both")
+
+    png(file = paste(globalVar$figConfig, saveImg, sep = '/'), width = 8, height = 5, units = "in", res = 600)
+    plot(subrules2, method = "graph", control = list(type = "items"))
+    dev.off()
+
+  }
+
+
+  #=======================================
+  # 음용기간 (dayList)
+  #=======================================
+  for (dayInfo in dayList) {
+
+    log4r::info(log, paste0("dayInfo : ", dayInfo))
+
+    saveFile = paste0("WineType/WindType_", fileName, "_dayInfo_", dayInfo, ".csv")
+    saveImg = paste0("WineType/WindType_", fileName, "_dayInfo_", dayInfo, ".png")
+
+    dataL2 = dataL1 %>%
+      dplyr::filter(day == dayInfo) %>%
+      dplyr::select(-c("level", "fre", "day", "drinkp"))
+
+
+    # 연관 규칙
+    foodlist = c()
+    for (i in unique(dataL2$id)) {
+
+      data_part = dataL2 %>%
+        dplyr::filter(id == i) %>%
+        dplyr::select(-id) %>%
+        t() %>%
+        dplyr::as_data_frame(rownames = "foodname") %>%
+        dplyr::filter(V1 == 1)
+
+      foodlist_part = as.vector(list(data_part$foodname))
+      foodlist_part2 = as.factor(data_part$foodname)
+
+
+      if (length(foodlist_part2) == 1) {
+        next
+      }
+
+      foodlist = append(foodlist, foodlist_part)
+    }
+
+    transactions = as(foodlist, "transactions")
+
+    # Implementing Apriori Algorithm
+    # rules = apriori(transactions, parameter = list(supp=0.01, conf=0.5, minlen=2, maxlen=3))
+    rules = apriori(transactions, parameter = list(supp = 0.1, conf = 0.5))
+
+    if (length(rules) == 0) { next }
+
+    rules_dt = data.table(
+      lhs = labels(lhs(rules))
+      , rhs = labels(rhs(rules))
+      , quality(rules)
+    )[order(-lift),]
+
+
+    write.csv(rules_dt, paste(globalVar$outConfig, saveFile, sep = "/"))
+
+    subrules2 = head(sort(rules, by = "confidence"), length(rules))
+    ig = plot(subrules2, method = "graph", control = list(type = "items"))
+    ig_df = get.data.frame(ig, what = "both")
+
+    png(file = paste(globalVar$figConfig, saveImg, sep = '/'), width = 8, height = 5, units = "in", res = 600)
+    plot(subrules2, method = "graph", control = list(type = "items"))
+    dev.off()
+
+  }
+
+  #=======================================
+  # 음용장소 (drinkpList)
+  #=======================================
+  for (drinkpInfo in drinkpList) {
+
+    log4r::info(log, paste0("drinkpInfo : ", drinkpInfo))
+
+    saveFile = paste0("WineType/WindType_", fileName, "_drinkpInfo_", drinkpInfo, ".csv")
+    saveImg = paste0("WineType/WindType_", fileName, "_drinkpInfo_", drinkpInfo, ".png")
+
+    dataL2 = dataL1 %>%
+      dplyr::filter(drinkp == drinkpInfo) %>%
+      dplyr::select(-c("level", "fre", "day", "drinkp"))
+
+
+    # 연관 규칙
+    foodlist = c()
+    for (i in unique(dataL2$id)) {
+
+      data_part = dataL2 %>%
+        dplyr::filter(id == i) %>%
+        dplyr::select(-id) %>%
+        t() %>%
+        dplyr::as_data_frame(rownames = "foodname") %>%
+        dplyr::filter(V1 == 1)
+
+      foodlist_part = as.vector(list(data_part$foodname))
+      foodlist_part2 = as.factor(data_part$foodname)
+
+
+      if (length(foodlist_part2) == 1) {
+        next
+      }
+
+      foodlist = append(foodlist, foodlist_part)
+    }
+
+    transactions = as(foodlist, "transactions")
+
+    # Implementing Apriori Algorithm
+    # rules = apriori(transactions, parameter = list(supp=0.01, conf=0.5, minlen=2, maxlen=3))
+    rules = apriori(transactions, parameter = list(supp = 0.1, conf = 0.5))
+
+    if (length(rules) == 0) { next }
+
+    rules_dt = data.table(
+      lhs = labels(lhs(rules))
+      , rhs = labels(rhs(rules))
+      , quality(rules)
+    )[order(-lift),]
+
+
+    write.csv(rules_dt, paste(globalVar$outConfig, saveFile, sep = "/"))
+
+    subrules2 = head(sort(rules, by = "confidence"), length(rules))
+    ig = plot(subrules2, method = "graph", control = list(type = "items"))
+    ig_df = get.data.frame(ig, what = "both")
+
+    png(file = paste(globalVar$figConfig, saveImg, sep = '/'), width = 8, height = 5, units = "in", res = 600)
+    plot(subrules2, method = "graph", control = list(type = "items"))
+    dev.off()
+
+  }
+
 }
 
 
@@ -10480,18 +10552,18 @@ mapInfo = Sys.glob(paste(globalVar$mapConfig, "/KOREA_INFO/TL_SCCO_CTPRVN.shp", 
 la = shapefile(mapInfo, encoding = "UTF-8")
 
 geo = sp::spTransform(la, CRS("+proj=longlat"))
-geoData = ggplot2::fortify(geo,region = 'CTPRVN_CD',region2 = "CTP_KOR_NM")
+geoData = ggplot2::fortify(geo, region = 'CTPRVN_CD', region2 = "CTP_KOR_NM")
 # head(geoData)
 
 # 위치 정보 읽기 (법정동 - 시도)
 codeInfo = Sys.glob(paste(globalVar$mapConfig, "/ADM_CODE/법정동코드_전체자료.txt", sep = "/"))
-code = read.table(codeInfo, sep="\t", header = TRUE, colClasses = "character")
+code = read.table(codeInfo, sep = "\t", header = TRUE, colClasses = "character")
 colnames(code) = c("EMD_CD", "full_addr", "useflag")
 
 code_L1 = code %>%
-  tidyr::separate(col = "full_addr", into = c("d1", "d2", "d3", "d4", "d5"), sep=" ") %>%
+  tidyr::separate(col = "full_addr", into = c("d1", "d2", "d3", "d4", "d5"), sep = " ") %>%
   dplyr::filter(is.na(d3), is.na(d2)) %>%
-  dplyr::mutate(code = str_sub(EMD_CD,1,2)) %>%
+  dplyr::mutate(code = str_sub(EMD_CD, 1, 2)) %>%
   dplyr::filter(useflag == "존재") %>%
   dplyr::select(-c(EMD_CD, d2, d3, d4, d5, useflag)) %>%
   dplyr::rename(
@@ -10503,18 +10575,18 @@ unique(code_L1$si_do)
 
 # 대전 및 충남만 선택
 code_L2_deaseon = code_L1 %>%
-  dplyr::filter(si_do %in%c("충청남도", "충청북도", "대전광역시", "세종특별자치시")) %>%
+  dplyr::filter(si_do %in% c("충청남도", "충청북도", "대전광역시", "세종특별자치시")) %>%
   dplyr::distinct() %>%
   dplyr::filter(!is.na(sido_code)) %>%
   dplyr::mutate(code = as.character(round(as.numeric(sido_code, 0))))
 
 geoData_L1 = geoData %>%
-  dplyr::inner_join(code_L2_deaseon, by = c("id" = "code")) 
+  dplyr::inner_join(code_L2_deaseon, by = c("id" = "code"))
 
 
 # 환자 데이터와 지도와 매칭 (시도)
 data = openxlsx::read.xlsx(xlsxFile = fileInfo, sheet = "G1") %>%
-# data = xlsx::read.xlsx2(file = fileInfo, sheetName = "G1") %>%
+  # data = xlsx::read.xlsx2(file = fileInfo, sheetName = "G1") %>%
   readr::type_convert() %>%
   dplyr::mutate(
     dtDate = readr::parse_date(as.character(date), "%Y-%m-%d")
@@ -10533,7 +10605,7 @@ key6List = unique(data$key6)
 
 for (key5Info in key5List) {
   for (key6Info in key6List) {
-    
+
     # 전체 수행
     tmpData = data %>%
       dplyr::group_by(key5, key6) %>%
@@ -10542,11 +10614,11 @@ for (key5Info in key5List) {
         key5 == key5Info
         , key6 == key6Info
       )
-    
+
     if (nrow(tmpData) <= 0) {
       next
     }
-    
+
     dataL1 = data %>%
       dplyr::group_by(addr1, key5, key6) %>%
       dplyr::summarise(n = n()) %>%
@@ -10555,19 +10627,19 @@ for (key5Info in key5List) {
         , key6 == key6Info
       ) %>%
       dplyr::mutate(cnt = (n / tmpData$sumVal) * 100)
-    
+
     if (nrow(dataL1) <= 0) {
       next
     }
-    
+
     dataL2 = geoData_L1 %>%
       dplyr::left_join(dataL1, by = c("si_do" = "addr1")) %>%
       dplyr::mutate(
         plotLabel = dplyr::case_when(
-          si_do == "충청남도" ~ dplyr::if_else(! is.na(n) & n > 0, paste0(round(n, 0), "\n충남"), "충남")
-          , si_do == "세종특별자치시" ~ dplyr::if_else(! is.na(n) & n > 0, paste0(round(n, 0), "\n세종"), "세종")
-          , si_do == "충청북도" ~ dplyr::if_else(! is.na(n) & n > 0, paste0(round(n, 0), "\n충북"), "충북")
-          , si_do == "대전광역시" ~ dplyr::if_else(! is.na(n) & n > 0, paste0(round(n, 0), "\n대전"), "대전")
+          si_do == "충청남도" ~ dplyr::if_else(!is.na(n) & n > 0, paste0(round(n, 0), "\n충남"), "충남")
+          , si_do == "세종특별자치시" ~ dplyr::if_else(!is.na(n) & n > 0, paste0(round(n, 0), "\n세종"), "세종")
+          , si_do == "충청북도" ~ dplyr::if_else(!is.na(n) & n > 0, paste0(round(n, 0), "\n충북"), "충북")
+          , si_do == "대전광역시" ~ dplyr::if_else(!is.na(n) & n > 0, paste0(round(n, 0), "\n대전"), "대전")
           , TRUE ~ ""
         )
         , xOffset = dplyr::case_when(
@@ -10580,107 +10652,107 @@ for (key5Info in key5List) {
           TRUE ~ 0
         )
       )
-    
+
     # 시각화
     saveImg = paste0("TMP2/Img_076_", "2015-2019", "_", key6Info, "_", key5Info, ".png")
     plotSubTitle = paste0("[", key6Info, "] ", key5Info, " 의료이용률 시도별 현황(", "2015-2019", ")")
-    
-    
+
+
     ggplot() +
       theme_bw() +
       coord_fixed(ratio = 1) +
-      geom_polygon(data=dataL2, aes(x=long, y=lat, group=group, fill = n)) +
+      geom_polygon(data = dataL2, aes(x = long, y = lat, group = group, fill = n)) +
       scale_fill_gradientn(colours = c("yellow", "orange", "Brown"), limits = c(0, max(dataL2$n, na.rm = TRUE)), na.value = "white") +
-      geom_path(data=dataL2, aes(x=long,y=lat,group=group), colour='black',size = 0.5) +
-      ggh4x::stat_midpoint(data=dataL2, aes(x=long + xOffset, y=lat + yOffset, group=sido_code, label = plotLabel), geom = "text", size = 4) +  
+      geom_path(data = dataL2, aes(x = long, y = lat, group = group), colour = 'black', size = 0.5) +
+      ggh4x::stat_midpoint(data = dataL2, aes(x = long + xOffset, y = lat + yOffset, group = sido_code, label = plotLabel), geom = "text", size = 4) +
       #ggh4x::stat_midpoint(data=geoData_L1, aes(x=long, y=lat, group=sigungu_code, label = sigungu_name), geom = "text", size = 3) + # 시군구
       labs(title = plotSubTitle, x = NULL, y = NULL, colour = NULL, fill = "단위 : 명", subtitle = NULL) +
       theme_minimal() +
       theme(
-        text = element_text(size=18)
+        text = element_text(size = 18)
         , panel.grid.major.x = element_blank()
         , panel.grid.major.y = element_blank()
         , panel.grid.minor.x = element_blank()
         , panel.grid.minor.y = element_blank()
-        , axis.text.x=element_blank()
-        , axis.ticks.x=element_blank()
-        , axis.title.x=element_blank()
-        , axis.text.y=element_blank()
-        , axis.ticks.y=element_blank()
-        , axis.title.y=element_blank()
+        , axis.text.x = element_blank()
+        , axis.ticks.x = element_blank()
+        , axis.title.x = element_blank()
+        , axis.text.y = element_blank()
+        , axis.ticks.y = element_blank()
+        , axis.title.y = element_blank()
         , plot.subtitle = element_text(hjust = 1)
         # , legend.position = "none"
-      ) + 
-      ggsave(filename = paste(globalVar$figConfig, saveImg, sep="/"), width = 10, height = 5, dpi = 600)
-    
+      ) +
+      ggsave(filename = paste(globalVar$figConfig, saveImg, sep = "/"), width = 10, height = 5, dpi = 600)
+
     # 각 연도별 수행
     for (yearInfo in yearList) {
-    
-        dataL1 = data %>%
-          dplyr::group_by(dtYear, addr1, key5, key6) %>%
-          dplyr::summarise(n = n()) %>%
-          dplyr::filter(
-            dtYear == yearInfo
-            , key5 == key5Info
-            , key6 == key6Info
-          ) %>%
-          dplyr::mutate(cnt = (n / tmpData$sumVal) * 100)
-    
-        if (nrow(dataL1) <= 0) {
-          next
-        }
-        
-        dataL2 = geoData_L1 %>%
-          dplyr::left_join(dataL1, by = c("si_do" = "addr1")) %>%
-          dplyr::mutate(
-            plotLabel = dplyr::case_when(
-              si_do == "충청남도" ~ dplyr::if_else(! is.na(n) & n > 0, paste0(round(n, 0), "\n충남"), "충남")
-              , si_do == "세종특별자치시" ~ dplyr::if_else(! is.na(n) & n > 0, paste0(round(n, 0), "\n세종"), "세종")
-              , si_do == "충청북도" ~ dplyr::if_else(! is.na(n) & n > 0, paste0(round(n, 0), "\n충북"), "충북")
-              , si_do == "대전광역시" ~ dplyr::if_else(! is.na(n) & n > 0, paste0(round(n, 0), "\n대전"), "대전")
-              , TRUE ~ ""
-              )
-            , xOffset = dplyr::case_when(
-              si_do == "충청남도" ~ 0.25
-              , si_do == "충청북도" ~ -0.35
-              , si_do == "세종특별자치시" ~ -0.015
-              , TRUE ~ 0
-              )
-            , yOffset = dplyr::case_when(
-              TRUE ~ 0
-              )
-            )
-        
-        # 시각화
-        saveImg = paste0("TMP2/Img_076_", yearInfo, "_", key6Info, "_", key5Info, ".png")
-        plotSubTitle = paste0("[", key6Info, "] ", key5Info, " 의료이용률 시도별 현황(", yearInfo, ")")
-        
-        ggplot() +
-          theme_bw() +
-          coord_fixed(ratio = 1) +
-          geom_polygon(data=dataL2, aes(x=long, y=lat, group=group, fill = n)) +
-          scale_fill_gradientn(colours = c("yellow", "orange", "Brown"), limits = c(0, max(dataL2$n, na.rm = TRUE)), na.value = "white") +
-          geom_path(data=dataL2, aes(x=long, y=lat, group=group), colour='black',size = 0.5) +
-          ggh4x::stat_midpoint(data=dataL2, aes(x=long + xOffset, y=lat + yOffset, group=sido_code, label = plotLabel), geom = "text", size = 4) +  
-          #ggh4x::stat_midpoint(data=geoData_L1, aes(x=long, y=lat, group=sigungu_code, label = sigungu_name), geom = "text", size = 3) + # 시군구
-          labs(title = plotSubTitle, x = NULL, y = NULL, colour = NULL, fill = "단위 : 명", subtitle = NULL) +
-          theme_minimal() +
-          theme(
-            text = element_text(size=18)
-            , panel.grid.major.x = element_blank()
-            , panel.grid.major.y = element_blank()
-            , panel.grid.minor.x = element_blank()
-            , panel.grid.minor.y = element_blank()
-            , axis.text.x=element_blank()
-            , axis.ticks.x=element_blank()
-            , axis.title.x=element_blank()
-            , axis.text.y=element_blank()
-            , axis.ticks.y=element_blank()
-            , axis.title.y=element_blank()
-            , plot.subtitle = element_text(hjust = 1)
-            # , legend.position = "none"
-          ) + 
-          ggsave(filename = paste(globalVar$figConfig, saveImg, sep="/"), width = 10, height = 5, dpi = 600)
+
+      dataL1 = data %>%
+        dplyr::group_by(dtYear, addr1, key5, key6) %>%
+        dplyr::summarise(n = n()) %>%
+        dplyr::filter(
+          dtYear == yearInfo
+          , key5 == key5Info
+          , key6 == key6Info
+        ) %>%
+        dplyr::mutate(cnt = (n / tmpData$sumVal) * 100)
+
+      if (nrow(dataL1) <= 0) {
+        next
+      }
+
+      dataL2 = geoData_L1 %>%
+        dplyr::left_join(dataL1, by = c("si_do" = "addr1")) %>%
+        dplyr::mutate(
+          plotLabel = dplyr::case_when(
+            si_do == "충청남도" ~ dplyr::if_else(!is.na(n) & n > 0, paste0(round(n, 0), "\n충남"), "충남")
+            , si_do == "세종특별자치시" ~ dplyr::if_else(!is.na(n) & n > 0, paste0(round(n, 0), "\n세종"), "세종")
+            , si_do == "충청북도" ~ dplyr::if_else(!is.na(n) & n > 0, paste0(round(n, 0), "\n충북"), "충북")
+            , si_do == "대전광역시" ~ dplyr::if_else(!is.na(n) & n > 0, paste0(round(n, 0), "\n대전"), "대전")
+            , TRUE ~ ""
+          )
+          , xOffset = dplyr::case_when(
+            si_do == "충청남도" ~ 0.25
+            , si_do == "충청북도" ~ -0.35
+            , si_do == "세종특별자치시" ~ -0.015
+            , TRUE ~ 0
+          )
+          , yOffset = dplyr::case_when(
+            TRUE ~ 0
+          )
+        )
+
+      # 시각화
+      saveImg = paste0("TMP2/Img_076_", yearInfo, "_", key6Info, "_", key5Info, ".png")
+      plotSubTitle = paste0("[", key6Info, "] ", key5Info, " 의료이용률 시도별 현황(", yearInfo, ")")
+
+      ggplot() +
+        theme_bw() +
+        coord_fixed(ratio = 1) +
+        geom_polygon(data = dataL2, aes(x = long, y = lat, group = group, fill = n)) +
+        scale_fill_gradientn(colours = c("yellow", "orange", "Brown"), limits = c(0, max(dataL2$n, na.rm = TRUE)), na.value = "white") +
+        geom_path(data = dataL2, aes(x = long, y = lat, group = group), colour = 'black', size = 0.5) +
+        ggh4x::stat_midpoint(data = dataL2, aes(x = long + xOffset, y = lat + yOffset, group = sido_code, label = plotLabel), geom = "text", size = 4) +
+        #ggh4x::stat_midpoint(data=geoData_L1, aes(x=long, y=lat, group=sigungu_code, label = sigungu_name), geom = "text", size = 3) + # 시군구
+        labs(title = plotSubTitle, x = NULL, y = NULL, colour = NULL, fill = "단위 : 명", subtitle = NULL) +
+        theme_minimal() +
+        theme(
+          text = element_text(size = 18)
+          , panel.grid.major.x = element_blank()
+          , panel.grid.major.y = element_blank()
+          , panel.grid.minor.x = element_blank()
+          , panel.grid.minor.y = element_blank()
+          , axis.text.x = element_blank()
+          , axis.ticks.x = element_blank()
+          , axis.title.x = element_blank()
+          , axis.text.y = element_blank()
+          , axis.ticks.y = element_blank()
+          , axis.title.y = element_blank()
+          , plot.subtitle = element_text(hjust = 1)
+          # , legend.position = "none"
+        ) +
+        ggsave(filename = paste(globalVar$figConfig, saveImg, sep = "/"), width = 10, height = 5, dpi = 600)
     }
   }
 }
@@ -10702,7 +10774,7 @@ tmpData = data %>%
   dplyr::bind_cols(key = "전체")
 
 dataL1 = data %>%
-  bind_rows(tmpData) 
+  bind_rows(tmpData)
 
 key2List = unique(dataL1$key2)
 key3List = unique(dataL1$key3)
@@ -10714,22 +10786,22 @@ for (key2Info in key2List) {
   for (key3Info in key3List) {
     plotSubTitle = paste0("[", key2Info, "] ", key3Info, " 의료이용률 시도별 연도별 추이")
     saveImg = paste0("TMP2/Img_070_", key2Info, "_", key3Info, ".png")
-    
+
     dataL2 = dataL1 %>%
       dplyr::filter(
         key2 == key2Info
         , key3 == key3Info
-      ) 
-    
+      )
+
     ind = which(dataL2$key == "전체")
-    
+
     dataL3 = dataL2 %>%
       dplyr::mutate(
-        perVal = (val / sum(dataL2[ind, ]$val, na.rm = TRUE)) * 100
+        perVal = (val / sum(dataL2[ind,]$val, na.rm = TRUE)) * 100
       )
-    
+
     dataL3$key = forcats::fct_relevel(dataL3$key, refKey)
-    
+
     ggplot(dataL3, aes(x = year, y = perVal, colour = key)) +
       geom_line(size = 1.5) +
       # xlim(80, 100) + 
@@ -10738,13 +10810,13 @@ for (key2Info in key2List) {
       theme_bw() +
       labs(title = plotSubTitle, x = NULL, y = NULL, colour = NULL, subtitle = "단위 : %") +
       theme(
-        text = element_text(size=18)
+        text = element_text(size = 18)
         # , panel.grid.major.x = element_blank()
         , panel.grid.minor.x = element_blank()
         , panel.grid.minor.y = element_blank()
         , plot.subtitle = element_text(hjust = 1)
-      ) + 
-      ggsave(filename = paste(globalVar$figConfig, saveImg, sep="/"), width = 10, height = 6, dpi = 600)
+      ) +
+      ggsave(filename = paste(globalVar$figConfig, saveImg, sep = "/"), width = 10, height = 6, dpi = 600)
   }
 }
 
@@ -10765,7 +10837,7 @@ tmpData = data %>%
   dplyr::bind_cols(key = "전체")
 
 dataL1 = data %>%
-  bind_rows(tmpData) 
+  bind_rows(tmpData)
 
 key2List = unique(dataL1$key2)
 key3List = unique(dataL1$key3)
@@ -10774,22 +10846,22 @@ for (key2Info in key2List) {
   for (key3Info in key3List) {
     plotSubTitle = paste0("[", key2Info, "] ", key3Info, " 의료이용률 성별 연도별 추이")
     saveImg = paste0("TMP2/Img_071_", key2Info, "_", key3Info, ".png")
-    
+
     dataL2 = dataL1 %>%
       dplyr::filter(
         key2 == key2Info
         , key3 == key3Info
-      ) 
-    
+      )
+
     ind = which(dataL2$key == "전체")
-    
+
     dataL3 = dataL2 %>%
       dplyr::mutate(
-        perVal = (val / sum(dataL2[ind, ]$val, na.rm = TRUE)) * 100
+        perVal = (val / sum(dataL2[ind,]$val, na.rm = TRUE)) * 100
       )
-    
+
     dataL3$key = forcats::fct_relevel(dataL3$key, refKey)
-    
+
     ggplot(dataL3, aes(x = year, y = perVal, colour = key)) +
       geom_line(size = 1.5) +
       # xlim(80, 100) + 
@@ -10798,13 +10870,13 @@ for (key2Info in key2List) {
       theme_bw() +
       labs(title = plotSubTitle, x = NULL, y = NULL, colour = NULL, subtitle = "단위 : %") +
       theme(
-        text = element_text(size=18)
+        text = element_text(size = 18)
         # , panel.grid.major.x = element_blank()
         , panel.grid.minor.x = element_blank()
         , panel.grid.minor.y = element_blank()
         , plot.subtitle = element_text(hjust = 1)
-      ) + 
-      ggsave(filename = paste(globalVar$figConfig, saveImg, sep="/"), width = 10, height = 6, dpi = 600)
+      ) +
+      ggsave(filename = paste(globalVar$figConfig, saveImg, sep = "/"), width = 10, height = 6, dpi = 600)
   }
 }
 
@@ -10836,65 +10908,65 @@ key2Info = "외래"
 key3Info = "뇌졸중"
 
 for (yearInfo in yearList) {
-    for (key2Info in key2List) {
-      for (key3Info in key3List) {
-          
-        plotSubTitle = paste0("[", key2Info, "] ", key3Info, " 의료이용률 연령별∙성별 현황(", yearInfo, ")")
-        saveImg = paste0("TMP2/Img_072_", yearInfo, "_", key2Info, "_", key3Info, ".png")
-        
-        dataL2 = dataL1 %>%
-          dplyr::filter(
-            year == yearInfo
-            , key2 == key2Info
-            , key3 == key3Info
-          ) 
-        
-        sumData = tmpData %>%
-          dplyr::filter(
-            year == yearInfo
-            , key2 == key2Info
-            , key3 == key3Info
+  for (key2Info in key2List) {
+    for (key3Info in key3List) {
+
+      plotSubTitle = paste0("[", key2Info, "] ", key3Info, " 의료이용률 연령별∙성별 현황(", yearInfo, ")")
+      saveImg = paste0("TMP2/Img_072_", yearInfo, "_", key2Info, "_", key3Info, ".png")
+
+      dataL2 = dataL1 %>%
+        dplyr::filter(
+          year == yearInfo
+          , key2 == key2Info
+          , key3 == key3Info
+        )
+
+      sumData = tmpData %>%
+        dplyr::filter(
+          year == yearInfo
+          , key2 == key2Info
+          , key3 == key3Info
+        )
+
+      dataL3 = dataL2 %>%
+        dplyr::mutate(
+          perVal = dplyr::case_when(
+            key == "남성" ~ -(val / sumData$val) * 100
+            , key == "여성" ~ (val / sumData$val) * 100
+            , TRUE ~ NA_real_
           )
-        
-        dataL3 = dataL2 %>%
-          dplyr::mutate(
-            perVal = dplyr::case_when(
-              key == "남성" ~  -(val / sumData$val) * 100
-              , key == "여성" ~  (val / sumData$val) * 100
-              , TRUE ~ NA_real_
-            )
-            # , perValLabel =  sprintf("%.2f", abs(perVal))
-            , perValLabel =  sprintf("%.1f", abs(perVal))
-            , nudgePerVal = dplyr::case_when(
-                 perVal > 0 ~  (perVal + 1.25)
-                 , perVal < 0 ~  (perVal - 1.25)
-                 , perVal == 0 & key == "남성" ~ -1.1
-                 , perVal == 0 & key == "여성" ~ 1.1
-                 , TRUE ~  NA_real_
-              )
-          ) 
-        
-        
-        ggplot(dataL3, aes_string(x = "key4", y = "perVal", fill = "key")) +
-          geom_bar(stat = "identity") + 
-          theme_bw() +
-          labs(title = plotSubTitle, x = NULL, y = NULL, fill = NULL, colour = NULL, subtitle = "단위 : %") +
-          theme(
-            text = element_text(size=18)
-            # , panel.grid.major.x = element_blank()
-            , panel.grid.minor.x = element_blank()
-            , panel.grid.minor.y = element_blank()
-            , plot.subtitle = element_text(hjust = 1)
-            , legend.position = "none"
-          ) + 
-            geom_text(aes_string(x = "key4", y = "nudgePerVal", label = "perValLabel"), size=5, hjust=0.5, vjust=0.5) +
-            coord_flip() +
-            ggpol::facet_share(~ key, dir = "h", scales = "free_x", reverse_num = TRUE) +
-            scale_y_continuous(breaks = seq(-100, 100, 10), minor_breaks = NULL) +
-            ggsave(filename = paste(globalVar$figConfig, saveImg, sep="/"), width = 10, height = 6, dpi = 600)
-        
-        }
+          # , perValLabel =  sprintf("%.2f", abs(perVal))
+          , perValLabel = sprintf("%.1f", abs(perVal))
+          , nudgePerVal = dplyr::case_when(
+            perVal > 0 ~ (perVal + 1.25)
+            , perVal < 0 ~ (perVal - 1.25)
+            , perVal == 0 & key == "남성" ~ -1.1
+            , perVal == 0 & key == "여성" ~ 1.1
+            , TRUE ~ NA_real_
+          )
+        )
+
+
+      ggplot(dataL3, aes_string(x = "key4", y = "perVal", fill = "key")) +
+        geom_bar(stat = "identity") +
+        theme_bw() +
+        labs(title = plotSubTitle, x = NULL, y = NULL, fill = NULL, colour = NULL, subtitle = "단위 : %") +
+        theme(
+          text = element_text(size = 18)
+          # , panel.grid.major.x = element_blank()
+          , panel.grid.minor.x = element_blank()
+          , panel.grid.minor.y = element_blank()
+          , plot.subtitle = element_text(hjust = 1)
+          , legend.position = "none"
+        ) +
+        geom_text(aes_string(x = "key4", y = "nudgePerVal", label = "perValLabel"), size = 5, hjust = 0.5, vjust = 0.5) +
+        coord_flip() +
+        ggpol::facet_share(~key, dir = "h", scales = "free_x", reverse_num = TRUE) +
+        scale_y_continuous(breaks = seq(-100, 100, 10), minor_breaks = NULL) +
+        ggsave(filename = paste(globalVar$figConfig, saveImg, sep = "/"), width = 10, height = 6, dpi = 600)
+
     }
+  }
 }
 
 
@@ -10906,11 +10978,11 @@ la = shapefile(mapInfo, encoding = "UTF-8")
 
 geo = spTransform(la, CRS("+proj=longlat"))
 head(geo)
-geoData = ggplot2::fortify(geo,region = 'SIG_CD',region2 = "SIG_KOR_NM")
+geoData = ggplot2::fortify(geo, region = 'SIG_CD', region2 = "SIG_KOR_NM")
 head(geoData)
 
 codeInfo = Sys.glob(paste(globalVar$mapConfig, "/ADM_CODE/법정동코드_전체자료.txt", sep = "/"))
-code = read.table(codeInfo, sep="\t", header = TRUE, colClasses = "character") %>%
+code = read.table(codeInfo, sep = "\t", header = TRUE, colClasses = "character") %>%
   dplyr::rename(
     "EMD_CD" = "법정동코드"
     , "full_addr" = "법정동명"
@@ -10918,11 +10990,11 @@ code = read.table(codeInfo, sep="\t", header = TRUE, colClasses = "character") %
   )
 
 code_L1 = code %>%
-  tidyr::separate(col = "full_addr",into = c("d1","d2","d3","d4","d5"), sep=" ") %>%
+  tidyr::separate(col = "full_addr", into = c("d1", "d2", "d3", "d4", "d5"), sep = " ") %>%
   dplyr::filter(is.na(d3), !is.na(d2)) %>%
-  dplyr::mutate(code = str_sub(EMD_CD,1,5)) %>%
+  dplyr::mutate(code = str_sub(EMD_CD, 1, 5)) %>%
   dplyr::filter(useflag == "존재") %>%
-  dplyr::select(- c(EMD_CD, d3, d4, d5, useflag)) %>%
+  dplyr::select(-c(EMD_CD, d3, d4, d5, useflag)) %>%
   dplyr::rename(
     "si_do" = "d1"
     , "sigungu_name" = "d2"
@@ -10937,7 +11009,7 @@ geoData_L1 = code_L1 %>%
   dplyr::filter(si_do %in% c("충청남도", "대전광역시", "세종특별자치시")) %>%
   dplyr::distinct() %>%
   dplyr::filter(!is.na(sigungu_code)) %>%
-  dplyr::mutate(code = as.character(round(as.numeric(sigungu_code,0)))) %>%
+  dplyr::mutate(code = as.character(round(as.numeric(sigungu_code, 0)))) %>%
   dplyr::inner_join(geoData, by = c("code" = "id"))
 
 # 환자 데이터와 지도와 매칭 (시도)
@@ -10959,7 +11031,7 @@ key6List = unique(data$key6)
 
 for (key5Info in key5List) {
   for (key6Info in key6List) {
-    
+
     # 전체
     tmpData = data %>%
       dplyr::group_by(key5, key6, addr1) %>%
@@ -10969,11 +11041,11 @@ for (key5Info in key5List) {
         , key6 == key6Info
         , addr1 == addr1Info
       )
-    
+
     if (nrow(tmpData) <= 0) {
       next
     }
-    
+
     dataL1 = data %>%
       dplyr::group_by(addr1, addr2, key5, key6) %>%
       dplyr::summarise(n = n()) %>%
@@ -10982,15 +11054,15 @@ for (key5Info in key5List) {
         , key6 == key6Info
       ) %>%
       dplyr::mutate(cnt = (n / tmpData$sumVal) * 100)
-    
+
     if (nrow(dataL1) <= 0) {
       next
     }
-    
-    
+
+
     # unique(geoData_L1$si_do)
     # unique(geoData_L1$sigungu_name)
-    
+
     dataL2 = geoData_L1 %>%
       dplyr::left_join(dataL1, by = c("si_do" = "addr1", "sigungu_name" = "addr2")) %>%
       dplyr::mutate(
@@ -11015,43 +11087,42 @@ for (key5Info in key5List) {
           , TRUE ~ 0
         )
       )
-    
+
     # 시각화
     # saveImg = paste0("TMP2/Img_077.png")
     saveImg = paste0("TMP2/Img_077_", "2015-2019", "_", key6Info, "_", key5Info, ".png")
     plotSubTitle = paste0("[", key6Info, "] ", key5Info, " 의료이용률 시군구별 현황(", yearInfo, ")")
-    
+
     ggplot() +
       theme_bw() +
       coord_fixed(ratio = 1) +
-      geom_polygon(data=dataL2, aes(x=long, y=lat, group=group, fill = n)) +
+      geom_polygon(data = dataL2, aes(x = long, y = lat, group = group, fill = n)) +
       scale_fill_gradientn(colours = c("yellow", "orange", "Brown"), limits = c(0, max(dataL2$n, na.rm = TRUE)), na.value = "white") +
-      geom_path(data=dataL2, aes(x=long, y=lat, group=group), colour='black',size = 0.5) +
-      ggh4x::stat_midpoint(data=dataL2, aes(x=long + xOffset, y=lat + yOffset, group=sigungu_code, label = plotLabel), geom = "text", size = 4) +
+      geom_path(data = dataL2, aes(x = long, y = lat, group = group), colour = 'black', size = 0.5) +
+      ggh4x::stat_midpoint(data = dataL2, aes(x = long + xOffset, y = lat + yOffset, group = sigungu_code, label = plotLabel), geom = "text", size = 4) +
       labs(title = plotSubTitle, x = NULL, y = NULL, colour = NULL, fill = "단위 : 명", subtitle = NULL) +
       theme_minimal() +
       theme(
-        text = element_text(size=18)
+        text = element_text(size = 18)
         , panel.grid.major.x = element_blank()
         , panel.grid.major.y = element_blank()
         , panel.grid.minor.x = element_blank()
         , panel.grid.minor.y = element_blank()
-        , axis.text.x=element_blank()
-        , axis.ticks.x=element_blank()
-        , axis.title.x=element_blank()
-        , axis.text.y=element_blank()
-        , axis.ticks.y=element_blank()
-        , axis.title.y=element_blank()
+        , axis.text.x = element_blank()
+        , axis.ticks.x = element_blank()
+        , axis.title.x = element_blank()
+        , axis.text.y = element_blank()
+        , axis.ticks.y = element_blank()
+        , axis.title.y = element_blank()
         , plot.subtitle = element_text(hjust = 1)
         # , legend.position = "none"
-      ) + 
-      ggsave(filename = paste(globalVar$figConfig, saveImg, sep="/"), width = 10, height = 5, dpi = 600)
-    
-    
-    
+      ) +
+      ggsave(filename = paste(globalVar$figConfig, saveImg, sep = "/"), width = 10, height = 5, dpi = 600)
+
+
     # 연도별
     for (yearInfo in yearList) {
-  
+
       dataL1 = data %>%
         dplyr::group_by(dtYear, addr1, addr2, key5, key6) %>%
         dplyr::summarise(n = n()) %>%
@@ -11061,15 +11132,15 @@ for (key5Info in key5List) {
           , key6 == key6Info
         ) %>%
         dplyr::mutate(cnt = (n / tmpData$sumVal) * 100)
-      
+
       if (nrow(dataL1) <= 0) {
         next
       }
-      
-      
+
+
       # unique(geoData_L1$si_do)
       # unique(geoData_L1$sigungu_name)
-      
+
       dataL2 = geoData_L1 %>%
         dplyr::left_join(dataL1, by = c("si_do" = "addr1", "sigungu_name" = "addr2")) %>%
         dplyr::mutate(
@@ -11092,40 +11163,40 @@ for (key5Info in key5List) {
             , sigungu_name == "서천군" ~ 0
             , sigungu_name == "반곡동" ~ -0.1
             , TRUE ~ 0
-            )
+          )
         )
-      
+
       # 시각화
       # saveImg = paste0("TMP2/Img_077.png")
       saveImg = paste0("TMP2/Img_077_", yearInfo, "_", key6Info, "_", key5Info, ".png")
       plotSubTitle = paste0("[", key6Info, "] ", key5Info, " 의료이용률 시군구별 현황(", yearInfo, ")")
-      
+
       ggplot() +
         theme_bw() +
         coord_fixed(ratio = 1) +
-        geom_polygon(data=dataL2, aes(x=long, y=lat, group=group, fill = n)) +
+        geom_polygon(data = dataL2, aes(x = long, y = lat, group = group, fill = n)) +
         scale_fill_gradientn(colours = c("yellow", "orange", "Brown"), limits = c(0, max(dataL2$n, na.rm = TRUE)), na.value = "white") +
-        geom_path(data=dataL2, aes(x=long, y=lat, group=group), colour='black',size = 0.5) +
-        ggh4x::stat_midpoint(data=dataL2, aes(x=long + xOffset, y=lat + yOffset, group=sigungu_code, label = plotLabel), geom = "text", size = 4) +
+        geom_path(data = dataL2, aes(x = long, y = lat, group = group), colour = 'black', size = 0.5) +
+        ggh4x::stat_midpoint(data = dataL2, aes(x = long + xOffset, y = lat + yOffset, group = sigungu_code, label = plotLabel), geom = "text", size = 4) +
         labs(title = plotSubTitle, x = NULL, y = NULL, colour = NULL, fill = "단위 : 명", subtitle = NULL) +
         theme_minimal() +
         theme(
-          text = element_text(size=18)
+          text = element_text(size = 18)
           , panel.grid.major.x = element_blank()
           , panel.grid.major.y = element_blank()
           , panel.grid.minor.x = element_blank()
           , panel.grid.minor.y = element_blank()
-          , axis.text.x=element_blank()
-          , axis.ticks.x=element_blank()
-          , axis.title.x=element_blank()
-          , axis.text.y=element_blank()
-          , axis.ticks.y=element_blank()
-          , axis.title.y=element_blank()
+          , axis.text.x = element_blank()
+          , axis.ticks.x = element_blank()
+          , axis.title.x = element_blank()
+          , axis.text.y = element_blank()
+          , axis.ticks.y = element_blank()
+          , axis.title.y = element_blank()
           , plot.subtitle = element_text(hjust = 1)
           # , legend.position = "none"
-        ) + 
-        ggsave(filename = paste(globalVar$figConfig, saveImg, sep="/"), width = 10, height = 5, dpi = 600)
-      
+        ) +
+        ggsave(filename = paste(globalVar$figConfig, saveImg, sep = "/"), width = 10, height = 5, dpi = 600)
+
     }
   }
 }
@@ -11135,13 +11206,13 @@ for (key5Info in key5List) {
 # 그래프 5 : 시도별 추세
 #==========================================
 data = xlsx::read.xlsx2(file = fileInfo, sheetName = "G1") %>%
-    readr::type_convert()
+  readr::type_convert()
 
 dataL1 = data %>%
-    dplyr::mutate(
-        dtDate = readr::parse_date(as.character(date), "%Y-%m-%d")
-        , dtYear = lubridate::year(dtDate)
-    )
+  dplyr::mutate(
+    dtDate = readr::parse_date(as.character(date), "%Y-%m-%d")
+    , dtYear = lubridate::year(dtDate)
+  )
 
 key5List = unique(dataL1$key5)
 key6List = unique(dataL1$key6)
@@ -11154,100 +11225,100 @@ addr1List = unique(dataL1$addr1)
 
 # 전국
 for (key6Info in key6List) {
-    for (key5Info in key5List) {
-      
+  for (key5Info in key5List) {
+
+    plotSubTitle = paste0("[", key6Info, "] ", key5Info, " 의료이용률 시도별 추세(2015~2019)")
+    saveImg = paste0("TMP2/Img_073_", key6Info, "_", key5Info, "_", "전국", ".png")
+
+    tmpData = dataL1 %>%
+      dplyr::filter(
+        key5 == key5Info
+        , key6 == key6Info
+      ) %>%
+      dplyr::group_by(dtYear, key5, key6) %>%
+      dplyr::summarise(cnt = n()) %>%
+      dplyr::mutate(facetLabel = "전국")
+
+    if (nrow(tmpData) < 4) {
+      next
+    }
+
+    sumVal = sum(tmpData$cnt, na.rm = TRUE)
+
+    tmpDataL1 = tmpData %>%
+      dplyr::mutate(val = (cnt / sumVal) * 100)
+
+    ggpubr::ggscatter(tmpDataL1, x = "dtYear", y = "val", color = "black", add = "reg.line", conf.int = TRUE, cor.coef = FALSE, add.params = list(color = "blue", fill = "lightblue")) +
+      ggpubr::stat_cor(method = "pearson", label.x = 2015, label.y = 50, size = 5) +
+      ggpubr::stat_regline_equation(label.x = 2015, label.y = 45, size = 5) +
+      ylim(0, 50) +
+      theme_bw() +
+      labs(title = plotSubTitle, x = NULL, y = NULL, fill = NULL, colour = NULL, subtitle = "단위 : %") +
+      theme(
+        text = element_text(size = 18)
+        # , panel.grid.major.x = element_blank()
+        , panel.grid.minor.x = element_blank()
+        , panel.grid.minor.y = element_blank()
+        , plot.subtitle = element_text(hjust = 1)
+        , legend.position = "none"
+      ) +
+      facet_wrap(~facetLabel) +
+      ggsave(filename = paste(globalVar$figConfig, saveImg, sep = "/"), width = 10, height = 6, dpi = 600)
+  }
+}
+
+
+# 시도별
+for (key6Info in key6List) {
+  for (key5Info in key5List) {
+    for (addr1Info in addr1List) {
+
       plotSubTitle = paste0("[", key6Info, "] ", key5Info, " 의료이용률 시도별 추세(2015~2019)")
-      saveImg = paste0("TMP2/Img_073_", key6Info, "_", key5Info, "_", "전국", ".png")
-     
-      tmpData = dataL1 %>%
+      saveImg = paste0("TMP2/Img_073_", key6Info, "_", key5Info, "_", addr1Info, ".png")
+
+      cat(key5Info, " ", key6Info, " ", addr1Info)
+
+      dataL2 = dataL1 %>%
         dplyr::filter(
-          key5 == key5Info
+          addr1 == addr1Info
+          , key5 == key5Info
           , key6 == key6Info
         ) %>%
-        dplyr::group_by(dtYear, key5, key6) %>%
-        dplyr::summarise(cnt = n()) %>%
-        dplyr::mutate(facetLabel = "전국")
-      
-      if (nrow(tmpData) < 4) {
+        dplyr::group_by(dtYear, key5, key6, addr1) %>%
+        dplyr::summarise(
+          cnt = n()
+        ) %>%
+        dplyr::mutate(
+          facetLabel = stringr::str_c(addr1)
+        )
+
+      if (nrow(dataL2) < 4) {
         next
       }
-      
-      sumVal = sum(tmpData$cnt, na.rm = TRUE)
-      
-      tmpDataL1 = tmpData %>%
-        dplyr::mutate(val = (cnt / sumVal) * 100) 
-      
-      ggpubr::ggscatter(tmpDataL1, x = "dtYear", y = "val", color = "black", add = "reg.line", conf.int = TRUE, cor.coef = FALSE, add.params = list(color = "blue", fill = "lightblue")) +
+
+      sumVal = sum(dataL2$cnt, na.rm = TRUE)
+
+      dataL3 = dataL2 %>%
+        dplyr::mutate(val = (cnt / sumVal) * 100)
+
+      ggpubr::ggscatter(dataL3, x = "dtYear", y = "val", color = "black", add = "reg.line", conf.int = TRUE, cor.coef = FALSE, add.params = list(color = "blue", fill = "lightblue")) +
         ggpubr::stat_cor(method = "pearson", label.x = 2015, label.y = 50, size = 5) +
         ggpubr::stat_regline_equation(label.x = 2015, label.y = 45, size = 5) +
         ylim(0, 50) +
         theme_bw() +
         labs(title = plotSubTitle, x = NULL, y = NULL, fill = NULL, colour = NULL, subtitle = "단위 : %") +
         theme(
-          text = element_text(size=18)
+          text = element_text(size = 18)
           # , panel.grid.major.x = element_blank()
           , panel.grid.minor.x = element_blank()
           , panel.grid.minor.y = element_blank()
           , plot.subtitle = element_text(hjust = 1)
           , legend.position = "none"
-        ) + 
-        facet_wrap( ~ facetLabel) +
-        ggsave(filename = paste(globalVar$figConfig, saveImg, sep="/"), width = 10, height = 6, dpi = 600)
+        ) +
+        facet_wrap(~facetLabel) +
+        ggsave(filename = paste(globalVar$figConfig, saveImg, sep = "/"), width = 10, height = 6, dpi = 600)
     }
-}
-      
-
-# 시도별
-for (key6Info in key6List) {
-  for (key5Info in key5List) {
-      for (addr1Info in addr1List) {
-              
-              plotSubTitle = paste0("[", key6Info, "] ", key5Info, " 의료이용률 시도별 추세(2015~2019)")
-              saveImg = paste0("TMP2/Img_073_", key6Info, "_", key5Info, "_", addr1Info, ".png")
-              
-              cat(key5Info, " ", key6Info, " ", addr1Info)
-              
-              dataL2 = dataL1 %>%
-                  dplyr::filter(
-                    addr1 == addr1Info
-                    , key5 == key5Info
-                    , key6 == key6Info
-                  ) %>%
-                  dplyr::group_by(dtYear, key5, key6, addr1) %>%
-                  dplyr::summarise(
-                      cnt = n()
-                  ) %>%
-                  dplyr::mutate(
-                      facetLabel = stringr::str_c(addr1)
-                  )
-              
-              if (nrow(dataL2) < 4) {
-                  next
-              }
-              
-              sumVal = sum(dataL2$cnt, na.rm = TRUE)
-              
-              dataL3 = dataL2 %>%
-                  dplyr::mutate(val = (cnt / sumVal) * 100) 
-              
-              ggpubr::ggscatter(dataL3, x = "dtYear", y = "val", color = "black", add = "reg.line", conf.int = TRUE, cor.coef = FALSE, add.params = list(color = "blue", fill = "lightblue")) +
-                  ggpubr::stat_cor(method = "pearson", label.x = 2015, label.y = 50, size = 5) +
-                  ggpubr::stat_regline_equation(label.x = 2015, label.y = 45, size = 5) +
-                  ylim(0, 50) +
-                  theme_bw() +
-                  labs(title = plotSubTitle, x = NULL, y = NULL, fill = NULL, colour = NULL, subtitle = "단위 : %") +
-                  theme(
-                      text = element_text(size=18)
-                      # , panel.grid.major.x = element_blank()
-                      , panel.grid.minor.x = element_blank()
-                      , panel.grid.minor.y = element_blank()
-                      , plot.subtitle = element_text(hjust = 1)
-                      , legend.position = "none"
-                  ) + 
-                  facet_wrap( ~ facetLabel) +
-                  ggsave(filename = paste(globalVar$figConfig, saveImg, sep="/"), width = 10, height = 6, dpi = 600)
-          }
-      }
+  }
 }
 
 #==========================================
@@ -11268,67 +11339,67 @@ addr3List = unique(dataL1$addr3)
 for (key6Info in key6List) {
   for (key5Info in key5List) {
     for (addr1Info in addr1List) {
-        for (addr2Info in addr2List) {
-                
-                plotSubTitle = paste0("[", key6Info, "] ", key5Info, " 의료이용률 시군구별 추세(2015~2019)")
-                saveImg = paste0("TMP2/Img_074_", key6Info, "_", key5Info, "_", addr1Info, "_", addr2Info, ".png")
-                
-                cat(key5Info, " ", key6Info, " ", addr1Info, " ", addr2Info)
-                
-                dataL2 = dataL1 %>%
-                  dplyr::filter(
-                    addr1 == addr1Info
-                    , addr2 == addr2Info
-                    , key5 == key5Info
-                    , key6 == key6Info
-                  ) %>%
-                  dplyr::group_by(dtYear, key5, key6, addr1, addr2) %>%
-                  dplyr::summarise(
-                    cnt = n()
-                  ) %>%
-                  dplyr::mutate(
-                    facetLabel = stringr::str_c(addr1, " ", addr2)
-                  )
-          
-                
-                if (nrow(dataL2) < 0) {
-                    next
-                }
-                
-                
-                sumVal = sum(dataL2$cnt, na.rm = TRUE)
-                
-                dataL3 = dataL2 %>%
-                  dplyr::mutate(val = (cnt / sumVal) * 100) 
-                
-                if (nrow(dataL3) < 3) {
-                    next
-                }
-                
-                
-                ggpubr::ggscatter(dataL3, x = "dtYear", y = "val", color = "black", add = "reg.line", conf.int = TRUE, cor.coef = FALSE, add.params = list(color = "blue", fill = "lightblue")) +
-                    ggpubr::stat_cor(method = "pearson", label.x = 2015, label.y = 50, size = 5) +
-                    ggpubr::stat_regline_equation(label.x = 2015, label.y = 45, size = 5) +
-                    # annotate("text", x = 2015, y = 90, size = 5, label = sprintf("R = %s (P < %.3f)", corVal, pVal), hjust = 0) +
-                    # annotate("text", x = 10, y = 31, size = 5, label = sprintf("Bias = %s", biasVal), hjust = 0) +
-                    # annotate("text", x = 10, y = 29, size = 5, label = sprintf("RMSE = %s", rmseVal), hjust = 0) +
-                    # xlim(10, 35) + 
-                    ylim(0, 50) +
-                    theme_bw() +
-                    labs(title = plotSubTitle, x = NULL, y = NULL, fill = NULL, colour = NULL, subtitle = "단위 : %") +
-                    theme(
-                        text = element_text(size=18)
-                        # , panel.grid.major.x = element_blank()
-                        , panel.grid.minor.x = element_blank()
-                        , panel.grid.minor.y = element_blank()
-                        , plot.subtitle = element_text(hjust = 1)
-                        , legend.position = "none"
-                    ) + 
-                    facet_wrap( ~ facetLabel) +
-                    ggsave(filename = paste(globalVar$figConfig, saveImg, sep="/"), width = 10, height = 6, dpi = 600)
-            }
+      for (addr2Info in addr2List) {
+
+        plotSubTitle = paste0("[", key6Info, "] ", key5Info, " 의료이용률 시군구별 추세(2015~2019)")
+        saveImg = paste0("TMP2/Img_074_", key6Info, "_", key5Info, "_", addr1Info, "_", addr2Info, ".png")
+
+        cat(key5Info, " ", key6Info, " ", addr1Info, " ", addr2Info)
+
+        dataL2 = dataL1 %>%
+          dplyr::filter(
+            addr1 == addr1Info
+            , addr2 == addr2Info
+            , key5 == key5Info
+            , key6 == key6Info
+          ) %>%
+          dplyr::group_by(dtYear, key5, key6, addr1, addr2) %>%
+          dplyr::summarise(
+            cnt = n()
+          ) %>%
+          dplyr::mutate(
+            facetLabel = stringr::str_c(addr1, " ", addr2)
+          )
+
+
+        if (nrow(dataL2) < 0) {
+          next
         }
+
+
+        sumVal = sum(dataL2$cnt, na.rm = TRUE)
+
+        dataL3 = dataL2 %>%
+          dplyr::mutate(val = (cnt / sumVal) * 100)
+
+        if (nrow(dataL3) < 3) {
+          next
+        }
+
+
+        ggpubr::ggscatter(dataL3, x = "dtYear", y = "val", color = "black", add = "reg.line", conf.int = TRUE, cor.coef = FALSE, add.params = list(color = "blue", fill = "lightblue")) +
+          ggpubr::stat_cor(method = "pearson", label.x = 2015, label.y = 50, size = 5) +
+          ggpubr::stat_regline_equation(label.x = 2015, label.y = 45, size = 5) +
+          # annotate("text", x = 2015, y = 90, size = 5, label = sprintf("R = %s (P < %.3f)", corVal, pVal), hjust = 0) +
+          # annotate("text", x = 10, y = 31, size = 5, label = sprintf("Bias = %s", biasVal), hjust = 0) +
+          # annotate("text", x = 10, y = 29, size = 5, label = sprintf("RMSE = %s", rmseVal), hjust = 0) +
+          # xlim(10, 35) +
+          ylim(0, 50) +
+          theme_bw() +
+          labs(title = plotSubTitle, x = NULL, y = NULL, fill = NULL, colour = NULL, subtitle = "단위 : %") +
+          theme(
+            text = element_text(size = 18)
+            # , panel.grid.major.x = element_blank()
+            , panel.grid.minor.x = element_blank()
+            , panel.grid.minor.y = element_blank()
+            , plot.subtitle = element_text(hjust = 1)
+            , legend.position = "none"
+          ) +
+          facet_wrap(~facetLabel) +
+          ggsave(filename = paste(globalVar$figConfig, saveImg, sep = "/"), width = 10, height = 6, dpi = 600)
+      }
     }
+  }
 }
 
 
@@ -11340,7 +11411,7 @@ mapInfo = Sys.glob(paste(globalVar$mapConfig, "/KOREA_INFO/bnd_dong_00_2019_2019
 la = shapefile(mapInfo, encoding = "UTF-8")
 geo = sp::spTransform(la, CRS("+proj=longlat"))
 
-geoData = ggplot2::fortify(geo, region = 'adm_dr_cd',region2 = "adm_dr_nm")
+geoData = ggplot2::fortify(geo, region = 'adm_dr_cd', region2 = "adm_dr_nm")
 head(geoData)
 
 
@@ -11349,15 +11420,15 @@ codeInfo = Sys.glob(paste(globalVar$mapConfig, "/ADM_CODE/adm_code.xlsx", sep = 
 code = openxlsx::read.xlsx(codeInfo, sheet = 1, startRow = 2)
 
 code_L1 = code %>%
-    dplyr::select("시도코드", "시도명칭", "시군구코드", "시군구명칭", "읍면동코드", "읍면동명칭") %>%
-    dplyr::rename(
-        "si_do" = "시도코드"
-        , "si_do_name" = "시도명칭"
-        , "sigungu_code" = "시군구코드"
-        , "sigungu_name" = "시군구명칭"
-        , "emd_code" = "읍면동코드"
-        , "emd_name" = "읍면동명칭"
-    )
+  dplyr::select("시도코드", "시도명칭", "시군구코드", "시군구명칭", "읍면동코드", "읍면동명칭") %>%
+  dplyr::rename(
+    "si_do" = "시도코드"
+    , "si_do_name" = "시도명칭"
+    , "sigungu_code" = "시군구코드"
+    , "sigungu_name" = "시군구명칭"
+    , "emd_code" = "읍면동코드"
+    , "emd_name" = "읍면동명칭"
+  )
 
 dplyr::tbl_df(code_L1)
 
@@ -11365,17 +11436,16 @@ unique(code_L1$si_do_name)
 
 # 위치 정보와 한반도 지도 병합
 geoData_L1 = code_L1 %>%
-    # dplyr::filter(si_do_name %in% c("대전광역시", "충청남도")) %>%
-    dplyr::filter(si_do_name %in% c("충청남도")) %>%
-    dplyr::distinct() %>%
-    dplyr::filter(!is.na(sigungu_code)) %>%
-    # dplyr::mutate(code = as.character(round(as.numeric(sigungu_code,0)))) %>%
-    dplyr::mutate(code = as.character(round(as.numeric(emd_code, 0)))) %>%
-    dplyr::inner_join(geoData, by = c("code" = "id"))
+  # dplyr::filter(si_do_name %in% c("대전광역시", "충청남도")) %>%
+  dplyr::filter(si_do_name %in% c("충청남도")) %>%
+  dplyr::distinct() %>%
+  dplyr::filter(!is.na(sigungu_code)) %>%
+  # dplyr::mutate(code = as.character(round(as.numeric(sigungu_code,0)))) %>%
+  dplyr::mutate(code = as.character(round(as.numeric(emd_code, 0)))) %>%
+  dplyr::inner_join(geoData, by = c("code" = "id"))
 
 dplyr::tbl_df(geoData_L1)
 
-options(java.parameters = "-Xmx8192m")
 
 
 # 환자 데이터 읽기
@@ -11399,7 +11469,7 @@ key6List = unique(data$key6)
 
 for (key5Info in key5List) {
   for (key6Info in key6List) {
-    
+
     # 전체 
     tmpData = data %>%
       dplyr::group_by(key5, key6, addr1) %>%
@@ -11409,11 +11479,11 @@ for (key5Info in key5List) {
         , key6 == key6Info
         , addr1 == "충청남도"
       )
-    
+
     if (nrow(tmpData) <= 0) {
       next
     }
-    
+
     dataL1 = data %>%
       dplyr::group_by(addr1, addr2, addr3, key5, key6) %>%
       dplyr::summarise(n = n()) %>%
@@ -11422,11 +11492,11 @@ for (key5Info in key5List) {
         , key6 == key6Info
       ) %>%
       dplyr::mutate(cnt = (n / tmpData$sumVal) * 100)
-    
+
     if (nrow(dataL1) <= 0) {
       next
     }
-    
+
     dataL2 = geoData_L1 %>%
       dplyr::left_join(dataL1, by = c("si_do_name" = "addr1", "sigungu_name" = "addr2", "emd_name" = "addr3")) %>%
       dplyr::mutate(
@@ -11474,43 +11544,43 @@ for (key5Info in key5List) {
           , TRUE ~ 0
         )
       )
-    
+
     # 시각화
     # saveImg = paste0("TMP2/Img_078.png")
     saveImg = paste0("TMP2/Img_078_", "2015-2019", "_", key6Info, "_", key5Info, ".png")
     plotSubTitle = paste0("[", key6Info, "] ", key5Info, " 의료이용률 읍면동별 현황(", "2015-2019", ")")
-    
-    
+
+
     ggplot() +
       theme_bw() +
       coord_fixed(ratio = 1) +
-      geom_polygon(data=dataL2, aes(x=long, y=lat, group=group, fill = n)) +
+      geom_polygon(data = dataL2, aes(x = long, y = lat, group = group, fill = n)) +
       scale_fill_gradientn(colours = c("yellow", "orange", "Brown"), limits = c(0, max(dataL2$n, na.rm = TRUE)), na.value = "white") +
-      geom_path(data=dataL2, aes(x=long, y=lat, group=group), colour='black',size = 0.5) +
-      ggh4x::stat_midpoint(data=dataL2, aes(x=long + xOffset, y=lat + yOffset, group= emd_name, label = plotLabel), geom = "text", size = 2) +
+      geom_path(data = dataL2, aes(x = long, y = lat, group = group), colour = 'black', size = 0.5) +
+      ggh4x::stat_midpoint(data = dataL2, aes(x = long + xOffset, y = lat + yOffset, group = emd_name, label = plotLabel), geom = "text", size = 2) +
       labs(title = plotSubTitle, x = NULL, y = NULL, colour = NULL, fill = "단위 : 명", subtitle = NULL) +
       theme_minimal() +
       theme(
-        text = element_text(size=18)
+        text = element_text(size = 18)
         , panel.grid.major.x = element_blank()
         , panel.grid.major.y = element_blank()
         , panel.grid.minor.x = element_blank()
         , panel.grid.minor.y = element_blank()
-        , axis.text.x=element_blank()
-        , axis.ticks.x=element_blank()
-        , axis.title.x=element_blank()
-        , axis.text.y=element_blank()
-        , axis.ticks.y=element_blank()
-        , axis.title.y=element_blank()
+        , axis.text.x = element_blank()
+        , axis.ticks.x = element_blank()
+        , axis.title.x = element_blank()
+        , axis.text.y = element_blank()
+        , axis.ticks.y = element_blank()
+        , axis.title.y = element_blank()
         , plot.subtitle = element_text(hjust = 1)
         # , legend.position = "none"
-      ) + 
-      ggsave(filename = paste(globalVar$figConfig, saveImg, sep="/"), width = 10, height = 5, dpi = 600)
-    
-    
+      ) +
+      ggsave(filename = paste(globalVar$figConfig, saveImg, sep = "/"), width = 10, height = 5, dpi = 600)
+
+
     # 년마다 수행행
     for (yearInfo in yearList) {
-      
+
       tmpData = data %>%
         dplyr::group_by(key5, key6, addr1) %>%
         dplyr::summarise(sumVal = n()) %>%
@@ -11519,11 +11589,11 @@ for (key5Info in key5List) {
           , key6 == key6Info
           , addr1 == "충청남도"
         )
-      
+
       if (nrow(tmpData) <= 0) {
         next
       }
-      
+
       dataL1 = data %>%
         dplyr::group_by(dtYear, addr1, addr2, addr3, key5, key6) %>%
         dplyr::summarise(n = n()) %>%
@@ -11533,12 +11603,12 @@ for (key5Info in key5List) {
           , key6 == key6Info
         ) %>%
         dplyr::mutate(cnt = (n / tmpData$sumVal) * 100)
-      
+
       if (nrow(dataL1) <= 0) {
         next
       }
-      
-      
+
+
       dataL2 = geoData_L1 %>%
         dplyr::left_join(dataL1, by = c("si_do_name" = "addr1", "sigungu_name" = "addr2", "emd_name" = "addr3")) %>%
         dplyr::mutate(
@@ -11586,38 +11656,38 @@ for (key5Info in key5List) {
             , TRUE ~ 0
           )
         )
-      
+
       # 시각화
       saveImg = paste0("TMP2/Img_079_", yearInfo, "_", key6Info, "_", key5Info, ".png")
       plotSubTitle = paste0("[", key6Info, "] ", key5Info, " 의료이용률 읍면동별 현황(", yearInfo, ")")
-      
-      
+
+
       ggplot() +
         theme_bw() +
         coord_fixed(ratio = 1) +
-        geom_polygon(data=dataL2, aes(x=long, y=lat, group=group, fill = n)) +
+        geom_polygon(data = dataL2, aes(x = long, y = lat, group = group, fill = n)) +
         scale_fill_gradientn(colours = c("yellow", "orange", "Brown"), limits = c(0, max(dataL2$n, na.rm = TRUE)), na.value = "white") +
-        geom_path(data=dataL2, aes(x=long, y=lat, group=group), colour='black',size = 0.5) +
-        ggh4x::stat_midpoint(data=dataL2, aes(x=long + xOffset, y=lat + yOffset, group= emd_name, label = plotLabel), geom = "text", size = 2) +
+        geom_path(data = dataL2, aes(x = long, y = lat, group = group), colour = 'black', size = 0.5) +
+        ggh4x::stat_midpoint(data = dataL2, aes(x = long + xOffset, y = lat + yOffset, group = emd_name, label = plotLabel), geom = "text", size = 2) +
         labs(title = plotSubTitle, x = NULL, y = NULL, colour = NULL, fill = "단위 : 명", subtitle = NULL) +
         theme_minimal() +
         theme(
-          text = element_text(size=18)
+          text = element_text(size = 18)
           , panel.grid.major.x = element_blank()
           , panel.grid.major.y = element_blank()
           , panel.grid.minor.x = element_blank()
           , panel.grid.minor.y = element_blank()
-          , axis.text.x=element_blank()
-          , axis.ticks.x=element_blank()
-          , axis.title.x=element_blank()
-          , axis.text.y=element_blank()
-          , axis.ticks.y=element_blank()
-          , axis.title.y=element_blank()
+          , axis.text.x = element_blank()
+          , axis.ticks.x = element_blank()
+          , axis.title.x = element_blank()
+          , axis.text.y = element_blank()
+          , axis.ticks.y = element_blank()
+          , axis.title.y = element_blank()
           , plot.subtitle = element_text(hjust = 1)
           # , legend.position = "none"
-        ) + 
-        ggsave(filename = paste(globalVar$figConfig, saveImg, sep="/"), width = 10, height = 5, dpi = 600)
-      
+        ) +
+        ggsave(filename = paste(globalVar$figConfig, saveImg, sep = "/"), width = 10, height = 5, dpi = 600)
+
     }
   }
 }
@@ -11657,21 +11727,21 @@ dir.create("test")
 list.dirs()
 
 # 자신의 이름과 학번으로 설정할 것
-con = RSQLite::dbConnect(drv = RSQLite::SQLite(), dbname = "test/D20165255_주현성.sqlite") 
+con = RSQLite::dbConnect(drv = RSQLite::SQLite(), dbname = "test/D20165255_주현성.sqlite")
 
 DF = tibble(ID = c("D20165255"), GRADE = c("3"), NAME = c("주현성"), RESIDENCE = c(" 서울시 송파구"))
 
 DF %>% show()
 
 # connection, 생성한 dataframe, 테이블 명, 일시적인 테이블 해제
-dplyr::copy_to(con, DF, "D20165255_JooHyuSung", temporary = FALSE) 
+dplyr::copy_to(con, DF, "D20165255_JooHyuSung", temporary = FALSE)
 
 # 생성한 테이블 확인
 dbListTables(con)
 
-dplyr::tbl(con, "D20165255_JooHyuSung") %>% 
-    collect() %>% 
-    show()
+dplyr::tbl(con, "D20165255_JooHyuSung") %>%
+  collect() %>%
+  show()
 
 dbDisconnect(con)
 
@@ -11699,7 +11769,7 @@ nN = as.numeric(readline("n을 입력하세요"))
 nP = as.numeric(readline("p을 입력하세요"))
 
 liSeq = seq(1, nN)
-nSum = sum(liSeq ** nP, na.rm = TRUE)
+nSum = sum(liSeq**nP, na.rm = TRUE)
 
 
 #==========================================
@@ -11729,7 +11799,7 @@ dfData2 = na_if(dfData, 0)
 #               NA's   :4      NA's   :2    NA's   :1     NA's   :9       NA's   :7
 
 # 표준편차
-stat.desc(dfData2)[13, ]
+stat.desc(dfData2)[13,]
 
 # 상자그림
 boxplot(dfData2)
@@ -11743,7 +11813,7 @@ hist(dfData2)
 dfData = read.csv(file = "./rpy/pima2.csv")
 dfData2 = table(dfData$diabetes)
 
-describe.by(dfData[ , c(3:9)], dfData$diabetes)
+describe.by(dfData[, c(3:9)], dfData$diabetes)
 
 # 막대그림
 barplot(dfData2)
@@ -11755,22 +11825,22 @@ pie(dfData2)
 dfData3 = cut(dfData$age, breaks = c(20, 30, 40, 50, 99), labels = c("20-30", "31-40", "41-50", "50+"), include.lowest = FALSE, right = TRUE)
 
 dfData4 = table(dfData3, dfData$diabetes)
-barplot(t(dfData4), legend=c("neg", "pos"))
+barplot(t(dfData4), legend = c("neg", "pos"))
 
 # (4)
 dfData5 = cut(dfData$pregnant, breaks = c(0, 5, 10, 99), labels = c("0-5", "6-10", "10+"), include.lowest = TRUE, right = FALSE)
 
 dfData6 = table(dfData5, dfData$diabetes)
-barplot(t(dfData6), legend=c("neg", "pos"))
+barplot(t(dfData6), legend = c("neg", "pos"))
 
 # (5)
 dfData6 = data.frame(dfData, type = dfData5)
 
 # 평균
-aggregate(. ~ diabetes + type, data=dfData6, mean, na.rm=TRUE)
+aggregate(. ~ diabetes + type, data = dfData6, mean, na.rm = TRUE)
 
 # 표준편차
-aggregate(. ~ diabetes + type, data=dfData6, sd, na.rm=TRUE)
+aggregate(. ~ diabetes + type, data = dfData6, sd, na.rm = TRUE)
 
 
 #==========================================
@@ -11802,7 +11872,7 @@ tTest
 # 문제사진10
 #==========================================
 dfData = readr::read_csv(file = "./rpy/mtcars.csv")
-dfData2 = tidyr::gather(dfData[ , c(2, 10)])
+dfData2 = tidyr::gather(dfData[, c(2, 10)])
 
 # P값이 0.01으로서 귀무가설 기각 (두 변수간의 분산 차이가 있다)
 # 따라서 상이한 분산 조건 (var.equal = FALSE)
@@ -11837,7 +11907,16 @@ summary(modelFit)
 #==========================================
 dfData = readr::read_csv(file = "./rpy/mtcars.csv")
 
-modelFit = lm(mpg ~ cyl + disp + hp + drat + wt + qsec + vs + am + gear + carb, data = dfData)
+modelFit = lm(mpg ~ cyl +
+  disp +
+  hp +
+  drat +
+  wt +
+  qsec +
+  vs +
+  am +
+  gear +
+  carb, data = dfData)
 
 modelStepAic = MASS::stepAIC(modelFit, direction = "both")
 
@@ -11913,7 +11992,7 @@ fTest
 
 plot(fTest) +
   xlim(0, 5) #+
-  # ggsave(filename = paste(globalVar$figConfig, "fTest.png", sep = "/"), width = 10, height = 6, dpi = 600)
+# ggsave(filename = paste(globalVar$figConfig, "fTest.png", sep = "/"), width = 10, height = 6, dpi = 600)
 
 # P값이 0.1666로서 귀무가설 기각하지 못함 (두 특성은 차이가 없다)
 tTest = t.test(value ~ key, data = dataL2, var.equal = FALSE)
@@ -11921,4 +12000,2112 @@ tTest
 
 plot(tTest) +
   xlim(-5, 5) # +
-  # ggsave(filename = paste(globalVar$figConfig, "tTest.png", sep = "/"), width = 10, height = 6, dpi = 600)
+# ggsave(filename = paste(globalVar$figConfig, "tTest.png", sep = "/"), width = 10, height = 6, dpi = 600)
+
+
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 (크몽, 오투잡)
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+library(RSelenium)
+library(rvest)
+library(stringr)
+library(XML)
+library(tidyverse)
+library(httr)
+library(AER)
+library(forcats)
+
+#===============================================
+# Question 1 (20점)
+#===============================================
+# 다음과 같은 두 문장을 네이버 파파고를 통해 번역하는 구문을 짜시오.
+# string = “부장님 싫다. 직장생활 어렵다."
+
+#=========================================
+# 셀레늄 이용
+#=========================================
+
+# cd CONFIG/selenium
+# java -Dwebdriver.gecko.driver="geckodriver.exe" -jar selenium-server-standalone-3.141.59.jar -port 5000
+
+remDr = remoteDriver(
+  remoteServerAddr = "localhost"
+  , port = 500L
+  , browserName = "chrome"
+)
+
+# 크롬 열기
+remDr$open()
+
+
+#=========================================
+# 네이버 번역기
+#=========================================
+# remDr$navigate("https://www.naver.com") #통제하고있는 크롬사이트를 네이버로 이동
+# 
+# webElem1 <- remDr$findElement(using = 'class',
+#                               value = 'input_text') #ele1은 class중에서 inputtext찿ㅈ아서 가는거야
+# 
+# 
+# #확인절차
+# 
+# webElem1$highlightElement() #이렇게하면 번쩍이면서 옐로우 색으로 바뀜
+# webElem1$clearElement()
+# 
+# #확인햇으니 뭐를 넣어주자 =키
+# 
+# webElem1$sendKeysToElement(list("네이버 맞춤법 검사기",
+#                                 key = "enter"))
+# 
+# string = "부장님 싫다. 직장생활 어렵다."
+# 
+# sentence = list(string)
+# 
+# webElem2 = remDr$findElement(using = 'class',
+#                               value = 'txt_gray') #이 렇게 하면 textgray가 정의가 된것임(ㅋㄹ래스 옆에tx그레이있음)
+# 
+# 
+# webElem2$highlightElement() #여기가 맞는지확인
+# webElem2$clearElement()
+# 
+# 
+# webElem2$sendKeysToElement(sentence)
+# 
+# #한가지팁 검사하기 클릭을 해주기 위해서 2초정도 재워
+# Sys.sleep(2)
+# 
+# 
+# webElem3 <- remDr$findElement(using = 'class',
+#                               value = 'btn_check')
+# 
+# webElem3$highlightElement()
+# webElem3$clickElement()
+# 
+# Sys.sleep(2)
+# 
+# webElem4 <- remDr$findElement(using = 'class',
+#                               value = '_result_text')
+# webElem4$highlightElement()
+# 
+# webElem4$getElementText() -> result
+# 
+# #("\\.") - 여러문장일경우 이건돈표시임
+# result_clean <- stringr::str_split(result, "\\.")
+# 
+# result_clean
+
+#=========================================
+# 파파고 번역기
+#=========================================
+remDr$navigate("https://papago.naver.com") 
+  
+string = "부장님 싫다. 직장생활 어렵다."
+sentence = list(string)
+
+webElem2 = remDr$findElement(using = 'id', value = 'txtSource')
+webElem2$sendKeysToElement(sentence)
+# webElem2$highlightElement() 
+
+webElem3 = remDr$findElement(using = 'id', value = 'txtTarget')
+
+# "I don't like the manager. Work is hard."
+webElem3$getElementText() 
+
+#=========================================
+# API 이용
+#=========================================
+# # API 아이디/비밀번호 신청
+# # https://developers.naver.com/main/
+# 
+# # 번역하려는 문장을 설정합니다.
+# string = "부장님 싫다. 직장생활 어렵다."
+# 
+# # 위 문장을 text 요청 변수에 추가하여 영문으로 번역합니다.
+# result = httr::POST(
+#   url = 'https://openapi.naver.com/v1/papago/n2mt'
+#   , encode = 'json'
+#   , body = list(
+#     source = 'ko'
+#     , target = 'en'
+#     , text = string)
+#   , config = add_headers('X-Naver-Client-Id' = globalVar$naverKeyId, 'X-Naver-Client-Secret' = globalVar$naverKeyPw)
+# )
+# 
+# # 응답 결과를 확인합니다.
+# result
+# 
+# # JSON 타입의 데이터를 추출합니다.
+# convText2Json = httr::content(x = result)
+# 
+# # json 객체의 구조를 파악합니다.
+# convText2Json
+# 
+# # 영문으로 번역된 결과만 출력
+# # "I don't like the manager. Work is hard."
+# convText2Json$message$result$translatedText
+
+#===============================================
+# Question 2 (30점)
+#===============================================
+# 다음 홈페이지에서 가서 IMF에서 보고한 1인당 GDP를 스크레이핑하고 1등에서 30분까지 순서대로 바 그래프를 그리시오.
+# https://en.wikipedia.org/wiki/List_of_countries_by_past_and_projected_GDP_(nominal)_per_capita
+
+data = data.frame()
+
+# for (i in 1:4) {
+#   tmpData = xml2::read_html('https://en.wikipedia.org/wiki/List_of_countries_by_past_and_projected_GDP_(PPP)') %>%
+#     rvest::html_nodes(xpath = paste0('//*[@id="mw-content-text"]/div/table[', i, ']')) %>%
+#     rvest::html_table() %>%
+#     as.data.frame()
+# 
+#   colnames(tmpData)[1] = c("name")
+# 
+#   if (i == 1) {
+#     data = tmpData
+#   } else {
+#      data = data %>% dplyr::left_join(tmpData, by = c("name" = "name"))
+#   }
+# }
+
+Sys.setlocale("LC_ALL", "English")
+# 
+#  tmpData = xml2::read_html('https://en.wikipedia.org/wiki/List_of_countries_by_GDP_(nominal)') %>%
+#   rvest::html_nodes(xpath = '//*[@id="mw-content-text"]/div[1]/table[3]/tbody/tr[2]/td[1]/table') %>%
+#     rvest::html_table() %>%
+#     as.data.frame()
+ 
+tmpData = xml2::read_html('https://en.wikipedia.org/wiki/List_of_countries_by_GDP_(nominal)_per_capita') %>%
+  rvest::html_nodes(xpath = '//*[@id="mw-content-text"]/div[1]/table/tbody/tr[2]/td[1]/table') %>%
+  rvest::html_table() %>%
+  as.data.frame()
+ 
+ data = tmpData %>%
+   dplyr::filter(stringr::str_detect(Rank, "\\d")) %>%
+   dplyr::rename(
+     "name" = "Country.Territory"
+   ) %>%
+   dplyr::select(-Rank)
+                   
+dataL1 = data %>%
+  dplyr::mutate(
+    name = stringr::str_remove_all(name, "\\[n 2\\]\\[n 3\\]")
+    , name = stringr::str_remove_all(name, "\\[n 4\\]")
+    , name2 = unlist(stringr::str_split(name, " ", simplify = TRUE))[, 1]
+    , name3 = stringr::str_replace_all(name, " ", "-")
+  ) %>%
+  dplyr::na_if("") %>%
+  na.omit() %>%
+  tidyr::gather(-name, -name2, -name3, key = "key", value = "val") %>%
+  dplyr::mutate(
+    val2 = readr::parse_number(val)
+  ) %>%
+  dplyr::arrange(desc(val2)) %>%
+  dplyr::top_n(30)
+
+dplyr::tbl_df(dataL1)
+
+
+dataL2 = dataL1
+dataL2$name3 = as.factor(dataL2$name3)
+dataL2$name3 = forcats::fct_relevel(dataL2$name3, rev(dataL1$name3))
+
+ggplot(dataL2, aes(x = name3, y = val2, fill = name3)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  coord_flip() +
+  labs(x = "Countries", y = "GDP", fill = "", subtitle = "List of countries by past and projected GDP (PPP)") +
+  theme(text = element_text(size = 10)) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1)
+    , legend.position = "none"
+  ) +
+  ggsave(filename = paste(globalVar$figConfig, paste0("Img_LSH0072.png"), sep = "/"), width = 6, height = 15, dpi = 600)
+
+
+
+
+Sys.setlocale("LC_ALL", "English")
+
+url <- "https://en.wikipedia.org/wiki/List_of_countries_by_GDP_(nominal)_per_capita"
+
+GDP <- read_html(url) %>%
+  html_nodes("table") %>%
+  html_table(fill = TRUE)
+
+df <- GDP[[3]]
+
+names(df) <- c(
+  "Rank",
+  "Country",
+  "dollar"
+)
+df
+names(df)
+
+
+df$Rank <- as.numeric(df$Rank)
+df
+is.na(df)
+na.rm = TRUE
+df1<- na.omit(df)
+df1[c(1:30),]
+
+tmpData = df1 %>%
+  dplyr::rename(
+    "Country.Territory" = "Country"
+  )
+
+
+
+# Question 3 (50점)
+# AER" 패키지를 설치하고 로딩하시오. 그리고 “CPS1988" 데이터를 불러들이시오.
+# (25점) 교육수익률을 추정하시오.
+# (25점) 파트타임 결정에 미치는 모형을 구성하고, 추정하시오.
+# (보너스: 20점) 위 파트타임 결정모형 추정에서 샘플의 50%(임의추출)를 추정에 사용하고,
+# 추정된 모형과 나머지 50%의 샘플을 이용하여 파트타임 모형이 얼마나 잘 작동하는지 확인해보시오.
+# 이의 추출시 sample()을 사용하면 됩니다.
+
+data("CPS1988", package = "AER")
+
+#================================================================
+# (25점) 교육수익률을 추정하시오.
+#================================================================
+# lm(formula = log(CPS1988$wage) ~ CPS1988$experience + I(CPS1988$experience^2) + education + ethnicity, data = CPS1988)
+
+dataL1 = CPS1988 %>%
+  dplyr::mutate(
+    lagWage = lag(wage)
+    , per = (wage / lagWage) - 1.0
+    ) %>% 
+  na.omit() %>%
+  dplyr::select(-lagWage) %>%
+  dplyr::select(-ethnicity, -smsa, -region, -parttime)
+
+lmFit = lm(per ~ ., data = dataL1)
+
+# 기본값으로 변수 선택
+# summary(lmFit)
+
+# AIC 기준으로 변수 선택
+stepAic = MASS::stepAIC(lmFit, direction = "both")
+
+# 결과에 대한 요약
+summary(stepAic)
+
+
+
+plot(dataL1$per, predict(stepAic))
+cor(dataL1$per, predict(stepAic))
+
+#================================================================
+# (25점) 파트타임 결정에 미치는 모형을 구성하고, 추정하시오.
+#================================================================
+dataL1 = CPS1988 %>%
+  na.omit()
+
+glmFit = glm(parttime ~ ., data = dataL1, family = binomial)
+
+# 회귀모형에 대한 요약 결과
+summary(glmFit)
+
+# 실제 파트타임
+yObs = as.numeric(dataL1$parttime)
+
+# 테스트셋을 이용한 예측 파트타임
+yHat = predict.glm(glmFit, newdata = dataL1, type = "response")
+# yHat =ifelse(yHatPred > 0.5, 1, 2)
+
+# 검증 측정을 위한 기초 설정
+lmPred = ROCR::prediction(yHat, yObs)
+
+# ROC 커브를 위한 설정
+perform = ROCR::performance(lmPred, "tpr", "fpr")
+plot(perform, main = 'ROC Curve')
+
+# AUC 측정 : 1에 가까울수록 최고 성능 : 0.9
+ROCR::performance(lmPred, "auc")@y.values[[1]]
+
+#==================================================================================
+# (보너스: 20점) 위 파트타임 결정모형 추정에서 샘플의 50%(임의추출)를 추정에 사용하고,
+# 추정된 모형과 나머지 50%의 샘플을 이용하여 파트타임 모형이 얼마나 잘 작동하는지 확인해보시오.
+# 이의 추출시 sample()을 사용하면 됩니다.
+#=================================================================================
+dataL1 = CPS1988 %>%
+  na.omit()
+
+#=====================================================================
+# 훈련 및 테스트 셋 설정 (50 : 50)
+#=====================================================================
+# 훈련 및 데이터 셋을 50:50으로 나누기 위한 인덱스 설정
+ind = sample(1:nrow(dataL1), nrow(dataL1) * 0.5)
+
+# 해당 인덱스에 따라 자료 할당
+trainData = dataL1[ind,]
+testData = dataL1[-ind,]
+
+# 훈련 데이터셋 확인
+dplyr::tbl_df(trainData)
+
+# 테스트 데이터셋 확인
+dplyr::tbl_df(testData)
+
+#==========================================
+# 훈련 데이터셋으로 학습 모형
+#==========================================
+glmFit = glm(parttime ~ ., data = trainData, family = binomial)
+
+# 회귀모형에 대한 요약 결과
+summary(glmFit)
+
+#==========================================
+# 테스트 데이터셋으로 검증
+#==========================================
+# 실제 퇴직여부
+yObs = as.numeric(testData$parttime)
+
+# 테스트셋을 이용한 예측 퇴직여부
+yHat = predict.glm(glmFit, newdata = testData, type = "response")
+# yHat =ifelse(yHatPred > 0.5, 1, 2)
+
+# 검증 측정을 위한 기초 설정
+lmPred = ROCR::prediction(yHat, yObs)
+
+# ROC 커브를 위한 설정
+perform = ROCR::performance(lmPred, "tpr", "fpr")
+plot(perform, main = 'ROC Curve')
+
+# AUC 측정 : 1에 가까울수록 최고 성능 : 0.89
+ROCR::performance(lmPred, "auc")@y.values[[1]]
+
+
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 (크몽, 오투잡)
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+library(tidyverse)
+
+# 1. covid19_exp.csv 파일을 이용할 때, t-test를 통해 covid positive와 negative group에서 통계적으로 가장 유의하게 차이가 나는(statistically significant) 유전자가 무엇인지 찾아보시오
+
+# R에서 covid19_exp.csv 파일 불러오기위한 코드
+data1 = read.csv('https://www.dropbox.com/s/e1l7xyvm54x9fbb/covid19_exp.csv?dl=1', stringsAsFactors = FALSE)
+
+# R에서 covid19_clinical.csv 파일 불러오기위한 코드
+data2 = read.csv('https://www.dropbox.com/s/z9te6mbuvpc0ysd/covid19_clinical.csv?dl=1', stringsAsFactors = FALSE)
+
+
+data = data1 %>%
+  dplyr::left_join(data2, by = c("sample" = "sample"))
+
+
+colList = colnames(data1 %>% select(-sample))
+
+dataL2 = data.frame()
+for (colInfo in colList) {
+  
+  dataL1 = data %>%
+    dplyr::select(val = colInfo, key = covid_status)
+  
+  tTest = t.test(dataL1[dataL1$key == "positive", ]$val, dataL1[dataL1$key == "negative", ]$val)
+  
+  tmpData = tibble(
+    "colInfo" = colInfo
+    , "tVal" =  tTest$statistic
+    , "pVal" = tTest$p.value
+  )
+  
+  dataL2 = dplyr::bind_rows(dataL2, tmpData)
+}
+
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 (크몽, 오투잡)
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+library(RSelenium)
+library(rvest)
+library(stringr)
+library(XML)
+library(tidyverse)
+library(httr)
+library(AER)
+library(forcats)
+library(openxlsx)
+library(xml2)
+library(stringi)
+library(RCurl)
+
+getXpathText = function(xpath) {
+  remDr$getPageSource()[[1]] %>%
+    read_html() %>%
+    rvest::html_nodes(xpath = xpath) %>%
+    rvest::html_text() %>%
+    str_replace_all(pattern = "\n", replacement = " ") %>%
+    str_replace_all(pattern = "[\\^]", replacement = " ") %>%
+    str_replace_all(pattern = "\"", replacement = " ") %>%
+    str_replace_all(pattern = "\\s+", replacement = " ") %>%
+    str_trim(side = "both")
+}
+
+getUrlXpathText = function(url, xpath) {
+  xml2::read_html(url) %>%
+    rvest::html_nodes(xpath = xpath) %>%
+    rvest::html_text() %>%
+    str_replace_all(pattern = "\n", replacement = " ") %>%
+    str_replace_all(pattern = "[\\^]", replacement = " ") %>%
+    str_replace_all(pattern = "\"", replacement = " ") %>%
+    str_replace_all(pattern = "\\s+", replacement = " ") %>%
+    str_trim(side = "both")
+}
+
+# 고혈압(I10-15) 외래
+fileInfo = Sys.glob(paste(globalVar$inpConfig, "/홍성의료원/2015-2019 충남대학병원 기초조사.xlsx", sep = "/"))
+
+data = openxlsx::read.xlsx(xlsxFile = fileInfo, sheet = "Sheet1") 
+
+# 10000개 선택
+dataL1 = data %>%
+  tibble::rowid_to_column("rowId") %>%
+  readr::type_convert() %>%
+  dplyr::filter(addr != 1) %>%
+  head(10000)
+
+dataL2 = dataL1 %>%
+  dplyr::mutate(
+    addrEnc = RCurl::curlEscape(stringr::str_conv(addr, encoding="UTF-8"))
+    , urlInfo = paste0("https://www.juso.go.kr/support/AddressMainSearch.do?searchKeyword=", addrEnc, "&dsgubuntext=&dscity1text=&dscounty1text=&dsemd1text=&dsri1text=&dssan1text=&dsrd_nm1text=")
+  )
+
+log4r::info(log, paste0("[START] Main : ", "주소 변환"))
+
+urlList = dataL2 %>%
+  dplyr::distinct(urlInfo) %>%
+  as.tibble()
+
+dataRes = tibble()
+
+for (i in 1:nrow(urlList)) {
+  urlInfo2 = urlList[i, "urlInfo"]
+  
+  val = urlInfo2 %>%
+    purrr::map(~getUrlXpathText(.x, '//*[@id="container"]/div/span')) %>%
+    unlist()
+  
+  if (length(val) < 1) {
+    val = "NA"
+  }
+  
+  log4r::info(log, paste0("진행률 : ", round((i / nrow(urlList)) * 100, 2), " %"))
+  
+  tmpData = data.frame(
+    "urlInfo" = urlInfo2
+    , "val" = val
+  )
+  
+  dataRes = dplyr::bind_rows(dataRes, tmpData)
+}
+
+log4r::info(log, paste0("[END] Main : ", "주소 변환"))
+
+
+dataL3 = dataL2 %>%
+  dplyr::left_join(dataRes, by = c("urlInfo" = "urlInfo"))
+
+dataL4 = dataL3 %>%
+  dplyr::filter(
+    # ! val %in% c("0", "NA")
+    val %in% c("0", "NA")
+    )
+
+openxlsx::write.xlsx(dataL3, file = paste(globalVar$outConfig, "ConvAddr.xlsx", sep = "/"))
+
+
+# INFO  [2020-12-05 23:21:41] [START] Main : 주소 변환
+# INFO  [2020-12-06 00:09:50] [END] Main : 주소 변환
+# 50분
+round((nrow(dataL3) / 10000) * 100, 2)
+
+# port = 5000
+# runCommand = paste0("java -Dwebdriver.chrome.driver='", globalVar$seleniumConfig, "/chromedriver.exe' -jar '", globalVar$seleniumConfig, "/selenium-server-standalone-3.141.59.jar' ", "-port ", port)
+# rstudioapi::terminalExecute(runCommand)
+
+# remDr = remoteDriver(
+#   remoteServerAddr = "localhost"
+#   , port = port
+#   , browserName = "chrome"
+# )
+
+# 크롬 열기
+# remDr$open()
+
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 (크몽, 오투잡)
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+
+library(MASS)
+library(moonBook)
+library(webr)
+library(ggplot2)
+library(tidyverse)
+library(ggpubr)
+library(ggstatsplot)
+
+#=============================================================================
+# 에디터 초이스가 true이면 인스톨이 많을것이다
+#=============================================================================
+fileInfo = Sys.glob(paste(globalVar$inpConfig, "Google-Playstore.csv", sep = "/"))
+data = readr::read_csv(file = fileInfo, locale = locale("ko", encoding = "UTF-8"))
+
+dplyr::glimpse(data)
+
+dataL1 = data %>%
+  dplyr::mutate(value = readr::parse_number(Installs)) %>%
+  dplyr::rename(
+    "key" = "Editors Choice"
+  ) %>% 
+  na.omit()
+  
+dplyr::glimpse(dataL1)
+
+# F 테스트 및 T 테스트
+dataL2 = dataL1 %>%
+  dplyr::select(key, value) %>%
+  dplyr::mutate_at(vars(key), funs(as.factor))
+
+# P값이 2.2204e-16으로서 귀무가설 기각 (두 특성의 분산 차이가 있다)
+# 따라서 상이한 분산 조건 (var.equal = FALSE)
+fTest = var.test(value ~ key, data = dataL2, conf.level=0.95)
+fTest
+
+# P값이 4.232928e-05로서 에디터 선택이 TRUE일 경우 평균적으로 41,756,039건으로 설치가 많다.
+tTest = t.test(value ~ key, data = dataL2, var.equal = FALSE)
+tTest
+
+
+#=============================================================================
+# 게임 카테고리가 true이면 인스톨이 많을것이다
+#=============================================================================
+fileInfo = Sys.glob(paste(globalVar$inpConfig, "play.csv", sep = "/"))
+data = readr::read_csv(file = fileInfo, locale = locale("ko", encoding = "UTF-8"))
+
+dataL1 = data %>%
+  dplyr::mutate(value = readr::parse_number(Installs)) %>%
+  na.omit()
+
+dataL2 = dataL1 %>%
+  dplyr::select(Category, value) %>%
+  dplyr::mutate(
+    key = dplyr::case_when(
+      stringr::str_detect(Category, "Strategy|Adventure|Puzzle|Casual|Trivia|Word|Racing|Board|Arcade|Role Playing|Action|Simulation|Video Players & Editors|Casino") ~ "게임"
+      , stringr::str_detect(Category, "Education") ~ "교육"
+      , stringr::str_detect(Category, "Communication|Dating|Social") ~ "소셜미디어"
+      , stringr::str_detect(Category, "Books & Reference|Health & Fitness|Sports") ~ "자기계발"
+      , stringr::str_detect(Category, "Maps & Navigation|Tools|Productivity|Food & Drink|Medical|Finance|Business|Personalization|Lifestyle|Shopping|Weather|News & Magazines") ~ "유틸리티"
+      , stringr::str_detect(Category, "Music|Music & Audio|Art & Design|House & Home|Photography|Comics|Entertainment|Travel & Local") ~ "취미"
+      , TRUE ~ "기타"
+      )
+    ) %>%
+  dplyr::mutate_at(vars(key), funs(as.factor))
+  
+dplyr::glimpse(dataL2)
+
+# aovRes에서 P-value는 2.22e-16로서 0.05보다 작기 떄문에 게임 카테고리에 따른 설치건수가 차이가 있다.
+aovRes = aov(value ~ key, data = dataL2)
+summary(aovRes)
+
+# 타 특성에 비해 게임은 p-value가 0.001 이하로서 통계적으로 유의하다.
+tukeyRes = TukeyHSD(aovRes)
+
+tukeyResL1 = tukeyRes$key %>%
+  as.data.frame() %>%
+  dplyr::arrange("diff", "p adj")
+
+# 예시 그림
+plot(tukeyRes)
+
+# 예시 그림
+tky = tukeyResL1
+tky$pair = rownames(tky)
+
+# Plot pairwise TukeyHSD comparisons and color by significance level
+ggplot(tky, aes(colour=cut(`p adj`, c(0, 0.01, 0.05, 1), 
+                           label=c("p < 0.01","p < 0.05","Non-Sig")))) +
+  geom_hline(yintercept=0, lty="11", colour="grey30") +
+  geom_errorbar(aes(pair, ymin=lwr, ymax=upr), width=0.2) +
+  geom_point(aes(pair, diff)) +
+  labs(colour="") +
+  theme(text = element_text(size = 18)) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 (크몽, 오투잡)
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+library(ggpubr)
+library(ggstatsplot)
+library(exactRankTests) 
+library(BSDA)
+
+# 1. 다음 검증들의 귀무분포를 구하는 코드를 작성하여라.
+#===============================================
+# Singed-rank test (n=16)
+#===============================================
+set.seed(1)
+sampeList = sample(125:150, 16, replace = TRUE)
+
+set.seed(2)
+sampeList2 = sample(140:150, 16, replace = TRUE)
+
+data = data.frame(
+  key = c(rep("A", 16), rep("B", 16))
+  , val = c(sampeList, sampeList2)
+)
+
+boxplot(val ~ key, data = data)
+
+# V = 13.5, p-value = 0.0155513
+# 유의수준 0.0155513로서 귀무가설 기각 (즉 두 그룹의 특성은 다르다)
+wilcoxTest = wilcox.test(sampeList, sampeList2, paired = TRUE)
+wilcoxTest
+
+#===============================================
+# Wilcoxon Rank Sum Test (m=12, n=8)
+#===============================================
+set.seed(1)
+sampeList = sample(rnorm(8, 12, 1), 8, replace = TRUE)
+
+set.seed(2)
+sampeList2 = sample(rnorm(8, 12, 1), 8, replace = TRUE)
+
+data = data.frame(
+  key = c(rep("A", 8), rep("B", 8))
+  , val = c(sampeList, sampeList2)
+)
+
+boxplot(val ~ key, data = data)
+
+# W = 24, p-value = 0.4281671
+# 유의수준 0.4281671로서 귀무가설 기각 못함 (즉 두 그룹의 특성은 같다)
+wilcoxTest = wilcox.test(val ~ key, data = data)
+wilcoxTest
+
+#===============================================
+# Kruskal - Wallis Test (n1=3, n2=3, n3=6)
+#===============================================
+set.seed(1)
+sampeList = sample(125:140, 3, replace= TRUE)
+
+set.seed(2)
+sampeList2 = sample(135:145, 3, replace= TRUE)
+
+set.seed(3)
+sampeList3 = sample(135:150, 6, replace= TRUE)
+
+data = data.frame(
+  key = c(rep("A", 3), rep("B", 3), rep("C", 6))
+  , val = c(sampeList, sampeList2, sampeList3)
+) 
+
+boxplot(val ~ key, data = data)
+
+# Kruskal-Wallis chi-squared = 6.7729682, df = 2, p-value = 0.0338274
+# 유의수준 0.0338274로서 귀무가설 기각 못함 (즉 세 그룹의 특성은 같다)
+kruskalTest = kruskal.test(val ~ key, data = data)
+kruskalTest
+
+
+# 2. 문제풀이에 대한 코드 (wilcox.test 등이 아닌 코드 구현)를 작성한 후 각 데이터에 실시하라.
+# 코드의 output으로 검정통계량과 p-value 두 값만 나오도록 합니다 (3번 제외)
+# 코드에 동점처리 포함해야 합니다.
+# 가설, 검정통계량, p-value, 결과 해석 명시
+
+#===================================================================================================
+# 부호순위검정을 이용하여 알파=0.05에서 평균의 값이 160보다 큰가에 대하여 검정하여라 (단측 검정).
+#===================================================================================================
+data = c(176.9, 158.3, 152.1, 158.8, 172.4, 169.8, 159.7, 162.7, 156.6, 174.5, 184.4, 165.2, 147.6, 177.8, 160.0, 160.5)
+
+# V = 87.5, p-value = 0.06253867
+# R 내장 함수를 통해 구현 결과 
+# tie가 있어 정확한 p값을 계산할 수 없습니다
+wilcox.test(data, mu = 160, alternative = "greater", conf.int = TRUE)
+
+# 정확한 p값 계산을 위한 타 라이브러리 사용
+# s = 9, p-value = 0.3036194
+# BSDA::SIGN.test(data, md = 160, alternative = "greater", conf.level = 0.95)
+
+mu = 160
+n = 16
+dataL1 = (mu - data)
+
+obsRank = rank(dataL1, ties.method = "average")
+ind = which(dataL1 > 0)
+obsSum = sum(obsRank[ind], na.rm = TRUE)
+
+obsN = (n * (n + 1)) / 4
+obsSd =   sqrt(((n * (n + 1)) * (2 * n + 1)) / 24)
+obsStat = (obsSum - obsN) / obsSd
+
+pVal = pnorm(obsStat, lower.tail=FALSE)
+
+output = data.frame(
+  "V" = obsSum
+  , "p-value" = pVal
+)
+
+# 유의수준 0.25로서 신뢰구간 95%에 대해 귀무가설 기각 못함 (즉 두 그룹의 특성은 같다)
+output
+
+#===================================================================================================
+# 다음은 A 집단과 B 집단의 점수를 나타내는 데이터다. 월콬슨 순위합검정을 이용하여 알파=0.05에서 두 집단 사이에 점수의 차이가 있는지 검정하여라.
+#===================================================================================================
+data = data.frame(
+  key = c(rep("A", 12), rep("B", 8))
+  , val = c(70, 80, 72, 76, 76, 76, 72, 78, 82, 92, 68, 84, 68, 72, 62, 70, 66, 68, 52, 64)
+)
+
+boxplot(val ~ key, data = data)
+
+# # W = 90.5, p-value = 0.00112865
+# wilcoxTest = wilcox.test(val ~ key, data = data)
+# wilcoxTest
+
+n1 = 12
+n2 = 8
+n = n1 + n2
+
+obsRank = rank(data$val, ties.method = "average")
+
+W1 = sum(obsRank[1:n1], na.rm = TRUE) - (n1 * (n1 + 1) / 2)
+W2 = sum(obsRank[n1+1:n2], na.rm = TRUE) - (n2 * (n2 + 1) / 2)
+W = max(W1, W2)
+
+obsTable = table(obsRank)
+sum(obsTable ^ 3-obsTable)
+
+VW = n1 * n2 / 12 / (n ^ 2-n) * (n ^ 3 -n -sum(obsTable ^ 3-obsTable, na.rm = TRUE))
+EW = n1 * n2 / 2
+Z = (W - EW) / sqrt(VW)
+Pval = 2 * pnorm(Z, lower.tail=FALSE)
+
+output = data.frame(
+  "W" = W
+  , "p-value" = Pval
+)
+
+# P값이 0.001 이하로서 귀무가설 기각 (두 그룹은 차이가 있다)
+output
+
+
+#===================================================================================================
+# 크러스칼-윌리스 검정을 이용하여 알파=0.05에서 세 그룹 사이에 차이가 있다고 할 수 있는지 검정하여라 (코드 output으로는 검정통계량만 보이고 p-value는 안 보여도 됩니다).
+#===================================================================================================
+data = data.frame(
+  key = c(rep("A", 3), rep("B", 3), rep("C", 6))
+  , val = c(56, 60, 60, 48, 57, 53, 56, 60, 63, 54, 58, 52)
+)
+
+boxplot(val ~ key, data = data)
+
+# Kruskal-Wallis chi-squared = 2.9065836, df = 2, p-value = 0.2337994
+# kruskalTest = kruskal.test(val ~ key, data = data)
+# kruskalTest
+
+obsRank = rank(data$val, ties.method = "average")
+anovaRes = anova(lm(obsRank ~ key, data=data))
+
+chiSquared = anovaRes$`Sum Sq`[1] / var(obsRank, na.rm = TRUE)
+dfVal = anovaRes$Df[1]
+pVal = pchisq(chiSquared, df=dfVal, lower.tail=FALSE)
+
+output = data.frame(
+  "chi-squared" = chiSquared
+  , "dfVal" = dfVal
+  , "pVal" = pVal
+)
+
+
+# P값이 0.233로서 귀무가설 기각하지 못함 (세 그룹은 차이가 없다)
+output
+
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 (크몽, 오투잡)
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+library(readr)
+library(xlsx)
+library(readxl)
+library(openxlsx)
+library(tidyverse)
+library(forcats)
+library(ggcorrplot)
+
+# 타임스탬프
+# 1. 귀하의 성별( Gender)을 알려 주세요.
+# 2. 귀하의 나이(age) 는 어디에 속합니까?
+# 3. 귀하의 학력은 어디에 속합니까?
+# 4. 귀하의 직업은 어디에 속합니까?
+
+# 이 논문에서 표 2와 같이 그리면 될까요?
+# 7페이지의 4개 경우 별로 종속변수로 선정
+# 독립변수 : 기본정보 (4개), 모임(예술) (6개), 취향 (2개), 삶의 의미 (6개)18
+# 종속변수 : 1개
+# 
+# 단, 취향관련 질문의 경우 예술적 취향 선호도 (음악, 독서 등)을 점수화 (1-6점)로 변경할 수 있을까요?
+
+#====================
+# 컬럼 정보
+#====================
+# 타임스탬프	
+# 
+# [기본정보]
+# 1. 귀하의 성별( Gender)을 알려 주세요.	
+# 2. 귀하의 나이(age) 는 어디에 속합니까?	
+# 3. 귀하의 학력은 어디에 속합니까?	
+# 4. 귀하의 직업은 어디에 속합니까?
+
+# 모임과 취향(인생의 행복과 의미)에 관한 설문
+# [모임] 예술
+# 귀하는 예술을 좋아하십니까?	만약 모임을 즐기는 분이시라면 한달에 몇 번 정도 모임을 하시나요 (기억나는 횟수에 표시)
+# 귀하께서 참여하시는 특정 예술(음악, 독서, 미술, 댄스 등등) 모임이 있다면 한달에 몇번인지 숫자를 클릭 해 주세요. (없는 분은 1번을 선택해 주세요)	
+# 귀하는 예술과 관련된 소모임이 귀하의 인생에 긍정적인 영향을 끼친다고 생각 하시나요?
+# 귀하께서 믿고 좋아하는 지인이 특정 모임을 권유한다면 그 모임에 나갈 의향이 있으신가요? 	
+# 귀하께서는 특정 소모임에서 불쾌했던 경험을 하신적이 있었나요?	
+
+# [취향]
+# 귀하께서는 어떤 예술적 취향을 선호 하시나요? 	
+# 귀하께서는 같은 취향을 가지신 분들과 특정 공간에서 만나는 것을 어떻게 생각 하시는가요? 	
+# 귀하께서는 예술이 자신의 삶에 어느 정도 영향을 끼친다고 생각 하시나요?	
+# 
+# [삶의 의미]
+# 1. 내 인생에는 충분한 목적이 없다. (*목적이 없을경우 1번 부터 시작함)
+# 2. 나에게 있어, 내가 하는 일은 가치 있는 것이다.	
+# 3. 내가 하는 일의 대부분은 나에게 하찮은 것 같고 중요하지 않은 것 같다.	
+# 4. 나는 나의 활동을 매우 소중히 여긴다.	
+# 5. 나는 내가 하는 일에 별로 신경 쓰지 않는다.	
+# 6. 나는 살아가는 많은 이유가 있다.
+
+# [종속 변수]
+# 1. 살롱문화란 말을 접해 보거나 경험해 본 적이 있나요? (살롱이란 말을 들어 본적 있나요?)	
+# 2. 귀하께서 살롱문화가 무엇인지 알고 경험하신적이 있다면 그것이 긍정적인 기분이었는지 부정적 기분이었는지 궁금합니다.
+# 3. 내 인생에 나쁜 영향을 줄 수 있는 문제(예:코로나)가 생기더라도 좋아하는 소모임을 계속 할 의향이 있으신가요? (2019 년을 중심으로, 코로나 이전 상황에 입각하여 대답해주세요)	
+# 4. 내 인생에 나쁜 영향을 줄 수 있는 문제(예:코로나)가 생기더라도 좋아하는 소모임을 계속 할 의향이 있으신가요? (2020년 현재를 중심으로, 코로나 상황에 입각하여 대답해주세요)
+
+fileInfo = Sys.glob(paste0(globalVar$inpConfig, "/모임과_취향(인생의_행복과_의미)에_관한_설문의_설문지_응답_시트2.csv"))
+
+data = readr::read_csv(file = fileInfo, locale = locale("ko", encoding = "UTF-8"))
+
+dataL1 = data %>%
+  dplyr::mutate(
+    key3Conv = dplyr::case_when(
+      stringr::str_detect(key3, "석사, 박사 이상") ~ "박사 이상"
+      , TRUE ~ key3
+    )
+    , key4Conv = dplyr::case_when(
+      stringr::str_detect(key4, "예술관련 종사자") ~ "예술가"
+      , stringr::str_detect(key4, "전문직") ~ "전문직"
+      , stringr::str_detect(key4, "회사원 ") ~ "회사원"
+      , stringr::str_detect(key4, "언론계 종사자") ~ "언론계"
+      , stringr::str_detect(key4, "건축업자") ~ "건축업자"
+      , stringr::str_detect(key4, "자영업자") ~ "자영업자"
+      , stringr::str_detect(key4, "전업 주부") ~ "전업주부"
+      , TRUE ~ "기타"
+    )
+  )
+
+
+# 성별, 연령, 학력, 직업
+ggData1 = dataL1 %>%
+  dplyr::group_by(key = key1) %>%
+  dplyr::summarise(cnt = n()) %>%
+  dplyr::mutate(
+    ratio = round((cnt / sum(cnt, na.rm = TRUE)) * 100, 2)
+    , label = paste0(cnt, " (", ratio, ")")
+    , type = "성별"
+  )
+
+ggData2 = dataL1 %>%
+  dplyr::group_by(key = key2) %>%
+  dplyr::summarise(cnt = n()) %>%
+  dplyr::mutate(
+    ratio = round((cnt / sum(cnt, na.rm = TRUE)) * 100, 2)
+    , label = paste0(cnt, " (", ratio, ")")
+    , type = "연령"
+  )
+
+ggData3 = dataL1 %>%
+  dplyr::group_by(key = key3Conv) %>%
+  dplyr::summarise(cnt = n()) %>%
+  dplyr::mutate(
+    ratio = round((cnt / sum(cnt, na.rm = TRUE)) * 100, 2)
+    , label = paste0(cnt, " (", ratio, ")")
+    , type = "학력"
+  )
+
+ggData4 = dataL1 %>%
+  dplyr::group_by(key = key4Conv) %>%
+  dplyr::summarise(cnt = n()) %>%
+  dplyr::mutate(
+    ratio = round((cnt / sum(cnt, na.rm = TRUE)) * 100, 2)
+    , label = paste0(cnt, " (", ratio, ")")
+    , type = "직업"
+  )
+
+ggData = dplyr::bind_rows(ggData1, ggData2, ggData3, ggData4)
+
+# type 정렬
+ggData$type = forcats::fct_relevel(ggData$type, c("성별", "나이", "학력", "직업"))
+                                                
+# key 정렬
+ggData$key = forcats::fct_relevel(ggData$key, c("남자", "여자", "20대 (10대포함)", "30대", "40대", "50대", "60대 이상", "고졸(중졸포함)", "전문대 졸", "대졸", "석사", "박사 이상", "건축업자", "언론계", "예술가", "자영업자", "전문직", "전업주부", "회사원", "기타"))
+
+ggplot(ggData, aes(x = key, y = ratio, fill = type, label = round(ratio, 1))) +
+# ggplot(ggData, aes(x = key, y = ratio, label = round(ratio, 1))) +
+  geom_bar(position = "dodge", stat = "identity") +
+  theme(legend.position = "top") +
+  geom_text(aes(group = type), position = position_dodge(width = 0.9), size = 5, vjust = -0.5, hjust = 0.5) +
+  ylim(0, 100) +
+  facet_wrap(~type, scale = "free") +
+  labs(x = "구분", y = "특성 [%]", fill = "", subtitle = "대상자 특성") +
+  theme(text = element_text(size = 18)) +
+  ggsave(filename = paste(globalVar$figConfig, "Img_LSH0078_1.png", sep = "/"), width = 13, height = 8, dpi = 600)
+
+
+dataL2 = dataL1 %>%
+  dplyr::select(dplyr::contains(c("key", "ref"))) %>%
+  # dplyr::select(-key3, -key4, -key5)
+
+# key 정렬
+dataL2$key1 = forcats::fct_relevel(dataL2$key1, c("남자", "여자"))
+dataL2$key2 = forcats::fct_relevel(dataL2$key2, c("20대 (10대포함)", "30대", "40대", "50대", "60대 이상"))
+dataL2$key3Conv = forcats::fct_relevel(dataL2$key3Conv, c("고졸(중졸포함)", "전문대 졸", "대졸", "석사", "박사 이상"))
+dataL2$key4Conv = forcats::fct_relevel(dataL2$key4Conv, c("건축업자", "언론계", "예술가", "자영업자", "전문직", "전업주부", "회사원", "기타"))
+
+keyList = c("key1", "key2", "key3Conv", "key4Conv")
+colList = dataL2 %>%
+  dplyr::select(dplyr::contains(c("ref"))) %>%
+  colnames()
+
+dataL3 = data.frame()
+dataL4 = data.frame()
+
+for (i in 1:length(keyList)) {
+  for (j in 1:length(colList)) {
+    
+    rsAov = aov(get(colList[j], dataL2) ~ get(keyList[i], dataL2), data = dataL2) %>%
+      summary %>%
+      unlist()
+    
+    tmpData = tibble(
+      # typeName = typeNameList[i]
+      type = keyList[i]
+      , col = colList[j]
+      # , colName = colNameList[j]
+      , fVal = rsAov[7] %>% round(2)
+      , pVal = rsAov[9] %>% round(2)
+    ) %>%
+      dplyr::mutate(label = paste0(fVal, " (", pVal, ")"))
+    
+    dataL3 = dplyr::bind_rows(dataL3, tmpData)
+  }
+  
+  tmpData2 = dataL2 %>%
+    dplyr::group_by(type = get(keyList[i], dataL2)) %>%
+    # dplyr::select(!dplyr::contains("type")) %>%
+    # dplyr::select(dplyr::contains(c("Q34", "Q57", "Q64"))) %>%
+    dplyr::select(dplyr::contains(c("ref"))) %>%
+    dplyr::summarise_all(funs(
+      mean(., na.rm = TRUE) %>% round(2) # 평균
+      , sd(., na.rm = TRUE) %>% round(2) # 표준편차
+      # , n() # 자료 개수
+    ))
+  
+  dataL4 = dplyr::bind_rows(dataL4, tmpData2)
+}
+
+
+wb = openxlsx::createWorkbook()
+
+openxlsx::addWorksheet(wb, "ggData")
+openxlsx::writeData(wb, "ggData", ggData, startRow = 1, startCol = 1)
+
+openxlsx::addWorksheet(wb, "dataL3")
+openxlsx::writeData(wb, "dataL3", dataL3, startRow = 1, startCol = 1)
+
+openxlsx::addWorksheet(wb, "dataL4")
+openxlsx::writeData(wb, "dataL4", dataL4, startRow = 1, startCol = 1)
+
+openxlsx::saveWorkbook(wb, file = paste0(globalVar$outConfig, "/Survery_LSH0078.xlsx"), overwrite = TRUE)
+
+
+#==================================
+# 상관계수 행렬
+#==================================
+dataL5 = dataL1 %>%
+  dplyr::select(dplyr::contains(c("ref"))) %>%
+  dplyr::rename(
+    "살롱문화 경험" = "ref1"
+    , "긍정 수치" = "ref2"
+    , "코로나 이전 영향" = "ref3"
+    , "코로나 이후 영향" = "ref4"
+  )
+
+corMat = cor(dataL5)
+corPmat = cor_pmat(dataL5)
+
+ggcorrplot(corMat, hc.order = TRUE, type = "lower", lab_col = "black", outline.color = "white", lab = TRUE, p.mat = corPmat) +
+  ggsave(filename = paste(globalVar$figConfig, "Img_LSH0078_2.png", sep = "/"), width = 6, height = 6, dpi = 600)
+
+
+#==================================
+# 조절 변수
+#==================================
+dataL2 = dataL1 %>%
+  dplyr::select(val1, val3, val4, val5)
+
+summary(dataL2)
+pairs(dataL2)
+
+cor(dataL2)
+
+plot(dataL2$val1, dataL2$val3)
+plot(dataL2$val4, dataL2$val3)
+plot(dataL2$val5, dataL2$val3)
+
+# 예술을 좋아하면 (독립변수)-예술모임(살롱)도 좋아한다. (종속변수)
+# 조절변수: 삶의 의미에 관련된질문, 소모임의 불쾌한 기억
+lmFit = lm(val3 ~ val1, data = dataL2)
+summary(lmFit)
+
+lmFit = lm(val3 ~ val1 * val4, data = dataL2)
+summary(lmFit)
+
+lmFit = lm(val3 ~ val1 * val5, data = dataL2)
+summary(lmFit)
+
+lmFit = lm(val3 ~ val1 * val4 * val5, data = dataL2)
+summary(lmFit)
+
+ggiraphExtra::ggPredict(lmFit, show.point=FALSE)
+
+lmFit = lm(val3 ~ val1 +  val1 + val1 * val5, data = dataL2)
+summary(lmFit)
+
+ggiraphExtra::ggPredict(lmFit, mode=3, colorn = 50, show.point=FALSE)
+
+
+# 살롱문화를 선호하는 것이 (독립변수)-인간에게 행복을 줄 수 있다. (종속변수)
+# -조절변수: 모임에서의 안좋은 기억, 인생에 충분한 목적이 없다. 천재지변(코로나)
+dataL2 = dataL1 %>%
+  dplyr::select(ref1, ref2, ref3, ref4)
+
+summary(dataL2)
+# pairs(dataL2)
+
+cor(dataL2)
+
+plot(dataL2$val1, dataL2$val3)
+plot(dataL2$val4, dataL2$val3)
+plot(dataL2$val5, dataL2$val3)
+
+lmFit = lm(ref2 ~ ref1, data = dataL2)
+summary(lmFit)
+
+lmFit = lm(ref2 ~ ref1 * ref3, data = dataL2)
+summary(lmFit)
+
+lmFit = lm(ref2 ~ ref1 * ref4, data = dataL2)
+summary(lmFit)
+
+lmFit = lm(ref2 ~ ref1 * ref3 * ref4, data = dataL2)
+summary(lmFit)
+
+
+#==================================
+# 가설 검정
+#==================================
+dataL2 = dataL1 %>%
+  dplyr::select(ref2, ref3, ref4) %>%
+  dplyr::rename(
+    "긍정 수치" = "ref2"
+    , "코로나 이전 영향" = "ref3"
+    , "코로나 이후 영향" = "ref4"
+  ) %>%
+  tidyr::gather()
+
+# aovRes에서 P-value는 7.0602e-08로서 0.05보다 작기 떄문에 코로나 이전/이후에 따른 행복의 차이가 있다.
+aovRes = aov(value ~ key, data = dataL2)
+summary(aovRes)
+
+# 타 특성에 비해 코로나 이전-행복지수는 p-value가 0.01 이하로서 통계적으로 유의하다.
+tukeyRes = TukeyHSD(aovRes)
+
+# 예시 그림
+plot(tukeyRes)
+
+tukeyResL1 = tukeyRes$key %>%
+  as.data.frame()
+  
+# 예시 그림
+tky = tukeyResL1
+tky$pair = rownames(tky)
+
+# Plot pairwise TukeyHSD comparisons and color by significance level
+ggplot(tky, aes(colour=cut(`p adj`, c(0, 0.01, 0.05, 0.1, 1), 
+                           label=c("p < 0.01","p < 0.05", "p < 0.1", "Non-Sig")))) +
+  geom_hline(yintercept=0, lty="11", colour="grey30") +
+  geom_errorbar(aes(pair, ymin=lwr, ymax=upr), width=0.2) +
+  geom_point(aes(pair, diff)) +
+  labs(colour="") +
+  theme(text = element_text(size = 18)) +
+  # theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  ggsave(filename = paste(globalVar$figConfig, "Img_LSH0078_3.png", sep = "/"), width = 10, height = 8, dpi = 600)
+
+
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 (크몽, 오투잡)
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+serviceName = "LSH0074"
+
+library(readxl)
+library(tidyverse)
+library(ggplot2)
+library(ggmap)
+library(ggplot2)
+library(lubridate)
+library(raster)
+library(rgeos)
+library(maptools)
+library(rgdal)
+library(openxlsx)
+library(dplyr)
+library(tidyr)
+library(geosphere)
+library(ggrepel)
+library(gdata)
+library(data.table)
+library(ggh4x)
+library(remotes)
+library(devtools)
+library(pracma)
+library(ggplot2)
+library(tidyverse)
+library(xlsx)
+library(readr)
+library(magrittr)
+library(ggpol)
+library(readxl)
+library(tidyverse)
+library(ggplot2)
+library(ggmap)
+library(ggplot2)
+library(lubridate)
+library(raster)
+library(rgeos)
+library(maptools)
+library(rgdal)
+library(openxlsx)
+library(dplyr)
+library(geosphere)
+library(ggrepel)
+library(gdata)
+library(sf)
+library(ggpubr)
+library(ggh4x)
+library(ggh4x)
+library(remotes)
+library(devtools)
+library(readr)
+
+
+#=====================================================================================
+# 구글 API를 통해 주소를 위경도로 변환
+# register_google(key = 'AIzaSyD0d6wMKB4UHwtVkHIPhWISq4MkzDFqdu4')
+# 
+# geo_locate_data_L1 <- geo_locate_data %>%
+#   dplyr::select(addr) %>%
+#   dplyr::mutate(addr = gsub(x = addr,pattern = "\n",replacement = " ")) %>%
+#   dplyr::distinct() 
+# 
+# 
+# # point_data_TEST <- point_data_L1 %>%
+# #   dplyr::filter(addr_new == "대전 정림동 591")
+# 
+# point_data_TEST <- geo_locate_data_L1 %>%
+#   dplyr::slice(1:10)
+# 
+# # go
+# locate_res <- mutate_geocode(geo_locate_data_L1,addr)
+# write.csv(locate_res,"./imsi충남.csv")
+# 
+# locate_res_L1 <- locate_res %>%
+#   dplyr::select(-addr_new) %>%
+#   dplyr::mutate(lon_google = lon, lat_google = lat) %>%
+#   dplyr::select(-lon,-lat)
+# 
+# locate_res_L1 = locate_res %>%
+#   dplyr::filter(is.na(lon))
+#=====================================================================================
+
+# 데이터와 지도와 매칭 (시도)
+fileInfo = Sys.glob(paste(globalVar$mapConfig, "/ADM_CODE/충남기관.xlsx", sep = "/"))
+dataInfo = openxlsx::read.xlsx(fileInfo, sheet = "DATA")
+
+
+fileInfo = Sys.glob(paste(globalVar$mapConfig, "/ADM_CODE/충남_inGeoData.csv", sep = "/"))
+stationData = readr::read_csv(file = fileInfo, locale = locale("ko", encoding = "EUC-KR")) %>%
+  dplyr::select(-X1) %>%
+  dplyr::left_join(dataInfo, by = c("addr" = "addr")) # %>%
+  # dplyr::filter(! stringr::str_detect(title, regex("진료소")))
+
+
+# unique(geoData_L1$sigungu_name)
+
+
+#==========================================
+# 시군구별 현황
+#==========================================
+mapInfo = Sys.glob(paste(globalVar$mapConfig, "/KOREA_INFO/TL_SCCO_SIG.shp", sep = "/"))
+la = shapefile(mapInfo, encoding = "UTF-8")
+
+geo = spTransform(la, CRS("+proj=longlat"))
+dplyr::tbl_df(geo)
+
+geoData = ggplot2::fortify(geo, region = 'SIG_CD', region2 = "SIG_KOR_NM")
+dplyr::tbl_df(geoData)
+
+codeInfo = Sys.glob(paste(globalVar$mapConfig, "/ADM_CODE/법정동코드_전체자료.txt", sep = "/"))
+code = read.table(codeInfo, sep = "\t", header = TRUE, colClasses = "character", fileEncoding = "EUC-KR") %>%
+  dplyr::rename(
+    "EMD_CD" = "법정동코드"
+    , "full_addr" = "법정동명"
+    , "useflag" = "폐지여부"
+  )
+
+code_L1 = code %>%
+  tidyr::separate(col = "full_addr", into = c("d1", "d2", "d3", "d4", "d5"), sep = " ") %>%
+  dplyr::filter(is.na(d3), !is.na(d2)) %>%
+  dplyr::mutate(code = str_sub(EMD_CD, 1, 5)) %>%
+  dplyr::filter(useflag == "존재") %>%
+  dplyr::select(-c(EMD_CD, d3, d4, d5, useflag)) %>%
+  dplyr::rename(
+    "si_do" = "d1"
+    , "sigungu_name" = "d2"
+    , "sigungu_code" = "code"
+  )
+
+unique(code_L1$si_do)
+
+# 충청남도 읽기
+geoData_L1 = code_L1 %>%
+  dplyr::filter(si_do %in% c("충청남도")) %>%
+  dplyr::distinct() %>%
+  dplyr::filter(! is.na(sigungu_code)) %>%
+  dplyr::mutate(code = as.character(round(as.numeric(sigungu_code, 0)))) %>%
+  dplyr::add_row(si_do = "충청남도", sigungu_name = "동남구", sigungu_code = "44131", code = "44131") %>%
+  dplyr::add_row(si_do = "충청남도", sigungu_name = "서북구", sigungu_code = "44133", code = "44133") %>%
+  dplyr::inner_join(geoData, by = c("code" = "id"))
+
+
+dataL2 = geoData_L1 %>%
+  # dplyr::left_join(dataL1, by = c("si_do" = "addr1", "sigungu_name" = "addr2")) %>%
+  dplyr::mutate(
+    plotLabel = sigungu_name
+    , xOffset = dplyr::case_when(
+      sigungu_name == "태안군" ~ 0.275
+      , sigungu_name == "보령시" ~ 0.275
+      , sigungu_name == "서산시" ~ 0
+      , sigungu_name == "예산군" ~ 0.05
+      , sigungu_name == "홍성군" ~ 0.05
+      , sigungu_name == "서천군" ~ 0.05
+      , sigungu_name == "동남구" ~ 0.02
+      , TRUE ~ 0
+    )
+    , yOffset = dplyr::case_when(
+      sigungu_name == "서산시" ~ -0.05
+      , sigungu_name == "태안군" ~ 0.1
+      , sigungu_name == "서천군" ~ 0
+      , sigungu_name == "반곡동" ~ -0.1
+      , sigungu_name == "동남구" ~ 0.025
+      , sigungu_name == "서북구" ~ 0.025
+      , sigungu_name == "보령시" ~ -0.05
+      , TRUE ~ 0
+    )
+    , backColor = dplyr::case_when(
+      stringr::str_detect(sigungu_name, regex("태안군|서산시|당진시")) ~ "1"
+      , stringr::str_detect(sigungu_name, regex("아산시|서북구|동남구")) ~ "2"
+      , stringr::str_detect(sigungu_name, regex("홍성군|예산군|청양군|보령시")) ~ "3"
+      , stringr::str_detect(sigungu_name, regex("공주시|계룡시")) ~ "4"
+      , stringr::str_detect(sigungu_name, regex("부여군|서천군|논산시|금산군")) ~ "5"
+      , TRUE ~ "NA"
+    )
+  )
+
+#*******************************************************************
+# 1. 충남 전체지도에 1-9번 서비스 전체 지도 - 1개
+# > 충청남도 전체 자원 분포 현황 [1-9]
+#*******************************************************************
+
+# 시각화
+saveImg = sprintf("%s/TMP3/Img_%s_%05d_%s.png", globalVar$figConfig, serviceName, 1, "충청남도 전체 자원 분포 현황")
+# saveImg = sprintf("%s/TMP4/Img_%s_%05d_%s.png", globalVar$figConfig, serviceName, 1, "충청남도 전체 자원 분포 현황 (진료소 X)")
+plotSubTitle = sprintf("%s", "충청남도 전체 자원 분포 현황")
+
+# ggplot(data = dataL2, aes(x = long, y = lat, group = group, fill = as.factor(sigungu_name))) +
+ggplot(data = dataL2, aes(x = long, y = lat, group = group, fill = factor(backColor))) +
+  theme_bw() +
+  coord_fixed(ratio = 1) +
+  geom_polygon() +
+  # geom_polygon(fill = "white", alpha = 0.6) +
+  # scale_fill_gradientn(colours = c("yellow", "orange", "Brown"), limits = c(0, max(dataL2$n, na.rm = TRUE)), na.value = "white") +
+  geom_path(colour = 'black', size = 0.5) +
+  geom_point(data = stationData, aes(x = lon, y = lat, group = NULL, fill = NULL), colour = "red", pch=16, size = 0.5) +
+  ggh4x::stat_midpoint(data = dataL2, aes(x = long + xOffset, y = lat + yOffset, group = sigungu_code, label = plotLabel), geom = "text", size = 5.5) +
+  scale_fill_manual(values =  c("1" = "#d2edf4", "2" = "#aeb3d3", "3" = "#f8d5af", "4" = "#f0f0b0", "5" = "#cde2a1"), name = NULL, na.value = NA) +
+  labs(title = plotSubTitle, x = NULL, y = NULL, colour = NULL, fill = NULL, subtitle = NULL) +
+  theme_minimal() +
+  theme(
+    text = element_text(size = 18)
+    , panel.grid.major.x = element_blank()
+    , panel.grid.major.y = element_blank()
+    , panel.grid.minor.x = element_blank()
+    , panel.grid.minor.y = element_blank()
+    , axis.text.x = element_blank()
+    , axis.ticks.x = element_blank()
+    , axis.title.x = element_blank()
+    , axis.text.y = element_blank()
+    , axis.ticks.y = element_blank()
+    , axis.title.y = element_blank()
+    , plot.subtitle = element_text(hjust = 1)
+    , legend.position = "none"
+  ) +
+  ggsave(filename = saveImg, width = 10, height = 5, dpi = 600)
+
+
+#*******************************************************************
+# 2. 충남 전체지도에 각 서비스 별 지도 - 9개
+# > 충청남도 전체 자원 분포 현황 [1, 2, ..., 9]
+#*******************************************************************
+
+valList = sort(unique(stationData$val))
+
+# valInfo = "문화 및 여가"
+
+for (valInfo in valList) {
+  
+  stationDataL1 = stationData %>%
+    dplyr::filter(val == valInfo)
+  
+  # if (nrow(stationDataL1) < 1) { next }
+  
+  # 시각화
+  saveImg = sprintf("%s/TMP3/Img_%s_%05d_%s_%s.png", globalVar$figConfig, serviceName, 2, "충청남도 전체 자원 분포 현황", valInfo)
+  plotSubTitle = sprintf("[%s] %s", valInfo, "충청남도 전체 자원 분포 현황")
+  
+  # ggplot(data = dataL2, aes(x = long, y = lat, group = group, fill = as.factor(sigungu_name))) +
+  ggplot(data = dataL2, aes(x = long, y = lat, group = group, fill = factor(backColor))) +
+    theme_bw() +
+    coord_fixed(ratio = 1) +
+    geom_polygon() +
+    # geom_polygon(fill = "white", alpha = 0.6) +
+    # scale_fill_gradientn(colours = c("yellow", "orange", "Brown"), limits = c(0, max(dataL2$n, na.rm = TRUE)), na.value = "white") +
+    geom_path(colour = 'black', size = 0.5) +
+    geom_point(data = stationDataL1, aes(x = lon, y = lat, group = NULL, fill = NULL), colour = "red", pch=16, size = 0.5) +
+    ggh4x::stat_midpoint(data = dataL2, aes(x = long + xOffset, y = lat + yOffset, group = sigungu_code, label = plotLabel), geom = "text", size = 5.5) +
+    labs(title = plotSubTitle, x = NULL, y = NULL, colour = NULL, fill = NULL, subtitle = NULL) +
+    scale_fill_manual(values =  c("1" = "#d2edf4", "2" = "#aeb3d3", "3" = "#f8d5af", "4" = "#f0f0b0", "5" = "#cde2a1"), name = NULL, na.value = NA) +
+    theme_minimal() +
+    theme(
+      text = element_text(size = 18)
+      , panel.grid.major.x = element_blank()
+      , panel.grid.major.y = element_blank()
+      , panel.grid.minor.x = element_blank()
+      , panel.grid.minor.y = element_blank()
+      , axis.text.x = element_blank()
+      , axis.ticks.x = element_blank()
+      , axis.title.x = element_blank()
+      , axis.text.y = element_blank()
+      , axis.ticks.y = element_blank()
+      , axis.title.y = element_blank()
+      , plot.subtitle = element_text(hjust = 1)
+      , legend.position = "none"
+    ) +
+    ggsave(filename = saveImg, width = 10, height = 5, dpi = 600)
+}
+
+
+
+
+
+#==========================================
+# 그래프 6 : 읍면동별 현황
+#==========================================
+# 읍면동 한반도 지도 읽기
+mapInfo = Sys.glob(paste(globalVar$mapConfig, "/KOREA_INFO/bnd_dong_00_2019_2019_2Q.shp", sep = "/"))
+la = shapefile(mapInfo, encoding = "UTF-8")
+geo = sp::spTransform(la, CRS("+proj=longlat"))
+
+geoData = ggplot2::fortify(geo, region = 'adm_dr_cd', region2 = "adm_dr_nm")
+
+# 행정 코드 (행정동) 읽기
+codeInfo = Sys.glob(paste(globalVar$mapConfig, "/ADM_CODE/adm_code.xlsx", sep = "/"))
+code = openxlsx::read.xlsx(codeInfo, sheet = 1, startRow = 2)
+
+code_L1 = code %>%
+  dplyr::select("시도코드", "시도명칭", "시군구코드", "시군구명칭", "읍면동코드", "읍면동명칭") %>%
+  dplyr::rename(
+    "si_do" = "시도코드"
+    , "si_do_name" = "시도명칭"
+    , "sigungu_code" = "시군구코드"
+    , "sigungu_name" = "시군구명칭"
+    , "emd_code" = "읍면동코드"
+    , "emd_name" = "읍면동명칭"
+  )
+
+dplyr::tbl_df(code_L1)
+
+unique(code_L1$si_do_name)
+
+unique(geoData_L1$sigungu_name)
+
+# 위치 정보와 한반도 지도 병합
+geoData_L1 = code_L1 %>%
+  dplyr::filter(si_do_name %in% c("충청남도")) %>%
+  dplyr::distinct() %>%
+  dplyr::filter(!is.na(sigungu_code)) %>%
+  # dplyr::mutate(code = as.character(round(as.numeric(sigungu_code,0)))) %>%
+  dplyr::mutate(
+    code = as.character(round(as.numeric(emd_code, 0)))
+    , sigungu_name = dplyr::case_when(
+      stringr::str_detect(sigungu_name, regex("동남구")) ~ "동남구"
+      , stringr::str_detect(sigungu_name, regex("서북구")) ~ "서북구"
+      , TRUE ~ sigungu_name
+    )
+  ) %>%
+  dplyr::inner_join(geoData, by = c("code" = "id"))
+
+
+#*******************************************************************
+# 3. 충남 시군구별 전체서비스 지도 - 16개
+# > 충청남도 시군구별 자원 분포도 [계룡, 공주, ..., 태안] [1-9]
+#*******************************************************************
+nameList = sort(unique(geoData_L1$sigungu_name))
+
+# nameInfo = "홍성군"
+# nameList = c("태안군", "홍성군")
+
+# "계룡시" "공주시" "금산군" "논산시" "당진시" "동남구" "보령시" "부여군" "서북구" "서산시"
+# "서천군" "아산시" "예산군" "청양군" "태안군" "홍성군"
+
+for (nameInfo in nameList) {
+  
+  dataL2 = geoData_L1 %>%
+    dplyr::filter(sigungu_name == nameInfo) %>%
+    dplyr::mutate(
+      plotLabel = dplyr::case_when(
+        stringr::str_detect(emd_name, regex("원성.동")) ~ "원성동"
+        , stringr::str_detect(emd_name, regex("당진.동")) ~ "당진동"
+        , stringr::str_detect(emd_name, regex("대천.동")) ~ "대천동"
+        , stringr::str_detect(emd_name, regex("동문.동")) ~ "동문동"
+        , stringr::str_detect(emd_name, regex("부성.동")) ~ "부성동"
+        , stringr::str_detect(emd_name, regex("성정.동")) ~ "성정동"
+        , stringr::str_detect(emd_name, regex("쌍용.동")) ~ "쌍용동"
+        , stringr::str_detect(emd_name, regex("온양.동")) ~ "온양동"
+        , TRUE ~ emd_name
+      )
+      , xOffset = dplyr::case_when(
+        emd_name == "근흥면" ~ 0.275
+        , emd_name == "안면읍" ~ 0.07
+        , emd_name == "남면" ~ 0.06
+        , emd_name == "오천면" ~ 0.27
+        , emd_name == "장항읍" ~ 0.06
+        , emd_name == "한산면" ~ -0.01
+        , emd_name == "지곡면" ~ 0.02
+        , emd_name == "이원면" ~ -0.01
+        , emd_name == "원북면" ~ -0.01
+        , emd_name == "서부면" ~ 0.02
+        , emd_name == "정안면" ~ 0.02
+        , emd_name == "연산면" ~ 0.01
+        , emd_name == "면천면" ~ -0.01
+        , emd_name == "천북면" ~ -0.01
+        , emd_name == "옥산면" ~ -0.01
+        , emd_name == "장암면" ~ 0.04
+        , emd_name == "대산읍" ~ 0.02
+        , emd_name == "팔봉면" ~ 0.005
+        , emd_name == "서면" ~ 0.015
+        , emd_name == "시초면" ~ 0.005
+        , TRUE ~ 0
+      )
+      , yOffset = dplyr::case_when(
+        emd_name == "마서면" ~ 0.01
+        , emd_name == "마산면" ~ -0.01
+        , emd_name == "진산면" ~ -0.02
+        , emd_name == "복수면" ~ -0.02
+        , emd_name == "군북면" ~ 0.02
+        , emd_name == "원북면" ~ -0.03
+        , emd_name == "팔봉면" ~ -0.02
+        , emd_name == "신평면" ~ -0.02
+        , emd_name == "해미면" ~ 0.01
+        , emd_name == "이원면" ~ -0.03
+        , emd_name == "원북면" ~ -0.045
+        , emd_name == "이원면" ~ 0.01
+        , emd_name == "장압면" ~ 0.05
+        , emd_name == "남면" ~ -0.01
+        , emd_name == "우성면" ~ -0.03
+        , emd_name == "신창면" ~ 0.02
+        , emd_name == "선장면" ~ -0.02
+        , emd_name == "장항읍" ~ 0.005
+        , emd_name == "남일면" ~ -0.01
+        , emd_name == "부리면" ~ 0.01
+        , emd_name == "남이면" ~ 0.01
+        , emd_name == "주산면" ~ -0.01
+        , emd_name == "천북면" ~ 0.01
+        , emd_name == "대천동" ~ 0.01
+        , emd_name == "오천면" ~ 0.09
+        , emd_name == "초춘면" ~ 0.01
+        , emd_name == "양화면" ~ 0.01
+        , emd_name == "구룡면" ~ -0.01
+        , emd_name == "옥산면" ~ -0.01
+        , emd_name == "임천면" ~ -0.01
+        , emd_name == "장암면" ~ 0.005
+        , emd_name == "성거읍" ~ -0.01
+        , emd_name == "직산읍" ~ -0.005
+        , emd_name == "지곡면" ~ -0.02
+        , emd_name == "성연면" ~ -0.01
+        , emd_name == "서면" ~ 0.005
+        , emd_name == "비인면" ~ 0.01
+        , emd_name == "문산면" ~ 0.01
+        , emd_name == "종천면" ~ 0.005
+        , emd_name == "안면읍" ~ -0.03
+        , emd_name == "태안읍" ~ 0.04
+        , emd_name == "근흥면" ~ 0.01
+        , TRUE ~ 0
+      ) 
+      , backColor = dplyr::case_when(
+        stringr::str_detect(sigungu_name, regex("태안군|서산시|당진시")) ~ "1"
+        , stringr::str_detect(sigungu_name, regex("아산시|서북구|동남구")) ~ "2"
+        , stringr::str_detect(sigungu_name, regex("홍성군|예산군|청양군|보령시")) ~ "3"
+        , stringr::str_detect(sigungu_name, regex("공주시|계룡시")) ~ "4"
+        , stringr::str_detect(sigungu_name, regex("부여군|서천군|논산시|금산군")) ~ "5"
+        , TRUE ~ "NA"
+      )
+    )
+  
+  if (nrow(dataL2) < 1) { next }
+  
+  stationDataL1 = stationData %>%
+    dplyr::filter(stringr::str_detect(addr, nameInfo))
+  
+  # if (nrow(stationDataL1) < 1) { next }
+  
+  # 시각화
+  saveImg = sprintf("%s/TMP3/Img_%s_%05d_%s_%s.png", globalVar$figConfig, serviceName, 3, "충청남도 시군구별 자원 분포도", nameInfo)
+  # saveImg = sprintf("%s/TMP4/Img_%s_%05d_%s_%s.png", globalVar$figConfig, serviceName, 3, "충청남도 시군구별 자원 분포도 (진료소 O)", nameInfo)
+  plotSubTitle = sprintf("%s (%s)", "충청남도 시군구별 자원 분포도", nameInfo)
+  
+  ggplot(data = dataL2, aes(x = long, y = lat, group = group, fill = factor(backColor))) +
+    theme_bw() +
+    coord_fixed(ratio = 1) +
+    geom_polygon() +
+    # geom_polygon(fill = "white", alpha = 0.6) +
+    # scale_fill_gradientn(colours = c("yellow", "orange", "Brown"), limits = c(0, max(dataL2$n, na.rm = TRUE)), na.value = "white") +
+    geom_path(colour = 'black', size = 0.5) +
+    geom_point(data = stationDataL1, aes(x = lon, y = lat, group = NULL, fill = NULL), colour = "red", pch=16, size = 1) +
+    ggh4x::stat_midpoint(data = dataL2, aes(x = long + xOffset, y = lat + yOffset, group = emd_code, label = plotLabel), geom = "text", size = 5.5) +
+    labs(title = plotSubTitle, x = NULL, y = NULL, colour = NULL, fill = NULL, subtitle = NULL) +
+    scale_fill_manual(values =  c("1" = "#d2edf4", "2" = "#aeb3d3", "3" = "#f8d5af", "4" = "#f0f0b0", "5" = "#cde2a1"), name = NULL, na.value = NA) +
+    theme_minimal() +
+    theme(
+      text = element_text(size = 18)
+      , panel.grid.major.x = element_blank()
+      , panel.grid.major.y = element_blank()
+      , panel.grid.minor.x = element_blank()
+      , panel.grid.minor.y = element_blank()
+      , axis.text.x = element_blank()
+      , axis.ticks.x = element_blank()
+      , axis.title.x = element_blank()
+      , axis.text.y = element_blank()
+      , axis.ticks.y = element_blank()
+      , axis.title.y = element_blank()
+      , plot.subtitle = element_text(hjust = 1)
+      , legend.position = "none"
+    ) +
+    ggsave(filename = saveImg, width = 10, height = 5, dpi = 600)
+}
+
+#****************************************************************************
+# 4. 충남 서비스별 시군별 지도 - 9*16= 144개
+# > 충청남도 시군구별 자원 분포도 [계룡, 공주, ..., 태안] [1, 2, ..., 9]
+#****************************************************************************
+
+valList = sort(unique(stationData$val))
+nameList = sort(unique(geoData_L1$sigungu_name))
+  
+# valInfo = "문화 및 여가"
+# nameInfo = "금산군"
+
+for (nameInfo in nameList) {
+  for (valInfo in valList) {
+    
+    # 시각화
+    saveImg = sprintf("%s/TMP3/Img_%s_%05d_%s_%s_%s.png", globalVar$figConfig, serviceName, 4, "충청남도 시군구별 자원 분포도", nameInfo, valInfo)
+    plotSubTitle = sprintf("[%s] %s (%s)", valInfo, "충청남도 시군구별 자원 분포도",  nameInfo)
+    
+    if (fs::file_exists(saveImg) == TRUE) { next }
+    
+    
+    dataL2 = geoData_L1 %>%
+      dplyr::filter(sigungu_name == nameInfo) %>%
+      dplyr::mutate(
+        plotLabel = dplyr::case_when(
+          stringr::str_detect(emd_name, regex("원성.동")) ~ "원성동"
+          , stringr::str_detect(emd_name, regex("당진.동")) ~ "당진동"
+          , stringr::str_detect(emd_name, regex("대천.동")) ~ "대천동"
+          , stringr::str_detect(emd_name, regex("동문.동")) ~ "동문동"
+          , stringr::str_detect(emd_name, regex("부성.동")) ~ "부성동"
+          , stringr::str_detect(emd_name, regex("성정.동")) ~ "성정동"
+          , stringr::str_detect(emd_name, regex("쌍용.동")) ~ "쌍용동"
+          , stringr::str_detect(emd_name, regex("온양.동")) ~ "온양동"
+          , TRUE ~ emd_name
+        )
+        , xOffset = dplyr::case_when(
+          emd_name == "근흥면" ~ 0.275
+          , emd_name == "안면읍" ~ 0.07
+          , emd_name == "남면" ~ 0.06
+          , emd_name == "오천면" ~ 0.27
+          , emd_name == "장항읍" ~ 0.06
+          , emd_name == "한산면" ~ -0.01
+          , emd_name == "지곡면" ~ 0.02
+          , emd_name == "이원면" ~ -0.01
+          , emd_name == "원북면" ~ -0.01
+          , emd_name == "서부면" ~ 0.02
+          , emd_name == "정안면" ~ 0.02
+          , emd_name == "연산면" ~ 0.01
+          , emd_name == "면천면" ~ -0.01
+          , emd_name == "천북면" ~ -0.01
+          , emd_name == "옥산면" ~ -0.01
+          , emd_name == "장암면" ~ 0.04
+          , emd_name == "대산읍" ~ 0.02
+          , emd_name == "팔봉면" ~ 0.005
+          , emd_name == "서면" ~ 0.015
+          , emd_name == "시초면" ~ 0.005
+          , TRUE ~ 0
+        )
+        , yOffset = dplyr::case_when(
+          emd_name == "마서면" ~ 0.01
+          , emd_name == "마산면" ~ -0.01
+          , emd_name == "진산면" ~ -0.02
+          , emd_name == "복수면" ~ -0.02
+          , emd_name == "군북면" ~ 0.02
+          , emd_name == "원북면" ~ -0.03
+          , emd_name == "팔봉면" ~ -0.02
+          , emd_name == "신평면" ~ -0.02
+          , emd_name == "해미면" ~ 0.01
+          , emd_name == "이원면" ~ -0.03
+          , emd_name == "원북면" ~ -0.045
+          , emd_name == "이원면" ~ 0.01
+          , emd_name == "장압면" ~ 0.05
+          , emd_name == "남면" ~ -0.01
+          , emd_name == "우성면" ~ -0.03
+          , emd_name == "신창면" ~ 0.02
+          , emd_name == "선장면" ~ -0.02
+          , emd_name == "장항읍" ~ 0.005
+          , emd_name == "남일면" ~ -0.01
+          , emd_name == "부리면" ~ 0.01
+          , emd_name == "남이면" ~ 0.01
+          , emd_name == "주산면" ~ -0.01
+          , emd_name == "천북면" ~ 0.01
+          , emd_name == "대천동" ~ 0.01
+          , emd_name == "오천면" ~ 0.09
+          , emd_name == "초춘면" ~ 0.01
+          , emd_name == "양화면" ~ 0.01
+          , emd_name == "구룡면" ~ -0.01
+          , emd_name == "옥산면" ~ -0.01
+          , emd_name == "임천면" ~ -0.01
+          , emd_name == "장암면" ~ 0.005
+          , emd_name == "성거읍" ~ -0.01
+          , emd_name == "직산읍" ~ -0.005
+          , emd_name == "지곡면" ~ -0.02
+          , emd_name == "성연면" ~ -0.01
+          , emd_name == "서면" ~ 0.005
+          , emd_name == "비인면" ~ 0.01
+          , emd_name == "문산면" ~ 0.01
+          , emd_name == "종천면" ~ 0.005
+          , emd_name == "안면읍" ~ -0.03
+          , emd_name == "태안읍" ~ 0.04
+          , emd_name == "근흥면" ~ 0.01
+          , TRUE ~ 0
+        ) 
+        , backColor = dplyr::case_when(
+          stringr::str_detect(sigungu_name, regex("태안군|서산시|당진시")) ~ "1"
+          , stringr::str_detect(sigungu_name, regex("아산시|서북구|동남구")) ~ "2"
+          , stringr::str_detect(sigungu_name, regex("홍성군|예산군|청양군|보령시")) ~ "3"
+          , stringr::str_detect(sigungu_name, regex("공주시|계룡시")) ~ "4"
+          , stringr::str_detect(sigungu_name, regex("부여군|서천군|논산시|금산군")) ~ "5"
+          , TRUE ~ "NA"
+        )
+      )
+    
+    if (nrow(dataL2) < 1) { next }
+    
+    stationDataL1 = stationData %>%
+      dplyr::filter(
+        stringr::str_detect(addr, nameInfo)
+        , val == valInfo
+        )
+    
+    # if (nrow(stationDataL1) < 1) { next }
+
+    
+    ggplot(data = dataL2, aes(x = long, y = lat, group = group, fill = factor(backColor))) +
+      theme_bw() +
+      coord_fixed(ratio = 1) +
+      geom_polygon() +
+      # scale_fill_gradientn(colours = c("yellow", "orange", "Brown"), limits = c(0, max(dataL2$n, na.rm = TRUE)), na.value = "white") +
+      geom_path(colour = 'black', size = 0.5) +
+      geom_point(data = stationDataL1, aes(x = lon, y = lat, group = NULL, fill = NULL), colour = "red", pch=16, size = 1) +
+      ggh4x::stat_midpoint(data = dataL2, aes(x = long + xOffset, y = lat + yOffset, group = emd_code, label = plotLabel), geom = "text", size = 5.5) +
+      scale_fill_manual(values =  c("1" = "#d2edf4", "2" = "#aeb3d3", "3" = "#f8d5af", "4" = "#f0f0b0", "5" = "#cde2a1"), name = NULL, na.value = NA) +
+      labs(title = plotSubTitle, x = NULL, y = NULL, colour = NULL, fill = NULL, subtitle = NULL) +
+      theme_minimal() +
+      theme(
+        text = element_text(size = 18)
+        , panel.grid.major.x = element_blank()
+        , panel.grid.major.y = element_blank()
+        , panel.grid.minor.x = element_blank()
+        , panel.grid.minor.y = element_blank()
+        , axis.text.x = element_blank()
+        , axis.ticks.x = element_blank()
+        , axis.title.x = element_blank()
+        , axis.text.y = element_blank()
+        , axis.ticks.y = element_blank()
+        , axis.title.y = element_blank()
+        , plot.subtitle = element_text(hjust = 1)
+        , legend.position = "none"
+      ) +
+      ggsave(filename = saveImg, width = 10, height = 5, dpi = 600)
+  }
+}
+
+
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+library(tidyverse)
+library(arules)
+library(ggfortify)
+library(arulesViz)
+library(data.table)
+library(dplyr)
+library(ggplot2)
+library(knitr)
+library(stringr)
+library(DT)
+library(plotly)
+library(arules)
+library(arulesViz)
+library(visNetwork)
+library(igraph)
+library(kableExtra)
+
+#==================================================================================================
+# 문제 1.r
+#==================================================================================================
+# 01. 구글 클래스룸에서 [basket.csv] 파일을 다운받은 후에 파일을 불러와서 basket_df로 저장하세요. 관련된 모든 변수명을 basket_000으로 변환하세요.
+basket_df = read.csv("basket.csv", fileEncoding = "EUC-KR", encoding = "EUC-KR")
+
+head(basket_df)
+
+# 02. 1이상인 데이터를 1로 변환하고, dataframe을 matrix 형식으로 변환하세요.
+basket_df2 = basket_df %>%
+  dplyr::mutate_all(funs(replace(., . > 1, 1)))
+
+basket_count = basket_df2 %>%
+  as.matrix()
+
+# 03. 바이너리 코드를 transactions으로 변환하세요.
+basket_trans = as(basket_count, "transactions")
+
+head(basket_count)
+
+head(arules::inspect(basket_trans))
+
+# 04. support = 0.3인 상위 5 변수를 출력해서 아래와 같이 그래프를 작성하세요.
+itemFrequencyPlot(basket_trans, support = 0.3, topN = 5)
+
+# 05. 최소규칙 지지도 = 0.1, 최소규칙 신뢰도 = 0.7로 규칙을 생성하세요.
+basket_rules = arules::apriori(
+  basket_trans
+  , parameter = list(supp = 0.1, conf = 0.7)
+)
+
+# 06. rules을 테이블 형태로 저장해주세요.
+basket_rules_tbl = tibble(
+  lhs = labels(lhs(basket_rules))
+  , rhs = labels(rhs(basket_rules))
+  , quality(basket_rules)
+)
+
+str(basket_rules_tbl)
+
+
+# 07. 최소규칙 지지도=0.1, 최소규칙 신뢰도=0.7, 리프트=1.5 이상인 규칙을 찾고, lift가 높은 순서로 sorting 해주세요.
+# basket_rules_lift = sort(basket_rules, by="lift", decreasing=TRUE)
+basket_rules_tbl2 = basket_rules_tbl %>%
+  dplyr::filter(
+    support >= 0.1
+    , confidence >= 0.7
+    , lift > 1.5
+  ) %>%
+  dplyr::arrange(desc(lift))
+
+basket_rules_tbl2
+
+
+# 08. {반제품}을 선택하는 규칙만 찾아주세요.
+basket_rules_tbl3 = basket_rules_tbl %>%
+  dplyr::filter(stringr::str_detect(rhs, "반제품"))
+
+basket_rules_tbl3
+
+
+# 09. 5개의 규칙만 선택해서 그래프로 그려주세요.
+set.seed(123)
+
+basket_rules_plot = head(sort(basket_rules, by = "lift"), 5)
+plot(basket_rules_plot, method = "graph", engine = "htmlwidget")
+
+
+#==================================================================================================
+# 문제 2.r
+#==================================================================================================
+# 01. 구글 클래스룸에서 [iris.csv] 파일을 다운받은 후에 파일을 불러와서 iris_df로 저장하세요.
+# 관련된 모든 변수명을 iris_000으로 변환하세요.
+iris_df = readr::read_csv(file = "iris.csv")
+
+head(iris_df)
+
+# 02. 변수중에서 [Species]는 제거합니다. 결과를 아래와 같이 보여주세요.
+iris_tb = iris_df %>%
+  dplyr::select(-Species)
+
+head(iris_tb)
+
+# 03. Sepal.Length, Sepal.Width를 이용하여 데이터 분포를 확인하세요.
+ggplot(iris_tb, aes(x = Sepal.Length, y = Sepal.Width)) +
+  geom_point(alpha = 0.3)
+
+# 04. 거리를 계산하기 위해 숫자형 변수를 정규화 하세요.
+iris_tb2 = iris_tb %>%
+  dplyr::mutate_all(scale)
+
+iris_tb2
+
+# 05. 최적군집수를 찾기 위해 엘보우 차트를 계산하세요. 군집수는 2~6개로 하세요.
+iris_res = tibble()
+
+# i = 1
+for (i in 2:6) {
+  iris_cluster = kmeans(iris_tb2, center = i)
+  
+  iris_tmpData = tibble(
+    "k" = i
+    , "tot.withinss" = iris_cluster$tot.withinss
+  )
+  
+  iris_res = dplyr::bind_rows(iris_res, iris_tmpData)
+}
+
+
+ggplot(iris_res, aes(x = k, y = tot.withinss)) +
+  geom_point() +
+  geom_line()
+
+# 06. Sepal.Length, Sepal.Width를 이용하여 군집별 그래프를 그려주세요.
+iris_res = tibble()
+iris_resMean = tibble()
+
+i = 2
+for (i in 2:6) {
+  iris_rsKmeans = kmeans(iris_tb2[,c("Sepal.Length", "Sepal.Width")], i)
+  
+  iris_meanKmeans = iris_rsKmeans$centers %>%
+    as.tibble()
+  
+  iris_tmpData = tibble(
+    iris_tb2[,c("Sepal.Length", "Sepal.Width")]
+    , "cluster" = iris_rsKmeans$cluster
+    , "i" = i
+  )
+  
+  iris_res = dplyr::bind_rows(iris_res, iris_tmpData)
+  
+  iris_tmpData2 = tibble(
+    iris_meanKmeans
+    , "i" = i
+  )
+  
+  iris_resMean = dplyr::bind_rows(iris_resMean, iris_tmpData2)
+}
+
+ggplot(data = iris_res, aes(x = Sepal.Length, y = Sepal.Width)) +
+  geom_point(aes(colour = factor(cluster))) +
+  geom_point(data = iris_resMean, aes(x = Sepal.Length, y = Sepal.Width), stroke = 2, shape = 4) +
+  facet_wrap(~ i) +
+  labs(colour = "cluster")
+
+# 07. 최적군집수를 3개로 설정해서 군집을 분류해 주세요. ‘seed=123’로 고정해주세요.
+set.seed(123)
+
+iris_rsKmeans = kmeans(iris_tb2, 3)
+iris_meanKmeans = iris_rsKmeans$centers %>%
+  as.tibble()
+
+iris_klust_best = tibble(
+  iris_meanKmeans
+  , "size" = iris_rsKmeans$size
+  , "withinss" = iris_rsKmeans$withinss
+  , "cluster" = as.factor(unique(iris_rsKmeans$cluster))
+) %>%
+  dplyr::arrange(cluster)
+
+iris_klust_best
+
+# 08. 군집별 특성을 그래프로 그려주세요.
+iris_dataL1 = iris_klust_best %>%
+  tidyr::gather(-c("size", "withinss", "cluster"), key = "type", value = "cases")
+
+ggplot(data = iris_dataL1, aes(x = type, y = cases, group = cluster, colour = cluster)) +
+  geom_line()
+
+
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 (크몽, 오투잡)
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+serviceName = "LSH"
+
+
+# fileInfo = Sys.glob(paste(globalVar$inpConfig, "out.csv", sep = "/"))
+# data = readr::read_csv(file = fileInfo, locale = locale("ko", encoding = "EUC-KR"))
+# saveImg = sprintf("%s/Img_%s_%s.png", globalVar$figConfig, serviceName, fileName)
+
+
+library(tidyverse)
+library(openxlsx)
+library(lubridate)
+library(region5air)
+library(openair)
+library(TTR)
+
+fileInfo = Sys.glob(paste(globalVar$inpConfig, "오존오염도최종.xlsx", sep = "/"))
+data = readr::read_csv(file = fileInfo, locale = locale("ko", encoding = "EUC-KR"))
+
+data = openxlsx::read.xlsx(xlsxFile = fileInfo, sheet = 1)
+
+
+dataL1 = data %>%
+  tidyr::gather(-시도별, key = "key", value = "value") %>%
+  dplyr::filter(시도별 != "총계") %>%
+  dplyr::mutate(
+    dtDate = readr::parse_datetime(key, "%Y..%m")
+    # , month = lubridate::month(dtDate)
+    # , weekday = lubridate::wday(dtDate, label = FALSE, abbr = FALSE)
+  ) %>%
+  dplyr::filter(
+    시도별 == "서울"
+  )
+
+
+tsData = ts(dataL1$value, start = c(2019, 1), frequency = 12)
+
+autoplot(decompose(dataL1$value))
+
+
+# 자기상관함수
+acf(tsData)
+
+# 추세선 시각
+plot(tsData, type = "l", col = "red")
+
+
+# 3개월 단위 이동평균법으로 평활
+smaData = TTR::SMA(tsData, n = 3)
+plot(smaData)
+
+# 예측 모형 생성
+model = arima(tsData, order = c(1, 1, 10))
+
+# 모형이 통계적으로 적절
+# X-squared = 0.0010167828, df = 1, p-value = 0.9745621
+Box.test(model$residuals, lag = 1, type = "Ljung")
+
+fsData = forecast::forecast(model, h = 12)
+fsTestData = forecast::forecast(model, h = 6)
+
+# 향후 24개월 예측치 시각화
+plot(fsData)
+
+# 향후 6개월 예측치 시각화
+plot(fsTestData)
+
+# 시계열 요소 분해 시각화
+stl(tsData, s.window = 10)
+
+
+
