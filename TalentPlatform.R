@@ -1,3 +1,9 @@
+
+#=====================================
+# Init Env
+#=====================================
+rm(list=ls())
+
 #=====================================
 # Set Env
 #=====================================
@@ -35,6 +41,10 @@ globalVar$googleKey = configInfo$default$googleKey
 globalVar$dataKey = configInfo$default$dataKey
 globalVar$naverKeyId = configInfo$default$naverKeyId
 globalVar$naverKeyPw = configInfo$default$naverKeyPw
+globalVar$kakaoRestApiKey = configInfo$default$kakaoRestApiKey
+globalVar$gyeonggiDataKey = configInfo$default$gyeonggiDataKey
+globalVar$naverApigwApiKeyId = configInfo$default$naverApigwApiKeyId
+globalVar$naverApigwApiKey = configInfo$default$naverApigwApiKey
 
 utils::ls.str(globalVar)
 
@@ -45,7 +55,6 @@ utils::ls.str(globalVar)
 #=====================================
 # Set Fun
 #=====================================
-
 log = log4r::create.logger()
 log4r::logfile(log) = paste0(globalVar$logConfig, "/log4r_", format(Sys.time(), "%Y%m%d"), ".log")
 log4r::level(log) = "INFO"
@@ -53,18 +62,13 @@ log4r::level(log) = "INFO"
 tryCatch(
   expr = {
     # 주 소스 코드
-    main = FALSE
-
-    log4r::info(log, paste0("[START] Main : ", main))
+    log4r::info(log, sprintf("%s", "[START] Main R"))
 
   }
   , warning = function(warning) { log4r::warn(log, warning) }
   , error = function(error) { log4r::error(log, error) }
   , finally = {
-
-    main = TRUE
-
-    log4r::info(log, paste0("[END] Main : ", main))
+    log4r::info(log, sprintf("%s", "[END] Main R"))
   }
 )
 
@@ -85,6 +89,125 @@ ggmap::register_google(key = globalVar$googleKey)
 # ====
 # ****
 # ++++
+
+#===============================
+# R에서 Anaconda3 불러오기
+#===============================
+# library(reticulate)
+# 
+# # 환경변수 설정
+# if (.Platform$OS.type == "windows") {
+#   Sys.setenv(RETICULATE_PYTHON = 'C:/ProgramData/Anaconda3/python.exe')
+#   Sys.setenv(PATH = paste("C:/ProgramData/Anaconda3/Library/bin", Sys.getenv()["PATH"], sep = ";"))
+# }
+
+# reticulate::py_discover_config()
+# 
+# reticulate::conda_list()
+# name                                 python
+# 1 Anaconda3 C:\\ProgramData\\Anaconda3\\python.exe
+
+# 임시 conda 삭제
+# reticulate::conda_remove("PyCharm")
+
+# reticulate::py_config()
+# python:         C:/ProgramData/Anaconda3/python.exe
+# libpython:      C:/ProgramData/Anaconda3/python37.dll
+# pythonhome:     C:/ProgramData/Anaconda3
+# version:        3.7.8 | packaged by conda-forge | (default, Jul 31 2020, 01:53:57) [MSC v.1916 64 bit (AMD64)]
+# Architecture:   64bit
+# numpy:          C:/ProgramData/Anaconda3/Lib/site-packages/numpy
+# numpy_version:  1.18.5
+
+# reticulate::use_python("C:\\ProgramData\\Anaconda3\\python.exe", required = TRUE)
+
+# 라이브러리 읽기
+# from pykospacing import spacing
+# pykospacing = reticulate::import("pykospacing")
+
+# pykospacing$spacing(stringr::str_remove_all("친애하는 지도자동지께서 주체의 사회주의경제관리리론 전반을  관통하고있는 기본원리를 새롭 게 정식 화 히 심 으 로 써 주체 의 사회주의경제 관리 리론이 의거하고있는 사상리론적 , 방법론적  기초가 뚜렷이 밝혀지게 되였으며 이 기본원리에 의거하여 사회주의경제관리리론을  더욱 과학적으로 체계 화할 수 있 게 되 였 다", " "))
+
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+# serviceName = "LSH0000"
+
+# log = log4r::create.logger()
+# log4r::logfile(log) = paste0(globalVar$logConfig, "/log4r_", format(Sys.time(), "%Y%m%d"), ".log")
+# log4r::level(log) = "INFO"
+
+# tryCatch(
+#   expr = {
+#     # 주 소스 코드
+#     log4r::info(log, sprintf("%s", "[START] Main R"))
+#     
+#   }
+#   , warning = function(warning) { log4r::warn(log, warning) }
+#   , error = function(error) { log4r::error(log, error) }
+#   , finally = {
+#     log4r::info(log, sprintf("%s", "[END] Main R"))
+#   }
+# )
+
+# library(tidyverse)
+# library(ggplot2)
+# library(lubridate)
+# library(openxlsx)
+# library(fs)
+
+#************************************************
+# Set Env
+#************************************************
+# globalVar = new.env()
+
+# globalVar$inpConfig = "."
+# globalVar$figConfig = "."
+# globalVar$outConfig = "."
+
+#************************************************
+# [openxlsx] Read
+#************************************************
+# data = openxlsx::read.xlsx(fileList, sheet = 1)
+
+#************************************************
+# [openxlsx] Write
+#************************************************
+# wb = openxlsx::createWorkbook()
+# 
+# openxlsx::addWorksheet(wb, "ggData")
+# openxlsx::writeData(wb, "ggData", ggData, startRow = 1, startCol = 1)
+
+# openxlsx::saveWorkbook(wb, file = paste0(globalVar$outConfig, "/Survery_LSH0078.xlsx"), overwrite = TRUE)
+
+#************************************************
+# File Info
+#************************************************
+# fileInfo = Sys.glob(paste(globalVar$inpConfig, "play.csv", sep = "/"))
+# data = readr::read_csv(file = fileInfo, locale = locale("ko", encoding = "UTF-8"))
+
+# nameList = sort(unique(geoData_L1$sigungu_name))
+# fileName = tools::file_path_sans_ext(fs::path_file(fileInfo))
+# if (nrow(dataL2) < 1) { next }
+
+
+# saveImg = sprintf("%s/Img_%s_%02d_%s.png", globalVar$figConfig, serviceName, 3, "관계 시각화")
+# saveImg = sprintf("%s/TMP3/Img_%s_%05d_%s_%s.png", globalVar$figConfig, serviceName, 3, "충청남도 시군구별 자원 분포도", nameInfo)
+
+#************************************************
+# Data Info
+#************************************************
+# dplyr::mutate(
+#   backColor = dplyr::case_when(
+#     stringr::str_detect(sigungu_name, regex("태안군|서산시|당진시")) ~ "1"
+#     , TRUE ~ "NA"
+#   )
+# )
 
 #===============================================================================================
 # Routine : Main R program
@@ -203,6 +326,10 @@ library(lubridate)
 library(readr)
 library(ggpubr)
 
+
+Sys.setlocale("LC_CTYPE", "ko_KR.UTF-8")
+
+
 # 1) 국가통계정보 시스템을 이용하여 다음을 조사하여라
 # 가) 최근 10년간 소비자물가지수의 변동사항을 조사하고 그래프를 이용하여 분석하여라.
 data = read.csv("INPUT/o2job/소비자물가지수.csv", header = TRUE, fileEncoding = "euc-kr")
@@ -220,6 +347,8 @@ ggscatter(dataL1, x = "year", y = "val", add = "reg.line") +
   stat_regline_equation(label.x = 2009, label.y = 108) +
   theme_bw()
 
+Sys.setlocale("LC_ALL", locale = "us")
+readr::guess_encoding("INPUT/o2job/연간지표.csv")
 
 # 나) 최근 10년간 국민소득의 변동사항을 조사하고 그래프를 이용하여 분석하여라.
 data = read.csv("INPUT/o2job/연간지표.csv", header = TRUE, fileEncoding = "euc-kr")
@@ -10136,7 +10265,7 @@ serviceName = "LSH0064"
 # fileInfo = Sys.glob(paste(globalVar$inpConfig, "kyung1_20201110.csv", sep = "/"))
 fileList = Sys.glob(paste(globalVar$inpConfig, "KYUNG/*.csv", sep = "/"))
 
-# fileInfo = "E:/04. TalentPlatform/Github/TalentPlatform-R/INPUT/o2job/KYUNG/kyung1234.csv"
+# fileInfo = "D:/04. TalentPlatform/Github/TalentPlatform-R/INPUT/o2job/KYUNG/kyung1.csv"
 
 #********************************************************
 # 연관규칙 생성
@@ -13293,16 +13422,24 @@ library(readr)
 fileInfo = Sys.glob(paste(globalVar$mapConfig, "/ADM_CODE/충남기관.xlsx", sep = "/"))
 dataInfo = openxlsx::read.xlsx(fileInfo, sheet = "DATA")
 
-
 fileInfo = Sys.glob(paste(globalVar$mapConfig, "/ADM_CODE/충남_inGeoData.csv", sep = "/"))
 stationData = readr::read_csv(file = fileInfo, locale = locale("ko", encoding = "EUC-KR")) %>%
   dplyr::select(-X1) %>%
   dplyr::left_join(dataInfo, by = c("addr" = "addr")) # %>%
   # dplyr::filter(! stringr::str_detect(title, regex("진료소")))
 
-
 # unique(geoData_L1$sigungu_name)
-
+# 
+#************************************************
+# [openxlsx] Write
+#************************************************
+# wb = openxlsx::createWorkbook()
+# 
+# openxlsx::addWorksheet(wb, "stationData")
+# openxlsx::writeData(wb, "stationData", stationData, startRow = 1, startCol = 1)
+# 
+# saveFile = sprintf("%s/%s_%s", globalVar$outConfig, serviceName, "충남기관_L1.xlsx")
+# openxlsx::saveWorkbook(wb, file = saveFile, overwrite = TRUE)
 
 #==========================================
 # 시군구별 현황
@@ -13401,7 +13538,7 @@ ggplot(data = dataL2, aes(x = long, y = lat, group = group, fill = factor(backCo
   # geom_polygon(fill = "white", alpha = 0.6) +
   # scale_fill_gradientn(colours = c("yellow", "orange", "Brown"), limits = c(0, max(dataL2$n, na.rm = TRUE)), na.value = "white") +
   geom_path(colour = 'black', size = 0.5) +
-  geom_point(data = stationData, aes(x = lon, y = lat, group = NULL, fill = NULL), colour = "red", pch=16, size = 0.5) +
+  geom_point(data = stationData, aes(x = lon, y = lat, group = NULL, fill = NULL), colour = "red", pch=16, size = 0.35) +
   ggh4x::stat_midpoint(data = dataL2, aes(x = long + xOffset, y = lat + yOffset, group = sigungu_code, label = plotLabel), geom = "text", size = 5.5) +
   scale_fill_manual(values =  c("1" = "#d2edf4", "2" = "#aeb3d3", "3" = "#f8d5af", "4" = "#f0f0b0", "5" = "#cde2a1"), name = NULL, na.value = NA) +
   labs(title = plotSubTitle, x = NULL, y = NULL, colour = NULL, fill = NULL, subtitle = NULL) +
@@ -13452,7 +13589,7 @@ for (valInfo in valList) {
     # geom_polygon(fill = "white", alpha = 0.6) +
     # scale_fill_gradientn(colours = c("yellow", "orange", "Brown"), limits = c(0, max(dataL2$n, na.rm = TRUE)), na.value = "white") +
     geom_path(colour = 'black', size = 0.5) +
-    geom_point(data = stationDataL1, aes(x = lon, y = lat, group = NULL, fill = NULL), colour = "red", pch=16, size = 0.5) +
+    geom_point(data = stationDataL1, aes(x = lon, y = lat, group = NULL, fill = NULL), colour = "red", pch=16, size = 0.35) +
     ggh4x::stat_midpoint(data = dataL2, aes(x = long + xOffset, y = lat + yOffset, group = sigungu_code, label = plotLabel), geom = "text", size = 5.5) +
     labs(title = plotSubTitle, x = NULL, y = NULL, colour = NULL, fill = NULL, subtitle = NULL) +
     scale_fill_manual(values =  c("1" = "#d2edf4", "2" = "#aeb3d3", "3" = "#f8d5af", "4" = "#f0f0b0", "5" = "#cde2a1"), name = NULL, na.value = NA) +
@@ -13474,9 +13611,6 @@ for (valInfo in valList) {
     ) +
     ggsave(filename = saveImg, width = 10, height = 5, dpi = 600)
 }
-
-
-
 
 
 #==========================================
@@ -13534,6 +13668,7 @@ geoData_L1 = code_L1 %>%
 nameList = sort(unique(geoData_L1$sigungu_name))
 
 # nameInfo = "홍성군"
+nameInfo = "서북구"
 # nameList = c("태안군", "홍성군")
 
 # "계룡시" "공주시" "금산군" "논산시" "당진시" "동남구" "보령시" "부여군" "서북구" "서산시"
@@ -13544,21 +13679,23 @@ for (nameInfo in nameList) {
   dataL2 = geoData_L1 %>%
     dplyr::filter(sigungu_name == nameInfo) %>%
     dplyr::mutate(
-      plotLabel = dplyr::case_when(
-        stringr::str_detect(emd_name, regex("원성.동")) ~ "원성동"
-        , stringr::str_detect(emd_name, regex("당진.동")) ~ "당진동"
-        , stringr::str_detect(emd_name, regex("대천.동")) ~ "대천동"
-        , stringr::str_detect(emd_name, regex("동문.동")) ~ "동문동"
-        , stringr::str_detect(emd_name, regex("부성.동")) ~ "부성동"
-        , stringr::str_detect(emd_name, regex("성정.동")) ~ "성정동"
-        , stringr::str_detect(emd_name, regex("쌍용.동")) ~ "쌍용동"
-        , stringr::str_detect(emd_name, regex("온양.동")) ~ "온양동"
-        , TRUE ~ emd_name
-      )
+      # plotLabel = dplyr::case_when(
+      #   stringr::str_detect(emd_name, regex("원성.동")) ~ "원성동"
+      #   , stringr::str_detect(emd_name, regex("당진.동")) ~ "당진동"
+      #   , stringr::str_detect(emd_name, regex("대천.동")) ~ "대천동"
+      #   , stringr::str_detect(emd_name, regex("동문.동")) ~ "동문동"
+      #   , stringr::str_detect(emd_name, regex("부성.동")) ~ "부성동"
+      #   , stringr::str_detect(emd_name, regex("성정.동")) ~ "성정동"
+      #   , stringr::str_detect(emd_name, regex("쌍용.동")) ~ "쌍용동"
+      #   , stringr::str_detect(emd_name, regex("온양.동")) ~ "온양동"
+      #   TRUE ~ emd_name
+      # )
+      plotLabel = emd_name
       , xOffset = dplyr::case_when(
         emd_name == "근흥면" ~ 0.275
         , emd_name == "안면읍" ~ 0.07
-        , emd_name == "남면" ~ 0.06
+        , nameInfo == "태안군" & emd_name == "남면" ~ 0.06
+        , nameInfo == "부여군" & emd_name == "남면" ~ -0.01
         , emd_name == "오천면" ~ 0.27
         , emd_name == "장항읍" ~ 0.06
         , emd_name == "한산면" ~ -0.01
@@ -13576,6 +13713,8 @@ for (nameInfo in nameList) {
         , emd_name == "팔봉면" ~ 0.005
         , emd_name == "서면" ~ 0.015
         , emd_name == "시초면" ~ 0.005
+        , emd_name == "충화면" ~ -0.01
+        , emd_name == "초촌면" ~ 0.02
         , TRUE ~ 0
       )
       , yOffset = dplyr::case_when(
@@ -13592,7 +13731,7 @@ for (nameInfo in nameList) {
         , emd_name == "원북면" ~ -0.045
         , emd_name == "이원면" ~ 0.01
         , emd_name == "장압면" ~ 0.05
-        , emd_name == "남면" ~ -0.01
+        , nameInfo == "태안군" & emd_name == "남면" ~ -0.01
         , emd_name == "우성면" ~ -0.03
         , emd_name == "신창면" ~ 0.02
         , emd_name == "선장면" ~ -0.02
@@ -13631,6 +13770,18 @@ for (nameInfo in nameList) {
         , stringr::str_detect(sigungu_name, regex("부여군|서천군|논산시|금산군")) ~ "5"
         , TRUE ~ "NA"
       )
+      # , fontSize = dplyr::case_when(
+      # stringr::str_detect(emd_name, regex("원성.동|당진.동|대천.동|동문.동|부성.동|성정.동|쌍용.동|온양.동")) ~ 4
+      # stringr::str_detect(emd_name, regex("원성.동")) ~ "원성동"
+      # , stringr::str_detect(emd_name, regex("당진.동")) ~ "당진동"
+      # , stringr::str_detect(emd_name, regex("대천.동")) ~ "대천동"
+      # , stringr::str_detect(emd_name, regex("동문.동")) ~ "동문동"
+      # stringr::str_detect(emd_name, regex("부성.동")) ~ 3.5
+      # , stringr::str_detect(emd_name, regex("성정.동")) ~ "성정동"
+      # , stringr::str_detect(emd_name, regex("쌍용.동")) ~ "쌍용동"
+      # , stringr::str_detect(emd_name, regex("온양.동")) ~ "온양동"
+      # TRUE ~ 3.5
+      # )
     )
   
   if (nrow(dataL2) < 1) { next }
@@ -13642,8 +13793,9 @@ for (nameInfo in nameList) {
   
   # 시각화
   saveImg = sprintf("%s/TMP3/Img_%s_%05d_%s_%s.png", globalVar$figConfig, serviceName, 3, "충청남도 시군구별 자원 분포도", nameInfo)
+  
   # saveImg = sprintf("%s/TMP4/Img_%s_%05d_%s_%s.png", globalVar$figConfig, serviceName, 3, "충청남도 시군구별 자원 분포도 (진료소 O)", nameInfo)
-  plotSubTitle = sprintf("%s (%s)", "충청남도 시군구별 자원 분포도", nameInfo)
+   plotSubTitle = sprintf("%s (%s)", "충청남도 시군구별 자원 분포도", nameInfo)
   
   ggplot(data = dataL2, aes(x = long, y = lat, group = group, fill = factor(backColor))) +
     theme_bw() +
@@ -13653,7 +13805,7 @@ for (nameInfo in nameList) {
     # scale_fill_gradientn(colours = c("yellow", "orange", "Brown"), limits = c(0, max(dataL2$n, na.rm = TRUE)), na.value = "white") +
     geom_path(colour = 'black', size = 0.5) +
     geom_point(data = stationDataL1, aes(x = lon, y = lat, group = NULL, fill = NULL), colour = "red", pch=16, size = 1) +
-    ggh4x::stat_midpoint(data = dataL2, aes(x = long + xOffset, y = lat + yOffset, group = emd_code, label = plotLabel), geom = "text", size = 5.5) +
+    ggh4x::stat_midpoint(data = dataL2, aes(x = long + xOffset, y = lat + yOffset, group = emd_code, label = plotLabel), geom = "text", size = 2.5) +
     labs(title = plotSubTitle, x = NULL, y = NULL, colour = NULL, fill = NULL, subtitle = NULL) +
     scale_fill_manual(values =  c("1" = "#d2edf4", "2" = "#aeb3d3", "3" = "#f8d5af", "4" = "#f0f0b0", "5" = "#cde2a1"), name = NULL, na.value = NA) +
     theme_minimal() +
@@ -13682,7 +13834,7 @@ for (nameInfo in nameList) {
 
 valList = sort(unique(stationData$val))
 nameList = sort(unique(geoData_L1$sigungu_name))
-  
+# nameList = c("태안군", "홍성군")
 # valInfo = "문화 및 여가"
 # nameInfo = "금산군"
 
@@ -13693,27 +13845,28 @@ for (nameInfo in nameList) {
     saveImg = sprintf("%s/TMP3/Img_%s_%05d_%s_%s_%s.png", globalVar$figConfig, serviceName, 4, "충청남도 시군구별 자원 분포도", nameInfo, valInfo)
     plotSubTitle = sprintf("[%s] %s (%s)", valInfo, "충청남도 시군구별 자원 분포도",  nameInfo)
     
-    if (fs::file_exists(saveImg) == TRUE) { next }
-    
+    # if (fs::file_exists(saveImg) == TRUE) { next }
     
     dataL2 = geoData_L1 %>%
       dplyr::filter(sigungu_name == nameInfo) %>%
       dplyr::mutate(
-        plotLabel = dplyr::case_when(
-          stringr::str_detect(emd_name, regex("원성.동")) ~ "원성동"
-          , stringr::str_detect(emd_name, regex("당진.동")) ~ "당진동"
-          , stringr::str_detect(emd_name, regex("대천.동")) ~ "대천동"
-          , stringr::str_detect(emd_name, regex("동문.동")) ~ "동문동"
-          , stringr::str_detect(emd_name, regex("부성.동")) ~ "부성동"
-          , stringr::str_detect(emd_name, regex("성정.동")) ~ "성정동"
-          , stringr::str_detect(emd_name, regex("쌍용.동")) ~ "쌍용동"
-          , stringr::str_detect(emd_name, regex("온양.동")) ~ "온양동"
-          , TRUE ~ emd_name
-        )
+        # plotLabel = dplyr::case_when(
+        #   stringr::str_detect(emd_name, regex("원성.동")) ~ "원성동"
+        #   , stringr::str_detect(emd_name, regex("당진.동")) ~ "당진동"
+        #   , stringr::str_detect(emd_name, regex("대천.동")) ~ "대천동"
+        #   , stringr::str_detect(emd_name, regex("동문.동")) ~ "동문동"
+        #   , stringr::str_detect(emd_name, regex("부성.동")) ~ "부성동"
+        #   , stringr::str_detect(emd_name, regex("성정.동")) ~ "성정동"
+        #   , stringr::str_detect(emd_name, regex("쌍용.동")) ~ "쌍용동"
+        #   , stringr::str_detect(emd_name, regex("온양.동")) ~ "온양동"
+        #   TRUE ~ emd_name
+        # )
+        plotLabel = emd_name
         , xOffset = dplyr::case_when(
           emd_name == "근흥면" ~ 0.275
           , emd_name == "안면읍" ~ 0.07
-          , emd_name == "남면" ~ 0.06
+          , nameInfo == "태안군" & emd_name == "남면" ~ 0.06
+          , nameInfo == "부여군" & emd_name == "남면" ~ -0.01
           , emd_name == "오천면" ~ 0.27
           , emd_name == "장항읍" ~ 0.06
           , emd_name == "한산면" ~ -0.01
@@ -13731,6 +13884,8 @@ for (nameInfo in nameList) {
           , emd_name == "팔봉면" ~ 0.005
           , emd_name == "서면" ~ 0.015
           , emd_name == "시초면" ~ 0.005
+          , emd_name == "충화면" ~ -0.01
+          , emd_name == "초촌면" ~ 0.02
           , TRUE ~ 0
         )
         , yOffset = dplyr::case_when(
@@ -13747,7 +13902,7 @@ for (nameInfo in nameList) {
           , emd_name == "원북면" ~ -0.045
           , emd_name == "이원면" ~ 0.01
           , emd_name == "장압면" ~ 0.05
-          , emd_name == "남면" ~ -0.01
+          , nameInfo == "태안군" & emd_name == "남면" ~ -0.01
           , emd_name == "우성면" ~ -0.03
           , emd_name == "신창면" ~ 0.02
           , emd_name == "선장면" ~ -0.02
@@ -13786,6 +13941,18 @@ for (nameInfo in nameList) {
           , stringr::str_detect(sigungu_name, regex("부여군|서천군|논산시|금산군")) ~ "5"
           , TRUE ~ "NA"
         )
+        # , fontSize = dplyr::case_when(
+        # stringr::str_detect(emd_name, regex("원성.동|당진.동|대천.동|동문.동|부성.동|성정.동|쌍용.동|온양.동")) ~ 4
+        # stringr::str_detect(emd_name, regex("원성.동")) ~ "원성동"
+        # , stringr::str_detect(emd_name, regex("당진.동")) ~ "당진동"
+        # , stringr::str_detect(emd_name, regex("대천.동")) ~ "대천동"
+        # , stringr::str_detect(emd_name, regex("동문.동")) ~ "동문동"
+        # stringr::str_detect(emd_name, regex("부성.동")) ~ 3.5
+        # , stringr::str_detect(emd_name, regex("성정.동")) ~ "성정동"
+        # , stringr::str_detect(emd_name, regex("쌍용.동")) ~ "쌍용동"
+        # , stringr::str_detect(emd_name, regex("온양.동")) ~ "온양동"
+        # TRUE ~ 3.5
+        # )
       )
     
     if (nrow(dataL2) < 1) { next }
@@ -13806,7 +13973,7 @@ for (nameInfo in nameList) {
       # scale_fill_gradientn(colours = c("yellow", "orange", "Brown"), limits = c(0, max(dataL2$n, na.rm = TRUE)), na.value = "white") +
       geom_path(colour = 'black', size = 0.5) +
       geom_point(data = stationDataL1, aes(x = lon, y = lat, group = NULL, fill = NULL), colour = "red", pch=16, size = 1) +
-      ggh4x::stat_midpoint(data = dataL2, aes(x = long + xOffset, y = lat + yOffset, group = emd_code, label = plotLabel), geom = "text", size = 5.5) +
+      ggh4x::stat_midpoint(data = dataL2, aes(x = long + xOffset, y = lat + yOffset, group = emd_code, label = plotLabel), geom = "text", size = 2.5) +
       scale_fill_manual(values =  c("1" = "#d2edf4", "2" = "#aeb3d3", "3" = "#f8d5af", "4" = "#f0f0b0", "5" = "#cde2a1"), name = NULL, na.value = NA) +
       labs(title = plotSubTitle, x = NULL, y = NULL, colour = NULL, fill = NULL, subtitle = NULL) +
       theme_minimal() +
@@ -14027,6 +14194,1074 @@ iris_dataL1 = iris_klust_best %>%
 ggplot(data = iris_dataL1, aes(x = type, y = cases, group = cluster, colour = cluster)) +
   geom_line()
 
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+serviceName = "LSH0080"
+
+library(tidyverse)
+library(ggplot2)
+library(lubridate)
+library(openxlsx)
+library(fs)
+library(rvset)
+library(httr)
+library(XML)
+library(RCurl)
+library(ggplot2)
+library(ggmap)
+library(tm)
+library(wordcloud2)
+library(htmlwidgets)
+library(webshot)
+library(arulesViz)
+library(jpeg)
+library(png)
+library(grid)
+
+#=====================================================================
+# 경영데이터분석
+#=====================================================================
+# 이 과제는 기말시험을 대체하기 위한 목적에서 진행되는 것으로 각각의 문항에 대해 채점이
+# 이루어지며, 이 점수를 기말시험 성적으로 반영하게 됩니다. 만점은 100점이며, 일부 문항에
+# 대해 추가점수를 부여합니다.
+# 다른 과제와 마찬가지로 자신이 활용할 수 있는 여러 자료들을 이용하여 문제를 해결하면 됩
+# 니다. 다만 이 과정에서 다른 사람의 도움을 받으면 안 됩니다.
+# 과제 결과물은 자유 형식으로 제출하도록 하는데, 각각의 문항 번호를 붙여 결과물을 구분할
+# 수 있도록 해 주세요.
+# 과제 결과물의 맨 마지막에는 자신이 사용한 프로그램(스크립트)을 모두 붙여 넣도록 합니다.
+# 만약 프로그램이 제시되지 않은 경우에는 제출한 결과물과 상관없이 0점 처리됩니다. 가능한
+# 한 프로그램의 각 문항별로 주석을 추가하도록 합니다
+# 문제가 갖고 있을지도 모를 오류에 대한 질문만 '강의Q&A'게시판을 통해 받도록 하겠습니다.
+
+
+#*********************************************************************
+# 과제 1
+#*********************************************************************
+# 네이버에서 제공하는 검색 API 가운데 지역 검색을 위한 API를 활용하려 합니다. 검색어는 "광교대학로 맛집"을 사용합니다. 이와 같은 API에 대한 https://developers.naver.com/docs/search/local/ 의 문서를 참고하여 다음의 질문에 대한 결과를 제시하세요.
+
+# (1) 모든 검색결과를 수집하여 하나의 데이터프레임으로 만듭니다. 검색결과 업체에 대한 정보만을 포함하면 됩니다. 그리고 이렇게 만들어진 데이터프레임에 대한 str함수를 적용한 결과를 제시하세요. (10점)
+
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# 네이버 API (지역)
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+keyword = "광교대학로 맛집"
+
+# reqUrl = "https://openapi.naver.com/v1/search/local.xml"
+reqUrl = "https://openapi.naver.com/v1/search/local.json"
+reqQuery = stringr::str_c("?query=", RCurl::curlEscape(stringr::str_conv(keyword, encoding="EUC-KR")))
+reqDisplay = "&display=50"
+reqStart = "&start=50"
+reqSort = "&sort=date"
+
+reqId = globalVar$naverKeyId
+reqPw = globalVar$naverKeyPw
+
+resRes = httr::GET(
+  stringr::str_c(reqUrl, reqQuery, reqDisplay, reqStart, reqSort)
+  , add_headers("X-Naver-Client-Id" = reqId, "X-Naver-Client-Secret" = reqPw)
+  )
+
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# JSON 파일 처리
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+resData = httr::content(resRes, as = 'text') %>%
+  jsonlite::fromJSON()
+
+dataNaver = tibble(resData$items) %>%
+  dplyr::mutate(
+    title = str_replace_all(title, pattern = "<b>|</b>", replacement = "")
+    , title = str_replace_all(title, pattern = "&amp;", replacement = "&")
+    , title = str_trim(title, side = "both")
+  ) %>%
+  dplyr::select(title, category, roadAddress) %>%
+  dplyr::bind_cols(type = "naver")
+
+str(dataNaver)
+
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#  XML 파일 처리
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# xmlRes = XML::xmlParse(resRes)
+# 
+# title = XML::xpathSApply(xmlRes, "/rss/channel/item/title", xmlValue) %>%
+#   str_replace_all(pattern = "<b>|</b>", replacement = "") %>%
+#   str_replace_all(pattern = "&amp;", replacement = "&") %>%
+#   str_trim(side = "both")
+# 
+# category = XML::xpathSApply(xmlRes, "/rss/channel/item/category", xmlValue)
+# 
+# data = tibble::tibble(title, category)
+
+
+# (2) 수집한 검색 결과에 나타난 업체를 네이버 지도 API를 이용해 나타내세요. (10점)
+
+dataGeo = tibble::tibble()
+
+for (i in 1:nrow(dataNaver)) {
+  keyword = dataNaver$roadAddress[i]
+  
+  #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+  # 네이버 API (지도)
+  #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+  reqUrl = "https://naveropenapi.apigw.ntruss.com/map-geocode/v2/geocode"
+  reqQuery = stringr::str_c("?query=", RCurl::curlEscape(stringr::str_conv(keyword, encoding="UTF-8")))
+  
+  reqId = globalVar$naverApigwApiKeyId
+  reqPw = globalVar$naverApigwApiKey
+  
+  reqRes = httr::GET(
+    stringr::str_c(reqUrl, reqQuery)
+    , add_headers("X-NCP-APIGW-API-KEY-ID" = reqId, "X-NCP-APIGW-API-KEY" = reqPw, "Accept" = "application/json")
+  )
+  
+  resData = httr::content(reqRes, as = 'text') %>%
+    jsonlite::fromJSON()
+  
+  data = resData$addresses
+  
+  makerLabel = stringr::str_c("markers=type:n|size:mid|pos:", data$x, "%20", data$y, "|label:", i)
+  tmpData = tibble::tibble(lon = data$x, lat = data$y, maker = makerLabel)
+  dataGeo = dplyr::bind_rows(dataGeo, tmpData)
+}
+
+dataGeoL1 = dataGeo %>%
+  readr::type_convert() %>%
+  dplyr::summarise(
+    meanLon = mean(lon, na.rm = TRUE)
+    , meanLat = mean(lat, na.rm = TRUE)
+  )
+
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# 네이버 API (지도 이미지)
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+reqUrl = "https://naveropenapi.apigw.ntruss.com/map-static/v2/raster"
+reqQuery = stringr::str_c(
+  "?center="
+  , RCurl::curlEscape(stringr::str_conv(dataGeoL1$meanLon, encoding="UTF-8"))
+  , ","
+  , RCurl::curlEscape(stringr::str_conv(dataGeoL1$meanLat, encoding="UTF-8"))
+  )
+reqSize = "&w=300&h=300"
+reqLevel = "&level=16"
+reqMaker = stringr::str_c("&", paste(dataGeo$maker, collapse = "&"))
+
+reqId = globalVar$naverApigwApiKeyId
+reqPw = globalVar$naverApigwApiKey
+
+reqRes = httr::GET(
+  stringr::str_c(reqUrl, reqQuery, reqSize, reqLevel, reqMaker)
+  , add_headers("X-NCP-APIGW-API-KEY-ID" = reqId, "X-NCP-APIGW-API-KEY" = reqPw)
+)
+
+jsonRes = httr::content(reqRes, as="raw")
+img = jpeg::readJPEG(jsonRes)
+jpeg::writeJPEG(img, target = "KGU_map.jpg")
+
+mapImg = imager::load.image("KGU_map.jpg")
+plot(mapImg)
+
+# (3) 카카오 역시 키워드로 장소 검색 기능을 API를 통해 제공하고 있습니다.(카카오 개발자 사이트 (developer.kakao.com)의 내용 참고) 앞서 문제와 같은 작업을 카카오에서 제공하는 API를 이용해 수행합니다. 즉 검색어를 "광교대학로 맛집"을 사용한 모든 검색 결과를 데이터프레임으로 만들고 이 데이터 프레임에 대한 str 함수를 적용한 결과를 제시하세요. (20점)
+# https://developers.kakao.com/tool/rest-api/open/get/v2-local-search-keyword.%7Bformat%7D
+
+# curl -X GET "https://dapi.kakao.com/v2/local/search/keyword.xml?page=1&size=15&sort=accuracy&query=%EA%B4%91%EA%B5%90%EB%8C%80%ED%95%99%EB%A1%9C+%EB%A7%9B%EC%A7%91" \
+# -H "Authorization: KakaoAK {REST_API_KEY}"
+
+# curl -X GET "https://dapi.kakao.com/v2/local/search/address.xml?page=45&size=30&query=%EC%95%88%EB%93%9C%EB%A1%9C%EC%9D%B4%EB%93%9C" \
+# -H "Authorization: KakaoAK {REST_API_KEY}"
+
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# 카카오 API (검색)
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+keyword = "광교대학로 맛집"
+
+reqUrl = "https://dapi.kakao.com/v2/local/search/keyword.json"
+# reqUrl = "https://openapi.naver.com/v1/search/local.json"
+reqQuery = stringr::str_c("?query=", RCurl::curlEscape(stringr::str_conv(keyword, encoding="EUC-KR")))
+reqPage = "&page=45"
+reqSize = "&size=15"
+reqSort = "&sort=accuracy"
+
+reqKakaoRestApiKey = globalVar$kakaoRestApiKey
+
+resRes = httr::GET(
+  stringr::str_c(reqUrl, reqQuery, reqDisplay, reqStart, reqSort)
+  , add_headers("Authorization" = str_c("KakaoAK ", reqKakaoRestApiKey))
+)
+
+resData = httr::content(resRes, as = 'text') %>%
+  jsonlite::fromJSON()
+
+dataKakao = tibble(resData$documents) %>%
+  dplyr::select(place_name, category_name) %>%
+  dplyr::rename(
+    "title" = "place_name"
+    ,  "category" = "category_name"
+  ) %>%
+  dplyr::bind_cols(type = "kakao")
+
+str(dataKakao)
+
+# (4) 앞서 만든 두 개의 데이터프레임을 이용하여 카테고리에 따른 빈도를 각각 제시하세요. (10점)
+data = dplyr::bind_rows(dataNaver, dataKakao) %>%
+  dplyr::mutate(
+    cate = dplyr::case_when(
+    stringr::str_detect(category, regex("한식")) ~ "한식"
+    , stringr::str_detect(category, regex("일식")) ~ "일식"
+    , stringr::str_detect(category, regex("뷔페")) ~ "뷔페"
+    , stringr::str_detect(category, regex("카페|커피전문점")) ~ "카페"
+    , stringr::str_detect(category, regex("패스트푸드|샌드위치|도시락|다이어트")) ~ "패스트푸드 "
+    , TRUE ~ "NA"
+    )
+  )
+
+dataL1 = data %>%
+  dplyr::group_by(cate) %>%
+  dplyr::summarise(freq = n()) %>%
+  dplyr::arrange(desc(freq))
+
+dataL1
+
+#*********************************************************************
+# 과제 2
+#*********************************************************************
+# 경기데이터드림에서 제공하는 Open API 가운데 '자동 기상관측 장비(AWS) 시간별 관측정보 현황' 데이터를 이용하여 다음의 질문에 답하시오.
+# (1) Open API를 이용하여 경기도 수원시 팔달구에 있는 모든 관측정보로 부터 11월 한 달 동안의 오전 9시 기준 평균 기온과 습도를 구하시오. 이때 -99로 시작되는 데이터는 오류값이므로 분석에서 제외해야 합니다. (10점)
+
+# https://data.gg.go.kr/portal/data/village/selectServicePage.do?page=1&rows=10&sortColumn=&sortDirection=&infId=458YRRY04VI3BBMI6Q8326869752&infSeq=3&searchWord=%EA%B8%B0%EC%83%81&sigunNm=%EC%88%98%EC%9B%90%EC%8B%9C&sigunFlag=41110
+# https://data.gg.go.kr/portal/myPage/actKeyPage.do?tabIdx=1#actKey
+# gyeonggiDataKey
+
+# https://openapi.gg.go.kr/AWS1hourObser?MESURE_DE=20190101
+
+dtDateList = seq(as.Date("2019-11-01"), as.Date("2019-11-30"), "1 day")
+
+reqUrl = "https://openapi.gg.go.kr/AWS1hourObser"
+reqIndex = "&pIndex=1"
+reqSize = "&pSize=100"
+reqType = "&type=json"
+reqMesureTm = stringr::str_c("&MESURE_TM=", RCurl::curlEscape(stringr::str_conv("09", encoding="EUC-KR")))
+reqSigunNm = stringr::str_c("&SIGUN_NM=", RCurl::curlEscape(stringr::str_conv("수원시", encoding="EUC-KR")))
+
+
+dataL1 = tibble::tibble()
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# 경기데이터드림 API (자료 요청)
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+for (i in 1:length(dtDateList)) {
+  
+  sDate = format(dtDateList[i], "%Y%m%d")
+  
+  reqMesureDt = stringr::str_c("?MESURE_DE=", RCurl::curlEscape(stringr::str_conv(sDate, encoding="EUC-KR")))
+  
+  resRes = httr::GET(
+    stringr::str_c(reqUrl, reqMesureDt, reqMesureTm, reqSigunNm, reqIndex, reqSize, reqType)
+  )
+  
+  resData = httr::content(resRes, as = 'text') %>%
+    jsonlite::fromJSON()
+  
+  data = resData$AWS1hourObser$row[[2]]
+  
+  if (nrow(data) < 1) { next }
+  
+  dataL1 = dplyr::bind_rows(dataL1, data)
+}
+
+
+dataL2 = dataL1 %>% 
+  readr::type_convert() %>%
+  dplyr::filter(
+     stringr::str_detect(LEGALDONG_NM, regex("팔달구"))
+  ) %>%
+  dplyr::mutate(
+    dtDate = readr::parse_date(as.character(MESURE_DE), "%Y%m%d")
+    , dtMonth = lubridate::month(dtDate)
+  ) %>%
+  dplyr::select(LEGALDONG_NM, dtMonth, TP_INFO, HD_INFO) %>%
+  mutate_all(~ ifelse(. < -99, NA, .))
+
+dataL3 = dataL2 %>%
+  dplyr::group_by(dtMonth) %>%
+  dplyr::summarise(
+    meanTpInfo = mean(TP_INFO, na.rm = TRUE)
+    , meanHdInfo = mean(HD_INFO, na.rm = TRUE)
+  )
+
+dataL3
+
+# (2) 수원시에 있는 자동 기상관측 장비의 위치를 네이버 지도 API를 이용해 나타내세요. (10점)
+
+# https://data.gg.go.kr/portal/data/service/selectServicePage.do?page=1&rows=10&sortColumn=&sortDirection=&infId=IW2T5YWJTM7NUZ2QPVU025865983&infSeq=1&order=&searchWord=%EC%9E%90%EB%8F%99%EA%B8%B0%EC%83%81
+
+reqUrl = "https://openapi.gg.go.kr/Ggaotowetherequpinstl"
+reqIndex = "&pIndex=1"
+reqSize = "&pSize=100"
+reqType = "&type=json"
+reqSigunNm = stringr::str_c("?SIGUN_NM=", RCurl::curlEscape(stringr::str_conv("수원시", encoding="EUC-KR")))
+
+resRes = httr::GET(
+  stringr::str_c(reqUrl, reqSigunNm, reqIndex, reqSize, reqType)
+)
+
+resData = httr::content(resRes, as = 'text') %>%
+  jsonlite::fromJSON()
+
+data = resData$Ggaotowetherequpinstl$row[[2]] 
+
+dataL1 = data %>%
+  dplyr::filter(
+    stringr::str_detect(REFINE_LOTNO_ADDR, regex("팔달구"))
+  ) 
+
+
+# i = 1
+dataGeo = tibble::tibble()
+
+for (i in 1:nrow(dataL1)) {
+  keyword = dataL1$REFINE_ROADNM_ADDR[i]
+  
+  #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+  # 네이버 API (지도)
+  #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+  reqUrl = "https://naveropenapi.apigw.ntruss.com/map-geocode/v2/geocode"
+  reqQuery = stringr::str_c("?query=", RCurl::curlEscape(stringr::str_conv(keyword, encoding="UTF-8")))
+  
+  reqId = globalVar$naverApigwApiKeyId
+  reqPw = globalVar$naverApigwApiKey
+  
+  reqRes = httr::GET(
+    stringr::str_c(reqUrl, reqQuery)
+    , add_headers("X-NCP-APIGW-API-KEY-ID" = reqId, "X-NCP-APIGW-API-KEY" = reqPw, "Accept" = "application/json")
+  )
+  
+  resData = httr::content(reqRes, as = 'text') %>%
+    jsonlite::fromJSON()
+  
+  data = resData$addresses
+  makerLabel = stringr::str_c("markers=type:n|size:mid|pos:", data$x, "%20", data$y, "|label:", i)
+  tmpData = tibble::tibble(lon = data$x, lat = data$y, maker = makerLabel)
+  dataGeo = dplyr::bind_rows(dataGeo, tmpData)
+}
+
+dataGeoL1 = dataGeo %>%
+  readr::type_convert() %>%
+  dplyr::summarise(
+    meanLon = mean(lon, na.rm = TRUE)
+    , meanLat = mean(lat, na.rm = TRUE)
+  )
+
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# 네이버 API (지도 이미지)
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+reqUrl = "https://naveropenapi.apigw.ntruss.com/map-static/v2/raster"
+reqQuery = stringr::str_c(
+  "?center="
+  , RCurl::curlEscape(stringr::str_conv(dataGeoL1$meanLon, encoding="UTF-8"))
+  , ","
+  , RCurl::curlEscape(stringr::str_conv(dataGeoL1$meanLat, encoding="UTF-8"))
+)
+reqSize = "&w=300&h=300"
+reqLevel = "&level=14"
+reqMaker = stringr::str_c("&", paste(dataGeo$maker, collapse = "&"))
+
+reqId = globalVar$naverApigwApiKeyId
+reqPw = globalVar$naverApigwApiKey
+
+reqRes = httr::GET(
+  stringr::str_c(reqUrl, reqQuery, reqSize, reqLevel, reqMaker)
+  , add_headers("X-NCP-APIGW-API-KEY-ID" = reqId, "X-NCP-APIGW-API-KEY" = reqPw)
+)
+
+jsonRes = httr::content(reqRes, as="raw")
+img = jpeg::readJPEG(jsonRes)
+jpeg::writeJPEG(img, target = "KGU_map2.jpg")
+
+mapImg = imager::load.image("KGU_map2.jpg")
+plot(mapImg)
+
+#*********************************************************************
+# 과제 3
+#*********************************************************************
+# 네이버에서 제공하는 검색 API 가운데 카페 검색을 위한 API를 활용하려 합니다. 검색어는 "경기대학교"를 사용합니다. 이와 같은 API에 대한 https://developers.naver.com/docs/search/cafearticle/ 의문서서를 참고하여 다음의 질문에 대한 결과를 제시하세요
+
+# (1) 100개의 검색결과에 포함된 본문 링크를 이용하여, 카페 게시글의 본문들을 크기가 100인 문자열벡터에 넣기 위한 프로그램을 작성하세요. 즉 10장 실습과정에서 대통령 취임사의 한 행이 하나의 문자열에 입력된 것과 같이 카페 게시글이 취임사에서의 한 행이라고 생각하면 됩니다. 물론 카페 게시글에 포함된 특수문자나 본문 내용과 상관 없는 부분(링크 주소 등)들은 사전에 제거해야 합니다. (10점)
+
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# 네이버 API (카페)
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+keyword = "경기대학교"
+
+addrEnc = RCurl::curlEscape(stringr::str_conv(keyword, encoding="EUC-KR"))
+
+reqUrl = "https://openapi.naver.com/v1/search/cafearticle.json"
+reqQuery = stringr::str_c("?query=", RCurl::curlEscape(stringr::str_conv(keyword, encoding="EUC-KR")))
+reqDisplay = "&display=100"
+reqStart = "&start=1000"
+reqSort = "&sort=date"
+
+reqId = globalVar$naverKeyId
+reqPw = globalVar$naverKeyPw
+
+resRes = httr::GET(
+  stringr::str_c(reqUrl, reqQuery, reqDisplay, reqStart, reqSort)
+  , add_headers("X-Naver-Client-Id" = reqId, "X-Naver-Client-Secret" = reqPw)
+)
+
+# JSON 파일
+resData = httr::content(resRes, as = 'text') %>%
+  jsonlite::fromJSON()
+
+dataCafe = tibble(resData$items)
+
+dplyr::tbl_df(dataCafe)
+
+# (2) 100개의 카페 게시글을 이용해 단어-문서 행렬을 생성하여 가장 높은 출현 빈도를 갖는 단어 100개를 제시하세요. 이 과정에서 한글의 형태소 분석을 할 필요는 없습니다. 단 형태소 분석을 통해 단어-문서 행렬에 대해 정리하면 추가점수 10점을 얻을 수 있습니다. (10점과 함께 추가점수를 받으면 최대 20점)
+
+# 단일 문장으로 변환
+# sent = paste(dataCafe$description, collapse = " ")
+sent = dataCafe$description
+
+sentL1 = sent %>%
+  str_replace_all("[0-9]+", " ") %>%
+  str_replace_all("\\s+", " ") %>%
+  str_replace_all("http[a-zA-Z0-9]+", "") %>%
+  str_replace_all('\n', ' ') %>%
+  str_replace_all('\t', ' ') %>%
+  str_replace_all("[[:punct:]]", '') %>%
+  str_replace_all("[\\$,]", '') %>%
+  str_replace_all('<b>', '') %>%
+  str_replace_all('</b>', '') %>%
+  str_replace_all('\\(', '') %>%
+  str_replace_all('\\)', '') %>%
+  str_replace_all('\\)', '') %>%
+  str_replace_all('shuttlekakaomobilitycomshuttles', '') %>%
+  str_replace_all('zip', '')
+
+# 텍스트 분석을 위한 말뭉치(Corpus) 생성
+text = Corpus(VectorSource(sentL1)) #
+
+# TermDocumentMatrix(용어-문서 행렬) 생성
+tdm = TermDocumentMatrix(text)
+
+# 키워드별 등장 빈도
+data = data.frame(
+  word = rownames(as.matrix(tdm))
+  , freq = rowSums(as.matrix(tdm))
+  )
+
+# (3) 앞에서 만든 단어-문서 행렬로부터 가장 출현 빈도가 높은 단어 100개를 이용한 워드 클라우드를 작성하세요. (10점)
+
+# 출현빈도 상위 100개
+dataL1 = data %>%
+  dplyr::arrange(desc(freq)) %>%
+  dplyr::top_n(100)
+
+# 워드 클라우드
+wordcloud2::wordcloud2(data = dataL1)
+
+# (4) 연관규칙발견을 위한 분석방법을 통해 나타난 결과를 살펴보고 이 가운데 상위 10개의 규칙을 이용해 우리학교 이름으로 검색된 카페글의 특징을 제시하세요. (이 문제는 안 풀어도 되지만 만약 풀면 추가 점수 10점)
+
+# 경기대학교와 상관성이 0.3 이상의 경우
+tm::findAssocs(tdm, "경기대학교", 0.2)
+
+tdmMat = as.matrix(tdm)
+tdmMat = ifelse(tdmMat > 0, 1, 0)
+tdmMatConv = t(tdmMat)
+
+# 바이너리 코드를 transactions으로 변환하세요.
+tdmTrans = as(tdmMatConv, "transactions")
+
+# 최소규칙 지지도 = 0.01, 최소규칙 신뢰도 = 0.01로 규칙을 생성하세요.
+# 오랜 시간 걸림 (3분 소요)
+tdmRules = arules::apriori(
+  tdmTrans
+  , parameter = list(supp = 0.01, conf = 0.01)
+)
+
+# 10개의 규칙만 선택해서 그래프로 그려주세요.
+set.seed(123)
+
+tdmRulesPlot = head(sort(tdmRules, by = "lift"), 10)
+plot(tdmRulesPlot, method = "graph", engine = "htmlwidget")
+
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+serviceName = "LSH0081"
+
+library(tidyverse)
+library(ggplot2)
+library(lubridate)
+library(openxlsx)
+library(fs)
+library(modelr)
+library(magrittr)
+library(gam)
+library(spData)
+library(sf)
+library(cowplot)
+library(utils)
+
+# 파일 읽기
+fileInfo = Sys.glob(paste(globalVar$inpConfig, "covid_19_india.csv", sep = "/"))
+data = readr::read_csv(file = fileInfo, locale = locale("ko", encoding = "UTF-8"))
+
+summary(data)
+colnames(data)
+
+# 인도 전체 지점에 대한 사망률 및 누적 사망률 처리
+dataL1 = data %>%
+  readr::type_convert() %>%
+  dplyr::mutate(
+    dtDate = readr::parse_date(as.character(Date), "%d/%m/%y")
+  )  %>%
+  dplyr::group_by(dtDate) %>%
+  dplyr::summarise(sumDeath = sum(Deaths, na.rm = TRUE)) %>%
+  dplyr::arrange(dtDate) %>%
+  dplyr::mutate(
+    cumDeath = cumsum(sumDeath)
+  )
+
+summary(dataL1)
+
+# 누적 사망률 시계열 시각화
+minDate = as.Date(min(dataL1$dtDate, na.rm = TRUE) - 1)
+maxDate = as.Date(max(dataL1$dtDate, na.rm = TRUE) + 3)
+
+saveImg = sprintf("%s/Img_%s_%02d.png", globalVar$figConfig, serviceName, 1)
+
+Sys.setlocale("LC_TIME", "english")
+
+# Visualization Using ggplot2
+ggplot(data = dataL1, aes(x = dtDate, y = cumDeath / 1000000)) +
+  # cowplot::theme_minimal_grid() +
+  theme_bw() +
+  geom_point() +
+  geom_line() + 
+  scale_x_date(expand = c(0, 0), date_minor_breaks = "15 days", date_breaks = "15 days", date_labels = "%d %b", limits = as.Date(c(minDate, maxDate))) +
+  scale_y_continuous(expand = c(0, 0), minor_breaks = seq(0, 15, 3), breaks = seq(0, 15, 3), limits = c(0, 15)) +
+  labs(
+    x = "Date [Day Month]"
+    , y = "Cumulative Death [1,000,000 명]"
+    , fill = NULL
+    , colour = NULL
+    , title  = NULL
+    , subtitle = NULL
+    , caption = NULL
+  ) +
+  theme(
+    plot.title = element_text(face = "bold", size = 18, color = "black")
+    , axis.title.x = element_text(face = "bold", size = 18, colour = "black")
+    , axis.title.y = element_text(face = "bold", size = 18, colour = "black", angle=90)
+    , axis.text.x  = element_text(angle = 45, hjust = 1, size = 18, colour = "black")
+    , axis.text.y  = element_text(size = 18, colour = "black")
+    , legend.title = element_text(face = "bold", size = 14, colour = "white")
+    , legend.position = "none"
+    , legend.justification = c(0, 0.96)
+    , legend.key = element_blank()
+    , legend.text = element_text(size = 14, face = "bold", colour = "white")
+    , legend.background = element_blank()
+  ) + 
+  ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
+
+# 회귀모형 학습
+dataL2 = dataL1 %>%
+  dplyr::filter(cumDeath > 0)
+
+dplyr::tbl_df(dataL2)
+
+Linear = lm(cumDeath ~ dtDate, data = dataL2)
+Quadratic = lm(cumDeath ~ poly(dtDate, 2), data = dataL2)
+Cubic = lm(cumDeath ~ poly(dtDate, 3), data = dataL2)
+Gam = gam(cumDeath ~ s(dtDate), data = dataL2)
+
+
+dataModel = dataL2 %>%
+  modelr::data_grid(dtDate = modelr::seq_range(dtDate, nrow(dataL2))) %>%
+  modelr::gather_predictions(Linear, Quadratic, Cubic, Gam)
+
+dplyr::tbl_df(dataL2)
+
+dataModelL2 = dataModel %>%
+  dplyr::left_join(dataL2, c("dtDate" = "dtDate")) %>%
+  dplyr::group_by(model) %>%
+  dplyr::summarise(
+    r = cor(pred, cumDeath)
+    , rmse = Metrics::rmse(pred, cumDeath)
+  ) %>%
+  dplyr::arrange(rmse, r)
+
+dplyr::tbl_df(dataModelL2)
+
+# 회귀모형 학습 시계열 시각화
+minDate = as.Date(min(dataL2$dtDate, na.rm = TRUE) - 1)
+maxDate = as.Date(max(dataL2$dtDate, na.rm = TRUE) + 2)
+
+Sys.setlocale("LC_TIME", "english")
+saveImg = sprintf("%s/Img_%s_%02d.png", globalVar$figConfig, serviceName, 2)
+
+ggplot(data = dataL2, aes(x = dtDate, y = cumDeath / 1000000)) +
+  theme_bw() +
+  geom_point(shape = 1, size = 2.2) +
+  geom_line(data = dataModel, aes(x = dtDate, y = pred / 1000000, col = model), size = 0.95) +
+  scale_x_date(expand = c(0, 0), date_minor_breaks = "15 days", date_breaks = "15 days", date_labels = "%d %b", limits = as.Date(c(minDate, maxDate))) +
+  scale_y_continuous(expand = c(0, 0), minor_breaks = seq(0, 15, 3), breaks = seq(0, 15, 3), limits = c(0, 15)) +
+  labs(
+    x = "Date [Day Month]"
+    , y = "Cumulative Death"
+    , fill = NULL
+    , colour = NULL
+    , title  = NULL
+    , subtitle = NULL
+    , caption = NULL
+  ) +
+  theme(
+    plot.title = element_text(face = "bold", size = 18, color = "black")
+    , axis.title.x = element_text(face = "bold", size = 18, colour = "black")
+    , axis.title.y = element_text(face = "bold", size = 18, colour = "black")
+    , axis.text.x  = element_text(angle = 45, hjust = 1, size = 16, colour = "black")
+    , axis.text.y  = element_text(size = 16, colour = "black")
+    , legend.title = element_text(face = "bold", size = 14, colour = "white")
+    , legend.position = "none"
+    , legend.justification = c(0, 0.96)
+    , legend.key = element_blank()
+    , legend.text = element_text(size = 14, face = "bold", colour = "white")
+    , legend.background = element_blank()
+    # , text = element_text(family = font)
+    # , plot.margin = unit(c(0, 12, 0, 0), "mm")
+  ) +
+  facet_wrap(~ model) + 
+  ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
+
+
+# 회귀모형 예측 시계열 시각화
+dtStartDate = lubridate::ymd(dataL2$dtDate[nrow(dataL2)]) + lubridate::days(1)
+dtEndDate = dtStartDate + lubridate::days(100)
+
+dataPredData = data.frame(dtDate = seq.Date(dtStartDate, dtEndDate, "1 days"))
+
+dplyr::tbl_df(dataPredData)
+
+dataPredDataL1 = dataPredData %>%
+  modelr::gather_predictions(Cubic, Linear, Gam, Quadratic)
+
+dplyr::tbl_df(dataPredDataL1)
+summary(dataPredDataL1)
+
+minDate = as.Date(min(dataL2$dtDate, na.rm = TRUE) - 1)
+maxDate = as.Date(max(dataPredDataL1$dtDate, na.rm = TRUE) + 2)
+
+Sys.setlocale("LC_TIME", "english")
+saveImg = sprintf("%s/Img_%s_%02d.png", globalVar$figConfig, serviceName, 3)
+
+ggplot(data = dataL2, aes(x = dtDate, y = cumDeath / 1000000)) +
+  theme_bw() +
+  geom_point(shape = 1, size = 2.2) +
+  geom_line()+
+  geom_line(data = dataPredDataL1, aes(x = dtDate, y = pred / 1000000, col = model), size = .6)+
+  scale_x_date(expand = c(0, 0), date_minor_breaks = "15 days", date_breaks = "15 days", date_labels = "%d %b", limits = as.Date(c(minDate, maxDate))) +
+  scale_y_continuous(expand = c(0, 0), minor_breaks = seq(0, 40, 5), breaks = seq(0, 40, 5), limits = c(0, 40)) +
+  labs(
+    x = "Date [Day Month]"
+    , y = "Cumulative Death"
+    , fill = NULL
+    , colour = NULL
+    , title  = NULL
+    , subtitle = NULL
+    , caption = NULL
+  ) +
+  theme(
+    plot.title = element_text(face = "bold", size = 18, color = "black")
+    , axis.title.x = element_text(face = "bold", size = 18, colour = "black")
+    , axis.title.y = element_text(face = "bold", size = 18, colour = "black", angle = 90)
+    , axis.text.x  = element_text(angle = 45, hjust = 1, size = 18, colour = "black")
+    , axis.text.y  = element_text(size = 18, colour = "black")
+    , legend.title = element_text(face = "bold", size = 14, colour = "black")
+    , legend.position = c(0, 1.0)
+    , legend.justification = c(0, 0.96)
+    , legend.key = element_blank()
+    , legend.text = element_text(size = 14, colour = "black")
+    , legend.background = element_blank()
+    # , text = element_text(family = font)
+    # , plot.margin = unit(c(0, 12, 0, 0), "mm")
+  ) + 
+  ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
+
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+serviceName = "LSH0081"
+
+# log = log4r::create.logger()
+# log4r::logfile(log) = paste0(globalVar$logConfig, "/log4r_", format(Sys.time(), "%Y%m%d"), ".log")
+# log4r::level(log) = "INFO"
+
+# tryCatch(
+#   expr = {
+#     # 주 소스 코드
+#     log4r::info(log, sprintf("%s", "[START] Main R"))
+#     
+#   }
+#   , warning = function(warning) { log4r::warn(log, warning) }
+#   , error = function(error) { log4r::error(log, error) }
+#   , finally = {
+#     log4r::info(log, sprintf("%s", "[END] Main R"))
+#   }
+# )
+
+library(tidyverse)
+library(ggplot2)
+library(lubridate)
+library(openxlsx)
+library(fs)
+library(modelr)
+library(magrittr)
+library(gam)
+library(spData)
+library(sf)
+library(cowplot)
+library(utils)
+library(Metrics)
+library(ggpubr)
+library(scales)
+library(neuralnet)
+library(plyr)
+
+#************************************************
+# [openxlsx] Read
+#************************************************
+# data = openxlsx::read.xlsx(fileList, sheet = 1)
+
+#************************************************
+# [openxlsx] Write
+#************************************************
+# wb = openxlsx::createWorkbook()
+# 
+# openxlsx::addWorksheet(wb, "ggData")
+# openxlsx::writeData(wb, "ggData", ggData, startRow = 1, startCol = 1)
+
+# openxlsx::saveWorkbook(wb, file = paste0(globalVar$outConfig, "/Survery_LSH0078.xlsx"), overwrite = TRUE)
+
+#************************************************
+# File Info
+#************************************************
+# fileInfo = Sys.glob(paste(globalVar$inpConfig, "play.csv", sep = "/"))
+# data = readr::read_csv(file = fileInfo, locale = locale("ko", encoding = "UTF-8"))
+
+# nameList = sort(unique(geoData_L1$sigungu_name))
+# fileName = tools::file_path_sans_ext(fs::path_file(fileInfo))
+# if (nrow(dataL2) < 1) { next }
+# saveImg = sprintf("%s/Img_%s_%02d.png", globalVar$figConfig, serviceName, 1)
+
+#************************************************
+# Data Info
+#************************************************
+# dplyr::mutate(
+#   backColor = dplyr::case_when(
+#     stringr::str_detect(sigungu_name, regex("태안군|서산시|당진시")) ~ "1"
+#     , TRUE ~ "NA"
+#   )
+# )
+
+
+#================================================================================
+# 데이터는 Rda 파일 형태로 있어서 그냥 load해서 사용하시면 됩니다.
+# load("csvdata.no.na.Rda")
+# 변수가 6개 있는데 그 중 첫번째인 self.esteem(자아존중감)이 종속변수이고, 나머지 변수들이 독립변수입니다.
+# 강의내용과 샘플코드를 활용해서 학생의 자아존중감을 예측해보세요. 영향력있는 변수는 무엇인가요?
+#================================================================================
+
+set.seed(1)
+
+fileInfo = Sys.glob(paste(globalVar$inpConfig, "csvdata.no.na.Rda", sep = "/"))
+load(fileInfo)
+
+data = csvdata.no.na
+
+# colnames(data)
+
+#====================================
+# 데이터 분할  (0 - 1 변환)
+#====================================
+# 훈련 및 데이터 셋을 60:40으로 나누기 위한 인덱스 설정
+ind = sample(1:nrow(data), nrow(data) * 0.6)
+# ind = nrow(data)
+
+# 해당 인덱스에 따라 자료 할당
+# 표준화/정규화 수행 (평균-표준편차, 0-1 변환)
+trainData = data[-ind,]  %>%
+  dplyr::mutate_each_(funs(scale) ,vars=c("sexw1.re", "self.confidence", "attachment", "monitor", "negative.parenting"))
+  # dplyr::mutate_each_(funs(scales::rescale) ,vars=c("sexw1.re", "self.confidence", "attachment", "monitor", "negative.parenting"))
+  
+
+testData = data[ind,]  %>%
+  dplyr::mutate_each_(funs(scale) ,vars=c("sexw1.re", "self.confidence", "attachment", "monitor", "negative.parenting"))
+  # dplyr::mutate_each_(funs(scales::rescale) ,vars=c("sexw1.re", "self.confidence", "attachment", "monitor", "negative.parenting"))
+
+# trainData = data[-ind,]
+# testData = data[ind,] 
+
+
+# 훈련 데이터셋 확인
+dplyr::tbl_df(trainData)
+
+# 테스트 데이터셋 확인
+dplyr::tbl_df(testData)
+
+allVar = colnames(trainData)
+predictorVarList = allVar[!allVar %in% "self.esteem"]
+predictorVar = paste(predictorVarList, collapse=" + ")
+form = as.formula(paste("self.esteem ~", predictorVar, collapse = "+"))
+
+resultData = data.frame()
+
+#===============================================
+# 다중선형회귀 방법
+#===============================================
+lmFit = lm(form, data = trainData)
+# summary(lmFit)
+
+# 영향력이 있는 변수 (self.confidence, attachment, negative.parenting)
+stepAic = MASS::stepAIC(lmFit, direction = "both")
+summary(stepAic)
+
+predictions = predict(stepAic, newdata = testData)
+
+resultData = dplyr::bind_rows(resultData
+  , data.frame(
+    type = "MLR"
+    , pred = predictions
+    , real = testData$self.esteem
+  )
+)
+
+# 시각화
+xAxis = resultData$pred
+yAxis = resultData$real
+
+corTest = cor.test(xAxis, yAxis)
+corVal = round(corTest$estimate, 2)
+pVal = round(corTest$p.value, 2)
+biasVal = round(Metrics::bias(xAxis, yAxis), 2)
+rmseVal = round(Metrics::rmse(xAxis, yAxis), 2)
+
+summary(resultData)
+
+saveImg = sprintf("%s/Img_%s_%02d.png", globalVar$figConfig, serviceName, 1)
+
+ggpubr::ggscatter(resultData, x = "pred", y = "real", color = "black", add = "reg.line", conf.int = TRUE, add.params = list(color = "blue", fill = "lightblue")) +
+  stat_regline_equation(label.x = 0, label.y = 30, size = 5) +
+  ggplot2::annotate("text", x = 0, y = 28, size = 5, label = sprintf("R = %s (P < %.3f)", corVal, pVal), hjust = 0) +
+  ggplot2::annotate("text", x = 0, y = 26, size = 5, label = sprintf("Bias = %s", biasVal), hjust = 0) +
+  ggplot2::annotate("text", x = 0, y = 24, size = 5, label = sprintf("RMSE = %s", rmseVal), hjust = 0) +
+  xlim(0, 30) +
+  ylim(0, 30) +
+  theme_bw() +
+  labs(title = NULL, x = "예측", y = "실제", subtitle = "다중선형회귀모형") +
+  coord_equal() +
+  theme(text = element_text(size = 18)) +
+  ggsave(filename = saveImg, width = 6, height = 6, dpi = 600)
+
+
+#================================================================================
+# 통신회사 고객이탈 예측(분류문제에 인공신경망 활용)
+# 인공신경망 사용(neuralnet::neuralnet)
+# 종속변수: Churn (지난 달 이탈 여부)
+# 독립변수:
+#   ü고객이 이용중인 서비스: phone, multiple lines, internet, online security, online backup, device protection, tech support, and streaming TV and movies
+# ü고객계정 관련 정보: how long they’ve been a customer(tenure), contract, payment method, paperless billing, monthly charges, and total charges
+# ü고객의 인구통계학 정보 – gender, age range, and if they have partners and dependents
+# 참고1: https://www.kaggle.com/blastchar/telco-customer-churn/data#
+# 참고2: 강의자료에서는 인공신경망을 수치예측용으로만 다뤘으니 분류용으로 다룬 예제 링크를 추가해 드립니다. 참 고하세요. https://www.datatechnotes.com/2017/10/neural-networks-example-in-r.html
+#================================================================================
+
+set.seed(1)
+
+fileInfo = Sys.glob(paste(globalVar$inpConfig, "WA_Fn-UseC_-Telco-Customer-Churn.csv", sep = "/"))
+
+data = readr::read_csv(file = fileInfo, locale = locale("ko", encoding = "UTF-8")) %>% 
+  readr::type_convert() %>%
+  dplyr::mutate_if(is.character, as.factor) %>%
+  dplyr::select(-customerID) %>%
+  na.omit() %>%
+  # dplyr::mutate_at(vars(Churn), funs(as.numeric)) %>%
+  dplyr::mutate(
+    gender = as.integer(gender) - 1
+    , Partner = as.integer(Partner) - 1
+    , Dependents = as.integer(Dependents) - 1
+    , MultipleLines = as.integer(MultipleLines) - 1
+    , InternetService = as.integer(InternetService) - 1
+    , OnlineSecurity = as.integer(OnlineSecurity) - 1
+    , TechSupport = as.integer(TechSupport) - 1
+    , StreamingTV = as.integer(StreamingTV) - 1
+    , StreamingMovies = as.integer(StreamingMovies) - 1
+    , Contract = as.integer(Contract) - 1
+    , PaperlessBilling = as.integer(PaperlessBilling) - 1
+    , PaymentMethod = as.integer(PaymentMethod) - 1
+    , Contract = as.integer(Contract) - 1
+    , OnlineBackup = as.integer(OnlineBackup) - 1
+    , DeviceProtection = as.integer(DeviceProtection) - 1
+    , PhoneService = as.integer(PhoneService) - 1
+    , Churn = as.integer(Churn) - 1
+  )
+
+#====================================
+# 데이터 분할
+#====================================
+# 훈련 및 데이터 셋을 60:40으로 나누기 위한 인덱스 설정
+ind = sample(1:nrow(data), nrow(data) * 0.6)
+# ind = nrow(data)
+
+# 해당 인덱스에 따라 자료 할당
+# 표준화 수행
+trainData = data[-ind,]  %>%
+dplyr::mutate_each_(funs(scale) ,vars=c("SeniorCitizen", "tenure", "PhoneService", "MultipleLines", "InternetService", "OnlineSecurity", "OnlineBackup", "DeviceProtection", "TechSupport", "Contract", "PaperlessBilling", "PaymentMethod", "MonthlyCharges", "TotalCharges"))
+  # dplyr::mutate_each_(funs(scales::rescale), vars=c("SeniorCitizen", "Dependents", "tenure", "MultipleLines", "InternetService", "OnlineSecurity", "TechSupport", "StreamingTV", "StreamingMovies", "Contract", "PaperlessBilling", "PaymentMethod", "MonthlyCharges", "TotalCharges"))
+
+testData = data[ind,]  %>%
+dplyr::mutate_each_(funs(scale) ,vars=c("SeniorCitizen", "tenure", "PhoneService", "MultipleLines", "InternetService", "OnlineSecurity", "OnlineBackup", "DeviceProtection", "TechSupport", "Contract", "PaperlessBilling", "PaymentMethod", "MonthlyCharges", "TotalCharges"))
+  # dplyr::mutate_each_(funs(scales::rescale), vars=c("SeniorCitizen", "Dependents", "tenure", "MultipleLines", "InternetService", "OnlineSecurity", "TechSupport", "StreamingTV", "StreamingMovies", "Contract", "PaperlessBilling", "PaymentMethod", "MonthlyCharges", "TotalCharges"))
+
+trainData = data[ind,]
+testData = data[-ind,]
+
+# 훈련 데이터셋 확인
+dplyr::tbl_df(trainData)
+
+# 테스트 데이터셋 확인
+dplyr::tbl_df(testData)
+
+allVar = colnames(trainData)
+predictorVarList = allVar[!allVar %in% "Churn"]
+predictorVar = paste(predictorVarList, collapse = "+")
+form = as.formula(paste("Churn ~", predictorVar, collapse = "+"))
+
+resultData = data.frame()
+
+
+# lmFit = lm(form, data = trainData)
+glmFitVarAll = glm(form, data = trainData, family = binomial)
+# summary(lmFit)
+
+# 영향력이 있는 변수 (self.confidence, attachment, negative.parenting)
+stepAic = MASS::stepAIC(glmFitVarAll, direction = "both")
+summary(stepAic)
+
+
+bestForm = as.formula("Churn ~ SeniorCitizen + tenure + PhoneService + 
+    MultipleLines + InternetService + OnlineSecurity + OnlineBackup + 
+    DeviceProtection + TechSupport + Contract + PaperlessBilling + 
+    PaymentMethod + MonthlyCharges + TotalCharges")
+
+#===============================================
+# neuralnet 방법
+#===============================================
+neuralModel = neuralnet::neuralnet(
+  formula = bestForm
+  , data = trainData
+  # , hidden = c(3)
+  # , hidden = c(64)
+  # , learningrate = 0.01
+  # , threshold = 0.01
+  # , stepmax = 50000
+  # , rep = 2
+  , act.fct = "logistic"
+  # , algorithm = "rprop+"
+  # , err.fct = "sse"
+  # , threshold = 0.01
+  # , linear.output=TRUE
+  # , lifesign = "full"
+)
+
+saveImg = sprintf("%s/Img_%s_%02d.png", globalVar$figConfig, serviceName, 2)
+
+png(file = saveImg, width = 10, height = 5, units = "in", res = 1200)
+plot(neuralModel, rep = 'best')
+dev.off()
+
+rsPredictions = neuralnet::compute(neuralModel, testData)
+predictions = ifelse(rsPredictions$net.result > 0.5, 1, 0)
+
+resultData = data.frame(
+    pred = predictions
+    , real = testData$Churn
+    )
+
+# 시각화
+xAxis = resultData$pred
+yAxis = resultData$real
+
+library(caret)
+caret::confusionMatrix(as.factor(xAxis), as.factor(yAxis))
+
+# 검증 측정을 위한 기초 설정
+lmPred = ROCR::prediction(xAxis, yAxis)
+
+# ROC 커브를 위한 설정
+perform = ROCR::performance(lmPred, "tpr", "fpr")
+plot(perform, main = 'ROC Curve')
+
+# AUC 측정 : 1에 가까울수록 최고 성능 : 0.7146214332
+ROCR::performance(lmPred, "auc")@y.values[[1]]
+
+# 이항편차 측정 : 낮을수록 좋음 : 19.61
+abdiv::binomial_deviance(xAxis, yAxis)
+
+
+rsPredictions = neuralnet::compute(neuralModel, testData)
+predictions = rsPredictions$net.result
+
+resultData = data.frame(
+  pred = predictions
+  , real = testData$Churn
+)
+
+xAxis = resultData$pred
+yAxis = resultData$real
+
+corTest = cor.test(xAxis, yAxis)
+corVal = round(corTest$estimate, 2)
+pVal = round(corTest$p.value, 2)
+biasVal = round(Metrics::bias(xAxis, yAxis), 2)
+rmseVal = round(Metrics::rmse(xAxis, yAxis), 2)
+
+summary(resultData)
+
+saveImg = sprintf("%s/Img_%s_%02d.png", globalVar$figConfig, serviceName, 3)
+
+ggpubr::ggscatter(resultData, x = "pred", y = "real", color = "black", add = "reg.line", conf.int = TRUE, add.params = list(color = "blue", fill = "lightblue")) +
+  stat_regline_equation(label.x = 0, label.y = 0.90, size = 5) +
+  ggplot2::annotate("text", x = 0, y = 0.80, size = 5, label = sprintf("R = %s (P < %.3f)", corVal, pVal), hjust = 0) +
+  ggplot2::annotate("text", x = 0, y = 0.70, size = 5, label = sprintf("Bias = %s", biasVal), hjust = 0) +
+  ggplot2::annotate("text", x = 0, y = 0.60, size = 5, label = sprintf("RMSE = %s", rmseVal), hjust = 0) +
+  xlim(0, 1) +
+  ylim(0, 1) +
+  theme_bw() +
+  labs(title = NULL, x = "예측", y = "실제", subtitle = "인공신경망") +
+  coord_equal() +
+  theme(text = element_text(size = 18)) +
+  ggsave(filename = saveImg, width = 6, height = 6, dpi = 600)
 
 #===============================================================================================
 # Routine : Main R program
@@ -14038,8 +15273,7 @@ ggplot(data = iris_dataL1, aes(x = type, y = cases, group = cluster, colour = cl
 # Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
 #===============================================================================================
 
-serviceName = "LSH"
-
+serviceName = "LSH00000"
 
 # fileInfo = Sys.glob(paste(globalVar$inpConfig, "out.csv", sep = "/"))
 # data = readr::read_csv(file = fileInfo, locale = locale("ko", encoding = "EUC-KR"))
@@ -14108,4 +15342,1638 @@ plot(fsTestData)
 stl(tsData, s.window = 10)
 
 
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 (크몽, 오투잡)
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
 
+serviceName = "LSH0080"
+
+#======================================================================================
+#nycflights13 데이터셋은 2013.1.1. ~ 2013.12.31. 동안의 미국 뉴욕 인근 3개의 국제공항인
+#케네디(J.F.Kennedy)공항(JFK), 뉴어크(Newark)공항(EWR), 라과디아 공항(LGA)에서
+#출발이 계획되어 있던 모든 비행편에 대한 비행 정보를 기록한 데이터이다. 
+#데이터셋에 있는 5개의 테이블 중 flights 테이블은 비행편에 대한 정보를 담고 있다.
+#nycflights13::flights 데이터(336,776개 관측, 19개 변수)로부터 다음 질문에 답하라.
+#(빈칸에 적절한 R코드를 작성하시오)
+#======================================================================================
+
+#1) 항공사 carrier별 빈도를 아래와 같은 막대그림으로 나타내라. 밑줄친 곳에 적당한 R표현은?
+library(nycflights13)
+data(flights)
+str(flights)
+tab.0 <- table(flights$carrier)
+# _________________________________________________________
+barplot(sort(tab.0), main="NYC Flights 2013", horiz=TRUE, las=1)
+# _________________________________________________________
+
+
+
+
+#2)그 중 상위 10개 항공사만으로 부 데이터 flights.1을 구성하여 이후 풀이에 적용하라.
+#flights.1이 총 데이터를 커버하는 비율은 몇 퍼센트인가? 밑줄친 곳에 적당한 R표현은?
+
+# 답 (출력). 98.3% 
+rk <- rank(-tab.0); rk
+carrier.top10 <- names(tab.0)[rk <= 10]
+flights.1 <- subset(flights, carrier %in% carrier.top10)
+str(flights.1)
+round(nrow(flights.1)/nrow(flights)*100, 1) 
+
+
+#3)나쁜 항공편 badflight를 출발지연 dep_delay가 NA이거나 60분 이상인 경우로 정의하자. 
+#항공사 별 나쁜 항공편의 비율을 다음과 같이 순서 정렬된 표로 제시하라.
+#밑줄친 곳에 적당한 R표현은?
+flights.1$badflight <-as.factor(flights.1$dep_delay >= 60 | is.na(flights.1$dep_delay) == TRUE)
+levels(flights.1$badflight) <- c("good","bad")
+tab.2 <- with(flights.1, table(carrier, badflight)) ; tab.2m <- addmargins(tab.2)
+flights.1$carrier = forcats::fct_relevel(flights.1$carrier, c("EV", "9E", "MQ", "WN", "B6", "AA", "UA", "VX", "US", "DL"))
+tab.2 <- with(flights.1, table(carrier, badflight)) ; tab.2m <- addmargins(tab.2)
+round(2*prop.table(tab.2m, 1), 3)
+
+#4) 나쁜 항공편이 월(month)과 관련이 있는가를 아래와 같이 2원표와 모자이크 플롯으로 나타내라. 
+#나쁜 항공편 비율이 높은 3개 달은 6월, 7월, 12월이다. 밑줄친 곳에 적당한 R표현은?
+
+tab.3 <- with(flights.1, table(month, badflight))
+tab.3m <- addmargins(tab.3)
+tab.3m = 2*prop.table(tab.3m, 1)
+round(tab.3m, 3)
+mosaicplot(tab.3, color = c("gray", "red"), off = 0, shade = FALSE, main="NYC Flights 2013")
+
+## Part 2
+# install.packages("Lahman")
+library(Lahman)
+
+#======================================================================================
+#메이저리그(Lahman 팩키지의 Salaries, Batting, Pitching)의 2015년 데이터에 대하여 다음
+#질문들에 답하라. 
+#======================================================================================
+#1. Lahman 팩키지의 Teams 데이터로부터 1975년 이후 리그(American League, National League) 별 
+# 연 관중 수(attendance)의 시도표를 제시하고 주요 특징을 기술하라.
+#도움말: aggregate()와 ts() 활용
+
+data = Teams %>%
+  dplyr::filter(lgID %in% c("AL", "NL"))
+
+bb = aggregate(attendance ~ lgID + yearID, data = data, sum)
+ts(bb)
+
+
+#2. [앞 문제의 계속] 1975년 이후 Boston Redsox 팀에 대하여 관중 수 (= y축) 대 팀 승률(= x축)의 산점도를 만들어라
+#(이때 좌표에 점 대신 연도의 마지막 두 숫자를 넣어라). LADodgers 팀에 대하여 같은 질문에 답하라. 두 그래프는 어떻게 다른가?
+#도움말: 유사 코딩의 반복을 피하기 위해서 사용자 함수를 만들어 사용할 필요가 있다. 
+
+makePlot = function(inTeamId) {
+  library(tidyverse)
+  
+  data = Teams %>%
+    dplyr::filter(
+      yearID > 1975
+      , teamID == inTeamId
+    ) %>%
+    dplyr::mutate(
+      ratio = W / (W + L) * 100
+      , plotLabel = substr(yearID, 3, 4)
+    )
+  
+  if (nrow(data) < 1) { next }
+  
+  plot(attendance ~ ratio, col="white", data = data)
+  text(attendance ~ ratio, labels=plotLabel, data=data)
+  
+}
+
+# Boston Redsox
+makePlot("BOS")
+
+# LADodgers
+makePlot("LAA")
+
+#3. Lahman 팩키지의 Batting 데이터로부터 모든 선수의 활동년 수를 산출하여 히스토그램으로 제시하라. 
+#활동년 수가 가장 큰 선수를 찾아 그의 연도별 활동(G, AB, H)을 살펴보라. 
+# 위키피디어에서 그를 찾아보라) *G:게임수, AB:타석, H:안타
+# 도움말: plyr::ddply() 함수와 which.max() 함수를 활용
+
+library(plyr)
+
+# 모든 선수이 활동년 수
+hist(Batting$yearID)
+
+# 
+data = plyr::ddply(Batting
+            , .(playerID)
+            , function(df) {
+              data.frame(cnt = nrow(df))
+              }
+            ) 
+
+ind = which.max(data$cnt)
+dataL1 = subset(Batting, playerID == data[ind, ]$playerID)[, c("playerID", "yearID", "G", "AB", "H")]
+dataL1
+
+#4. [앞 문제의 계속] 메이저리그 역사에서 Career 타율(BA, batting average)이 가장 좋은선수는 누구인가? 
+#단, 총 타석 수를 5,000 이상으로 조건화한다. 그의 Career 안타수, Caree 타석수는 얼마였는가? 
+#(위키피디어에서 그를 찾아보라)
+data = Batting %>%
+  dplyr::group_by(playerID) %>%
+  dplyr::summarise(
+    sumH = sum(H, na.rm = TRUE)
+    , sumAB = sum(AB, na.rm = TRUE)
+  ) %>%
+  dplyr::filter(sumAB >= 5000) %>%
+  dplyr::mutate(BA = sumH / sumAB) %>%
+  dplyr::arrange(desc(BA)) %>%
+  dplyr::top_n(1)
+
+data
+
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 (크몽, 오투잡)
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+serviceName = "LSH0080"
+
+library(dplyr)
+library(stringr)
+library(httr)
+library(rvest)
+library(tidyverse)
+
+trim = function (x) gsub("^\\s+|\\s+$", "", x)
+
+# 테스트 1
+keywordList = c("harry potter")
+
+# 테스트 2
+# keywordList = c("deep learning", "machine learning", "natural language processing")
+url = "https://www.goodreads.com"
+
+# start = proc.time()
+multiBookData = tibble::tibble()
+cnt = 0
+
+# [Step 2] 페이지 중앙의 Search and browse books에 “harry potter”를 검색하세요. 이후 맨 아래에 페이
+# 지를 변경해가며 URL의 특징을 파악하세요.
+for(keywordInfo in keywordList) {
+  
+  # [Step 3] 수업시간에 배운 내용을 바탕으로 필요한 library를 호출하고, 제목, 저자, 평점, 평점의 수, 리뷰, 개수, 요약문에 관한 변수를 선언하세요.
+  tmp_prefixUrl = paste0(url, "/search?utf8=%E2%9C%93")
+  tmp_urlInit = modify_url(tmp_prefixUrl, query = list(query = keywordInfo))
+  tmp_contentInit <- read_html(tmp_urlInit)
+
+  # [Step 4] 이번 과제에서는 검색 키워드가 변화하더라도 마지막 페이지까지 Scraping을 수행할 수 있도록 코드를 구현하고자 합니다. 첫 번째 페이지를 기준으로 문제 1의 결과를 이용하여 아래 그림의 마지막 페이 지인 100을 정수 타입으로 변수에 할당할 수 있는 코드를 작성하세요. (변수에 100을 직접 할당하는 방식은 허용되지 않습니다.)
+  tmp_lastPageList = tmp_contentInit %>% html_nodes(css = ".leftContainer > div > div > a") %>% html_text()
+  tmp_lastPage = as.numeric(tmp_lastPageList[length(tmp_lastPageList) - 1])
+
+  # [Step 5] Step 4의 결과를 바탕으로 처음 페이지부터 마지막 페이지까지 URL을 통해 접근할 수 있는 코드를 작성하세요.
+  pageList = 1:tmp_lastPage
+  # pageList = 1:2
+  bookData = tibble::tibble()
+  # pageInfo = 2
+    
+  for (pageInfo in pageList) {
+      # https://www.goodreads.com/search?page=5&query=harry+potter&tab=books&utf8=%E2%9C%93
+      
+      # [Step 7] Step 6에서 수집된 URL의 개수를 이용하여 반복문을 작성하고, 이후 Step 6에서 수집된URL과 문 제 2의 결과를 이용하여 서적 제목의 링크로 이동할 수 있는 URL을 변수에 할당하세요. 결과적으로 반복문을 수행하며 페이지 내의 모든 서적 제목에 대해 지정된 링크로 이동하는 URL을 변수에 할당할 수 있는 코드를 작성하세요.
+      tmp_url = modify_url(tmp_prefixUrl, query = list(query = keywordInfo, page = pageInfo)) %>% gsub('%2B', '+', .)
+      
+      tmp_content = read_html(tmp_url)
+      tmp_titleLink = tmp_content %>% html_nodes(css = '.bookTitle') %>% html_attr("href")
+      tmp_urlDtlList = paste0(url, tmp_titleLink)
+      
+      # 조회 결과 링크 목록
+      for (tmp_urlDtlInfo in tmp_urlDtlList) {
+        
+        # tmp_title = NA
+        # tmp_author = NA
+        # tmp_score = NA
+        # tmp_ratingNum = NA
+        # tmp_reviewNum = NA
+        # tmp_summary = NA
+        
+        tryCatch(
+            expr = {
+              tmp_contentDtl = read_html(tmp_urlDtlInfo)
+              
+              # [Step 8] 서적의 제목을 수집하는 코드를 작성하세요. 이 때, 서적의 제목에 두 글자 이상의 공백이 있다면 일괄적으로 한 칸의 공백으로 변경하세요. 이후 제목의 앞 뒤에 여백이 있다면 여백을 제거하세요.
+              tmp_title = tmp_contentDtl %>% html_nodes(xpath = '//*[@id="bookTitle"]') %>% html_text() %>% trim()
+              
+              # [Step 9] 서적의 저자를 수집하는 코드를 작성하세요. 이 때, 저자의 이름 앞 뒤에 여백 또는 쉼표가 있다면 제거하고 저자의 이름이 ‘, ’로 구분되도록 수집하세요. (아래 예시에서는 J.K. Rowling, Mary GrandPre (Illustrator)와 같이 수집)
+              tmp_author = tmp_contentDtl %>% html_nodes(xpath = '//*[@id="bookAuthors"]') %>% html_text() %>% gsub("\\s+", " ", .) %>% gsub("\"", "", .) %>% str_trim
+              
+              # [Step 10] 서적의 평점을 수집하는 코드를 작성하세요. 평점에 공백이 존재할 경우 제거하여 수집하도록 코드를 작성하세요.
+              tmp_score = tmp_contentDtl %>% html_nodes(xpath = '//*[@id="bookMeta"]/span[2]') %>% html_text() %>% gsub("\\s+", " ", .) %>% gsub("\"", "", .) %>% str_trim %>% readr::parse_number()
+              
+              # [Step 11] 서적의 총 평점 개수를 수집하는 코드를 작성하세요. 평점의 개수는 정수의 형태로 수집되도록 코드를 작성하세요. (아래 예시에서는 7071903)
+              tmp_ratingNum = tmp_contentDtl %>% html_nodes(xpath = '//*[@id="bookMeta"]/a[2]/meta') %>% html_attr("content") %>% gsub("\\s+", " ", .) %>% gsub("\"", "", .) %>% str_trim %>% readr::parse_number()
+              
+              # [Step 12] 서적의 총 리뷰 개수를 수집하는 코드를 작성하세요. 리뷰의 개수는 정수의 형태로 수집되도록 코드를 작성하세요. (아래의 예시에서는 112684)
+              tmp_reviewNum = tmp_contentDtl %>% html_nodes(xpath = '//*[@id="bookMeta"]/a[3]/meta') %>% html_attr("content") %>% gsub("\\s+", " ", .) %>% gsub("\"", "", .) %>% str_trim %>% readr::parse_number()
+              
+              # [Step 13] 서적의 요약문을 수집하는 코드를 작성하세요. 페이지에 보이는 부분만을 수집하는 코드를 작성하면 됩니다. (아래 예시에서는 “…more”까지) 두 칸 이상의 공백이 존재할 경우 일괄적으로 한 칸 공백으로 변경하고, 앞 뒤에 여백이 있을 경우 제거하세요. 만일 요약문이 존재하지 않으면 한 칸 공백 (“ ”)를 수집된 요약문으로 간주하도록 코드를 작성하세요.
+               tmp_summary = tmp_contentDtl %>% html_nodes(xpath = '//*[@id="description"]') %>% html_text() %>% gsub("\\s+", " ", .) %>% gsub("\"", "", .) %>% str_trim
+               
+               if (str_length(tmp_summary) < 1) { tmp_summary = "" }
+               
+               tmp_bookData = tibble::tibble(
+                 cnt = cnt
+                 , title = tmp_title
+                 , author = tmp_author
+                 , score = tmp_score
+                 , raingNumber = tmp_ratingNum
+                 , reviewNumber  = tmp_reviewNum
+                 , summary = tmp_summary
+               )
+               
+               bookData = dplyr::bind_rows(bookData, tmp_bookData)
+          }
+          , error = function(e) {
+            
+            print("An error occurs, skip the revie")
+            
+              # cat(sprintf(
+              #   "%s : %s"
+              #   , "An error occurs, skip the revie"
+              #   , e
+              # ), "\n")
+          }
+          , finally = {
+              cnt = cnt + 1
+            
+              cat(sprintf(
+                "keywordInfo : %10s | pageInfo : %5s | cnt : %5s"
+                , keywordInfo
+                , pageInfo
+                , cnt
+              ), "\n")
+          }
+        )
+    }
+  
+  }
+  tmp_multiBookData = tibble::tibble(keyword = keywordInfo, bookData)
+  multiBookData = dplyr::bind_rows(multiBookData, tmp_multiBookData)
+}
+
+
+# [Step 14] Step 8 ~ Step 13의 결과를 이용하여 수집된 Data를 DataFrame 형태로 변환한 뒤 csv파일로 저장하세요. 이 때, 파일 이름은 “books.csv”로 설정하세요. 해당 파일은 본 과제의 제출물 중 하나입니다
+saveFile = sprintf("%s/%s", globalVar$outConfig, "books2.csv")
+readr::write_csv(bookData, file = saveFile)
+
+# [Step 15] Step 14의 결과는 정해진 1개의 Keyword인 “harry potter”로 검색했을 때 등장하는 모든 서적에 대한 제목, 저자, 평점, 평점의 수, 리뷰의 수, 요약문입니다. 이후의 Step에서는 복수 개의 Keyword에 대해 등장하는 모든 서적을 수집하고자 합니다. Good Reads 웹 사이트(https://www.goodreads.com/)로 돌아가서 중앙에 검색 키워드를 “the chronicles of narnia”, “the lord of the rings”로 변화시켜 가며 URL의 패턴을 파악하세요.
+saveFile = sprintf("%s/%s", globalVar$outConfig, "multi_books2.csv")
+readr::write_csv(multiBookData, file = saveFile)
+
+# [Step 16] 문제 3의 결과를 참고하여, modify_url 함수를 사용해 검색 키워드에 따라 페이지에 접근할 수 있는 URL을 만들어 보세요.
+# Hint modify_url(url, query = list(q = search_keyword))
+
+# [Step 17] 검색 키워드 “deep learning”, “machine learning”, “natural language processing”에 대해 수행되는 반복문을 작성하고, Step 16의 결과와 Step 14까지 작성한 코드를 바탕으로 자동적으로 3개 키워드에 대해 검색된 서적의 제목, 저자, 평점, 평점의 수, 리뷰의 수, 요약문을 수집하는 코드를 작성하세요. 수집된 결과가 검색 Keyword로 구분될 수 있도록 별도의 Column을 만들어 DataFrame을 만들고, 결과를 “multi_books.csv”로 저장하세요. 해당 파일은 본 과제의 제출물 중 하나입니다.
+# Hint: 단순 반복문으로도 Step 17을 수행할 수 있지만, 필요하다면 함수를 사용하세요.
+# Hint: books.csv와 multi_books.csv의 예시는 각각 다음과 같습니다. 임의로 몇 개의 Row를
+# 제거했으므로 수집 내용은 고려하지 마세요.
+
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+serviceName = "LSH0084"
+
+library(ISwR)
+library(parameters)
+library(tidyverse)
+library(lme4)
+library(glmmTMB)
+library(Metrics)
+
+#=========================================================================================
+# 3. red.cell.folate 데이터는 ventilation 방법에 따른 folate 수치를 비교한 데이터이다.
+#=========================================================================================
+data(red.cell.folate)
+
+#*************************************************************************************
+# (a) ventilation 종류에 따른 folate 값을 비교하는 크루스칼-윌리스 검정을 시행하여라.
+#*************************************************************************************
+# 등분산 가정
+pairwiseTest = pairwise.t.test(red.cell.folate$folate, red.cell.folate$ventilation, pool.sd = TRUE, conf.level = 0.95)
+
+#*************************************************************************************
+# (b) 등분산인지 검정하고 등산분이 아닐 때의 검정을 시행해보아라
+#*************************************************************************************
+# P값이 0.3508로서 귀무가설 기각하지 못함 (분산은 유사하다 == 등분산)
+bartlett.test(red.cell.folate$folate ~ red.cell.folate$ventilation)
+
+#*************************************************************************************
+# (c) 앞서 분석한 것을 살펴보고 ventilation 종류별로 차이가 있는지 없는지 95% 신뢰도에서 결론을 말하여라
+#*************************************************************************************
+# P값이 0.0417로서 귀무가설 기각 (N2O+O2,24h과 N2O+O2,op 그룹의 평균은 다르다)
+# P값이 0.3095로서 귀무가설 기각하지 못함 (N2O+O2,24h과 O2,24h 그룹의 평균은 같다)
+
+
+#=========================================================================================
+# 17. 다음 물음에 답하여라
+#=========================================================================================
+
+#*************************************************************************************
+# (a) log(bwt)를 log(bpd)와 log(ad)로 다항회귀를 해보아라. 계수를 살펴보고 계수의 근삿값을 통해
+# bwt를 bpd와 ad로 구하는 공식을 만들어보아라.
+#*************************************************************************************
+lmFit = lm(log(bwt) ~ log(bpd) + log(ad), data = secher)
+summary(lmFit)
+
+# log 기반으로 회귀계수 : log(bpd), log(ad)
+lmFit$coefficients
+
+# 회귀계수 : bpd, ad
+exp(lmFit$coefficients)
+
+#*************************************************************************************
+# (b) cystfibr 데이터의 height에 관한 이차 함수로 pemax를 근사해보아라
+#*************************************************************************************
+lmFit = lm(pemax ~ height + I(height^2) + I(height^3), data = cystfibr)
+
+summary(lmFit)
+
+#*************************************************************************************
+# (c) newdata와 predict 함수를 사용하여 pemax를 추정해보아라.
+#*************************************************************************************
+# 훈련 및 데이터 셋을 60:40으로 나누기 위한 인덱스 설정
+ind = sample(1:nrow(cystfibr), nrow(cystfibr) * 0.6)
+
+# 해당 인덱스에 따라 자료 할당
+testData = cystfibr[-ind,]
+
+# 실제 pemax
+yObs = testData$pemax
+
+# 예측 pemax
+yHatPred = predict(lmFit, newdata = testData)
+
+plot(yHatPred, yObs)
+
+#+++++++++++++++++++++++++++++
+# 검증 지수
+#+++++++++++++++++++++++++++++
+# 상관계수
+cor(yHatPred, yObs)
+
+# Bias
+Metrics::bias(yHatPred, yObs)
+
+# RMSE
+Metrics::rmse(yHatPred, yObs)
+
+
+#=========================================================================================
+# 19. malaria 데이터는 여러 요인에 따른 말리리아 감염에 관한 데이터이다.
+#=========================================================================================
+#*************************************************************************************
+# (a) malaria 질병 데이터에 대하여 말라리아 발생을 log (ab)와 age로 설명하는 logistic 모델을 세우고 회귀식을 구하여라.
+#*************************************************************************************
+
+# 회귀식 = (-0.6823 * log(ab)) + (-0.065 * age) + 2.572
+glmFit = glm(mal ~ log(ab) + age, data = malaria, family = binomial)
+summary(glmFit)
+
+#*************************************************************************************
+# (b) newdata 용법과 predict 함수를 사용하여 예측해 보아라
+#*************************************************************************************
+#+++++++++++++++++++++++++++++++++++++++
+# 테스트 데이터로 newdata 설정
+#+++++++++++++++++++++++++++++++++++++++
+# 훈련 및 데이터 셋을 60:40으로 나누기 위한 인덱스 설정
+ind = sample(1:nrow(malaria), nrow(malaria) * 0.6)
+
+# 해당 인덱스에 따라 자료 할당
+testData = malaria[-ind,]
+
+# 실제 말라리아 발생률
+yObs = as.numeric(as.character(testData$mal))
+
+# 테스트셋을 이용한 예측 퇴직여부
+yHatPred = predict.glm(glmFit, newdata = testData, type = "response")
+yHatCate =ifelse(yHatPred > 0.5, 1, 0)
+
+#+++++++++++++++++++++++++++++
+# 검증 지수
+#+++++++++++++++++++++++++++++
+# 검증 측정을 위한 기초 설정
+lmPred = ROCR::prediction(yHat, yObs)
+
+# ROC 커브를 위한 설정
+perform = ROCR::performance(lmPred, "tpr", "fpr")
+plot(perform, main = 'ROC Curve')
+
+# AUC 측정 : 1에 가까울수록 최고 성능 : 0.6927
+ROCR::performance(lmPred, "auc")@y.values[[1]]
+
+# 이항편차 측정 : 낮을수록 좋음 : 5.54
+abdiv::binomial_deviance(yObs, yHat)
+
+#*************************************************************************************
+# (c) confint 함수를 사용하여 95% 신뢰구간을 구해보아라. 이를 그래프로 표현해 보아라.
+#*************************************************************************************
+# confint(glmFit, level = 0.95)
+glmFitParam = model_parameters(glmFit)
+
+ggplot(data = glmFitParam, aes(x = reorder(Parameter, desc(Parameter)))) + 
+  geom_pointrange(aes(y = Coefficient, ymin = CI_low, ymax = CI_high)) + 
+  geom_hline(yintercept = 0, lty = 2) + 
+  coord_flip() + 
+  xlab("Parameter") + 
+  ylab("Estimate")
+
+
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+serviceName = "LSH0085"
+
+library(tidyverse)
+library(lubridate)
+library(openxlsx)
+library(fs)
+library(astsa)
+library(tseries)
+library(ggrepel)
+
+# globalVar = new.env()
+# globalVar$inpConfig  = "."
+# globalVar$outConfig  = "."
+# globalVar$figConfig  = "."
+
+#=================================================
+# 1. Arima 모형을 이용한 데이터의 계절조정
+#=================================================
+fileInfo = Sys.glob(paste(globalVar$inpConfig, "빈일자리(계절조정필요).xlsx", sep = "/"))
+data = openxlsx::read.xlsx(fileInfo, sheet = 2)
+# 시점	빈일자리_전체 (명)
+# 2010 1/4	218,500
+# 2010 2/4	213,181
+
+# 사분기 자료 생성
+tsData = ts(data$val, start = c(2010, 1), frequency = 4)
+
+autoplot(tsData)
+
+
+# STL은 다양한 상황에서 사용할 수 있는 강력한 시계열 분해 기법입니다. STL은 “Seasonal and Trend decomposition using Loess(Loess를 사용한 계절성과 추세 분해)”의 약자입니다. 여기에서 Loess는 비선형 관계를 추정하기 위한 기법입니다. STL기법은 R. B. Cleveland, Cleveland, McRae, & Terpenning (1990) 가 개발하였습니다.
+# STL은 고전적인 분해, SEATS, X11을 뛰어넘는 몇 가지 장점을 가지고 있습니다:
+# SEAT와 X11과는 다르게, STL은 월별이나 분기별 데이터를 포함하여 어떤 종류의 계절성도 다룰 수 있습니다.
+# 계절적인 성분이 시간에 따라 변해도 괜찮습니다. 계절성분의 변화율을 사용자가 조절할 수 있습니다.
+# 추세-주기의 매끄러운 정도를 사용자가 조절할 수 있습니다.
+# 가끔 있는 이상값이 추세-주기와 계절성분에 영향을 주지 않게 만들 수 있습니다(즉, 사용자가 강력한 분해법을 명시할 수 있습니다). 하지만, 이상값은 나머지 성분(remainder)에 영향을 줄 것입니다.
+
+# 옵션 정보
+# https://www.rdocumentation.org/packages/stats/versions/3.6.2/topics/stl
+
+# 계절 조정
+decomp = stl(log(tsData), s.window="periodic")
+seasonData = exp(forecast::seasadj(decomp))
+
+saveImg = sprintf("%s/Img_%s_%02d_%s.png", globalVar$figConfig, serviceName, 1, "빈 일자리에 대한 계절조정 시계열")
+
+autoplot(cbind("원본" = tsData, "계절 조정" = seasonData)) +
+  labs(
+    x = "년도"
+    , y = "빈 일자리 [명]"
+  ) +
+  theme(
+    text = element_text(size = 18)
+    , legend.position = "top"
+    , plot.margin=unit(c(0, 4, 0, 0), "mm")
+  ) +
+  ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
+
+# # 시계열 분해 그래프 생성
+# autoplot(decompose(tsData))
+# 
+# 
+# # 시계열 안정성 진단 및 검정
+# # P값이 0.4548로서 귀무가설 기각하지 못함 (비정상 시계열)
+# adf.test(tsData, alternative = c("stationary"), k = 0)
+# # Dickey-Fuller = -2.3005676, Lag order = 0, p-value = 0.454803
+# 
+# Box.test(tsData, type = c("Ljung-Box"))
+# # X-squared = 29.011223, df = 1, p-value = 7.19602e-08
+# 
+# # 로그 차분
+# tsDataL1 = diff(log(tsData))
+# 
+# plot(tsDataL1)
+# 
+# adf.test(tsDataL1, alternative = c("stationary"), k = 0)
+# # Dickey-Fuller = -5.3588359, Lag order = 0, p-value = 0.01
+# 
+# Box.test(tsDataL1, type = c("Ljung-Box"))
+# # X-squared = 0.24728101, df = 1, p-value = 0.6189961
+# 
+# #***********************************
+# #  자기 상관성 진단
+# #***********************************
+# fit = auto.arima(tsData)
+# 
+# summary(fit)
+# Box.test(fit$residuals, type = c("Ljung-Box"))
+# 
+# predData = forecast::stlf(tsData)
+# summary(predData)
+# 
+# fit <- stl(tsData, t.window=13, s.window="periodic",
+#            robust=TRUE)
+# 
+# seasadj(fit)
+# fit %>% seasadj() %>% naive() %>%
+#   autoplot() + ylab("신규 구매 지수") +
+#   ggtitle("계절성으로 조정된 데이터의 단순 예측값")
+# 
+# autoplot(predData)
+# 
+# 
+# predData = stl(tsData)
+# summary(predData)
+# 
+# autoplot(predData)
+# 
+# 
+# tsData %>%
+#   stl(t.window=13, s.window="periodic", robust=TRUE) %>%
+#   autoplot()
+# 
+# 
+# 
+# library(seasonal)
+# 
+# predData = tsData %>%
+#   seas(x11 = "")
+# 
+# seasadj(predData)
+# 
+# autoplot(tsData) +
+#   autolayer(trendcycle(predData), series="추세") +
+#   autolayer(seasadj(predData), series="계절성으로 조정된 것") +
+#   ggtitle("전자 장비 지수의 X11 분해")
+# 
+# # 5년 후까지 예측
+# # pred = predict(fit, n.ahead = 5 * 4)
+# # 
+# # ts.plot(tsData, exp(pred$pred), log = "y")
+# 
+# 
+# 
+# plot.ts(tsData, type='o', xlab="시간", ylab="주당 수익", main="J&J의 주당 수익")
+# 
+# 
+# logz = log(tsData)                 #로그수익 
+# dlogz = diff(logz)             #로그 수익의 1차 차분(즉 로그 수익률) 
+# Ddlogz = diff(dlogz, 4)        #주기 4 계절 차분
+# plot.ts( cbind(tsData, logz, dlogz, Ddlogz), main="", type='o') #시도표
+# 
+# 
+# 
+# # 자기 상관계수
+# acf2(Ddlogz, 24)
+# 
+# sarima()
+# 
+# autoplot(decompose(dataL1$value))
+
+#=================================================
+# 2. 베버리지 곡선 그래프 나타내는 법
+#=================================================
+fileInfo = Sys.glob(paste(globalVar$inpConfig, "데이터.csv", sep = "/"))
+emptyData = readr::read_csv(file = fileInfo, locale = locale("ko", encoding = "EUC-KR")) 
+
+# 계절 조정된 데이터를 이용한 결원률
+dataL1$yAxis
+# 실업률
+dataL1$xAxis
+
+dataL1$time
+
+# 2010 1/4 > Q1 > 2010.25
+# 2010 2/4 > Q2 > 2010.50
+
+dataL1 = emptyData %>%
+  dplyr::bind_cols(tibble(seasonData)) %>%
+  dplyr::mutate(
+    yAxis = (seasonData / `경제활동인구 (명)`) * 100.0
+  ) %>%
+  dplyr::rename(
+    "xAxis"  = `실업률 (%)`
+  ) %>%
+  dplyr::mutate(
+    sDate = stringr::str_sub(time, 1, 4)
+    , dtDate = readr::parse_date(sDate, "%Y")
+    , xran = readr::parse_number(sDate) + (readr::parse_number(stringr::str_sub(time, 6, 6)) / 4)
+    , dtYear = lubridate::year(dtDate)
+    , type = stringr::str_c("Q", stringr::str_sub(time, 6, 6))
+    , label = stringr::str_c(stringr::str_sub(time, 3, 4), type)
+    # , isDum = ifelse(xran >= 2014, 1, 0)
+    , isDum = ifelse(xran >= 2015, 1, 0)
+  )
+
+dataL1$xran
+dataL1$dtYear
+dataL1$dtYear
+
+
+saveImg = sprintf("%s/Img_%s_%02d_%s.png", globalVar$figConfig, serviceName, 2, "베버리지 곡선")
+
+ggplot(dataL1, aes(x = xAxis, y = yAxis, colour = factor(dtYear))) + 
+  geom_path() +
+  geom_point(data = dataL1, aes(shape = type), size = 3) +
+  # ggrepel::geom_text_repel(aes(label = label)) +
+  ggrepel::geom_label_repel(aes(label = label), show.legend = FALSE) +
+  labs(
+    x = "실업률 [%]"
+    , y = "결원율 [%]"
+    , fill = NULL
+    , colour = NULL
+    , title  = NULL
+    , subtitle = NULL
+    , caption = NULL
+  ) +
+  theme(
+    text = element_text(size = 18)
+    # , legend.position = "none"
+    # , plot.margin=unit(c(4, 4, 4, 4), "mm")
+    ) +
+  ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
+
+#=================================================
+# 3. 데이터 분석한 R 스크립트(회귀분석+더미변수)
+#=================================================
+
+# 종속변수 : 계절 조정된 데이터를 이용한 결원률
+# 독립변수 : xran 
+lmFit = lm(yAxis ~ xran * isDum, data = dataL1)
+# lmFit = lm(yAxis ~ xran + isDum + xran * isDum, data = dataL1)
+summary(lmFit)
+
+# 통계 계수
+# round(coef(lmFit), 2)
+
+#*************************************************
+# 2014년 이후 : 통계적 유의 X
+#*************************************************
+# Call:
+#   lm(formula = yAxis ~ xran * isDum, data = dataL1)
+# 
+# Residuals:
+#   Min       1Q   Median       3Q      Max 
+# -0.18525 -0.08612  0.00471  0.06709  0.15785 
+# 
+# Coefficients:
+#   Estimate Std. Error t value Pr(>|t|)
+# (Intercept) 69.408090  47.271926    1.47     0.15
+# xran        -0.034175   0.023495   -1.45     0.15
+# isDum       -0.084247  50.783268    0.00     1.00
+# xran:isDum   0.000165   0.025231    0.01     0.99
+# 
+# Residual standard error: 0.0983 on 39 degrees of freedom
+# Multiple R-squared:  0.339,	Adjusted R-squared:  0.288 
+# F-statistic: 6.65 on 3 and 39 DF,  p-value: 0.000976
+
+
+#*************************************************
+# 2015년 이후 : 통계적 유의 O
+#*************************************************
+# Coefficients:
+#   Estimate Std. Error t value Pr(>|t|)  
+# (Intercept)   2.378114  32.146424    0.07    0.941  
+# xran         -0.000852   0.015973   -0.05    0.958  
+# isDum       102.713170  39.348896    2.61    0.013 *
+#   xran:isDum   -0.050876   0.019535   -2.60    0.013 *
+#   ---
+#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+# 
+# Residual standard error: 0.0953 on 39 degrees of freedom
+# Multiple R-squared:  0.378,	Adjusted R-squared:  0.33 
+# F-statistic: 7.89 on 3 and 39 DF,  p-value: 0.000312
+
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+serviceName = "LSH0086"
+
+library(tidyverse)
+library(lubridate)
+library(openxlsx)
+
+#*****************************************************
+# 예시 파일 읽기
+#*****************************************************
+fileInfo = Sys.glob(paste(globalVar$inpConfig, "예시.xlsx", sep = "/"))
+data = openxlsx::read.xlsx(fileInfo, sheet = 1)
+
+# model 값이 obs 값과 유사한 값으로 재배열되어야 합니다. 
+# 엑셀에서는 다음과 같이 필터를 사용하여 계산되었습니다.
+# 1. Month를 1부터 432개로 변경한다.
+# 2. obs값을 오름차순으로 변경한다.(month의 변동이 생김)-ABC행만을 필터로 포함
+# 3. model값을 오름차순으로 변경한다.
+# 4. 마지막 ABCD를 모두 필터하여 month를 오름차순한다. 
+# 이 순서로하였습니다.
+# R로 구현가능할까요?
+
+tmpData = data %>%
+  dplyr::select(model) %>%
+  dplyr::arrange(model)
+
+dataL1 = data %>%
+  dplyr::select(-model) %>%
+  tibble::rowid_to_column() %>%
+  dplyr::arrange(obs) %>%
+  dplyr::bind_cols(tmpData) %>%
+  dplyr::arrange(rowid)
+
+
+#*****************************************************
+# 동적 파일 읽기
+#*****************************************************
+fileInfo = Sys.glob(paste(globalVar$inpConfig, "ACCESS1-3+1970-2005BG.csv", sep = "/"))
+modelData = readr::read_csv(file = fileInfo, locale = locale("ko", encoding = "UTF-8")) %>%
+  dplyr::select(-X1)
+
+fileInfo = Sys.glob(paste(globalVar$inpConfig, "real1970-2005.csv", sep = "/"))
+obsData = readr::read_csv(file = fileInfo, locale = locale("ko", encoding = "UTF-8"))
+
+seqList = seq(1, 22)
+dataL2 = tibble::tibble()
+dataL3 = tibble::tibble()
+
+seqInfo = 2
+
+for (seqInfo in seqList) {
+  colModelName = colnames(modelData)[seqInfo]
+  colObsName = colnames(obsData)[seqInfo]
+  
+  modelDataL1 = modelData %>%
+    dplyr::select(colModelName) %>%
+    dplyr::rename(
+      "model" = colModelName
+    ) %>%
+    dplyr::arrange(model)
+   
+   
+  obsDataL1 = obsData %>%
+    dplyr::select(colObsName) %>%
+    dplyr::rename(
+      "obs" = colObsName
+    ) %>%
+    tibble::rowid_to_column() %>%
+    dplyr::arrange(obs) %>%
+    dplyr::bind_cols(modelDataL1) %>%
+    dplyr::arrange(rowid) %>%
+    dplyr::bind_cols(colModelName = colModelName, colObsName = colObsName)
+  
+  dataL2 = dplyr::bind_rows(dataL2, obsDataL1)
+  
+  obsDataL2 = obsDataL1 %>%
+    dplyr::select(obs, model)
+  
+  if (seqInfo == 1) {
+    dataL3 = obsDataL2
+  } else {
+    dataL3 = dplyr::bind_cols(dataL3, obsDataL2)
+  }
+}
+
+saveFile1 = sprintf("%s/%s", globalVar$outConfig, "Row_Data_From_Model_Obs.csv")
+readr::write_csv(dataL2, file = saveFile1)
+
+saveFile2 = sprintf("%s/%s", globalVar$outConfig, "Col_Data_From_Model_Obs.csv")
+readr::write_csv(dataL3, file = saveFile2)
+
+
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+serviceName = "LSH0087"
+
+# 제출내용 : R 파일 (1번~8번, 10번 문제를 수행한 코드) 1개, 9번 문제 는 #을 여러개 이용하여 설명하시오.
+# 학번 :                                , 이름 : 
+  
+if(!require("gapminder")) {install.packages("gapminder"); library(gapminder)}
+if(!require("dplyr")) {install.packages("dplyr"); library(dplyr)}
+if(!require(ggplot2)) {install.packages("ggplot2"); library(ggplot2)} 
+library(ggrepel)
+library(tidyverse)
+
+options("scipen"=100, "digits"=4)
+
+data(gapminder)
+
+# 변수 설명
+# country : 국가이름
+# continent : 국가가 속한 대륙의 이름
+# year : 연도
+# lifeExp : Life Expectancy, 기대 수명
+# pop : Population, 인구수
+# gdpPercap : GDP per capita, 1인당 국내 총생산액
+
+# 1. 기본 폴더를 C:\data\ 로 정하시오.
+
+# 2. 파일 구조보기
+str(gapminder)
+
+# 3. 데이터에 대한 요약 함수 사용
+
+# 4. 변수별 결측값 계산
+
+# 5. 대륙별 평균 gdpPercap을 평균 gdpPercap가 높은 대륙부터 정렬하여 출력
+gapminder %>%
+  dplyr::group_by(continent) %>%
+  dplyr::summarise(meanGdp = mean(gdpPercap, na.rm = TRUE)) %>%
+  dplyr::arrange(desc(meanGdp))
+
+# 6. 국가별 gdp라는 변수를 생성하여 국내 총생산액을 계산하고 gdp.csv 라는 파일명으로 저장하시오.
+# gdp는 pop와 gdpPercap의 곱으로 계산하시오.
+gdpData = gapminder %>%
+  dplyr::mutate(gdp = pop * gdpPercap)
+
+# globalVar = new.env()
+# globalVar$outConfig = "."
+saveFile = sprintf("%s/%s", globalVar$outConfig, "gdp.csv")
+readr::write_csv(gdpData, file = saveFile)
+
+# gdpData %>%
+#   dplyr::group_by(country) %>%
+#   dplyr::summarise(
+#     sumGdp = sum(gdp, na.rm = TRUE)
+#   ) %>%
+#   dplyr::arrange(desc(sumGdp))
+ 
+# 7. 대륙별 gdp 합을 계산하여 gdp_sum이라는 변수에 저장하고 continent_gdp_sum.csv 라는 이름으로 저장하세요.
+continentGdpData = gapminder %>%
+  dplyr::mutate(gdp = pop * gdpPercap) %>%
+  dplyr::group_by(continent) %>%
+  dplyr::summarise(
+    gdp_sum = sum(gdp, na.rm = TRUE)
+  ) 
+
+# globalVar = new.env()
+# globalVar$outConfig = "."
+saveFile = sprintf("%s/%s", globalVar$outConfig, "continent_gdp_sum.csv")
+readr::write_csv(continentGdpData, file = saveFile)
+
+# 8. gdp.csv에 저장된 데이터를 gdp라는 변수에 할당하시오.
+# gdp를 이용하여 year가 2007인 데이터만 추출하여 gdp_2007 변수에 할당하시오.
+# gdp_2007 데이터를 이용하여 그래프를 그리되 x축은 pop, y축은 lifeExp, size는 gdp, color는 continent로 지정하시오)
+gdp = gdpData
+
+gdp_2007 = gdp %>%
+  dplyr::filter(year == 2007)
+
+ggplot(data = gdp_2007, aes(x = pop, y = lifeExp, colour = continent, size = gdp)) +
+  geom_point()
+
+# gdp_2007 %>%
+#   dplyr::group_by(continent) %>%
+#   dplyr::summarise_all(funs(
+#     mean(., na.rm = TRUE) # 평균
+#   )) %>%
+#   dplyr::arrange(desc(gdp))
+
+# 9. 8번문제에서 나온 그림을 이용하여 다음에 대한 설명을 서술하시오.
+# 대륙별로 인구, 기대수명, gdp의 특징은 무엇인가?
+
+# 인구는 아시아, 미국, 유럽, 아프리카, 오세아니아 순으로 낮았고 
+# 기대수명의 경우 오세아니아, 유럽, 미국, 아시아, 아프리카 순으로 낮았다
+# 그리고 GDP는 미국, 아시아, 유럽, 오세아니아, 아프리카 순으로 낮았다.
+
+# 여기에 답을 추가하세요.
+
+# 10. gdp_2007 데이터를 이용하여 대륙별, 국가별로 x축은 인구, 
+# y축은 기대수명,점의 크기는 gdp가 나오게 그림을 그리시오.
+
+# 대륙별
+ggplot(data = gdp_2007, aes(x = pop, y = lifeExp, size = gdp)) +
+  geom_point() + 
+  facet_wrap( ~ continent, ncol = 3)
+  
+
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+serviceName = "LSH0088"
+
+library(tidyverse)
+library(ggplot2)
+library(lubridate)
+library(openxlsx)
+library(fs)
+library(shiny)
+library(ggpubr)
+library(GGally)
+library(rnaturalearth)
+library(sf)
+library(RColorBrewer)
+
+#************************************************
+# Set Env
+#************************************************
+# globalVar = new.env()
+
+# globalVar$inpConfig = "."
+# globalVar$figConfig = "."
+# globalVar$outConfig = "."
+
+# globalVar$inpConfig = "D:/04. TalentPlatform/Github/TalentPlatform-R/INPUT/o2job"
+# globalVar$figConfig = "D:/04. TalentPlatform/Github/TalentPlatform-R/FIG/o2job"
+# globalVar$outConfig = "D:/04. TalentPlatform/Github/TalentPlatform-R/OUTPUT/o2job"
+
+#===========================================================================
+# 1. Data Process
+#===========================================================================
+fileInfo1 = Sys.glob(paste(globalVar$inpConfig, "Corporate-Tax-Rates-Data-1980-2019.csv", sep = "/"))
+corporateTaxData = readr::read_csv(file = fileInfo1, locale = locale("ko", encoding = "UTF-8")) %>%
+  dplyr::select(-iso_2, -iso_3) %>%
+  dplyr::mutate(
+    country = dplyr::case_when(
+      stringr::str_detect(country, regex("United States of America")) ~ "United States"
+      , TRUE ~ country
+    )
+  ) %>%
+  readr::type_convert()
+
+fileInfo2 = Sys.glob(paste(globalVar$inpConfig, "HappyPlanetIndex.csv", sep = "/"))
+happyPlanetIndexData = readr::read_csv(file = fileInfo2, locale = locale("ko", encoding = "UTF-8")) %>%
+  dplyr::mutate(
+    Country = dplyr::case_when(
+      stringr::str_detect(Country, regex("United States of America")) ~ "United States"
+      , TRUE ~ Country
+    )
+  ) %>%
+  readr::type_convert() %>%
+  dplyr::rename(
+    "gdpPerCapita"  = "GDPperCapita"
+  )
+
+fileInfo3 = Sys.glob(paste(globalVar$inpConfig, "tax revenue GDP.xlsx", sep = "/"))
+taxRevenueGdpData  = openxlsx::read.xlsx(fileInfo3, sheet = 2) %>%
+  dplyr::na_if("..") %>%
+  tidyr::gather(-isOecd, -Country, key = "year", value = "perGdp") %>%
+  readr::type_convert()
+
+fileInfo4 = Sys.glob(paste(globalVar$inpConfig, "Gini.xlsx", sep = "/"))
+giniIndexData  = openxlsx::read.xlsx(fileInfo4, sheet = 2)  %>%
+  dplyr::na_if("..") %>%
+  tidyr::gather(-Country, -Methodology, -Unit, key = "year", value = "gini") %>%
+  dplyr::filter(Methodology == "New income definition since 2012") %>%
+  readr::type_convert()
+
+data = corporateTaxData %>%
+  dplyr::left_join(happyPlanetIndexData, by = c("country" = "Country")) %>%
+  dplyr::left_join(taxRevenueGdpData, by = c("country" = "Country", "year" = "year")) %>%
+  dplyr::left_join(giniIndexData, by = c("country" = "Country", "year" = "year")) %>%
+  dplyr::left_join(gapminder::country_codes, by = c("country" = "country"))
+
+dataL1 = data %>%
+  dplyr::select(country, year, gdp, perGdp, gini, gdpPerCapita, isOecd, iso_alpha, rate) %>%
+  rename("iso_a3" = "iso_alpha") %>%
+  dplyr::mutate(
+    dtDate = readr::parse_date(as.character(year), "%Y")
+  )
+
+#===========================================================================
+# 2. Shiny App
+#===========================================================================
+
+#**********************************************
+# a. 국가 선택 기능
+# b. 세금이나 Gini  Index 등 선택 가능
+# c. 연도 설정 가능
+#**********************************************
+dataL2 = dataL1 %>%
+  tidyr::gather(-c(country, year, isOecd, iso_a3, dtDate, rate), key = "type", value = "val")
+
+# ui = fluidPage(
+#   titlePanel("Table From country, type, year")
+#   , sidebarLayout(      
+#     sidebarPanel(
+#       selectInput(inputId = "country", label = "country : ", choices = unique(dataL2$country))
+#       , selectInput(inputId = "type", label = "type : ", choices = unique(dataL2$type))
+#       , selectInput(inputId = "year", label = "year : ", choices = unique(dataL2$year))
+#     )
+#     
+#     , mainPanel(
+#       tabPanel("table", DT::dataTableOutput("table"))
+#     )
+#   )
+# )
+# 
+# server = function(input, output) {
+#   
+#   output$table <- DT::renderDataTable({
+#     dataL2 %>%
+#       filter(
+#         country == input$country
+#         , year == input$year
+#         , type == input$type
+#       ) %>%
+#     DT::datatable()
+#   })
+# }
+# 
+# shinyApp(ui, server)
+
+shiny::runApp("ShinyApp")
+
+#===========================================================================
+# 3. Rmd
+#===========================================================================
+
+#**********************************************
+# a. 세계지도에 corporate tax, tax revenue GDP %, GDP 각각 시각화 (모든 국가, %별로 그라데이션 구분, 2019 자료)
+#**********************************************
+world = ne_countries(type = "countries",  returnclass = 'sf')
+
+dataL3 = world %>%
+  dplyr::left_join(dataL1, by = c("iso_a3" = "iso_a3")) %>%
+  dplyr::filter(
+    year == 2019
+    , ! is.na(iso_a3)
+  )
+
+valList = c("gdp", "perGdp", "gdpPerCapita", "rate")
+# valInfo = "rate"
+
+for (valInfo in valList) {
+  saveImg = sprintf("%s/Img_%s_%02d_%s.png", globalVar$figConfig, serviceName, 1, valInfo)
+  plotSubtitle = sprintf("2019년 %s 시각화", valInfo)
+  
+  ggplot(dataL3, aes_string(fill = valInfo)) +
+    geom_sf(data = world, fill = "#f0f0f0", colour = "white") +
+    geom_sf(alpha = 0.8, colour = "white", size = 0.1) +
+    scale_fill_gradientn(colours = brewer.pal(5, "Oranges"), na.value = NA) +
+    labs(title = NULL, subtitle = plotSubtitle, caption = NULL, x = NULL, y = NULL) +
+    theme_minimal() +
+    theme(text = element_text(size = 18)) +
+    ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
+}
+
+
+#**********************************************
+# b. 세계지도에  Gini Index, GDP per capita 각각 시각화(OECD국가)
+#**********************************************
+world = ne_countries(type = "countries",  returnclass = 'sf')
+
+dataL3 = world %>%
+  dplyr::left_join(dataL1, by = c("iso_a3" = "iso_a3")) %>%
+  dplyr::filter(
+    ! is.na(iso_a3)
+    , ! is.na(gini)
+    , ! is.na(gdpPerCapita)
+    , isOecd == "Yes"
+  )
+
+yearList = sort(unique(dataL3$year))
+valList = c("gini", "gdpPerCapita")
+# yearInfo = "1990"
+# valInfo  = "gini"
+
+for (valInfo in valList) {
+  for (yearInfo in yearList) {
+    
+    saveImg = sprintf("%s/Img_%s_%02d_%s_%s.png", globalVar$figConfig, serviceName, 2, yearInfo, valInfo)
+    plotSubtitle = sprintf("%s년 %s 시각화", yearInfo, valInfo)
+    
+    cat(saveImg, "\n")
+    
+    dataL4 = dataL3 %>%
+      dplyr::filter(year == yearInfo)
+    
+    if (nrow(dataL4) < 1) { next }
+    
+    ggplot(dataL4, aes_string(fill = valInfo)) +
+      geom_sf(data = world, fill = "#f0f0f0", colour = "white") +
+      geom_sf(alpha = 0.8, colour = "white", size = 0.1) +
+      scale_fill_gradientn(colours = brewer.pal(5, "Oranges"), na.value = NA) +
+      labs(title = NULL, subtitle = plotSubtitle, caption = NULL, x = NULL, y = NULL) +
+      theme_minimal() +
+      theme(text = element_text(size = 18)) +
+      ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
+  }
+}
+
+
+#**********************************************
+# c. Corporate tax 와 GDP/Corporate tax 와 GDP per capita 관계 시각화(분포도 등)
+#**********************************************
+saveImg = sprintf("%s/Img_%s_%02d_%s.png", globalVar$figConfig, serviceName, 3, "관계 시각화")
+
+ggData = dataL1 %>%
+  dplyr::select(gdp, perGdp, gini, gdpPerCapita) %>%
+  GGally::ggpairs(.) %>%
+  print(progress = FALSE)
+
+ggData +
+  theme(text = element_text(size = 18)) +
+  ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
+
+#**********************************************
+# d. Tax Revenue GDP%와 GINI 분포도
+#**********************************************
+saveImg = sprintf("%s/Img_%s_%02d_%s.png", globalVar$figConfig, serviceName, 4, "Tax Revenue GDP와 GINI 분포도")
+
+ggpubr::ggscatter(dataL1, x = "perGdp", y = "gini", color = "black", add = "reg.line", conf.int = TRUE, cor.coef = FALSE, add.params = list(color = "blue", fill = "lightblue")) +
+  ggpubr::stat_cor(method = "pearson", label.x = 0, label.y = 0.8, size = 5) +
+  ggpubr::stat_regline_equation(label.x = 0, label.y = 0.7, size = 5) +
+  ylim(0, 0.8) +
+  theme_bw() +
+  labs(title = NULL, x = "Tax Revenue GDP%", y = "GINI", fill = NULL, colour = NULL, subtitle = "Tax Revenue GDP%와 GINI 분포도") +
+  theme(
+    text = element_text(size = 18)
+    , legend.position = "none"
+  ) +
+  ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
+
+
+#**********************************************
+# e. 미국 Tax Revenue GDP% 와 GINI, GDP per capita 의 historical trend 시각화(시계열)
+#**********************************************
+dataL3 = dataL2 %>%
+  dplyr::filter(
+    type %in% c("perGdp", "gini", "gdpPerCapita")
+    , country == "United States"
+    )
+  
+saveImg = sprintf("%s/Img_%s_%02d_%s.png", globalVar$figConfig, serviceName, 5, "Tax Revenue GDP와 GINI 분포도")
+
+ggpubr::ggscatter(dataL3, x = "dtDate", y = "val", color = "type", add = "reg.line", conf.int = TRUE, cor.coef = FALSE, add.params = list(color = "blue", fill = "lightblue")) +
+    ggpubr::stat_cor(label.x.npc = 0.0, label.y.npc = 1.0, method = "pearson", size = 5) +
+    ggpubr::stat_regline_equation(label.x.npc = 0.0, label.y.npc = 0.90, size = 5) +
+    theme_bw() +
+    labs(title = NULL, x = "Date [Year]", y = "Value", fill = NULL, colour = NULL, subtitle = "미국 Tax Revenue GDP% 와 GINI, GDP per capita 의 historical trend") +
+    theme(
+      text = element_text(size = 18)
+      , legend.position = "none"
+    ) + 
+    facet_wrap( ~ type, scales = "free", ncol = 2) +
+    ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
+  
+
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+serviceName = "LSH0089"
+
+# log = log4r::create.logger()
+# log4r::logfile(log) = paste0(globalVar$logConfig, "/log4r_", format(Sys.time(), "%Y%m%d"), ".log")
+# log4r::level(log) = "INFO"
+
+# tryCatch(
+#   expr = {
+#     # 주 소스 코드
+#     log4r::info(log, sprintf("%s", "[START] Main R"))
+#     
+#   }
+#   , warning = function(warning) { log4r::warn(log, warning) }
+#   , error = function(error) { log4r::error(log, error) }
+#   , finally = {
+#     log4r::info(log, sprintf("%s", "[END] Main R"))
+#   }
+# )
+
+library(tidyverse)
+library(ggplot2)
+library(lubridate)
+library(openxlsx)
+library(fs)
+library(scales)
+
+#************************************************
+# Set Env
+#************************************************
+# globalVar = new.env()
+
+# globalVar$inpConfig = "."
+# globalVar$figConfig = "."
+# globalVar$outConfig = "."
+
+#************************************************
+# [openxlsx] Read
+#************************************************
+# data = openxlsx::read.xlsx(fileList, sheet = 1)
+
+#************************************************
+# [openxlsx] Write
+#************************************************
+# wb = openxlsx::createWorkbook()
+# 
+# openxlsx::addWorksheet(wb, "ggData")
+# openxlsx::writeData(wb, "ggData", ggData, startRow = 1, startCol = 1)
+
+# openxlsx::saveWorkbook(wb, file = paste0(globalVar$outConfig, "/Survery_LSH0078.xlsx"), overwrite = TRUE)
+
+#************************************************
+# File Info
+#************************************************
+# fileInfo = Sys.glob(paste(globalVar$inpConfig, "play.csv", sep = "/"))
+# data = readr::read_csv(file = fileInfo, locale = locale("ko", encoding = "UTF-8"))
+
+# nameList = sort(unique(geoData_L1$sigungu_name))
+# fileName = tools::file_path_sans_ext(fs::path_file(fileInfo))
+# if (nrow(dataL2) < 1) { next }
+
+
+# saveImg = sprintf("%s/Img_%s_%02d_%s.png", globalVar$figConfig, serviceName, 3, "관계 시각화")
+# saveImg = sprintf("%s/TMP3/Img_%s_%05d_%s_%s.png", globalVar$figConfig, serviceName, 3, "충청남도 시군구별 자원 분포도", nameInfo)
+
+#************************************************
+# Data Info
+#************************************************
+# dplyr::mutate(
+#   backColor = dplyr::case_when(
+#     stringr::str_detect(sigungu_name, regex("태안군|서산시|당진시")) ~ "1"
+#     , TRUE ~ "NA"
+#   )
+# )
+
+
+#==========================================================================
+# 취업률 : 2019.11월과 2020.11월 까지의 내용을 기간별 하나의 곡선그래프로 표기해서 2019와 2020 한눈에 비교 가능하게 정리
+#==========================================================================
+
+fileInfo1 = Sys.glob(paste(globalVar$inpConfig, "성_연령별_실업자_2019.xlsx", sep = "/"))
+tmpData1  = openxlsx::read.xlsx(fileInfo1, sheet = 1)
+
+fileInfo2 = Sys.glob(paste(globalVar$inpConfig, "성_연령별_실업자_2020.xlsx", sep = "/"))
+tmpData2  = openxlsx::read.xlsx(fileInfo2, sheet = 1)
+
+fileInfo3 = Sys.glob(paste(globalVar$inpConfig, "성_연령별_취업자_2019.xlsx", sep = "/"))
+tmpData3  = openxlsx::read.xlsx(fileInfo3, sheet = 1)
+
+fileInfo4 = Sys.glob(paste(globalVar$inpConfig, "성_연령별_취업자_2020.xlsx", sep = "/"))
+tmpData4  = openxlsx::read.xlsx(fileInfo4, sheet = 1)
+
+data = dplyr::bind_rows(
+  data.frame(type = "실업자", tmpData1, tmpData2)
+  , data.frame(type = "취업자", tmpData3, tmpData4)
+  ) %>%
+  dplyr::select(-성별.1, -연령계층별.1)
+
+dataL1  = data %>%
+  tidyr::gather(-type, -성별, -연령계층별, key = "sDate", value = "value") %>%
+  tidyr::spread(key = "성별", value = "value") %>%
+  dplyr::mutate(
+    dtDate = readr::parse_date(sDate, "X%Y..%m")
+    , dtYear = lubridate::year(dtDate)
+    , dtMonth = lubridate::month(dtDate)
+  ) %>%
+  dplyr::filter(
+    연령계층별 == "계"
+    )
+
+dataL2 = dataL1 %>%
+  dplyr::select(-남자, -여자) %>%
+  tidyr::spread(key = "type", value = "계") %>%
+  dplyr::mutate(
+    총계 = (실업자 + 취업자)
+    , 실업률 = (실업자 / 총계) * 100.0
+    , 취업률 = (취업자 / 총계) * 100.0
+  ) %>%
+  tidyr::gather(-연령계층별, -sDate, -dtDate, -dtYear, -dtMonth, -실업자, -취업자, -총계, key = "key", value = "value") %>%
+  dplyr::filter(
+    dplyr::between(dtMonth , 1, 11)
+  )
+
+#==========================================================================
+# 실업률 : 취업률과 동일
+#==========================================================================  
+saveImg = sprintf("%s/Img_%s_%02d_%s.png", globalVar$figConfig, serviceName, 1, "2019-2020년 1-11월 실업률-취업률")
+
+ggplot(dataL2, aes(x = dtMonth, y = value, colour = factor(dtYear))) +
+  geom_line(size = 2) +
+  labs(x = "월", y = "비율", color = NULL, subtitle = "2019-2020년 1-11월 실업률/취업률") +
+  scale_x_continuous(breaks = seq(1, 11, 1)) +
+  # scale_x_date(date_minor_breaks = "1 months", date_breaks = "1 months", date_labels = "%Y-%m") +
+  theme(
+    text = element_text(size = 18)
+    , legend.position = "top"
+    ) +
+  facet_wrap(~ key, scale = "free", ncol = 1) +
+  ggsave(filename = saveImg, width = 12, height = 8, dpi = 600)
+
+
+# saveImg = sprintf("%s/Img_%s_%02d_%s.png", globalVar$figConfig, serviceName, 2, "2019-2020년 1-11월 취업률")
+# 
+# ggplot(dataL2, aes(x = dtMonth, y = 취업률, colour = factor(dtYear))) +
+#   geom_line(size = 2) +
+#   labs(x = "월", y = "취업률 총계", color = NULL, subtitle = "2019-2020년 1-11월 취업률") +
+#   scale_x_continuous(breaks = seq(1, 11, 1)) +
+#   theme(text = element_text(size = 18)) +
+#   ggsave(filename = saveImg, width = 12, height = 8, dpi = 600)
+
+#==========================================================================
+# 취업률과 실업률 연령, 학력, 성별로 나눠서 막대그래프로 표기
+#==========================================================================
+
+#************************
+# 성별
+#************************
+dataL1  = data %>%
+  tidyr::gather(-type, -성별, -연령계층별, key = "sDate", value = "value") %>%
+  tidyr::spread(key = "성별", value = "value") %>%
+  dplyr::mutate(
+    dtDate = readr::parse_date(sDate, "X%Y..%m")
+    , dtYear = lubridate::year(dtDate)
+    , dtMonth = lubridate::month(dtDate)
+  ) %>%
+  dplyr::filter(
+    연령계층별 == "계"
+    )
+
+tmpData1 = dataL1 %>%
+  dplyr::select(-계, -여자) %>%
+  tidyr::spread(key = "type", value = "남자") %>%
+  dplyr::mutate(type = "남자")
+
+tmpData2 = dataL1 %>%
+  dplyr::select(-계, -남자) %>%
+  tidyr::spread(key = "type", value = "여자") %>%
+  dplyr::mutate(type = "여자")
+
+tmpData4 = dplyr::bind_rows(tmpData1, tmpData2)
+
+tmpData5 = tmpData4 %>%
+  dplyr::group_by(dtDate) %>%
+  dplyr::summarise(
+    총계 = sum(실업자, 취업자, na.rm = TRUE)
+  )
+
+dataL3 = tmpData4 %>%
+  dplyr::left_join(tmpData5, by = c("dtDate" = "dtDate"))  %>%
+  dplyr::mutate(
+    총계 = (실업자 + 취업자)
+    , 실업률 = (실업자 / 총계) * 100.0
+    , 취업률 = (취업자 / 총계) * 100.0
+  ) %>%
+  tidyr::gather(-c(연령계층별, sDate, dtDate, dtYear, dtMonth, 실업자, 취업자, type, 총계), key = "key", value = "value") %>%
+  dplyr::mutate(
+    xLabel = format(dtDate, "%Y-%m")
+  )
+
+saveImg = sprintf("%s/Img_%s_%02d_%s.png", globalVar$figConfig, serviceName, 3, "성별에 따른 실업률-취업률")
+
+ggplot(dataL3, aes(x = xLabel, y = value, fill = type, group = type, label = round(value, 0))) +
+  geom_bar(position = "dodge", stat = "identity") +
+  theme(legend.position = "top") +
+  # geom_text(size = 5, vjust = 1.6, hjust = 0.5, color = "white") +
+  labs(x = "월", y = "비율", fill = NULL, subtitle = "성별에 따른 실업률/취업률") +
+  # scale_x_continuous(breaks = seq(1, 11, 1)) +
+  theme(
+    text = element_text(size = 18)
+    , axis.text.x = element_text(angle = 45, hjust = 1)
+    ) +
+  facet_wrap(~ key, scale = "free", ncol = 1) +
+  ggsave(filename = saveImg, width = 8, height = 10, dpi = 600)
+
+
+#************************
+# 연령
+#************************
+dataL1  = data %>%
+  tidyr::gather(-type, -성별, -연령계층별, key = "sDate", value = "value") %>%
+  tidyr::spread(key = "연령계층별", value = "value") %>%
+  dplyr::mutate(
+    dtDate = readr::parse_date(sDate, "X%Y..%m")
+    , dtYear = lubridate::year(dtDate)
+    , dtMonth = lubridate::month(dtDate)
+  ) %>%
+  dplyr::filter(
+    성별 == "계"
+  )
+
+tmpData1 = dataL1 %>%
+  dplyr::group_by(dtDate) %>%
+  dplyr::summarise(
+    총계 = sum(c(`15 - 19세`, `15 - 24세`, `15 - 29세`, `15 - 64세`, `20 - 29세`, `30 - 39세`, `40 - 49세`, `50 - 59세`, `60세이상`), na.rm = TRUE)
+  )
+
+
+colnames(dataL3)
+dataL3 = dataL1 %>%
+  dplyr::left_join(tmpData1, by = c("dtDate" = "dtDate")) %>%
+  dplyr::mutate(
+    `15-19세` = (`15 - 19세` / 총계) * 100.0
+    , `15-24세` = (`15 - 24세` / 총계) * 100.0
+    , `15-29세` = (`15 - 29세` / 총계) * 100.0
+    , `20-29세` = (`20 - 29세` / 총계) * 100.0
+    , `30-39세` = (`30 - 39세` / 총계) * 100.0
+    , `40-49세`  = (`40 - 49세` / 총계) * 100.0
+    , `50-59세` = (`50 - 59세` / 총계) * 100.0
+    , `60세이상` = (`60세이상` / 총계) * 100.0
+  ) %>%
+  dplyr::select(-c(`15 - 19세`, `15 - 24세`, `15 - 29세`, `15 - 64세`, `20 - 29세`, `30 - 39세`, `40 - 49세`, `50 - 59세`)) %>%
+  tidyr::gather(-type, -성별, -sDate, -계, -dtDate, -dtYear, -dtMonth, -총계, key = "key", value = "value") %>%
+  dplyr::mutate(
+    xLabel = format(dtDate, "%Y-%m")
+  )
+
+saveImg = sprintf("%s/Img_%s_%02d_%s.png", globalVar$figConfig, serviceName, 4, "연령에 따른 실업률-취업률")
+
+ggplot(dataL3, aes(x = xLabel, y = value, fill = key, group = key, label = round(value, 0))) +
+  geom_bar(position = "dodge", stat = "identity") +
+  # geom_text(size = 5, vjust = 1.6, hjust = 0.5, color = "white") +
+  labs(x = "월", y = "비율", fill = NULL, subtitle = "연령에 따른 실업률/취업률") +
+  # scale_x_continuous(breaks = seq(1, 11, 1)) +
+  theme(
+    text = element_text(size = 18)
+    , axis.text.x = element_text(angle = 45, hjust = 1)
+    , legend.position = "top"
+  ) +
+  facet_wrap(~ type, scale = "free", ncol = 1) +
+  ggsave(filename = saveImg, width = 8, height = 10, dpi = 600)
+  
+
+#************************
+# 학력
+#************************
+fileInfo1 = Sys.glob(paste(globalVar$inpConfig, "연령_교육정도별_실업자_2019 분기.xlsx", sep = "/"))
+tmpData1  = openxlsx::read.xlsx(fileInfo1, sheet = 1) 
+
+fileInfo2 = Sys.glob(paste(globalVar$inpConfig, "연령_교육정도별_실업자_2020 분기.xlsx", sep = "/"))
+tmpData2  = openxlsx::read.xlsx(fileInfo2, sheet = 1)
+
+data = dplyr::bind_rows(
+  data.frame(tmpData1, tmpData2)
+  ) %>%
+  dplyr::select(-연령계층별.1, -교육정도별.1) %>%
+  dplyr::filter(
+    연령계층별 == "계"
+    , 교육정도별 != "계"
+  ) %>%
+  readr::type_convert()
+
+dataL3 = data %>%
+  tidyr::gather(-type, -교육정도별, -연령계층별, key = "sDate", value = "value") %>%
+  dplyr::mutate(
+    dtDate = readr::parse_date(sDate, "X%Y.%m.4")
+    , dtYear = lubridate::year(dtDate)
+    , dtMonth = lubridate::month(dtDate)
+  )  %>%
+  dplyr::mutate(
+    type = "실업자"
+    , xLabel = dplyr::case_when(
+      stringr::str_detect(sDate, regex(".1.4")) ~ "1분기"
+      , stringr::str_detect(sDate, regex(".2.4")) ~ "2분기"
+      , stringr::str_detect(sDate, regex(".3.4")) ~ "3분기"
+      , stringr::str_detect(sDate, regex(".4.4")) ~ "4분기"
+      , TRUE ~ "NA"
+      )
+    , key2 = stringr::str_trim(교육정도별)
+  )
+  
+
+saveImg = sprintf("%s/Img_%s_%02d_%s.png", globalVar$figConfig, serviceName, 5, "학력에 따른 실업자")
+
+ggplot(dataL3, aes(x = xLabel, y = value, fill = key2, group = key2, label = round(value, 0))) +
+  geom_bar(position = "dodge", stat = "identity") +
+  geom_text(position = position_dodge(width = 0.9), size = 4, vjust = 1.6, hjust = 0.5, color = "white") +
+  labs(x = "분기", y = "실업자", color = NULL, fill = NULL, subtitle = "학력에 따른 실업자") +
+  theme(
+    text = element_text(size = 18)
+    , axis.text.x = element_text(angle = 45, hjust = 1)
+    , legend.position = "top"
+  ) +
+  facet_wrap(~ dtYear, scale = "free", ncol = 1) +
+  ggsave(filename = saveImg, width = 12, height = 10, dpi = 600)
+
+
+#==========================================================================
+# 실업자 대비 구직급여 신청 동향 변동 각 년도별로 표기
+# (실업자는 막대그래프로 / 구직급여 신청 동행은 곡선그래프)
+#==========================================================================
+
+#*******************************************  
+# 실업자는 막대그래프
+#*******************************************
+fileInfo1 = Sys.glob(paste(globalVar$inpConfig, "성_연령별_실업자_2019.xlsx", sep = "/"))
+tmpData1  = openxlsx::read.xlsx(fileInfo1, sheet = 1)
+
+fileInfo2 = Sys.glob(paste(globalVar$inpConfig, "성_연령별_실업자_2020.xlsx", sep = "/"))
+tmpData2  = openxlsx::read.xlsx(fileInfo2, sheet = 1)
+
+data = dplyr::bind_rows(
+  data.frame(type = "실업자", tmpData1, tmpData2)
+) %>%
+  dplyr::select(-성별.1, -연령계층별.1) %>%
+  dplyr::filter(
+    성별 == "계"
+    , 연령계층별 == "계"
+  )
+
+dataL3 = data %>%
+  tidyr::gather(-type, -성별, -연령계층별, key = "sDate", value = "value") %>%
+  # tidyr::spread(key = "성별", value = "value") %>%
+  dplyr::mutate(
+    dtDate = readr::parse_date(sDate, "X%Y..%m")
+    , dtYear = lubridate::year(dtDate)
+    , dtMonth = lubridate::month(dtDate)
+  ) 
+
+saveImg = sprintf("%s/Img_%s_%02d_%s.png", globalVar$figConfig, serviceName, 1, "2019-2020년 실업자 막대 그래프")
+
+ggplot(dataL3, aes(x = dtDate, y = value, fill = value, group = value, label = round(value, 0))) +
+  geom_bar(position = "dodge", stat = "identity", alpha = 0.6) +
+  geom_text(position = position_dodge(width = 0.9), size = 4, vjust = 1.6, hjust = 0.5, color = "white") +
+  labs(x = "월", y = "실업자", color = NULL, fill = NULL, subtitle = "2019-2020년 실업자 막대 그래프") +
+  scale_x_date(date_minor_breaks = "1 months", date_breaks = "1 months", date_labels = "%Y-%m") +
+  guides(fill = guide_colourbar(barwidth = 20.0, barheight = 1.0)) +
+  scale_fill_gradientn(colours = rainbow(10)) +
+  theme(
+    text = element_text(size = 18)
+    , axis.text.x = element_text(angle = 45, hjust = 1)
+    , legend.position = "top"
+  ) +
+  facet_wrap(~ type, scale = "free") +
+  ggsave(filename = saveImg, width = 12, height = 8, dpi = 600)
+
+#*******************************************  
+# 구직급여 신청 동행은 곡선그래프
+#*******************************************
+fileInfo1 = Sys.glob(paste(globalVar$inpConfig, "구직급여_신청_동향_월__2019.xlsx", sep = "/"))
+tmpData1  = openxlsx::read.xlsx(fileInfo1, sheet = 1)
+
+fileInfo2 = Sys.glob(paste(globalVar$inpConfig, "구직급여_신청_동향_월__2020.xlsx", sep = "/"))
+tmpData2  = openxlsx::read.xlsx(fileInfo2, sheet = 1)
+
+data = dplyr::bind_rows(
+  data.frame(type = "구직자", tmpData1, tmpData2)
+) %>%
+  dplyr::select(-항목.1)
+  
+dataL1  = data %>%
+  tidyr::gather(-type, -항목, key = "sDate", value = "value") %>%
+  # tidyr::spread(key = "성별", value = "value") %>%
+  dplyr::mutate(
+    dtDate = readr::parse_date(sDate, "X%Y..%m")
+    , dtYear = lubridate::year(dtDate)
+    , dtMonth = lubridate::month(dtDate)
+  ) 
+
+saveImg = sprintf("%s/Img_%s_%02d_%s.png", globalVar$figConfig, serviceName, 2, "2019-2020년 실업자 대비 구직급여 신청 동향 변동")
+
+ggplot(dataL1, aes(x = dtDate, y = value, colour = factor(항목))) +
+  geom_line(size = 2) +
+  labs(x = "월", y = "신청 동향", color = NULL, subtitle = "2019-2020년 실업자 대비 구직급여 신청 동향 변동") +
+  scale_x_date(date_minor_breaks = "1 months", date_breaks = "1 months", date_labels = "%Y-%m") +
+  theme(
+    text = element_text(size = 18)
+    , axis.text.x = element_text(angle = 45, hjust = 1)
+    , legend.position = "top"
+  ) +
+  facet_wrap(~ 항목, scale = "free", ncol = 1) +
+  ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
