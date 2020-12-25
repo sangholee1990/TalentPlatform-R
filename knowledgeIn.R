@@ -1,7 +1,16 @@
 
 #=====================================
+# Init Env
+#=====================================
+rm(list=ls())
+
+#=====================================
 # Set Env
 #=====================================
+# Sys.setlocale("LC_ALL", "C")
+# options(encoding = "UTF-8")
+# Sys.setenv(LANG = "ko_KR.UTF-8")
+
 Sys.setlocale("LC_ALL", "Korean")
 options(encoding = "UTF-8")
 Sys.setenv(LANG = "ko_KR.UTF-8")
@@ -12,39 +21,156 @@ Sys.setenv(LANG = "ko_KR.UTF-8")
 
 globalVar = new.env()
 
-globalVar$optDig = 5
+globalVar$optDig = 10
 globalVar$memLimit = 9999999999999
 
 # config
 globalVar$config = getwd()
-globalVar$inpConfig = paste(globalVar$config, 'INPUT', 'knowledgeIn', sep='/')
-globalVar$figConfig = paste(globalVar$config, 'FIG', 'knowledgeIn', sep='/')
-globalVar$outConfig = paste(globalVar$config, 'OUTPUT', 'knowledgeIn', sep='/')
-globalVar$logConfig = paste(globalVar$config, 'LOG', 'knowledgeIn', sep='/')
-globalVar$systemConfig = paste(globalVar$config, 'CONFIG', 'system.cfg', sep='/')
+# globalVar$config = "."
+globalVar$inpConfig = paste(globalVar$config, 'INPUT', 'knowledgeIn', sep = '/')
+globalVar$figConfig = paste(globalVar$config, 'FIG', 'knowledgeIn', sep = '/')
+globalVar$outConfig = paste(globalVar$config, 'OUTPUT', 'knowledgeIn', sep = '/')
+globalVar$logConfig = paste(globalVar$config, 'LOG', 'knowledgeIn', sep = '/')
+globalVar$mapConfig = paste(globalVar$config, 'CONFIG', 'MAP_INFO', sep = '/')
+globalVar$systemConfig = paste(globalVar$config, 'CONFIG', 'system.cfg', sep = '/')
+globalVar$seleniumConfig = paste(globalVar$config, 'CONFIG', 'selenium', sep = '/')
+globalVar$fontConfig = paste(globalVar$config, 'CONFIG', 'FONT_INFO', sep = '/')
 
 # key
 configInfo = yaml::yaml.load_file(globalVar$systemConfig)
 globalVar$googleKey = configInfo$default$googleKey
-globalVar$dataKey =  configInfo$default$dataKey
+globalVar$dataKey = configInfo$default$dataKey
+globalVar$naverKeyId = configInfo$default$naverKeyId
+globalVar$naverKeyPw = configInfo$default$naverKeyPw
+globalVar$kakaoRestApiKey = configInfo$default$kakaoRestApiKey
+globalVar$gyeonggiDataKey = configInfo$default$gyeonggiDataKey
+globalVar$naverApigwApiKeyId = configInfo$default$naverApigwApiKeyId
+globalVar$naverApigwApiKey = configInfo$default$naverApigwApiKey
 
 utils::ls.str(globalVar)
 
 #=====================================
 # Set Fun
 #=====================================
+log = log4r::create.logger()
+log4r::logfile(log) = paste0(globalVar$logConfig, "/log4r_", format(Sys.time(), "%Y%m%d"), ".log")
+log4r::level(log) = "INFO"
+
+tryCatch(
+  
+  expr = {
+    # 주 소스 코드
+    log4r::info(log, sprintf("%s", "[START] Main R"))
+    
+  }
+  
+  , warning = function(warning) { 
+    log4r::warn(log, warning)
+  }
+  
+  , error = function(error) {
+    log4r::error(log, error)
+  }
+  
+  , finally = {
+    log4r::info(log, sprintf("%s", "[END] Main R"))
+  }
+)
+
+
+perfEval = function(x, y) {
+  
+  if (length(x) < 1) { return( sprintf("%s", "x 값 없음") ) }
+  if (length(y) < 1) { return( sprintf("%s", "y 값 없음") ) }
+  
+  slope = coef(lm(y ~ x))[2]
+  interp = coef(lm(y ~ x))[1]
+  xMean = mean(x, na.rm = TRUE)
+  yMean = mean(y, na.rm = TRUE)
+  xSd = sd(x, na.rm = TRUE)
+  ySd = sd(y, na.rm = TRUE)
+  cnt = length(x)
+  bias = mean(x - y, na.rm = TRUE)
+  rBias = (bias / yMean) * 100.0
+  rmse = sqrt(mean((x - y)^2, na.rm = TRUE))
+  rRmse = (rmse / yMean) * 100.0
+  r = cor(x, y)
+  r2 = cor(x, y)^2
+  diffMean = mean(x - y, na.rm = TRUE)
+  diffSd = sd(x - y, na.rm = TRUE)
+  # perDiffMean = mean((x - y) / y, na.rm = TRUE) * 100.0
+  
+  return( c(slope, interp, xMean, yMean, xSd, ySd, cnt, bias, rBias, rmse, rRmse, r, r2, diffMean, diffSd) )
+}
 
 #=====================================
 # Set Data
 #=====================================
 options(digits = globalVar$optDig)
+options(java.parameters = "-Xmx8192m")
 memory.limit(size = globalVar$memLimit)
 
 library(ggmap)
-ggmap::register_google(key=globalVar$googleKey)
+ggmap::register_google(key = globalVar$googleKey)
+
+
+#=====================================
+# Set Font
+#=====================================
+# 원도우에서 설치된 폰트 확인
+sysfonts::font_files() %>%
+  as.tibble() %>%
+  dplyr::filter(
+    stringr::str_detect(family, regex("KoPub|Century|Palatino"))
+    , stringr::str_detect(face, regex("Regular|Medium"))
+  )
+
+#******************************
+# 인코딩으로 인해 오류 발생
+#******************************
+# # 폰트 추가
+# extrafont::font_import(paths = globalVar$fontConfig, pattern = "NewCenturySchoolbook.ttf", prompt = FALSE)
+# extrafont::font_import(paths = globalVar$fontConfig, pattern = "pala.ttf", prompt = FALSE)
+
+# # 폰트 확인
+# extrafont::fonts()
+
+
+#******************************
+# 인코딩으로 인해 오류 발생
+#******************************
+# 인터넷 환경에서 구글 폰트 추가
+# font.add.google("Gochi Hand", "gochi")
+
+# 오프라인 환경에서 특정 경로에서 국/영문 폰트 추가
+# 영문 폰트
+sysfonts::font.add(family = "New Century Schoolbook", regular = paste(globalVar$fontConfig, "NewCenturySchoolbook.ttf", sep = "/"))
+sysfonts::font.add(family = "Palatino Linotype", regular = paste(globalVar$fontConfig, "pala.ttf", sep = "/"))
+
+# 국문 폰트
+sysfonts::font.add(family = "KoPubWorld Dotum Medium", regular = paste(globalVar$fontConfig, "KoPubWorld Dotum Medium.ttf", sep = "/"))
+
+library(showtext)
+
+# 폰트 읽기
+showtext_opts(dpi = 600)
+showtext::showtext.auto()
+
+# 폰트 확인
+sysfonts::font_families()
+
+font = "New Century Schoolbook"
+fontKor = "KoPubWorld Dotum Medium"
+fontEng = "Palatino Linotype"
+
 
 # 패키지 업데이트
 # update.packages(ask = FALSE)
+
+# 주석 단계
+# ====
+# ****
+# ++++
 
 #=============================================================================================== 
 # Routine : Main R program
@@ -7725,3 +7851,282 @@ ggplot(dataL2, aes(x = as.factor(year), y = val, fill = region)) +
   geom_col(stat = "identity", position="dodge") +
   facet_wrap(. ~ region, ncol = 5, scale="free") +
   labs(x = "지역", y = "연도", fill="")
+
+#************************************************
+# 기상관측자료 분석 문의사항
+#************************************************
+serviceName = "QUE0003"
+
+library(tidyverse)
+library(ggplot2)
+library(lubridate)
+library(openxlsx)
+library(fs)
+library(moonBook)
+library(webr)
+library(tidyverse)
+library(ggstatsplot)
+library(useful)
+
+fileInfo = Sys.glob(paste(globalVar$inpConfig, "8월 소형백엽상과 기존차광통분석.xlsx", sep = "/"))
+
+data = openxlsx::read.xlsx(fileInfo, sheet = 1) %>%
+  dplyr::rename(ref = 소형백엽상)
+
+dataL1 = data %>%
+  dplyr::mutate(
+    dtDate = readr::parse_date(sDate, "%Y-%m-%d")
+  ) %>%
+  na.omit()
+
+
+typeList = sort(unique(dataL1$type))
+colList = setdiff(colnames(dataL1), c("sDate", "type", "ref", "dtDate"))
+dataL3 = data.frame()
+
+typeInfo = "최대값"
+colInfo = "P-1"
+
+
+for (typeInfo in typeList) {
+  for (colInfo in colList) {
+    
+    dataL2 = dataL1 %>%
+      dplyr::filter(type == typeInfo) %>%
+      dplyr::select(colInfo, ref) %>%
+      tidyr::gather(key = "key", value = "value")
+    
+    if (nrow(dataL2) < 1) { next }
+    
+    # P값이 2.2204e-16으로서 귀무가설 기각 (두 특성의 분산 차이가 있다)
+    # 따라서 상이한 분산 조건 (var.equal = FALSE)
+    
+    fTest = var.test(value ~ key, data = dataL2, conf.level = 0.95)
+    fTest
+    
+    setLabel = paste0(typeInfo, "_", colInfo,"-", "소형백엽상")
+    saveImg = sprintf("%s/%s_%s_%s.png", globalVar$figConfig, serviceName, "F-Test", setLabel)
+    
+    plot(fTest) +
+      xlim(0, 5) +
+      ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
+    
+    isVarEqual = TRUE
+    setVarResult = sprintf("P값이 %s로서 귀무가설 채택 (동일한 분산: 두 일사계의 분산 차이가 없다)", round(fTest$p.value, 3))
+    
+    if (fTest$p.value < 0.05) { 
+      isVarEqual = FALSE
+      setVarResult = sprintf("P값이 %s로서 귀무가설 기각 (상이한 분산 : 두 일사계의 분산 차이가 없다)", round(fTest$p.value, 3))
+    }
+    
+    
+    # P값이 0.054로서 귀무가설 기각 (두 약의 심장 박동은 차이가 있다)
+    tTest = t.test(value ~ key, data = dataL2, var.equal = isVarEqual)
+  
+    saveImg = sprintf("%s/%s_%s_%s.png", globalVar$figConfig, serviceName, "T-Test", setLabel)
+    plot(tTest) +
+      xlim(-5, 5) +
+      ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
+    
+    setResult = sprintf("P값이 %s로서 귀무가설 채택 (두 일사계는 차이가 없다)", round(tTest$p.value, 3))
+    if (tTest$p.value < 0.05) { sprintf("P값이 %s로서 귀무가설 기각 (두 일사계는 차이가 있다)", round(tTest$p.value, 3)) }
+    
+    tmpData = data.frame(
+      "setLabel" = setLabel
+      , "fVal" = fTest$statistic
+      , "fPval" = fTest$p.value
+      , "fResult" = setVarResult
+      , "tVal" = tTest$statistic
+      , "tPval" = tTest$p.value
+      , "tResult" = setResult
+    )    
+    
+    dataL3 = dplyr::bind_rows(dataL3, tmpData)
+  }
+}
+
+# XLSX 파일 생성
+saveXlsxFile = sprintf("%s/%s_%s.xlsx", globalVar$outConfig, serviceName, "통계 결과")
+
+wb = openxlsx::createWorkbook()
+
+openxlsx::addWorksheet(wb, "table")
+openxlsx::writeData(wb, "table", dataL3, startRow = 1, startCol = 1, colNames = TRUE, rowNames = FALSE)
+
+openxlsx::saveWorkbook(wb, file = saveXlsxFile, overwrite = TRUE)
+
+
+#******************************************************************
+# 라디오존데 정보를 활용한 상대습도 등고선 가시화 자료 도움요청
+# 고도 0 ~ 7km까지의 온도와 상대습도의 등고선 가시화 이미지
+#******************************************************************
+
+serviceName = "QUE0002"
+
+library(tidyverse)
+library(ggplot2)
+library(lubridate)
+library(openxlsx)
+library(fs)
+library(moonBook)
+library(webr)
+library(tidyverse)
+library(ggstatsplot)
+library(useful)
+library(data.table)
+library(tidyverse)
+library(lubridate)
+library(RadioSonde)
+library(MBA)
+library(ggrepel)
+library(timeDate)
+library(metR)
+library(scales)
+library(humidity)
+
+fileInfo = Sys.glob(paste(globalVar$inpConfig, "OBS_SONDE_F00508_20210111083449.csv", sep = "/"))
+
+# 지점,지점명,일시(UTC),기압(hPa),고도(gpm),기온(°C),이슬점온도(°C),풍향(deg),풍속(knot)
+data = readr::read_csv(file = fileInfo, locale = locale("ko", encoding = "EUC-KR")) %>%
+  magrittr::set_colnames(c("stationNum", "stationName", "dtDateTime", "level", "height", "temp", "dewTemp", "windSpeed", "windDir")
+)
+
+# L1 Processing Using Data Frame
+dataL1 = data %>%
+  dplyr::mutate(
+    dtXran = lubridate::decimal_date(dtDateTime)
+    , rh = humidity::RH(temp, dewTemp, isK = FALSE)
+  ) %>%
+  na.omit()
+
+#=====================================================================
+# Temperature Interpolation Using Multilevel B-Spline Approximation
+#=====================================================================
+dataL2 = dataL1 %>% 
+  dplyr::select(dtXran, height, temp) %>%
+  MBA::mba.surf(no.X = 1000, no.Y = 500, extend = TRUE, sp = TRUE)
+
+dataL3 = dataL2 %>%
+  as.data.frame() %>%
+  dplyr::mutate(
+    xAxis = lubridate::date_decimal(xyz.est.x)
+  ) %>%
+  dplyr::rename(
+    yAxis = xyz.est.y
+    , zAxis = xyz.est.z
+  ) 
+
+summary(dataL3)
+dplyr::glimpse(dataL3)
+
+# Set Value for Visualization 
+cbMatlab = colorRamps::matlab.like(11)
+xAxisMin = min(dataL3$xAxis, na.rm = TRUE)
+xAxisMax = max(dataL3$xAxis, na.rm = TRUE)
+
+saveImg = sprintf("%s/%s_%s", globalVar$figConfig, serviceName, "Temperature_Visualization_Using_ggplot2.png")
+
+
+Sys.setlocale("LC_TIME", "english")
+
+# Visualization Using ggplot2
+ggplot(data = dataL3, aes(x = xAxis, y = yAxis / 1000, fill = zAxis, z = zAxis)) +
+  theme_bw() +
+  geom_tile() +
+  metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, rotate = TRUE, na.rm = TRUE) +
+  geom_contour(color = "black", alpha = 0.3) +
+  scale_fill_gradientn(colours = cbMatlab, limits=c(-50, 25), breaks = seq(-50, 25, 25), na.value = NA) +
+  scale_x_datetime(breaks = seq(xAxisMin, xAxisMax, "month"), labels = date_format("%b-%d\n%Y", tz="Asia/Seoul"), expand = c(0, 0)) +
+  scale_y_continuous(breaks = seq(0, 7, 1), limits = c(0, 7), expand = c(0, 0)) +
+  labs(
+    subtitle = "Temperature Visualization Using ggplot2"
+    , x = "Date [Month-Day Year]"
+    , y = "Altitude [km]"
+    , fill = "Temperature"
+    , colour = NULL
+    , title  = NULL
+  ) +
+  theme(
+    plot.title = element_text(face = "bold", size = 18, color = "black")
+    , plot.subtitle = element_text(face = "bold", size = 18, color = "black")
+    , axis.title.x = element_text(face = "bold", size = 18, colour = "black")
+    , axis.title.y = element_text(face = "bold", size =18, colour = "black", angle=90)
+    , axis.text.x  = element_text(angle = 45, hjust = 1, face = "bold", size = 18, colour = "black")
+    , axis.text.y  = element_text(face = "bold", size = 18, colour = "black")
+    , legend.title = element_text(face = "bold", size = 14, colour = "black")
+    , legend.position = c(0, 1)
+    , legend.justification = c(0, 0.96)
+    , legend.key = element_blank()
+    , legend.text = element_text(size = 14, face = "bold", colour = "black")
+    , legend.background = element_blank()
+    , text = element_text(family = fontEng)
+  )  +
+  ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
+
+
+#=====================================================================
+#   Relative Humidity Using Multilevel B-Spline Approximation
+#=====================================================================
+dataL2 = dataL1 %>% 
+  dplyr::select(dtXran, height, rh) %>%
+  MBA::mba.surf(no.X = 1000, no.Y = 500, extend = TRUE, sp = TRUE)
+
+dataL3 = dataL2 %>%
+  as.data.frame() %>%
+  dplyr::mutate(
+    xAxis = lubridate::date_decimal(xyz.est.x)
+  ) %>%
+  dplyr::rename(
+    yAxis = xyz.est.y
+    , zAxis = xyz.est.z
+  )%>%
+  dplyr::filter(
+    zAxis > 0
+  )
+
+summary(dataL3)
+
+dplyr::glimpse(dataL3)
+
+# Set Value for Visualization 
+cbMatlab = colorRamps::matlab.like(11)
+xAxisMin = min(dataL3$xAxis, na.rm = TRUE)
+xAxisMax = max(dataL3$xAxis, na.rm = TRUE)
+
+saveImg = sprintf("%s/%s_%s", globalVar$figConfig, serviceName, "Relative_Humidity_Visualization_Using_ggplot2.png")
+
+Sys.setlocale("LC_TIME", "english")
+
+# Visualization Using ggplot2
+ggplot(data = dataL3, aes(x = xAxis, y = yAxis / 1000, fill = zAxis, z = zAxis)) +
+  theme_bw() +
+  geom_tile() +
+  # metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, rotate = TRUE, na.rm = TRUE) +
+  geom_contour(color = "black", alpha = 0.3) +
+  scale_fill_gradientn(colours = cbMatlab, limits=c(0, 100), breaks = seq(0, 100, 20), na.value = NA) +
+  scale_x_datetime(breaks = seq(xAxisMin, xAxisMax, "month"), labels = date_format("%b-%d\n%Y", tz = "Asia/Seoul"), expand = c(0, 0)) +
+  scale_y_continuous(breaks = seq(0, 7, 1), limits = c(0, 7), expand = c(0, 0)) +
+  labs(
+    subtitle = "Relative Humidity Visualization Using ggplot2"
+    , x = "Date [Month-Day Year]"
+    , y = "Altitude [km]"
+    , fill = "Relative Humidity [%]"
+    , colour = NULL
+    , title  = NULL
+  ) +
+  theme(
+    plot.title = element_text(face = "bold", size = 18, color = "black")
+    , plot.subtitle = element_text(face = "bold", size = 18, color = "black")
+    , axis.title.x = element_text(face = "bold", size = 18, colour = "black")
+    , axis.title.y = element_text(face = "bold", size =18, colour = "black", angle=90)
+    , axis.text.x  = element_text(angle = 45, hjust = 1, face = "bold", size = 18, colour = "black")
+    , axis.text.y  = element_text(face = "bold", size = 18, colour = "black")
+    , legend.title = element_text(face = "bold", size = 14, colour = "black")
+    , legend.position = c(0, 1)
+    , legend.justification = c(0, 0.96)
+    , legend.key = element_blank()
+    , legend.text = element_text(size = 14, face = "bold", colour = "black")
+    , legend.background = element_blank()
+    , text=element_text(family = fontEng)
+  ) +
+  ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
