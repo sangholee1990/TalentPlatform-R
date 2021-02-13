@@ -51,6 +51,7 @@ for (i in 1:n) {
   # 점 그리기
   points(data[c(1, 4),], col = color[i], pch = 19)
 }
+
 dev.off()
 
 # openair::mydata에서 변수 wd는 바람이 불어오는 방향이다 (wd = 0은 북이고 wd = 90은 동, wd = 180은 남, wd = 270은 서이다).
