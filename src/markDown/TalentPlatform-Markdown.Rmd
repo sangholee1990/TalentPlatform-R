@@ -1,0 +1,582 @@
+---
+title: "R을 이용한 데이터 분석 및 시각화"
+author: "Team Charlie(이하린, 이종호, 김태훈)"
+output:
+  html_document: default
+  pdf_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+rm(list = ls())
+
+globalVar = list()
+# globalVar$inpPath = "./"
+globalVar$inpPath = "E:/04. TalentPlatform/Github/TalentPlatform-R/resources/input/o2job"
+```
+
+```{r}
+library(tidyverse)
+library(DT)
+library(csvread)
+library(gridExtra)
+library(ggpubr)
+library(ggExtra)
+library(ineq)
+
+fileInfo = Sys.glob(paste(globalVar$inpPath, "parkinglot.csv", sep = "/"))
+parkinglot = readr::read_csv(file = fileInfo, locale = locale("ko", encoding = "EUC-KR"))
+# parkinglot <- read.csv('parkinglot.csv')
+
+parkinglot <- dplyr::select(parkinglot, 1:3, 6, 8)
+names(parkinglot) <- c("year","gu","dong","public","private")
+DT::datatable(parkinglot, caption = "서울시 공영, 민영 주차장 현황")
+
+# 우선 X-ray 조와 마찬가지로 기간, 자치구, 동, 공영_개소, 민영_개소를 **select**한 다음, 변수의 이름을 변경했습니다.
+# **이 때, select()에서 :와 숫자를 사용하여 조금 더 편하게 변수를 골라냈습니다.**
+
+
+parkinglot$public <- as.integer(parkinglot$public)
+parkinglot$private <- as.integer(parkinglot$private)
+
+parkinglot <- parkinglot%>%
+  group_by(gu)%>%
+  summarise(across(c(public, private), sum, na.rm=TRUE,
+                   .names = "{col}_total"))%>%
+  mutate(parkinglot_total = public_total + private_total)
+
+
+DT::datatable(parkinglot, caption = "서울시 자치구별 주차장 현황")
+
+# 그 다음으로는 **group_by**와 **summarise**를 이용하여 
+# 서울시 *자치구별* 공영 주차장과 민영 주차장 개수의 합을 구해보았습니다.
+# **이 때 summarise()에 식을 연달아 두 번 쓰기보다는, across와 ,.names를 이용하여 공영 주차장과 민영 주자장의 합을 나타내는 변수를 비교적 간편하게 추가했습니다.**
+# 마지막으로는 **mutate**를 이용하여 자치구별 주자장의 총합을 구했습니다.
+
+summary(parkinglot)
+
+# 다음으로는 데이터를 summary해서 평균, 중간값, 최솟값, 최댓값, 1분위 수, 3분위 수 등을 확인해보았습니다. 위에 제시된 결과를 보면, 공영 주차장에 비해 민영 주차장의 개수가 훨씬 더 많다는 것을 알 수 있는데 공영 주차장의 최댓값보다 민영 주차장의 최솟값이 더 컸습니다.
+
+# 그 다음으로, parkinglot 데이터를 시각화해보았습니다.
+
+
+p1 <- parkinglot%>%
+  dplyr::arrange(public_total)%>%
+  mutate(entry = 1: length(public_total))%>%
+  ggplot(aes(x=entry,y=public_total))+
+  geom_point(size=4,alpha=0.7, shape=24, stroke=2,color="palegreen")+
+  geom_segment(aes(x=entry, xend=entry, y= 20, yend=public_total)
+               ,color="palegreen", size=2)+
+  geom_hline(aes(yintercept=mean(public_total)),
+             color="blue",size=2, alpha=0.2)+ylim(20,2200)+
+  labs(title="공영 주차장",x=NULL,y="공영 주차장 개수")+theme_minimal()
+  
+
+p2 <- parkinglot%>%
+  arrange(private_total)%>%
+  mutate(entry = 1: length(private_total))%>%
+  ggplot(aes(x=entry,y=private_total))+
+  geom_point(size=4,alpha=0.7, shape=24, stroke=2,color="lightblue")+
+  geom_segment(aes(x=entry, xend=entry, y= 3000, yend=private_total)
+               ,color="lightblue", size=2)+
+  geom_hline(aes(yintercept=mean(private_total)),
+             color="blue",size=2, alpha=0.2)+ylim(3000,21000)+
+  labs(title="민영 주차장",x=NULL,y="민영 주차장 개수")+theme_minimal()
+  
+  
+  
+p3 <- parkinglot%>%
+  arrange(parkinglot_total)%>%
+  mutate(entry = 1: length(parkinglot_total))%>%
+  ggplot(aes(x=entry,y=parkinglot_total))+
+  geom_point(size=4,alpha=0.7, shape=24, stroke=2,color="pink")+
+  geom_segment(aes(x=entry, xend=entry, y= 3000, yend=parkinglot_total)
+               ,color="pink", size=2)+
+  geom_hline(aes(yintercept=mean(parkinglot_total)),
+             color="blue",size=2, alpha=0.2)+ylim(3000,21000)+
+  labs(title="전체",x=NULL,y="전체 주차장 개수")+theme_minimal()
+
+
+
+grid.arrange(p1,p2,p3,nrow=2,ncol=2)
+
+# 우선 Pen's parade 형식으로 그래프를 시각화해보았습니다. 공영 주차장에는 특이값(영등포구의 공영 주차장 개수가 다른 자치구에 비해 압도적으로 많다)이 하나 있다는 것을 시각적으로 확인할 수 있었습니다.
+
+
+#로렌츠 곡선 만들기
+p4 <- plot(Lc(parkinglot$public_total), main="공영 주차장", sub= paste(round(ineq(parkinglot$public_total, type="Gini"),3)), xlab="", ylab="공영 주차장 개수")
+
+p5 <- plot(Lc(parkinglot$private_total), main="민영 주차장",  sub= paste(round(ineq(parkinglot$private_total, type="Gini"),3)),xlab="", ylab="민영 주차장 개수")
+
+p6 <- plot(Lc(parkinglot$parkinglot_total), main="전체 주차장",  sub= paste(round(ineq(parkinglot$parkinglot_total, type="Gini"),3)),xlab="", ylab="전체 주차장 개수")
+
+# 로렌츠 곡선을 그리고 하단에 지니계수를 나타낸 결과, 공영 주차장이 가장 불균등하게 분포하고 있다는 것을 알 수 있었습니다. 이는 공영 주차장 데이터에 특이값이 하나 존재한다는 사실에 영향을 받았다고 생각됩니다. 
+# 민영 주차장의 개수와 전체 주차장의 개수는 비교적 균등하게 분포하고 있었습니다. (지니계수가 각각 0.216, 0.207)
+
+
+## 상관관계 분석
+# 이번 과제에서는 서울시 주차장 데이터와 서울시 인구밀도 데이터 관의 상관관계를 새롭게 분석해보았습니다. (인구밀도가 높을수록, 주차장의 개수도 더 많을 것이라고 예측했습니다.)
+# 우선 상관관계 분석을 위해 서울시 인구밀도 데이터를 불러왔습니다.
+
+fileInfo = Sys.glob(paste(globalVar$inpPath, "population_density.csv", sep = "/"))
+pop_density = readr::read_csv(file = fileInfo, locale = locale("ko", encoding = "EUC-KR"))
+# pop_density <- read.csv('population_density.csv')
+
+pop_density <- pop_density%>%
+  dplyr::select(1:3,5)
+names(pop_density) <- c("year","gu","dong","density")
+DT::datatable(pop_density, caption="서울시 인구밀도")
+
+# 주차장 개수가 자치구 기준으로 정리되어 있어 인구밀도 역시 같은 형식으로 바꾸어줄 필요가 있습니다. 이미 자치구별 소계가 계산이 되어있기 때문에 이에 해당하는 행을 추출하였고, 그 과정에서 dplyr 패키지의 **filter**를 활용했습니다.
+
+pop_density <- 
+  pop_density %>%
+  filter(dong =="소계")%>%
+  dplyr::select(2,4)
+  
+  parking_density <- left_join(parkinglot,pop_density,by="gu")
+  DT::datatable(parking_density)
+
+# 이와 같이 인구밀도 데이터에서 필요한 행만을 추출하고, **select**를 활용하여 year와 dong 변수를 제거한 다음 **left_join**으로 서울시 주차장 데이터와 인구밀도 데이터를 합쳤습니다. 
+
+# 서울시 주차장 개수와 인구 밀도 간의 상관관계 분석
+cor(parking_density$public_total,parking_density$density)
+cor(parking_density$private_total,parking_density$density)
+cor(parking_density$parkinglot_total,parking_density$density)
+
+# 우선 두 변수들 간의 상관계수를 구해본 결과, 공영 주차장의 개수와 인구 밀도 간에는 아주 약한 양의 상관관계가 나타났습니다.
+# 이에 반해, 민영 주차장의 개수- 인구밀도와 전체 주차장의 개수 - 인구밀도 간에는 조금 더 강한 상관관계가 나타났습니다. 
+
+p7 <- ggplot(parking_density,aes(x=density, y=public_total))+geom_point(color="palegreen")+geom_smooth()+labs(title = "공영 주차장의 개수와 인구밀도")+theme_minimal()
+
+p8 <- ggplot(parking_density,aes(x=density, y=private_total))+geom_point(color="lightblue")+geom_smooth()+ labs(title="민영 주차장의 개수와 인구밀도")+theme_minimal()
+
+p9 <- ggplot(parking_density,aes(x=density, y=private_total)) +geom_point(color="pink")+geom_smooth()+ labs(title="전체 주차장의 개수와 인구밀도")+theme_minimal()
+
+grid.arrange(p7,p8,p9,nrow=2,ncol=2)
+
+# ggplot 패키지로 간단한 그래프를 그려 위에서 구한 상관계수를 시각적으로 확인해보았습니다.
+# 공영 주차장의 개수에 비해 민영 주차장의 개수와 전체 주차장의 개수가 인구밀도와 조금 더 높은 관련성을 보임을 알 수 있었습니다.
+
+# 조금 더 정교한 scatterplot 만들기
+negcov2 <- (parking_density$density < mean(parking_density$density )) & (parking_density$parkinglot_total>mean(parking_density$parkinglot_total))
+
+negcov4 <- (parking_density$density > mean(parking_density$density)) & (parking_density$parkinglot_total < mean(parking_density$parkinglot_total))
+
+negcov <- (negcov2| negcov4)
+
+plot(parking_density$density, parking_density$parkinglot_total, type="n", xlim=c(10,50), ylim=c(3000, 21000),xlab="인구밀도", ylab="주차장 개수")
+
+points(parking_density$density[negcov],parking_density$parkinglot_total[negcov], pch=20, col="pink2")
+
+points(parking_density$density[!negcov],parking_density$parkinglot_total[!negcov], pch=20, col="lightblue3")
+
+abline(v=mean(parking_density$density), lty=3, col="gray")
+abline(h=mean(parking_density$parkinglot_total), lty=3, col="gray")
+
+legend("topright", inset=0.5, bg="snow3",paste("r = ",round(cor(parking_density$density,parking_density$parkinglot_total),2)))
+
+title(main="서울시 인구밀도와 주차장 개수 간의 관계")
+
+# 서울시 인구밀도와 전체 주차장 개수를 조금 더 정교한 산점도로 표현해보았습니다. 상관계수가 0.48로 0.5에 가까운데, 실제로 파란색 점과 핑크색 점의 개수가 거의 유사하다는 것을 알 수 있습니다.
+
+
+# joint distribution 그래프 만들기
+
+p7 <-  parking_density%>%
+  mutate(neg_cov=((density<mean(density))&(parkinglot_total>mean(parkinglot_total))|(density > mean(density))&(parkinglot_total < mean(parkinglot_total)))) %>%
+  ggplot(aes(x=density,y=parkinglot_total,color=!neg_cov))+
+  geom_point()+
+  geom_hline(aes(yintercept=mean(parkinglot_total)))+
+  geom_vline(aes(xintercept=mean(density)))+
+  theme_minimal()+
+  theme(legend.position = "bottom")+
+  scale_color_manual(labels=c("Negative","Positive"),values=c("pink2","lightblue3"))+
+  labs(title="Joint distribution", subtitle = "서울시 인구밀도와 주차장의 개수",color="") +xlab("인구 밀도")+
+  ylab("주차장 개수")
+
+
+ggExtra:: ggMarginal(p7, type="density",size=4, groupFill = TRUE, groupColour = TRUE)
+  
+# 마지막으로 서울시 인구밀도와 전체 주차장 개수 간의 결합 분포를 나타내어 그 상관관계를 파악했습니다. 
+# 이로써 서울시 인구밀도와 전체 주차장 간에는 어느 정도의 상관관계가 존재함을 알 수 있었습니다. 하지만 그 정도가 아주 강하지는 않았고, 위의 그래프에서 볼 수 있듯이 인구밀도가 낮음에도 주차장의 개수가 많은 경우도 꽤 존재했습니다.
+```
+
+
+
+```{r}
+library(tidyverse)
+library(reshape2)
+library(DT)
+library(plotrix)
+library(pyramid)
+library(knitr)
+
+# 기존의 데이터 활용
+# 기존의 데이터중 상업과 관련된 부분을 가지고온다.
+
+fileInfo = Sys.glob(paste(globalVar$inpPath, "enterprise.csv", sep = "/"))
+enterprise = readr::read_csv(file = fileInfo, locale = locale("ko", encoding = "EUC-KR"))
+# enterprise <- read.csv("enterprise.csv")
+
+fileInfo = Sys.glob(paste(globalVar$inpPath, "enterprise_2019.csv", sep = "/"))
+enterprise_2019 = readr::read_csv(file = fileInfo, locale = locale("ko", encoding = "EUC-KR"))
+# enterprise_2019 <- read.csv("enterprise_2019.csv")
+
+enterprise <- enterprise[-c(1, 2, 3, 4, 22, 38, 55, 73, 89, 104, 121, 142, 156, 171, 191, 208, 223, 240, 259, 280, 296, 307, 326, 342, 364, 383, 406, 434),];
+names(enterprise) <- c("기간",
+                       "자치구",
+                       "동",
+                       "전체_사업체수",
+                       "여성대표자_사업체수",
+                       "종사자수_계",
+                       "남성_종사자수",
+                       "여성_종사자수",
+                       "개인_사업체수",
+                       "개인_종사자수",
+                       "법인_사업체수",
+                       "법인_종사자수",
+                       "회사이외의법인_사업체수",
+                       "회사이외의법인_종사자수",
+                       "비법인단체_사업체수",
+                       "비법인단체_종사자수")
+enterprise$기간 <- as.integer(enterprise$기간)
+enterprise$전체_사업체수 <- as.integer(enterprise$전체_사업체수)
+enterprise$여성대표자_사업체수 <- as.integer(enterprise$여성대표자_사업체수)
+enterprise$종사자수_계 <- as.integer(enterprise$종사자수_계)
+enterprise$남성_종사자수 <- as.integer(enterprise$남성_종사자수)
+enterprise$여성_종사자수 <- as.integer(enterprise$여성_종사자수)
+enterprise$개인_사업체수 <- as.integer(enterprise$개인_사업체수)
+enterprise$개인_종사자수 <- as.integer(enterprise$개인_종사자수)
+enterprise$법인_사업체수 <- as.integer(enterprise$법인_사업체수)
+enterprise$법인_종사자수 <- as.integer(enterprise$법인_종사자수)
+enterprise$회사이외의법인_사업체수 <- as.integer(enterprise$회사이외의법인_사업체수)
+enterprise$회사이외의법인_종사자수 <- as.integer(enterprise$회사이외의법인_종사자수)
+enterprise$비법인단체_사업체수 <- as.integer(enterprise$비법인단체_사업체수)
+enterprise$비법인단체_종사자수 <- as.integer(enterprise$비법인단체_종사자수)
+datatable(enterprise)
+
+## 분석 1.일자리는 공평하게 존재하는가?
+#### 가.서울특별시의 경우
+# 서울시의 일자리 누적분포 곡선을 그려서 알아보자
+
+#서울시 일자리 누적 분포 만들기
+n0<-enterprise%>%arrange(종사자수_계)
+n1<-cumsum(n0[,6])/sum(n0[,6])
+#완전평등선 만들기
+x<-rnorm(424,212,0)
+n2<-cumsum(x)/sum(x) %>% data.frame()
+n3<-nesting(n1, n2) %>% 
+  rename(
+    n1 = "종사자수_계"
+    , n2 = "."
+    )
+head(n3,5)
+
+ggplot(n3)+
+  geom_line(aes(n2,n1),size=1.3)+
+  geom_line(aes(n2,n2),color="red",size=1.3)+
+  xlab('누적 지역')+
+  ylab('누적 일자리')+
+  ggtitle('서울시 일자리 로렌츠곡선')+
+  theme(plot.title = element_text(color = "darkblue", size = 16))
+
+# 업무지역과 주거지역의 분화도가 높은것을 알 수 있다.
+
+#### 나.자치구별의 경우
+#용산구의 동별 일자리 누적분포
+
+g0<-enterprise_2019%>%filter(자치구 %in% c('용산구'))%>%
+  arrange(종사자수_계)
+용산<-cumsum(g0[,6])/sum(g0[,6])
+#은평구의 동별 일자리 누적분포
+s0<-enterprise_2019%>%filter(자치구 %in% c('은평구'))%>%
+  arrange(종사자수_계)
+은평<-cumsum(s0[,6])/sum(s0[,6])
+#마포구의 동별 일자리 누적분포
+s3<-enterprise_2019%>%filter(자치구 %in% c('마포구'))%>%
+  arrange(종사자수_계)
+마포<-cumsum(s3[,6])/sum(s3[,6])
+#중랑구의 동별 일자리 누적분포
+s2<-enterprise_2019%>%filter(자치구 %in% c('중랑구'))%>%
+  arrange(종사자수_계)
+중랑<-cumsum(s2[,6])/sum(s2[,6])
+#완전 평등선
+y<-rnorm(16,2,0)
+평등<-cumsum(y)/sum(y)
+#데이터 정리
+w1<-data.frame(용산, 은평, 마포, 중랑, 평등)
+w2<-melt(w1,id.vars = '평등',variable.name='구')
+head(w2,5)
+
+ggplot(w2,aes(평등,value))+
+  geom_line(aes(color=구),size=1.3)+
+  geom_line(aes(평등,평등),color='black',size=1.3)+
+  xlab('누적 지역')+
+  ylab('누적 일자리')+
+  ggtitle('자치구별 일자리 로렌츠곡선')+
+  theme(plot.title = element_text(color = "darkblue", size = 16))
+
+# 용산구가 업무지역과 주거지역의 분화도가 제일 높은것을 파악할 수 있다.
+
+## 분석 2. 일자리 성별 피라미드
+
+# 데이처 편집
+p1<-enterprise %>% dplyr::select(자치구, 남성_종사자수)
+남성일자리<-group_by(p1,자치구)%>%
+  summarise(sum(남성_종사자수))%>%
+  dplyr::select('sum(남성_종사자수)')
+
+남성일자리<-prop.table(남성일자리)
+남성일자리<-unlist(남성일자리[,1])*100
+
+p2<-enterprise%>%dplyr::select(자치구,여성_종사자수)
+여성일자리<-group_by(p2,자치구)%>%
+  summarise(sum(여성_종사자수))%>%
+  dplyr::select('sum(여성_종사자수)')
+여성일자리<-prop.table(여성일자리)
+여성일자리<-unlist(여성일자리[,1])*100
+자치구<-group_by(p1,자치구)%>%
+  summarise(sum(남성_종사자수))%>%
+  dplyr::select('자치구')
+자치구<-unlist(자치구[,1])
+
+#피라미드 그래프 만들기
+male.col   <- color.gradient(c(0,0,0.5,1), c(1,1,0.5,1), c(1,1,0.5,1),
+                             25)
+female.col <- color.gradient(c(1,1,0.5,1), c(0.5,0.5,0.5,1), c(0.5,0.5,0.5,1),
+                             25)
+pyramid.plot(남성일자리,여성일자리,labels=자치구,
+                   top.labels = c("남성일자리", "자치구", "여성일자리"), 
+                       lxcol=male.col, rxcol=female.col, 
+                       gap=3,space=0,
+                       main="서울시 성별 일자리 피라미드\n(서울시, 2018)")
+# 남녀가 차이를 보이는 일자리 분포지역은 없었다.
+```
+
+
+```{r}
+# 각각 데이터 분석 셋에 대하여 전처리 및 분석 후 3데이터 풀링하여 분석 진행
+# rm(list=ls())
+library(tidyverse)
+
+#================Dataset 1 :외국인인구수  ================#
+fileInfo = Sys.glob(paste(globalVar$inpPath, "foreign_population.csv", sep = "/"))
+foreign = readr::read_csv(file = fileInfo, locale = locale("ko", encoding = "EUC-KR"))
+
+# foreign<-read.csv(file = fileInfo, colClasses="character")
+
+
+
+colnames(foreign)<-c("기간","자치구","동","합계",
+  "한국국적가지지않은자",
+  "외국인근로자","결혼이민자","유학생","외국국적동포","기타외국인",
+  "국적취득","외국인주민자녀출생")
+
+# dt<-foreign[-1,]  #첫행 제거
+dt<-foreign
+
+#change to numeric values : 특수문자 있는 경우 Numeric으로 변경하기 위함
+dt$한국국적가지지않은자<-as.numeric(gsub(pattern = "[^0-9]", replacement = "", dt$한국국적가지지않은자))
+dt$합계 <-as.numeric(gsub(pattern = "[^0-9]", replacement = "", dt$합계))
+dt$외국인근로자 <-as.numeric(gsub(pattern = "[^0-9]", replacement = "", dt$외국인근로자))
+dt$결혼이민자<-as.numeric(gsub(pattern = "[^0-9]", replacement = "", dt$결혼이민자))
+dt$유학생 <-as.numeric(gsub(pattern = "[^0-9]", replacement = "", dt$유학생))
+dt$외국국적동포 <-as.numeric(gsub(pattern = "[^0-9]", replacement = "", dt$외국국적동포))
+dt$기타외국인 <-as.numeric(gsub(pattern = "[^0-9]", replacement = "", dt$기타외국인))
+dt$국적취득 <-as.numeric(gsub(pattern = "[^0-9]", replacement = "", dt$국적취득))
+dt$외국인주민자녀출생 <-as.numeric(gsub(pattern = "[^0-9]", replacement = "", dt$외국인주민자녀출생))
+
+#합계라고 적힌 행은 삭제
+dt2<-subset(dt,동!="계"&자치구!="합계")
+
+
+#지역별로 단순 인구수를 비교하는것보다 유의미한 결과를 위하여 외국인 국적 취득의 비율이라는 변수를 생성 
+dt_f<-dplyr::group_by(dt2, 자치구) %>% 
+  dplyr::summarise("국적취득"=sum(국적취득,na.rm=T),
+    "결혼이민자"=sum(결혼이민자,na.rm=T),
+    "유학생"=sum(유학생,na.rm=T),
+    "외국국적동포"=sum(외국국적동포,na.rm=T),
+    "기타외국인"=sum(외국인근로자,na.rm=T),
+    "외국인주민자녀출생"=sum(외국인주민자녀출생,na.rm=T),
+    "합계" = sum(합계)) %>% 
+  mutate(국적취득비율 =  국적취득/(합계+국적취득)*100)
+
+#Table 1. 구별로 Descriptive Table을 산출, 총 외국인 수중 국적을 취득한 비율은 약 8%정도.
+#install.packages("pastecs")
+library(pastecs)
+Table<-stat.desc(dt_f)
+output1<-Table[c("nbr.val","mean","min","max","median"),-1]
+output1
+
+
+#output2 : 외국인 수가  많은 자치구 : 영등포구, 구로구, 금천구 
+output2<-ggplot(dt_f,aes(x=자치구, y=합계))+
+  geom_bar(position = "dodge", width = 0.5, stat = "identity")+
+  ggtitle("서울 구별 외국인 인구 수 ") +
+  theme(plot.title = element_text(size=14, face="bold.italic"))
+output2
+
+#output3 : 국적취득 비율이 높은 자치구 : 양천구 , 강서구, 은평구
+output3 <- ggplot(dt_f,aes(x=자치구, y=국적취득비율))+
+  geom_bar(position = "dodge", width = 0.5, stat = "identity") +
+  ggtitle("서울 구별 국적취득 비율") +
+  theme(plot.title = element_text(size=14, face="bold.italic"))
+output3
+
+
+#새롭게 생성했던 "국적 취득 비율"과 다른 변수들과의 관계를 살핌.
+#국적을 취득한 사람이 많은 지역은 어떤 특징을 가지고 있을지?
+
+
+#install.packages("ggcorrplot")
+library(ggcorrplot)
+corr<-cor(dt_f[,-c(1,2,8)])   # 연관성을 볼때 필요없는 자치구/국적취득자/합계계 열은 삭제
+output4 <- ggcorrplot(corr)
+output4
+
+#Result : 국적 취득 비율과 연관이 큰 변수는 외국인 주민자녀출생이며 연관성이 없는 변수는 유학생임.
+#유학생은 거주 목적이 아니며 자녀출생은 거주의 목적이 있을 것으로 판단되어 상식과 일치하는 결과임.
+
+#================Dataset 2 : 외국인등록자 수  ================#
+fileInfo = Sys.glob(paste(globalVar$inpPath, "registered.csv", sep = "/"))
+# reg<-read.csv(fileInfo)
+reg = readr::read_csv(file = fileInfo, locale = locale("ko", encoding = "EUC-KR"))
+head(reg)
+colnames(reg)<-c("기간","자치구","동","성별",
+  "계",
+  "A_0_4","A_5_9","A_10_14","A_15_19","A_20_24",
+  "A_25_29","A_30_34","A_35_39","A_40_44","A_45_49","A_50_54","A_55_59","A_60_64"
+  ,"A_65_69","A_70_74","A_75_79","A_80_84","A_85_89","A_90_94","A_95_99","A_100")
+
+#change to numeric values
+reg$A_0_4<-as.numeric(gsub(pattern = "[^0-9]", replacement = "", reg$A_0_4))
+reg$A_5_9 <-as.numeric(gsub(pattern = "[^0-9]", replacement = "", reg$A_5_9))
+reg$A_10_14 <-as.numeric(gsub(pattern = "[^0-9]", replacement = "", reg$A_10_14))
+reg$A_15_19<-as.numeric(gsub(pattern = "[^0-9]", replacement = "", reg$A_15_19))
+reg$A_20_24 <-as.numeric(gsub(pattern = "[^0-9]", replacement = "", reg$A_20_24))
+reg$A_25_29 <-as.numeric(gsub(pattern = "[^0-9]", replacement = "", reg$A_25_29))
+reg$A_30_34 <-as.numeric(gsub(pattern = "[^0-9]", replacement = "", reg$A_30_34))
+reg$A_35_39 <-as.numeric(gsub(pattern = "[^0-9]", replacement = "", reg$A_35_39))
+reg$A_40_44 <-as.numeric(gsub(pattern = "[^0-9]", replacement = "", reg$A_40_44))
+reg$A_45_49 <-as.numeric(gsub(pattern = "[^0-9]", replacement = "", reg$A_45_49))
+reg$A_50_54 <-as.numeric(gsub(pattern = "[^0-9]", replacement = "", reg$A_50_54))
+reg$A_55_59 <-as.numeric(gsub(pattern = "[^0-9]", replacement = "", reg$A_55_59))
+reg$A_60_64 <-as.numeric(gsub(pattern = "[^0-9]", replacement = "", reg$A_60_64))
+reg$A_65_69 <-as.numeric(gsub(pattern = "[^0-9]", replacement = "", reg$A_65_69))
+reg$A_70_74 <-as.numeric(gsub(pattern = "[^0-9]", replacement = "", reg$A_70_74))
+reg$A_75_79 <-as.numeric(gsub(pattern = "[^0-9]", replacement = "", reg$A_75_79))
+reg$A_80_84 <-as.numeric(gsub(pattern = "[^0-9]", replacement = "", reg$A_80_84))
+reg$A_85_89 <-as.numeric(gsub(pattern = "[^0-9]", replacement = "", reg$A_85_89))
+reg$A_90_94 <-as.numeric(gsub(pattern = "[^0-9]", replacement = "", reg$A_90_94))
+reg$A_95_99 <-as.numeric(gsub(pattern = "[^0-9]", replacement = "", reg$A_95_99))
+reg$A_100 <-as.numeric(gsub(pattern = "[^0-9]", replacement = "", reg$A_100))
+
+
+reg2<-reg %>% 
+  dplyr::select(기간, 자치구, 동, 성별, 계, contains("A")) %>% 
+  spread(key = 성별, value = 계)  
+
+reg3<-dplyr::group_by(reg2, 자치구) %>% 
+  dplyr::summarise("남자"=sum(남자,na.rm=T),
+    "여자"=sum(여자,na.rm=T),
+    "계"=sum(계,na.rm=T),
+    "A_65_69"=sum(A_65_69,na.rm=T),
+    "A_70_74"=sum(A_70_74,na.rm=T),
+    "A_75_79"=sum(A_75_79,na.rm=T),
+    "A_80_84"=sum(A_80_84,na.rm=T),
+    "A_85_89"=sum(A_85_89,na.rm=T),
+    "A_90_94"=sum(A_90_94,na.rm=T),
+    "A_95_99"=sum(A_95_99,na.rm=T),
+    "A_100"=sum(A_100,na.rm=T)
+  )
+reg3$upper65=reg3$A_65_69+reg3$A_70_74+reg3$A_75_79+reg3$A_80_84+
+  reg3$A_85_89+reg3$A_90_94+reg3$A_95_99+reg3$A_100
+
+reg3$proper=reg3$upper65/reg3$계*100
+
+#Output1 : Descriptive Table ; 인구별 분포를 파악하기 위해 65세 이상과 이하로 인구 카테고리 진행, 노인인구 비율은 약 4%로 보임
+r_Table<-stat.desc(reg3)
+r_output1<-r_Table[c("nbr.val","mean","min","max","median"),-c(1,5,6,7,8,9,10,11,12)]
+r_output1
+
+
+#Output2 : 성별분포 파악을 위해 Boxplot을 그렸을때 평균은 여자 인구수가 더 많아보임..
+boxplot(reg3$남자,reg3$여자, main="성별에 따른 등록 외국인 수 분포포", names=c("남자", "여자"))
+
+#Output3 : 통계적으로 차이가 있는지 확인 하기 위하여 외국인 성별  ttest결과 유의한 차이가 없음.
+r_output3<-t.test(reg3$남자,reg3$여자)
+r_output3
+
+#Output4 : 구별로 노인인구수 비율을 그림으로 그려봄
+r_output4 <- ggplot(reg3,aes(x=자치구, y=proper))+
+  geom_bar(position = "dodge", width = 0.5, stat = "identity") +
+  ggtitle("서울 구별 등록 노인인구수 비율") +
+  theme(plot.title = element_text(size=14, face="bold.italic"))
+r_output4
+
+#Output5 : 노인인구수 비율에 큰 아웃 라이어는 없음. 
+boxplot(reg3$proper, main="구별 등록 노인인구수 비율")
+
+#================Dataset 3 : 인구밀도   ================#
+fileInfo = Sys.glob(paste(globalVar$inpPath, "population_density.csv", sep = "/"))
+# den<-read.csv(fileInfo)
+den = readr::read_csv(file = fileInfo, locale = locale("ko", encoding = "EUC-KR"))
+den2<-subset(den,동!="소계" & 자치구!="합계")
+
+#평균 인구 밀도 계산
+den3<-dplyr::group_by(den2, 자치구) %>% 
+  dplyr::summarise("밀도"=mean(인구밀도,na.rm=T),
+    "인구"=mean(인구,na.rm=T)
+  )
+
+#추가 분석 아이디어 : 외국인 인구 등록 수는 서울 구별 인구 특징 중 하나인 인구밀도와 관련이 있을지?
+final <- cbind(den3, reg3, dt_f)
+colnames(final)
+final<-final[,-c(4,18)]   #자치구 중복 되어 열을 제거해줌
+
+ggplot(data = final) +
+  geom_point(mapping = aes(x = 밀도, y = 계), color = "red") +
+  ggtitle("서울시 인구 밀도 별등록외국인의 분포") +
+  theme(plot.title = element_text(color = "darkblue", size = 16))
+
+#회귀분석 진행
+fit=lm(계~밀도, data=final)
+summary(fit)  
+
+#통계적으로 유의하지는 않으나 밀도의 계수가 음수 값으로 인구밀도가 높은곳에는 외국인 인구 등록 수와
+#음의 상관관계가 있음 , 경제 지표 혹은 다른 covariate들을 보정하여 파악할 필요 있음.
+
+#추가 분석2 : 외국인 인구 중 국적 취득한 사람들은 인구밀도와 관련이 있을지?
+ggplot(data = final) +
+  geom_point(mapping = aes(x = 국적취득, y = 밀도), color = "red") +
+  ggtitle("서울시 인구 밀도 별등록외국인의 분포") +
+  theme(plot.title = element_text(color = "darkblue", size = 16))
+fit=lm(국적취득~밀도, data=final)
+summary(fit)  
+#국적을 취득한 외국인들의 경우 인구밀도와 관련이 있는지 파악한 결과, 밀도 변수는 유의하지 않아 보임.
+
+boxplot(final$국적취득)#그러나 분포를 보니  취득한 사람들의 비율에 아웃라이어 값이 있는것으로 파악됨
+subset(final,국적취득>2000)  #국적취득 외국인은 주로 강서구, 관악구, 구로구, 금천구, 영등포구에 많이 분포
+
+#해당 지역 제거하고 분석
+final2<-subset(final,국적취득<2000)
+
+ggplot(data = final2) +
+  geom_point(mapping = aes(x = 국적취득, y = 밀도), color = "red") + 
+  ggtitle("서울시 인구 밀도 별 등록외국인의 분포") +
+  theme(plot.title = element_text(color = "darkblue", size = 16))
+
+fit=lm(국적취득~밀도, data=final2)
+summary(fit)  
+
+
+#아웃라이어를 제거하고 분석한 결과, 밀도가 낮은 지역과 국적취득 외국인 거주 인구수와 유의한 관계가 있음. 
+#약 20%의 R스퀘어 값을 가지며, 밀도가 높을수록 국적취득 외국인 #거주 인구수는 줄어드는 것을 확인할수있음.
+#고려할수있는 COVARIATE들로 함께 보정하여 분석해볼 필요가 있음.
+
+```

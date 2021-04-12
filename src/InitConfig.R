@@ -1,0 +1,527 @@
+#=====================================
+# Usage
+#=====================================
+# rm(list = ls())
+# 
+# prjName="o2job"
+# 
+# source(here::here("E:/04. TalentPlatform/Github/TalentPlatform-R", "InitConfig.R"), encoding = "UTF-8")
+
+#=====================================
+# Init Env
+#=====================================
+# rm(list = ls())
+
+#=====================================
+# Set Env
+#=====================================
+# Sys.setlocale("LC_ALL", "C")
+# options(encoding = "UTF-8")
+# Sys.setenv(LANG = "ko_KR.UTF-8")
+
+Sys.setlocale("LC_ALL", "Korean")
+options(encoding = "UTF-8")
+Sys.setenv(LANG = "ko_KR.UTF-8")
+
+# Sys.setlocale("LC_ALL", "English")
+# options(encoding = "UTF-8")
+# Sys.setenv(LANG = "en_US.UTF-8")
+
+globalVar = list()
+
+globalVar$optDig = 10
+globalVar$memLimit = 9999999999999
+
+# config
+globalVar$initResPath = "E://04. TalentPlatform//Github//TalentPlatform-R//InitResource"
+
+globalVar$contextPath = getwd()
+# globalVar$config = "E:/04. TalentPlatform/Github/TalentPlatform-R"
+globalVar$srcPath = file.path(globalVar$contextPath, "src")
+globalVar$resPath = file.path(globalVar$contextPath, "resources")
+globalVar$cfgPath = file.path(globalVar$resPath, "config")
+globalVar$inpPath = file.path(globalVar$resPath, "input", prjName)
+globalVar$figPath = file.path(globalVar$resPath, "fig", prjName)
+globalVar$outPath = file.path(globalVar$resPath, "output", prjName)
+globalVar$logPath = file.path(globalVar$resPath, "log", prjName)
+globalVar$mapPath = file.path(globalVar$cfgPath, "mapInfo")
+globalVar$systemPath = file.path(globalVar$cfgPath, "system.cfg")
+globalVar$seleniumPath = file.path(globalVar$cfgPath, "selenium")
+globalVar$fontPath = file.path(globalVar$cfgPath, "fonInfo")
+
+# 기본 설정 복사
+isResDir = dir.exists(path = globalVar$resPath)
+isInitResDir = dir.exists(path = globalVar$initResPath)
+
+if (isResDir == FALSE & isInitResDir == TRUE) {
+  sprintf("[복사] 기본 설정 : cp %s %s", globalVar$initResPath, globalVar$resPath)
+
+  dir.create(globalVar$resPath)
+  file.copy(globalVar$initResPath, globalVar$resPath, recursive = TRUE)
+}
+
+# 디렉터리 생성
+for (i in 1:length(globalVar)) {
+  key = names(globalVar)[i]
+  val = globalVar[[key]]
+
+  isKey = stringr::str_detect(key, stringr::regex("input|output|log"))
+  if (isKey == FALSE) { next }
+
+  isDir = dir.exists(path = val)
+  if (isDir == TRUE) { next }
+
+  sprintf("[생성] 디렉터리 : mkdir %s", val)
+  dir.create(val)
+}
+
+# Open API Key
+configInfo = yaml::yaml.load_file(globalVar$systemPath)
+globalVar$googleKey = configInfo$default$googleKey
+globalVar$dataKey = configInfo$default$dataKey
+globalVar$naverKeyId = configInfo$default$naverKeyId
+globalVar$naverKeyPw = configInfo$default$naverKeyPw
+globalVar$kakaoRestApiKey = configInfo$default$kakaoRestApiKey
+globalVar$gyeonggiDataKey = configInfo$default$gyeonggiDataKey
+globalVar$naverApigwApiKeyId = configInfo$default$naverApigwApiKeyId
+globalVar$naverApigwApiKey = configInfo$default$naverApigwApiKey
+
+utils::ls.str(globalVar)
+
+# Rtools
+# writeLines('PATH="${RTOOLS40_HOME}\\usr\\bin;${PATH}"', con = "~/.Renviron")
+# Sys.which("make")
+
+#=====================================
+# System Info
+#=====================================
+# .Platform
+# R.version
+# Sys.info()
+# sessionInfo()
+# RStudio.Version()
+
+#=====================================
+# Set Library
+#=====================================
+library(ggmap)
+library(showtext)
+library(tidyverse)
+library(ggplot2)
+library(lubridate)
+library(openxlsx)
+library(fs)
+
+#=====================================
+# Set Fun
+#=====================================
+saveLogFile = sprintf("%s/%s_%s_%s_%s.log", globalVar$logPath, Sys.info()["sysname"], Sys.info()["nodename"], prjName, format(Sys.time(), "%Y%m%d"))
+
+log = log4r::create.logger()
+log4r::logfile(log) = saveLogFile
+log4r::level(log) = "INFO"
+
+tryCatch(
+
+  expr = {
+    # 주 소스 코드
+    log4r::info(log, sprintf("%s", "[START] Main R"))
+
+  }
+
+  , warning = function(warning) {
+    log4r::warn(log, warning)
+  }
+
+  , error = function(error) {
+    log4r::error(log, error)
+  }
+
+  , finally = {
+    log4r::info(log, sprintf("%s", "[END] Main R"))
+  }
+)
+
+perfEval = function(x, y) {
+
+  if (length(x) < 1) { return(sprintf("%s", "x 값 없음")) }
+  if (length(y) < 1) { return(sprintf("%s", "y 값 없음")) }
+
+  slope = coef(lm(y ~ x))[2]
+  interp = coef(lm(y ~ x))[1]
+  xMean = mean(x, na.rm = TRUE)
+  yMean = mean(y, na.rm = TRUE)
+  xSd = sd(x, na.rm = TRUE)
+  ySd = sd(y, na.rm = TRUE)
+  cnt = length(x)
+  bias = mean(x - y, na.rm = TRUE)
+  rBias = (bias / yMean) * 100.0
+  rmse = sqrt(mean((x - y)^2, na.rm = TRUE))
+  rRmse = (rmse / yMean) * 100.0
+  r = cor.test(x, y)$estimate
+  p = cor.test(x, y)$p.value
+  diffMean = mean(x - y, na.rm = TRUE)
+  diffSd = sd(x - y, na.rm = TRUE)
+  # perDiffMean = mean((x - y) / y, na.rm = TRUE) * 100.0
+
+  return(c(slope, interp, xMean, yMean, xSd, ySd, cnt, bias, rBias, rmse, rRmse, r, p, diffMean, diffSd))
+}
+
+biasCorr = function(actu, pred, minVal, maxVal, interVal, isPlot = FALSE) {
+
+  factorVal = seq(minVal, maxVal, by = interVal)
+
+  # RMSE Fitting
+  liResult = lapply(1:length(factorVal), function(i) Metrics::rmse(actu, pred * factorVal[i])) %>%
+    unlist()
+
+  ind = which(liResult == min(liResult, na.rm = TRUE))
+
+  if (isPlot == TRUE) {
+    plot(liResult)
+  }
+
+  # Best Factor Index
+  ind = which(liResult == min(liResult, na.rm = TRUE))
+
+  calibFactor = factorVal[[ind]]
+  calPred = calibFactor * pred
+
+  meanDiff = mean(actu, na.rm = TRUE) - mean(calPred, na.rm = TRUE)
+  newPred = (calPred) + meanDiff
+
+  cat(
+    sprintf("%s : %.2f", "[보정 X] RMSE", Metrics::rmse(actu, pred))
+    , sprintf("%s : %.2f", "[보정 O] RMSE", Metrics::rmse(actu, newPred))
+    , "\n"
+  )
+
+  return(c(newPred))
+}
+
+fnHeatIndex = function(temp, rh) {
+
+  temp = (temp * 1.8) + 32
+
+  alpha = 61 + ((temp - 68) * 1.2) + (rh * 0.094)
+  hi = 0.5 * (temp + alpha)
+
+  if (hi > 79) {
+    hi = -42.379 + 2.04901523 * temp + 10.14333127 * rh -
+      0.22475541 * temp * rh -
+      0.00683783 * (temp^2) -
+      0.05481717 * (rh^2) +
+      0.00122874 * (temp^2) * rh +
+      0.00085282 * temp * (rh^2) - 0.00000199 * (temp^2) * (rh^2)
+    if (rh <= 13 && temp >= 80 && temp <= 112) {
+      adjustment1 = (13 - rh) / 4
+      adjustment2 = sqrt((17 - abs(temp - 95)) / 17)
+      total.adjustment = adjustment1 * adjustment2
+      hi = hi - total.adjustment
+    } else if (rh > 85 && temp >= 80 && temp <= 87) {
+      adjustment1 = (rh - 85) / 10
+      adjustment2 = (87 - temp) / 5
+      total.adjustment = adjustment1 * adjustment2
+      hi = hi + total.adjustment
+    }
+  }
+
+  heatIndex = (hi - 32) / 1.8
+
+  return(heatIndex)
+}
+
+
+fnHumidIndex = function(temp, rh) {
+
+  vp = rh / 100 *
+    6.105 *
+    exp(17.27 * temp / (237.7 + temp))
+  humidIndex = temp + 0.5555 * (vp - 10)
+
+  return(humidIndex)
+}
+
+fnAppTempIndex = function(temp, rh, ws) {
+
+  vp = rh / 100 *
+    6.105 *
+    exp(17.27 * temp / (237.7 + temp))
+  appTempIndex = temp + 0.33 * vp - 0.7 * ws + 4.0
+
+  return(appTempIndex)
+}
+
+fnAppTempRadIndex = function(temp, rh, ws, sr) {
+
+  sr = sr * 86400 / (10^6)
+  alb = 0.2
+  vp = rh / 100 *
+    6.105 *
+    exp(17.27 * temp / (237.7 + temp))
+  appTempRadIndex = temp + 0.33 * vp - 0.7 * ws + 0.7 * (sr * (1 - alb))
+
+  return(appTempRadIndex)
+}
+
+fnWetBulbGolbalTempIndex = function(temp, rh, ws, sr) {
+
+  sr = sr * (10^3) / 86400
+  wetBulbGolbalTempIndex = 0.735 * temp +
+    0.0374 * rh +
+    0.00292 * temp * rh +
+    7.619 * sr -
+    4.557 * (sr^2) -
+    0.0572 * ws -
+    4.064
+
+  return(wetBulbGolbalTempIndex)
+}
+
+#=====================================
+# Set Data
+#=====================================
+options(digits = globalVar$optDig)
+options(java.parameters = "-Xmx8192m")
+memory.limit(size = globalVar$memLimit)
+
+library(ggmap)
+ggmap::register_google(key = globalVar$googleKey)
+
+#=====================================
+# Set Font
+#=====================================
+# 원도우에서 설치된 폰트 확인
+# sysfonts::font_files() %>%
+#   tibble::as.tibble() %>%
+#   dplyr::filter(
+#     stringr::str_detect(family, regex("KoPub|Century|Palatino"))
+#     , stringr::str_detect(face, regex("Regular|Medium"))
+#   )
+
+#******************************
+# 인코딩으로 인해 오류 발생
+#******************************
+# # 폰트 추가
+# extrafont::font_import(paths = globalVar$fontPath, pattern = "NewCenturySchoolbook.ttf", prompt = FALSE)
+# extrafont::font_import(paths = globalVar$fontPath, pattern = "pala.ttf", prompt = FALSE)
+
+# # 폰트 확인
+# extrafont::fonts()
+
+#******************************
+# 인코딩으로 인해 오류 발생
+#******************************
+# 인터넷 환경에서 구글 폰트 추가
+# font.add.google("Gochi Hand", "gochi")
+
+# 오프라인 환경에서 특정 경로에서 국/영문 폰트 추가
+# 영문 폰트
+sysfonts::font.add(family = "New Century Schoolbook", regular = paste(globalVar$fontPath, "NewCenturySchoolbook.ttf", sep = "/"))
+sysfonts::font.add(family = "Palatino Linotype", regular = paste(globalVar$fontPath, "pala.ttf", sep = "/"))
+
+# 국문 폰트
+sysfonts::font.add(family = "KoPubWorld Dotum Medium", regular = paste(globalVar$fontPath, "KoPubWorld Dotum Medium.ttf", sep = "/"))
+
+# 폰트 읽기
+showtext::showtext_opts(dpi = 600)
+showtext::showtext.auto()
+
+# 폰트 확인
+sysfonts::font_families()
+
+font = "New Century Schoolbook"
+fontKor = "KoPubWorld Dotum Medium"
+fontEng = "Palatino Linotype"
+
+# font, colorbar
+# font = "New Century Schoolbook"
+# font = "Palatino Linotype"
+# font = "Time Roman"
+# font = "Comic Sans MS"
+# font = "Helvetica"
+# font = "NanumBarunGothic"
+# font = "Times New Roman"
+
+cbSpectral = rev(RColorBrewer::brewer.pal(11, "Spectral"))
+cbViridis = viridis::viridis(11)
+cbMatlab = colorRamps::matlab.like(11)
+cbMatlab2 = colorRamps::matlab.like2(11)
+cbDiverge = colorspace::diverge_hcl(11)
+cbPlasma = rev(viridis::plasma(11))
+
+# 패키지 업데이트
+# update.packages(ask = FALSE)
+
+# 주석 단계
+# ====
+# ****
+# ++++
+
+#===============================
+# R에서 Anaconda3 불러오기
+#===============================
+# library(reticulate)
+# 
+# # 환경변수 설정
+# if (.Platform$OS.type == "windows") {
+#   Sys.setenv(RETICULATE_PYTHON = 'C:/ProgramData/Anaconda3/python.exe')
+#   Sys.setenv(PATH = paste("C:/ProgramData/Anaconda3/Library/bin", Sys.getenv()["PATH"], sep = ";"))
+# }
+
+# reticulate::py_discover_config()
+# 
+# reticulate::conda_list()
+# name                                 python
+# 1 Anaconda3 C:\\ProgramData\\Anaconda3\\python.exe
+
+# 임시 conda 삭제
+# reticulate::conda_remove("PyCharm")
+
+# reticulate::py_config()
+# python:         C:/ProgramData/Anaconda3/python.exe
+# libpython:      C:/ProgramData/Anaconda3/python37.dll
+# pythonhome:     C:/ProgramData/Anaconda3
+# version:        3.7.8 | packaged by conda-forge | (default, Jul 31 2020, 01:53:57) [MSC v.1916 64 bit (AMD64)]
+# Architecture:   64bit
+# numpy:          C:/ProgramData/Anaconda3/Lib/site-packages/numpy
+# numpy_version:  1.18.5
+
+# reticulate::use_python("C:\\ProgramData\\Anaconda3\\python.exe", required = TRUE)
+
+# 라이브러리 읽기
+# from pykospacing import spacing
+# pykospacing = reticulate::import("pykospacing")
+
+# pykospacing$spacing(stringr::str_remove_all("친애하는 지도자동지께서 주체의 사회주의경제관리리론 전반을  관통하고있는 기본원리를 새롭 게 정식 화 히 심 으 로 써 주체 의 사회주의경제 관리 리론이 의거하고있는 사상리론적 , 방법론적  기초가 뚜렷이 밝혀지게 되였으며 이 기본원리에 의거하여 사회주의경제관리리론을  더욱 과학적으로 체계 화할 수 있 게 되 였 다", " "))
+
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+#================================================
+# 요구사항
+#================================================
+# 전에 드린 mod값을 obs에 일치시키는 랜덤포레스트와 svm을 구축하는것입니다!
+# 구축하는데 있어서 랜덤포레스트는 매개변수 최적값을 산정해주실수 있는지 궁금합니다!
+# 앙상블 형태로 7 3으로 분할부탁드립니다!
+# 검증 지수 : 상관계수 (R), 유의수준 (p-Value), 편이 (Bias), 평균제곱근오차 (RMSE), %Bias, %RMSE로 하면 될까요?
+
+# serviceName = "LSH0000"
+
+# log = log4r::create.logger()
+# log4r::logfile(log) = paste0(globalVar$logConfig, "/log4r_", format(Sys.time(), "%Y%m%d"), ".log")
+# log4r::level(log) = "INFO"
+
+# tryCatch(
+#   expr = {
+#     # 주 소스 코드
+#     log4r::info(log, sprintf("%s", "[START] Main R"))
+#     
+#   }
+#   , warning = function(warning) { log4r::warn(log, warning) }
+#   , error = function(error) { log4r::error(log, error) }
+#   , finally = {
+#     log4r::info(log, sprintf("%s", "[END] Main R"))
+#   }
+# )
+
+# library(tidyverse)
+# library(ggplot2)
+# library(lubridate)
+# library(openxlsx)
+# library(fs)
+
+#================================================
+# Set Env
+#================================================
+# globalVar = new.env()
+# globalVar$inpConfig = "."
+# globalVar$figConfig = "."
+# globalVar$outConfig = "."
+# globalVar$logConfig = "."
+
+#================================================
+# Set Fun
+#================================================
+# perfEval = function(x, y) {
+#   
+#   if (length(x) < 1) { return( sprintf("%s", "x 값 없음") ) }
+#   if (length(y) < 1) { return( sprintf("%s", "y 값 없음") ) }
+#   
+#   slope = coef(lm(y ~ x))[2]
+#   interp = coef(lm(y ~ x))[1]
+#   xMean = mean(x, na.rm = TRUE)
+#   yMean = mean(y, na.rm = TRUE)
+#   xSd = sd(x, na.rm = TRUE)
+#   ySd = sd(y, na.rm = TRUE)
+#   cnt = length(x)
+#   bias = mean(x - y, na.rm = TRUE)
+#   rBias = (bias / yMean) * 100.0
+#   rmse = sqrt(mean((x - y)^2, na.rm = TRUE))
+#   rRmse = (rmse / yMean) * 100.0
+#   r = cor.test(x, y)$estimate
+#   p = cor.test(x, y)$p.value
+#   diffMean = mean(x - y, na.rm = TRUE)
+#   diffSd = sd(x - y, na.rm = TRUE)
+#   # perDiffMean = mean((x - y) / y, na.rm = TRUE) * 100.0
+#   
+#   return( c(slope, interp, xMean, yMean, xSd, ySd, cnt, bias, rBias, rmse, rRmse, r, p, diffMean, diffSd) )
+# }
+
+# 검증 지수 테이블 생성
+# perfTable = data.frame(matrix(0, nrow = 2, ncol = 15))
+# rownames(perfTable) = c("RF", "SVM")
+# colnames(perfTable) = c("slope", "interp", "xMean", "yMean", "xSd", "ySd", "cnt", "bias", "rBias", "rmse", "rRmse", "r", "r2", "diffMean", "diffSd")
+
+# perfTable[1, ] = round(perfEval(yHat, yObs), 2)
+
+#************************************************
+# [openxlsx] Read
+#************************************************
+# data = openxlsx::read.xlsx(fileList, sheet = 1)
+
+#************************************************
+# [openxlsx] Write
+#************************************************
+# wb = openxlsx::createWorkbook()
+# 
+# openxlsx::addWorksheet(wb, "ggData")
+# openxlsx::writeData(wb, "ggData", ggData, startRow = 1, startCol = 1)
+
+# openxlsx::saveWorkbook(wb, file = paste0(globalVar$outConfig, "/Survery_LSH0078.xlsx"), overwrite = TRUE)
+
+#************************************************
+# File Info
+#************************************************
+# fileInfo = Sys.glob(paste(globalVar$inpConfig, "play.csv", sep = "/"))
+# data = readr::read_csv(file = fileInfo, locale = locale("ko", encoding = "UTF-8"))
+
+# nameList = sort(unique(geoData_L1$sigungu_name))
+# fileName = tools::file_path_sans_ext(fs::path_file(fileInfo))
+# if (nrow(dataL2) < 1) { next }
+
+
+# saveImg = sprintf("%s/Img_%s_%02d_%s.png", globalVar$figConfig, serviceName, 3, "관계 시각화")
+# saveImg = sprintf("%s/TMP3/Img_%s_%05d_%s_%s.png", globalVar$figConfig, serviceName, 3, "충청남도 시군구별 자원 분포도", nameInfo)
+
+# isDir = dir.exists(path = fs::path_dir(saveFile))
+# if (isDir == FALSE) { file.create(fs::path_dir(saveFile)) }
+# isFile = file.exists(path = saveFile)
+# if (isFile == TRUE) { file.remove(path = saveFile) }
+
+#************************************************
+# Data Info
+#************************************************
+# dplyr::mutate(
+#   backColor = dplyr::case_when(
+#     stringr::str_detect(sigungu_name, regex("태안군|서산시|당진시")) ~ "1"
+#     , TRUE ~ "NA"
+#   )
+# )
