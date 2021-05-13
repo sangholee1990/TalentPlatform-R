@@ -2,9 +2,8 @@
 # Usage
 #=====================================
 # rm(list = ls())
-# 
 # prjName="o2job"
-# 
+# prjName="test"
 # source(here::here("E:/04. TalentPlatform/Github/TalentPlatform-R", "InitConfig.R"), encoding = "UTF-8")
 
 #=====================================
@@ -27,6 +26,9 @@ Sys.setenv(LANG = "ko_KR.UTF-8")
 # options(encoding = "UTF-8")
 # Sys.setenv(LANG = "en_US.UTF-8")
 
+# Sys.setlocale("LC_CTYPE", ".1251")
+# Sys.setlocale("LC_CTYPE", "Korean")
+
 globalVar = list()
 
 globalVar$optDig = 10
@@ -47,7 +49,7 @@ globalVar$logPath = file.path(globalVar$resPath, "log", prjName)
 globalVar$mapPath = file.path(globalVar$cfgPath, "mapInfo")
 globalVar$systemPath = file.path(globalVar$cfgPath, "system.cfg")
 globalVar$seleniumPath = file.path(globalVar$cfgPath, "selenium")
-globalVar$fontPath = file.path(globalVar$cfgPath, "fonInfo")
+globalVar$fontPath = file.path(globalVar$cfgPath, "fontInfo")
 
 # 기본 설정 복사
 isResDir = dir.exists(path = globalVar$resPath)
@@ -394,6 +396,22 @@ cbPlasma = rev(viridis::plasma(11))
 # pykospacing = reticulate::import("pykospacing")
 
 # pykospacing$spacing(stringr::str_remove_all("친애하는 지도자동지께서 주체의 사회주의경제관리리론 전반을  관통하고있는 기본원리를 새롭 게 정식 화 히 심 으 로 써 주체 의 사회주의경제 관리 리론이 의거하고있는 사상리론적 , 방법론적  기초가 뚜렷이 밝혀지게 되였으며 이 기본원리에 의거하여 사회주의경제관리리론을  더욱 과학적으로 체계 화할 수 있 게 되 였 다", " "))
+
+#===============================
+# R에서 H2O 업데이트
+#===============================
+# if ("package:h2o" %in% search()) { detach("package:h2o", unload=TRUE) }
+# if ("h2o" %in% rownames(installed.packages())) { remove.packages("h2o") }
+# 
+# pkgs = c("RCurl","jsonlite")
+# for (pkg in pkgs) {
+#   if (! (pkg %in% rownames(installed.packages()))) { install.packages(pkg) }
+# }
+# 
+# install.packages("h2o", type="source", repos="https://h2o-release.s3.amazonaws.com/h2o/rel-zipf/1/R")
+# 
+# library(h2o)
+# h2o::h2o.init()
 
 #===============================================================================================
 # Routine : Main R program

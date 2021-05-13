@@ -8145,11 +8145,11 @@ openxlsx::read.xlsx
 
 # 답이 2 5 11 NA NA 이렇게 나오는데
 # 이 뜻이 뭔가요?
-  
+
 # []의 의미가 예를 들어 y[1]이면 y객체의 첫번째 값인 2를 뽑는다는 것으로 알고 있는데 y에서 x번째 값을 추출한다는게 왜 저렇게 나오는지 이해가 잘 가지 않습니다.
 
-x = c(1,3,5,7,9)
-y = c(2,3,5,7,11,13)
+x = c(1, 3, 5, 7, 9)
+y = c(2, 3, 5, 7, 11, 13)
 
 y[x]
 
@@ -8181,8 +8181,8 @@ hist(x)
 #================================================
 # 요구사항
 #================================================
-A = matrix(c(1,2,3,4), ncol = 2)
-b = c(1,5)
+A = matrix(c(1, 2, 3, 4), ncol = 2)
+b = c(1, 5)
 
 # solve의 입력 파라미터 (b)가 숫자형이기 때문에 숫자로 반환
 solve(A, b)
@@ -8342,7 +8342,7 @@ data = data.frame(
 
 table(data)
 
-mosaicplot(~ key + val, data = data, color=TRUE)
+mosaicplot(~key + val, data = data, color = TRUE)
 
 
 #================================================
@@ -8366,10 +8366,10 @@ str1
 #================================================
 # 그런데 저기 빨간 색으로 동그라미 친 처음 부분과 끝 부분에도 공백을 두고 싶습니다.
 # 또 y축 값에도 중간에 값을 더 추가하고 싶은데 어떻게 해야 하나요?
-  
+
 PM2.5 <- c(21.9, 23.1, 34.4, 35.2, 39.5, 28.7, 34.8, 15.6, 45.1, 27.7, 24.9, 32.6)
 
-hist(PM2.5, main='2017년 1분기~2019년 4분기 PM2.5 데이터 분포', xlab='PM2.5', ylab='빈도수')
+hist(PM2.5, main = '2017년 1분기~2019년 4분기 PM2.5 데이터 분포', xlab = 'PM2.5', ylab = '빈도수')
 
 xLabel = c(17.5, 22.5, 27.5, 32.5, 37.5)
 yLabel = c(0.25, 1.25, 2.25, 3.25, 4.25)
@@ -8377,7 +8377,7 @@ yLabel = c(0.25, 1.25, 2.25, 3.25, 4.25)
 for (i in 1:length(xLabel)) {
   lines(c(xLabel[i], xLabel[i]), c(0, 0.2), lty = 1, col = "red")
   text(xLabel[i], 0.4, xLabel[i], col = "red")
-  
+
   lines(c(15, 15.5), c(yLabel[i], yLabel[i]), lty = 1, col = "blue")
   text(16.5, yLabel[i], yLabel[i], col = "blue")
 }
@@ -8495,12 +8495,12 @@ X
 n = 2:50
 
 ve = 1 / sqrt(n * (n - 1))
-  
-# 2. 각각의 ve 값을 data 자료 h행의 값들과 곱하고, 이 값들은 pr 이라고 이름지음
-c(t(outer(data$h, ve))) 활용 
 
-pr = c(t(outer(n, ve))) %>% 
-  data.frame()
+# 2. 각각의 ve 값을 data 자료 h행의 값들과 곱하고, 이 값들은 pr 이라고 이름지음
+c(t(outer(data$h, ve)))활용
+
+pr = c(t(outer(n, ve))) %>%
+data.frame()
 
 # 3. pr 의 데이터 셋을 만듬
 pr
@@ -8528,7 +8528,7 @@ barplot(tableDf)
 # 숫자만 읽고 싶다면 어떻게 해야 되나요...?
 # 원래 파일은 마지막 사진인데 r에서 csv 파일을 읽으면 자료가 2번째 사진처럼 보입니다...
 # 남자 여자가 아닌 가장 큰 수인 max()를 읽고 싶어요ㅜㅜ
-max(data21[ , -1], na.rm = TRUE)
+max(data21[, -1], na.rm = TRUE)
 
 #================================================
 # 요구사항
@@ -8541,7 +8541,7 @@ max(data21[ , -1], na.rm = TRUE)
 #================================================
 # 산점도 그리고 난 후 각 점을 식별하는 소스코드 알려주세요 .
 data = data.frame(
-  x = 1:10
+x = 1:10
   , y = 1:10
 )
 
@@ -8558,12 +8558,12 @@ data
 #' @export
 #' @examples
 #' listlast("04","2020")
-listlast<-function(month,year){
-  
-  fullpath<-paste0("https://scihub.copernicus.eu/catalogueview/S5P/",year,"/",month,"/")
-  lista<-xml2::read_html(fullpath)
-  nodes<-trimws(rvest::html_text(rvest::html_nodes(lista, "a")))
-  return (nodes[6:length(nodes)])}
+listlast<-function(month, year){
+
+fullpath<-paste0("https://scihub.copernicus.eu/catalogueview/S5P/", year, "/", month, "/")
+lista<-xml2::read_html(fullpath)
+nodes<-trimws(rvest::html_text(rvest::html_nodes(lista, "a")))
+return (nodes[6:length(nodes)])}
 
 #' Get a list of 5p products
 #'
@@ -8576,13 +8576,13 @@ listlast<-function(month,year){
 #' @export
 #' @examples
 #' get5plist("04","2020","3")
-get5plist<-function(month,year,number){
-  nodes<-listlast(month,year)
-  fullpath<-paste0("https://scihub.copernicus.eu/catalogueview/S5P/",year,"/",month,"/")
-  leggo<-(nodes[as.numeric(number)+5])
-  leggopath<-paste0(fullpath,leggo)
-  leggoresult<-read.csv(leggopath)
-  return(leggoresult)
+get5plist<-function(month, year, number){
+nodes<-listlast(month, year)
+fullpath<-paste0("https://scihub.copernicus.eu/catalogueview/S5P/", year, "/", month, "/")
+leggo<-(nodes[as.numeric(number)+5])
+leggopath<-paste0(fullpath, leggo)
+leggoresult<-read.csv(leggopath)
+return(leggoresult)
 }
 
 #' Get a specific S5p product
@@ -8597,14 +8597,14 @@ get5plist<-function(month,year,number){
 #' @export
 #' @examples
 #' get5p("04","2020","3","1","lastday.ncf")
-get5p<-function(month,year,number,id,fn)
+get5p<-function(month, year, number, id, fn)
 {
-  leggo<-get5plist(month,year,number)
-  p2<-paste0("https://s5pguest:s5pguest@s5phub.copernicus.eu/dhus/odata/v1/Products('",leggo$Id[id],"')/$value")
-  download.file(p2,as.character(leggo$Name[id]))
+leggo<-get5plist(month, year, number)
+p2<-paste0("https://s5pguest:s5pguest@s5phub.copernicus.eu/dhus/odata/v1/Products('", leggo$Id[id], "')/$value")
+download.file(p2, as.character(leggo$Name[id]))
 }
 
-get5p("04","2020","3","1","lastday.ncf")
+get5p("04", "2020", "3", "1", "lastday.ncf")
 
 
 #' Get the latest S5p products (lat long search)
@@ -8624,37 +8624,37 @@ get5p("04","2020","3","1","lastday.ncf")
 lat = 44
 lon = 12
 
-get5p_latlon<-function(lat,lon,id=NULL)
+get5p_latlon<-function(lat, lon, id=NULL)
 {
-  leggo<-paste0("https://s5phub.copernicus.eu/dhus/search?q=footprint:\"Intersects(",lat,",",lon,")\"")
-  lista<-xml2::read_html(httr::GET(leggo,httr::authenticate("s5pguest", "s5pguest")))
-  sommario<-trimws(rvest::html_text(rvest::html_nodes(lista, "summary")))
-  nodes<-trimws(rvest::html_text(rvest::html_nodes(lista, "id")))
-  nodes2<-trimws(rvest::html_text(rvest::html_nodes(lista, "title")))
-  nodi<-data.frame(desc=sommario,name=nodes2[2:length(nodes2)],id=nodes[2:length(nodes)])
-  if (!is.null(id)){
-    if(id!="-1"){
-      leggo<-nodi$id[id]
-      p2<-paste0("https://s5pguest:s5pguest@s5phub.copernicus.eu/dhus/odata/v1/Products('",leggo,"')/$value")
-      nomefile<-paste0(as.character(nodi$name[id]),".nc")
-      print(paste0("Downloading ",nomefile))
-      download.file(p2,as.character(nodi$name[id]))
-      
-      print(paste0(nomefile, " successfully saved"))
-    }
-    if(id=="-1"){
-      for(i in 1:length(nodi$id)){
-        leggo<-nodi$id[i]
-        print(paste0("Downloading file ",i,"/",length(nodi$id)))
-        p2<-paste0("https://s5pguest:s5pguest@s5phub.copernicus.eu/dhus/odata/v1/Products('",leggo,"')/$value")
-        nomefile<-paste0(as.character(nodi$name[i]),".nc")
-        print(paste0("Downloading ",nomefile))
-        download.file(p2,nomefile)
-        print(paste0(nomefile, " successfully saved"))
-      }}
-    
-  }
-  return (nodi)
+leggo<-paste0("https://s5phub.copernicus.eu/dhus/search?q=footprint:\"Intersects(", lat, ",", lon, ")\"")
+lista<-xml2::read_html(httr::GET(leggo, httr::authenticate("s5pguest", "s5pguest")))
+sommario<-trimws(rvest::html_text(rvest::html_nodes(lista, "summary")))
+nodes<-trimws(rvest::html_text(rvest::html_nodes(lista, "id")))
+nodes2<-trimws(rvest::html_text(rvest::html_nodes(lista, "title")))
+nodi<-data.frame(desc=sommario, name=nodes2[2:length(nodes2)], id=nodes[2:length(nodes)])
+if (!is.null(id)){
+if(id!="-1"){
+leggo<-nodi$id[id]
+p2<-paste0("https://s5pguest:s5pguest@s5phub.copernicus.eu/dhus/odata/v1/Products('", leggo, "')/$value")
+nomefile<-paste0(as.character(nodi$name[id]), ".nc")
+print(paste0("Downloading ", nomefile))
+download.file(p2, as.character(nodi$name[id]))
+
+print(paste0(nomefile, " successfully saved"))
+}
+if(id=="-1"){
+for(i in 1:length(nodi$id)){
+leggo<-nodi$id[i]
+print(paste0("Downloading file ", i, "/", length(nodi$id)))
+p2<-paste0("https://s5pguest:s5pguest@s5phub.copernicus.eu/dhus/odata/v1/Products('", leggo, "')/$value")
+nomefile<-paste0(as.character(nodi$name[i]), ".nc")
+print(paste0("Downloading ", nomefile))
+download.file(p2, nomefile)
+print(paste0(nomefile, " successfully saved"))
+} }
+
+}
+return (nodi)
 }
 #' Get a S5p product
 #'
@@ -8669,18 +8669,18 @@ get5p_latlon<-function(lat,lon,id=NULL)
 #' plot5p("S5P_OFFL_L2__AER_LH_20200527T115918_20200527T134048_13579_01_010302_20200529T045906.nc")
 #' plot5p("S5P_OFFL_L2__AER_LH_20200527T115918_20200527T134048_13579_01_010302_20200529T045906.nc","aerosol_index_340_380")
 
-plot5p<-function(fil,variable=NULL){
-  nc<-ncdf4::nc_open(fil)
-  lat<-ncdf4::ncvar_get(nc,"PRODUCT/latitude")
-  if(!is.null(variable)){
-    lon<-ncdf4::ncvar_get(nc,"PRODUCT/longitude")
-    pro<-ncdf4::ncvar_get(nc,paste0("PRODUCT/",variable))
-    plottami<-data.frame(lat=as.vector(lat),lon=as.vector(lon),valore=as.vector(pro))
-    ggplot2::ggplot(plottami, aes(y=lat, x=lon, fill=valore)) +
-      ggplot2::geom_tile(width=1, height=1) +
-      ggplot2::borders('world', xlim=range(plottami$lon), ylim=range(plottami$lat),
-                       colour='gray90', size=.2)}
-  return(nc)
+plot5p<-function(fil, variable=NULL){
+nc<-ncdf4::nc_open(fil)
+lat<-ncdf4::ncvar_get(nc, "PRODUCT/latitude")
+if(!is.null(variable)){
+lon<-ncdf4::ncvar_get(nc, "PRODUCT/longitude")
+pro<-ncdf4::ncvar_get(nc, paste0("PRODUCT/", variable))
+plottami<-data.frame(lat=as.vector(lat), lon=as.vector(lon), valore=as.vector(pro))
+ggplot2::ggplot(plottami, aes(y=lat, x=lon, fill=valore)) +
+ggplot2::geom_tile(width=1, height=1) +
+ggplot2::borders('world', xlim=range(plottami$lon), ylim=range(plottami$lat),
+colour='gray90', size=.2)}
+return(nc)
 }
 
 
@@ -8715,13 +8715,13 @@ read.csv("./examscore.csv")
 # - dist값이 80이상이면 "H"
 library(tidyverse)
 
-carsL1 = cars %>% 
-  dplyr::mutate(dist_kind = case_when(
-    dist <= 20 ~ "L"
-    , dist > 20 & dist < 80 ~ "M"
-    , dist >= 80 ~ "H"
-    , TRUE ~ "null"
-  ))
+carsL1 = cars %>%
+dplyr::mutate(dist_kind = case_when(
+dist <= 20 ~ "L"
+  , dist > 20 & dist < 80 ~ "M"
+  , dist >= 80 ~ "H"
+  , TRUE ~ "null"
+))
 
 # 2. dist_kind 컬럼을 이용하여 막대그래프(Bar Chart)를 작성하시오.
 carsL2 = table(carsL1$dist_kind)
@@ -8742,8 +8742,8 @@ hist(sampleData)
 xLabel = c(24, 24.5, 25, 25.5, 26)
 
 for (i in 1:length(xLabel)) {
-  lines(c(xLabel[i], xLabel[i]), c(0, 0.2), lty = 1, col = "red")
-  text(xLabel[i], 0.4, xLabel[i], col = "red")
+lines(c(xLabel[i], xLabel[i]), c(0, 0.2), lty = 1, col = "red")
+text(xLabel[i], 0.4, xLabel[i], col = "red")
 }
 
 #================================================
@@ -8772,7 +8772,7 @@ readr::read_csv()
 # 사진에 표시한 부분처럼 정삼각형을 만드려면 코드를 어떻게 만들어야하나요?
 
 for (i in 1:4) {
-  cat(paste(rep("*", i), collapse = ""), "\n")
+cat(paste(rep("*", i), collapse = ""), "\n")
 }
 
 #================================================
@@ -8796,8 +8796,3 @@ library(readxl)
 
 fileInfo = Sys.glob(paste(globalVar$inpPath, "seoul.xlsx", sep = "/"))
 data = readxl::read_excel(fileInfo, sheet = "Sheet1")
-
-# dataL1 = data %>% 
-
-
-
