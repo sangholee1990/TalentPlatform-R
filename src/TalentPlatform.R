@@ -2921,7 +2921,24 @@ while (TRUE) {
 #
 # Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
 #===============================================================================================
+#================================================
+# Set Env
+#================================================
+# globalVar = list()
+# globalVar$inpPath = "."
+# globalVar$figPath = "."
+# globalVar$outPath = "."
+# globalVar$mapPath = "."
 
+rm(list = ls())
+prjName = "o2job"
+source(here::here("E:/04. TalentPlatform/Github/TalentPlatform-R/src", "InitConfig.R"), encoding = "UTF-8")
+
+# serviceName = "LSH0163"
+
+#================================================
+# Main
+#================================================
 library(faraway)
 library(tidyverse)
 library(grid)
@@ -2959,23 +2976,22 @@ ggplot(worldcup, aes(x = Time, y = Shots)) +
   geom_segment(data = d, mapping = aes(x = 400, y = 25, xend = maxDf$Time, yend = maxDf$Shots), arrow = arrow(), size = 1, color = "red") +
   annotate("text", x = 300, y = 25, label = getName, color = "red", fontface = 2)
 
-
 # 3.과제 5
-# [그림 5]와 같이 <에어코리아> 사이트(https://www.airkorea.or.kr )에 접속하여 서울지역의 측정소 정보를 조회해 보고 해당 문제에 대해 R 프로그래밍을 작성하시오.
+# [그림 5]와 같이 <에어코리아> 사이트(https://www.airkorea.or.kr)에 접속하여 서울지역의 측정소 정보를 조회해 보고 해당 문제에 대해 R 프로그래밍을 작성하시오.
 #
 # 1.아래와 같은 서울지역의 측정소 정보를 가지는 데이터셋을 생성하시오. (5점)
 # 측정소명 (ex. 강남구)
 # 주소 (ex. 서울 강남구 학동로 426 강남구청 별관 1동)
-dataQ5 = readxl::read_excel("INPUT/o2job/Q5.xls", sheet = "Sheet1")
+fileInfo = Sys.glob(paste(globalVar$inpPath, "Q5.xls", sep = "/"))
+dataQ5 = readxl::read_excel(fileInfo, sheet = "Sheet1")
 
-dataQ5L1 = data %>%
+dataQ5L1 = dataQ5 %>%
   dplyr::select(측정소명, 측정소주소)
 
 dplyr::tbl_df(dataQ5L1)
 
 # 2.위 1번에서 생성한 서울지역의 측정소 주소의 경도 및 위도를 구하고 경도 및 위도 필드를 데이터셋에 추가하시오.
-
-dataQ5L2 = ggmap::mutate_geocode(dataL1, 측정소주소, source = "google")
+dataQ5L2 = ggmap::mutate_geocode(dataQ5L1, 측정소주소, source = "google")
 
 dplyr::tbl_df(dataQ5L2)
 
@@ -3072,12 +3088,31 @@ dplyr::tbl_df(ucbData)
 # Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
 #===============================================================================================
 
+#================================================
+# Set Env
+#================================================
+# globalVar = list()
+# globalVar$inpPath = "."
+# globalVar$figPath = "."
+# globalVar$outPath = "."
+# globalVar$mapPath = "."
+
+rm(list = ls())
+prjName = "o2job"
+source(here::here("E:/04. TalentPlatform/Github/TalentPlatform-R/src", "InitConfig.R"), encoding = "UTF-8")
+
+# serviceName = "LSH0163"
+
+#================================================
+# Main
+#================================================
 library(scales)
 library(tidyverse)
 library(ranger)
 library(ggpubr)
 
-car.df = read.csv("INPUT/o2job/ToyotaCorolla.csv")
+fileInfo = Sys.glob(paste(globalVar$inpPath, "ToyotaCorolla.csv", sep = "/"))
+car.df = read.csv(fileInfo)
 
 car.df <- car.df[1:1000,] # select variables for regression
 selected.var <- c(3, 4, 7, 8, 9, 10, 12, 13, 14, 17, 18) # partition data
@@ -3096,23 +3131,27 @@ summary(car.lm)
 #======================================================
 # 정규분포 + 밀도 함수
 #======================================================
+saveImg = sprintf("%s/%s.png", globalVar$figPath, "Img_001")
+
 car.df %>%
   ggplot(aes(x = Price)) +
   geom_histogram(aes(y = ..density..), binwidth = 1000) +
   stat_function(fun = dnorm, args = list(mean = mean(car.df$Price, na.rm = TRUE), sd = sd(car.df$Price, na.rm = TRUE)), lwd = 2, col = 'red') +
   labs(title = "도요타 중고차 가격 분포", x = "중고차 가격", y = "확률밀도(density)", subtitle = "단위: 유로") +
   scale_x_continuous(labels = scales::comma) +
-  ggsave(filename = "FIG/o2job/Img_001.png", dpi = 600)
+  ggsave(filename = saveImg, dpi = 600)
 
 #======================================================
 # 빈도 분포
 #======================================================
+saveImg = sprintf("%s/%s.png", globalVar$figPath, "Img_002")
+
 car.df %>%
   ggplot(aes(x = Price)) +
   geom_histogram(aes(y = ..count..)) +
   labs(title = "도요타 중고차 가격 분포", x = "중고차 가격", y = "빈도분포", subtitle = "단위: 유로") +
   scale_x_continuous(labels = scales::comma) +
-  ggsave(filename = "FIG/o2job/Img_002.png", dpi = 600)
+  ggsave(filename = saveImg, dpi = 600)
 
 #========================================================
 # Random Forest
@@ -8205,6 +8244,24 @@ xlsx::write.xlsx2(dataL5, file = saveFile, sheetName = "dataL5", append = TRUE, 
 # Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
 #===============================================================================================
 
+#================================================
+# Set Env
+#================================================
+# globalVar = list()
+# globalVar$inpPath = "."
+# globalVar$figPath = "."
+# globalVar$outPath = "."
+# globalVar$mapPath = "."
+
+rm(list = ls())
+prjName = "o2job"
+source(here::here("E:/04. TalentPlatform/Github/TalentPlatform-R/src", "InitConfig.R"), encoding = "UTF-8")
+
+# serviceName = "LSH0163"
+
+#================================================
+# Main
+#================================================
 library(readr)
 library(xlsx)
 library(readxl)
@@ -8410,6 +8467,24 @@ xlsx::write.xlsx2(ggData, file = paste0(globalVar$outPath, "/Gdp_Rat.xlsx"), she
 # Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
 #===============================================================================================
 
+#================================================
+# Set Env
+#================================================
+# globalVar = list()
+# globalVar$inpPath = "."
+# globalVar$figPath = "."
+# globalVar$outPath = "."
+# globalVar$mapPath = "."
+
+rm(list = ls())
+prjName = "o2job"
+source(here::here("E:/04. TalentPlatform/Github/TalentPlatform-R/src", "InitConfig.R"), encoding = "UTF-8")
+
+# serviceName = "LSH0163"
+
+#================================================
+# Main
+#================================================
 library(ggplot2)
 library(forcats)
 library(tidyverse)
@@ -15159,7 +15234,12 @@ ggpubr::ggscatter(resultData, x = "pred", y = "real", color = "black", add = "re
 # Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
 #===============================================================================================
 
+rm(list = ls())
+prjName = "o2job"
+source(here::here("E:/04. TalentPlatform/Github/TalentPlatform-R/src", "InitConfig.R"), encoding = "UTF-8")
+
 serviceName = "LSH00000"
+
 
 # fileInfo = Sys.glob(paste(globalVar$inpPath, "out.csv", sep = "/"))
 # data = readr::read_csv(file = fileInfo, locale = locale("ko", encoding = "EUC-KR"))
@@ -24703,8 +24783,1475 @@ ggplot(trainCHWL1, aes(x = Temp, y = CHWEUI, color = makeLegend)) +
 # summary(lmCHW82type2)
 
 
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+#================================================
+# 요구사항
+#================================================
+# R을 이용한 관측소 정보에 따른 크리킹 (KRIGE) 계산 및 병렬 처리
+
+#================================================
+# Set Env
+#================================================
+# globalVar = list()
+# globalVar$inpPath = "."
+# globalVar$figPath = "."
+# globalVar$outPath = "."
+
+rm(list = ls())
+prjName = "test"
+source(here::here("E:/04. TalentPlatform/Github/TalentPlatform-R/src", "InitConfig.R"), encoding = "UTF-8")
+
+serviceName = "LSH0147"
+
+#================================================
+# Main
+#================================================
+library(readxl)
+library(tidyverse)
+library(lubridate)
+library(data.table)
+library(colorRamps)
+library(lubridate)
+library(extrafont)
+library(ggrepel)
+library(scales)
+library(sf)
+unloadNamespace('raster')
+library(gstat)
+library(sp)
+library(metR)
+library(akima)
+library(stringr)
+library(automap)
+
+fileInfo = Sys.glob(paste(globalVar$inpPath, "LSH0147_관측소+제원.xlsx", sep = "/"))
+stationData = openxlsx::read.xlsx(xlsxFile = fileInfo, sheet = "Sheet1") %>%
+  dplyr::select(Observation, X, Y) %>%
+  dplyr::rename(
+    name = Observation
+    , lon = X
+    , lat = Y
+  )
+
+# 관측소에 대한 공간 격자화
+spNewData = stationData
+coordinates(spNewData) = ~ lon + lat
+# plot(spNewData)
+
+fileInfo2 = Sys.glob(paste(globalVar$inpPath, "LSH0147_Pr ACCESS-ESM1-5_1985-2014.csv", sep = "/"))
+data = readr::read_csv(file = fileInfo2, locale = locale("ko", encoding = "EUC-KR"))
+
+dtDateList = data$X1 %>% unique() %>% sort()
+
+# [시작] 병렬 처리
+oSocClu = parallel::makePSOCKcluster(parallel::detectCores())
+# oSocClu = parallel::makePSOCKcluster(100)
+doParallel::registerDoParallel(oSocClu)
+
+# 외부 변수 등록
+parallel::clusterExport(oSocClu, "dtDateList")
+parallel::clusterExport(oSocClu, "data")
+parallel::clusterExport(oSocClu, "dataL1")
+parallel::clusterExport(oSocClu, "saveFile")
+parallel::clusterExport(oSocClu, "globalVar")
+parallel::clusterExport(oSocClu, "serviceName")
+parallel::clusterExport(oSocClu, "spData")
+parallel::clusterExport(oSocClu, "spNewData")
+parallel::clusterExport(oSocClu, "stationData")
+parallel::clusterExport(oSocClu, "dataL3")
 
 
+# 외부 라이브러리 등록
+parallel::clusterEvalQ(oSocClu, library(gstat))
+parallel::clusterEvalQ(oSocClu, library(readr))
+parallel::clusterEvalQ(oSocClu, library(tidyverse))
+parallel::clusterEvalQ(oSocClu, library(sp))
+parallel::clusterEvalQ(oSocClu, library(automap))
+
+# x = 1
+tictoc::tic()
+# parallel::parSapply(oSocClu, X = 1:length(dtDateList), function(x) {
+parallel::parSapply(oSocClu, X = 1:12, function(x) {
+  
+  dataL1 = data %>%
+    dplyr::filter(X1 == dtDateList[x]) %>%
+    tidyr::gather(-X1, key = "key", value = "val") %>%
+    tidyr::separate(col = "key", into = c("lat", "lon"), sep = "p") %>%
+    # tidyr::separate(col = "tmpLon", into = c(NA, "lon"), sep = "X") %>%
+    readr::type_convert()
+  
+  spData = dataL1
+  sp::coordinates(spData) = ~ lon + lat
+  gridded(spData) = TRUE
+  
+  if (nrow(dataL1) < 1) { next }
+  
+  # variogram model
+  variogram = automap::autofitVariogram(val ~ 1, spData)
+  # plot(variogram)
+  
+  # 정규 크리킹 및 전처리 수행
+  spDataL1 = gstat::krige(
+    formula = val ~ 1
+    , locations = spData
+    , newdata = spNewData
+    , model = variogram$var_model
+    , nmax = 4
+  ) %>%
+    as.data.frame() %>%
+    dplyr::rename(
+      val = var1.pred
+    ) %>%
+    dplyr::select(-var1.var, -lon, -lat)
+    # dplyr::select(-var1.var)
+  
+  # 데이터 병합
+  dataL3 = data.frame(
+    date = dtDateList[x]
+    , name = stationData$name
+    , spDataL1
+  ) %>% 
+  tidyr::spread(key = "name", value = "val")
+  
+  saveFile = sprintf("%s/%s_%s_%s.csv", globalVar$outPath, serviceName, "obs-to-krige", dtDateList[x])
+  readr::write_csv(x = dataL3, file = saveFile)
+})
+
+tictoc::toc()
+
+# [종료] 병렬 처리
+parallel::stopCluster(oSocClu)
+
+# 데이터 병합
+fileList = Sys.glob(paste(globalVar$outPath, "LSH0147_obs-to-krige_*.csv", sep = "/"))
+
+dataL4 = fileList %>%
+  # purrr::map(read.csv) %>%
+  purrr::map(~ read.csv(.x, fileEncoding = "UTF-8")) %>% 
+  purrr::reduce(dplyr::bind_rows)
+
+saveFile = sprintf("%s/%s_%s.csv", globalVar$outPath, serviceName, "obs-to-krige")
+readr::write_csv(x = dataL4, file = saveFile)
 
 
-sdasd
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+#================================================
+# 요구사항
+#================================================
+# R을 이용한 관측소 정보에 따른 역거리 가중치 (IDW) 계산 및 병렬 처리
+
+#================================================
+# Set Env
+#================================================
+# globalVar = list()
+# globalVar$inpPath = "."
+# globalVar$figPath = "."
+# globalVar$outPath = "."
+
+rm(list = ls())
+prjName = "test"
+source(here::here("E:/04. TalentPlatform/Github/TalentPlatform-R/src", "InitConfig.R"), encoding = "UTF-8")
+
+serviceName = "LSH0148"
+
+#================================================
+# Main
+#================================================
+library(readxl)
+library(tidyverse)
+library(lubridate)
+library(data.table)
+library(colorRamps)
+library(lubridate)
+library(extrafont)
+library(ggrepel)
+library(scales)
+library(sf)
+unloadNamespace('raster')
+library(gstat)
+library(sp)
+library(metR)
+library(akima)
+library(stringr)
+
+fileInfo = Sys.glob(paste(globalVar$inpPath, "LSH0148_관측소+제원.xlsx", sep = "/"))
+stationData = openxlsx::read.xlsx(xlsxFile = fileInfo, sheet = "Sheet1") %>%
+  dplyr::select(Observation, X, Y) %>%
+  dplyr::rename(
+    name = Observation
+    , lon = X
+    , lat = Y
+  )
+
+# 관측소에 대한 공간 격자화
+spNewData = stationData
+coordinates(spNewData) = ~ lon + lat
+# plot(spNewData)
+
+fileInfo2 = Sys.glob(paste(globalVar$inpPath, "LSH0148_Pr ACCESS-ESM1-5_1985-2014.csv", sep = "/"))
+data = readr::read_csv(file = fileInfo2, locale = locale("ko", encoding = "EUC-KR"))
+
+dtDateList = data$X1 %>% unique() %>% sort()
+
+# [시작] 병렬 처리
+oSocClu = parallel::makePSOCKcluster(parallel::detectCores())
+# oSocClu = parallel::makePSOCKcluster(100)
+doParallel::registerDoParallel(oSocClu)
+
+# 외부 변수 등록
+parallel::clusterExport(oSocClu, "dtDateList")
+parallel::clusterExport(oSocClu, "data")
+parallel::clusterExport(oSocClu, "dataL1")
+parallel::clusterExport(oSocClu, "saveFile")
+parallel::clusterExport(oSocClu, "globalVar")
+parallel::clusterExport(oSocClu, "serviceName")
+parallel::clusterExport(oSocClu, "spData")
+parallel::clusterExport(oSocClu, "spNewData")
+parallel::clusterExport(oSocClu, "stationData")
+parallel::clusterExport(oSocClu, "dataL3")
+
+
+# 외부 라이브러리 등록
+parallel::clusterEvalQ(oSocClu, library(gstat))
+parallel::clusterEvalQ(oSocClu, library(readr))
+parallel::clusterEvalQ(oSocClu, library(tidyverse))
+parallel::clusterEvalQ(oSocClu, library(sp))
+
+# x = 1
+tictoc::tic()
+# parallel::parSapply(oSocClu, X = 1:length(dtDateList), function(x) {
+parallel::parSapply(oSocClu, X = 1:12, function(x) {
+  
+  dataL1 = data %>%
+    dplyr::filter(X1 == dtDateList[x]) %>%
+    tidyr::gather(-X1, key = "key", value = "val") %>%
+    tidyr::separate(col = "key", into = c("lat", "lon"), sep = "p") %>%
+    # tidyr::separate(col = "tmpLon", into = c(NA, "lon"), sep = "X") %>%
+    readr::type_convert()
+  
+  spData = dataL1
+  sp::coordinates(spData) = ~ lon + lat
+  gridded(spData) = TRUE
+  
+  if (nrow(dataL1) < 1) { next }
+  
+  # IDW 학습 및 전처리수행
+  spDataL1 = gstat::idw(
+    formula = val ~ 1
+    , locations = spData
+    , newdata = spNewData
+    , nmax = 4
+  ) %>%
+    as.data.frame() %>%
+    dplyr::rename(
+      val = var1.pred
+    ) %>%
+    dplyr::select(-var1.var, -lon, -lat)
+  
+  # 데이터 병합
+  dataL3 = data.frame(
+    date = dtDateList[x]
+    , name = stationData$name
+    , spDataL1
+  ) %>% 
+    tidyr::spread(key = "name", value = "val")
+  
+  saveFile = sprintf("%s/%s_%s_%s.csv", globalVar$outPath, serviceName, "obs-to-idw", dtDateList[x])
+  readr::write_csv(x = dataL3, file = saveFile)
+})
+
+tictoc::toc()
+
+# [종료] 병렬 처리
+parallel::stopCluster(oSocClu)
+
+# 데이터 병합
+fileList = Sys.glob(paste(globalVar$outPath, "LSH0148_obs-to-idw_*.csv", sep = "/"))
+
+dataL4 = fileList %>%
+  purrr::map(~ read.csv(.x, fileEncoding = "UTF-8")) %>% 
+  purrr::reduce(dplyr::bind_rows)
+
+saveFile = sprintf("%s/%s_%s.csv", globalVar$outPath, serviceName, "obs-to-idw")
+readr::write_csv(x = dataL4, file = saveFile)
+
+
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+#================================================
+# 요구사항
+#================================================
+# R을 이용한 다중선형회귀모형 예측 및 분석
+
+#================================================
+# Set Env
+#================================================
+# globalVar = list()
+# globalVar$inpPath = "."
+# globalVar$figPath = "."
+# globalVar$outPath = "."
+
+rm(list = ls())
+prjName = "test"
+source(here::here("E:/04. TalentPlatform/Github/TalentPlatform-R/src", "InitConfig.R"), encoding = "UTF-8")
+
+serviceName = "LSH0159"
+
+#================================================
+# Main
+#================================================
+library(ggplot2)
+library(tidyverse)
+library(caret)
+library(readr)
+library(Metrics)
+library(car)
+library(olsrr)
+library(leaps)
+
+# showtext::showtext_opts(dpi = 100)
+# showtext::showtext.auto()
+# 
+fileInfo = Sys.glob(paste(globalVar$inpPath, "LSH0159_insurance.csv", sep = "/"))
+data = readr::read_csv(file = fileInfo)
+
+#**********************************************
+# 데이터셋 확인
+#**********************************************
+
+# 요약 정보 보기
+dplyr::tbl_df(data)
+
+# 기초 통계량 보기
+summary(data)
+
+# 건강 보험료에 대한 상자 그림
+boxplot(data$charges)
+
+# 나이에 대한 히스토그램
+hist(data$age)
+
+# 건강 보험료가 최대인 행 정보
+data[which.max(data$charges), ]
+
+# 범주형 변수 처리
+data$sex = as.factor(data$sex)
+data$smoker = as.factor(data$smoker)
+data$region = as.factor(data$region)
+
+
+#**********************************************
+# 회귀모형
+#**********************************************
+# 초기 모형 설정
+# 독립변수 : 건강 보험료를 제외한 모든 변수
+# 종속 변수 : 건강 보험료
+fit = lm(charges ~ ., data = data)
+
+#+++++++++++++++++++++++++++++++++++++
+# 회귀 분석 결과
+#+++++++++++++++++++++++++++++++++++++
+# 수혜 나이가 많을수록 보험료는 254.8로 증가한다.
+# 남성의 경우 보험료는 -131.3로 감소한다.
+# BMI 지수가 높을수록 보험료는 383.5로 증가한다.
+# 수혜 자녀수가 많을수록 보험료는 475.5로 증가한다.
+# 흡연자의 경우 보험료는 23848.5로 증가한다.
+# 북서부 지역의 경우 -352.9로 감소한다.
+# 남동부 지역의 경우 -1035.0로 감소한다.
+# 남서부 지역의 경우 -960.0로 감소한다.
+summary(fit)
+
+
+par(mfrow = c(2, 2))
+# 좌측 상단에서 Q-Q 그림에서 정규분포를 띠지 않음
+plot(fit)
+
+# 귀무가설 기각 > 정규분포를 띠지 않음
+shapiro.test(rstandard(fit))
+
+
+par(mfrow = c(1, 1))
+car::qqPlot(fit, simulate=TRUE, main="Q-Q_plot")
+
+olsrr::ols_plot_resid_lev(fit)
+
+olsrr::ols_plot_cooksd_bar(fit)
+
+apply(data, 2, median)
+
+#**********************************************
+# 수정된 회귀모형
+#****************************** ****************
+# 1차 수정모형 : AIC 가장 낮은 모델
+# 독립변수 : 나이, BMI, 자녀, 흡연 Yes, 지역 (북서부, 남동부, 남서부)
+# 종속 변수 : 건강 보험료
+stepFit = step(fit, direction = 'both')
+
+#+++++++++++++++++++++++++++++++++++++
+# 회귀 분석 결과
+#+++++++++++++++++++++++++++++++++++++
+# 수혜 나이가 많을수록 보험료는 256.9로 증가한다.
+# BMI 지수가 높을수록 보험료는 338.6로 증가한다.
+# 수혜 자녀수가 많을수록 보험료는 474.5로 증가한다.
+# 흡연자의 경우 보험료는 23836.3로 증가한다.
+# 북서부 지역의 경우 -352.1로 감소한다.
+# 남동부 지역의 경우 -1034.3로 감소한다.
+# 남서부 지역의 경우 -959.3로 감소한다.
+
+# 이러한 결과를 토대로 고령화 사회에 접어들면서 보험료 관련 사업이 활성화 가능
+summary(stepFit)
+
+# 좌측 상단에서 Q-Q 그림에서 정규분포를 띠지 않음
+par(mfrow = c(2, 2))
+plot(stepFit)
+
+# 귀무가설 기각 > 정규분포를 띠지 않음
+shapiro.test(rstandard(stepFit))
+
+car::qqPlot(stepFit, simulate=TRUE, main="Q-Q_plot")
+
+olsrr::ols_plot_resid_lev(stepFit)
+
+olsrr::ols_plot_cooksd_bar(stepFit)
+
+
+modelset = regsubsets(charges ~ .,data = data)
+par(mfrow = c(1, 2))
+plot(modelset, scale = "r2")
+plot(modelset, scale = "adjr2")
+
+plot(modelset, scale = "bic")
+plot(modelset, scale = "Cp")
+
+# 최종적인 모델 (stepFit)
+fit1 = lm(charges ~ ., data = data) # 최초
+fit2 = lm(charges ~ age + bmi + children + smoker + region, data = data) # step
+summary(fit1)
+summary(fit2)
+
+anova(fit1, fit2)
+
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+#================================================
+# 요구사항
+#================================================
+# 1. 종속변수 선정
+# 1.1 상권 자료의 범주 4개 설명 -> 광원님
+# 1.2 LH인 지역의 특성을 분석해볼 지표 설명 -> 지영님
+# 2. 독립변수 선정
+# 2.1 서비스업 자료(business_type) -> 광원님
+# 2.1.1 서비스업의 유형 분류(종사자수 1단위 증가 시 해당 업종의 종사자수의 변화 정도)
+# 2.1.2 변수 설명: 소비자서비스는 시장에 신규진입하기 용이한 업종이기 때문에 많을 것.
+# 2.2 사업체수 자료(business_number) -> 지영님
+# 2.2.1 사업체수, 평균종사자(종사자수/사업체수), 종사자밀도비 설명: 종사자밀도비는 종사자밀도/인구밀도로, 해당 수치가
+# 높으면 주간인구가 상주인구보다 높은 업무지구. -> 위에서 밝히지 못한 서비스업을 부차적으로 설명할 수 있을 것.
+# 2.3 사업체 영업기간 자료(business_age) -> 지영님
+# 2.3.1 변수 설명: 신규진입하는 사업자가 많으면 그동안 사업체가 영업한 기간이 짧을 것, 상대적으로 연령이 낮을 것.
+# 2.4 사업체 창업률 자료(business_founding) -> 종호님
+# 2.4.1 변수 설명: 신규진입하는 사업자가 많으면 창업률은 당연히 높을 것.
+# 2.5 자영업 종사자수 자료(business_private) -> 종호님
+# 2.5.1 변수 설명: 신규진입하는 사업자는 대부분 개인사업일 것이기 때문에 이들이 많으면 자영업 종사자수도 많을 것.
+# 3. 회귀분석 실시
+# 3.1 산점도를 그려 변수 조망하기 -> 광원님
+# 3.1.1 유의해보이는 변수 파악
+# 3.2 서비스업 자료(business_type) -> 지영님
+# 3.2.1 유형별 종사자수 합산 후 종속변수와의 관계 관찰 -> 유의미 X
+# 3.2.2 유형별 종사자수 비율 계산 후 종속변수와의 관계 관찰 -> 유의미 X(보정지수1로 하면 유의미)
+# 3.3 사업체수 자료(business_number) -> 지영님
+# 3.3.1 로그로 변환한 세 변수와 종속변수와의 관계 관찰 -> 종사자밀도비만 유의미
+# 3.4 사업체 영업기간 자료(business_age) -> 종호님
+# 3.4.1 변수와 종속변수와의 관계 관찰 -> 유의미
+# 3.5 사업체 창업률 자료(business_founding) -> 종호님
+# 3.5.1 변수와 종속변수와의 관계 관찰 -> 유의미
+# 3.6 자영업 종사자수 자료(business_private) -> 종호님
+# 3.6.1 로그로 변환하거나 하지 않은 변수 모두에 대해 종속변수와의 관계 관찰 -> 모두 유의미 X
+# 4. 교호관계 분석 -> 광원님
+# 4.1 소비자서비스업 종사자수와 종사자밀도비의 관계 -> 각 변수가 모두 유의미해짐.
+# 4.2 사업체 영업기간, 창업률, 자영업 종사자수와의 관계 -> 자영업 종사자수 단독, 이 변수와 엮인 관계에서만 유의미.
+# 4.3 종사자밀도비와 사업체 영업기간 간의 교호관계가 가장 유의미(설명력 14.42%),
+# 종사자밀도비와 사업체 창업률 간의 교호관계는 종사자밀도비와 교호관계만 유의미(설명력 17.34%).
+# 사업체 영업기간과 창업률 간의 교호관계는 창업률만 유의미(설명력 11.67%).
+# 4.4 커피전문점업 종사자와 사업체 창업률
+# 5. 모델 선정 -> 광원님
+# 5.1 4.4의 모델을 가져와서 강남북 범주형 자료와 통합.
+# 5.2 잔차 분석. okay -> 나은 모델! nokay -> 다시 보는 걸루!
+
+#================================================
+# Set Env
+#================================================
+# globalVar = list()
+# globalVar$inpPath = "."
+# globalVar$figPath = "."
+# globalVar$outPath = "."
+
+rm(list = ls())
+prjName = "test"
+source(here::here("E:/04. TalentPlatform/Github/TalentPlatform-R/src", "InitConfig.R"), encoding = "UTF-8")
+
+serviceName = "LSH0161"
+
+#================================================
+# Main
+#================================================
+library(GGally)
+library(gridExtra)
+library(mosaic)
+library(mosaicData)
+library(reactable)
+library(rmarkdown)
+library(tidyverse)
+library(ggpubr)
+
+showtext::showtext_opts(dpi = 100)
+showtext::showtext.auto()
+
+# 종속변수 선정
+## 상권 자료(market) 범주 설명_지영님
+
+fileInfo = Sys.glob(paste(globalVar$inpPath, "LSH0161_market.csv", sep = "/"))
+market <- readr::read_csv(fileInfo, locale=locale(encoding="EUC-KR"))
+paged_table(market)
+
+fileInfo = Sys.glob(paste(globalVar$inpPath, "LSH0161_code.csv", sep = "/"))
+code <- readr::read_csv(fileInfo, locale=locale(encoding="EUC-KR")) %>%
+  select(-코드_2) %>% rename("코드"="코드_1")
+
+marche <- market %>% unite("연도_분기", 기준_년_코드, 기준_분기_코드) %>%
+  filter(연도_분기 %in% "2019_4") %>%
+  mutate(운영개월 = 서울_운영_영업_개월_평균 - 운영_영업_개월_평균,
+             폐업개월 = -(서울_폐업_영업_개월_평균 - 폐업_영업_개월_평균),
+             영업지수 = 운영개월 + 폐업개월) %>%
+  select(-상권_변화_지표_명, -운영_영업_개월_평균, -폐업_영업_개월_평균,
+         -서울_운영_영업_개월_평균, -서울_폐업_영업_개월_평균,
+         -보정영업지수2, -보정영업지수3, -보정영업지수4) %>%
+  rename("행정동"="행정동_코드_명", "코드"="행정동_코드", "보정영업지수"="보정영업지수1")
+
+markt <- left_join(marche, code, by="코드") %>%
+  select(-행정동.x) %>%
+  unite("자치구_행정동", 구, 행정동.y) %>%
+  relocate(연도_분기, 코드, 자치구_행정동, 상권_변화_지표, 운영개월, 폐업개월, 영업지수)
+paged_table(markt)
+
+  ## 영업지수 지표 설명_광원님
+ggplot(markt, aes(x=운영개월, y=폐업개월))+
+  geom_point(mapping=aes(color=상권_변화_지표))+
+  scale_color_manual(values=c("palevioletred2", "lightgoldenrod", "seagreen3", "slateblue"))+
+  theme_minimal()+theme(legend.position=c(0.9, 0.5))
+
+einfach1 <- ggplot(data=markt, mapping=aes(x=reorder(자치구_행정동, 영업지수), y=영업지수, fill=상권_변화_지표))+
+  scale_fill_manual(values=c("palevioletred2", "lightgoldenrod", "seagreen3", "slateblue"))+
+  geom_bar(stat="identity")+
+  theme(axis.text.x=element_blank())+
+  theme(legend.position=c(0.85, 0.2))
+
+einfach2 <- ggplot(data=markt, mapping=aes(x=reorder(자치구_행정동, 보정영업지수), y=보정영업지수, fill=상권_변화_지표))+
+  scale_fill_manual(values=c("palevioletred2", "lightgoldenrod", "seagreen3", "slateblue"))+
+  geom_bar(stat="identity")+
+  theme(axis.text.x=element_blank())+
+  theme(legend.position=c(0.85, 0.2))
+
+  # 독립변수 설정
+  ## 서비스업 유형 자료(business_type)_광원님
+# type <- readr::read_csv("business_type.csv", locale=locale(encoding="EUC-KR"))
+fileInfo = Sys.glob(paste(globalVar$inpPath, "LSH0161_business_type.csv", sep = "/"))
+type <- readr::read_csv(fileInfo, locale=locale(encoding="EUC-KR"))
+paged_table(type)
+
+sorte <- type %>%
+  filter(!(행정동 %in% c("행정동", "합계", "소계"))) %>%
+  select(-사업체수_1, -종사자수_1, -종사자수_2) %>%
+  unite("자치구_행정동", 구, 행정동) %>%
+  rename("D.전기가스공급업_사업체수"="D. 전기 가스 증기 및 공기조절 공급업",
+         "D.전기가스공급업_종사자수"="D. 전기 가스 증기 및 공기조절 공급업_1",
+         "E.수도하수재생업_사업체수"="E. 수도 하수 및 폐기물 처리 원료 재생업",
+         "E.수도하수재생업_종사자수"="E. 수도 하수 및 폐기물 처리 원료 재생업_1",
+         "F.건설업_사업체수"="F. 건설업", "F.건설업_종사자수"="F. 건설업_1",
+         "G.도소매업_사업체수"="G. 도매 및 소매업", "G.도소매업_종사자수"="G. 도매 및 소매업_1",
+         "H.운수창고업_사업체수"="H. 운수 및 창고업", "H.운수창고업_종사자수"="H. 운수 및 창고업_1",
+         "I.숙박요식업_사업체수"="I. 숙박 및 음식점업", "I.숙박요식업_종사자수"="I. 숙박 및 음식점업_1",
+         "J.정보통신업_사업체수"="J. 정보통신업", "J.정보통신업_종사자수"="J. 정보통신업_1",
+         "K.금융보험업_사업체수"="K. 금융 및 보험업", "K.금융보험업_종사자수"="K. 금융 및 보험업_1",
+         "L.부동산업_사업체수"="L. 부동산업", "L.부동산업_종사자수"="L. 부동산업_1",
+         "M.전문과학기술업_사업체수"="M. 전문 과학 및 기술 서비스업",
+         "M.전문과학기술업_종사자수"="M. 전문 과학 및 기술 서비스업_1",
+         "N.사업시설관리임대업_사업체수"="N. 사업시설 관리 사업 지원 및 임대 서비스업",
+         "N.사업시설관리임대업_종사자수"="N. 사업시설 관리 사업 지원 및 임대 서비스업_1",
+         "O.공공행정국방업_사업체수"="O. 공공행정 국방 및 사회보장 행정",
+         "O.공공행정국방업_종사자수"="O. 공공행정 국방 및 사회보장 행정_1",
+         "P.교육서비스업_사업체수"="P. 교육 서비스업", "P.교육서비스업_종사자수"="P. 교육 서비스업_1",
+         "Q.보건사회복지서비스업_사업체수"="Q. 보건업 및 사회복지 서비스업",
+         "Q.보건사회복지서비스업_종사자수"="Q. 보건업 및 사회복지 서비스업_1",
+         "R.예술체육여가서비스업_사업체수"="R. 예술 스포츠 및 여가관련 서비스업",
+         "R.예술체육여가서비스업_종사자수"="R. 예술 스포츠 및 여가관련 서비스업_1",
+         "S.기타개인서비스업_사업체수"="S. 협회 및 단체 수리 및 기타 개인 서비스업",
+         "S.기타개인서비스업_종사자수"="S. 협회 및 단체 수리 및 기타 개인 서비스업_1") %>%
+  mutate(사업체수=str_replace(사업체수, ",", ""), 종사자수=str_replace(종사자수, ",", ""),
+             D.전기가스공급업_사업체수=str_replace(D.전기가스공급업_사업체수, ",", ""),
+             D.전기가스공급업_종사자수=str_replace(D.전기가스공급업_종사자수, ",", ""),
+             E.수도하수재생업_사업체수=str_replace(E.수도하수재생업_사업체수, ",", ""),
+             E.수도하수재생업_종사자수=str_replace(E.수도하수재생업_사업체수, ",", ""),
+             F.건설업_사업체수=str_replace(F.건설업_사업체수, ",", ""),
+             F.건설업_종사자수=str_replace(F.건설업_종사자수, ",", ""),
+             G.도소매업_사업체수=str_replace(G.도소매업_사업체수, ",", ""),
+             G.도소매업_종사자수=str_replace(G.도소매업_종사자수, ",", ""),
+             H.운수창고업_사업체수=str_replace(H.운수창고업_사업체수, ",", ""),
+             H.운수창고업_종사자수=str_replace(H.운수창고업_종사자수, ",", ""),
+             I.숙박요식업_사업체수=str_replace(I.숙박요식업_사업체수, ",", ""),
+             I.숙박요식업_종사자수=str_replace(I.숙박요식업_종사자수, ",", ""),
+             J.정보통신업_사업체수=str_replace(J.정보통신업_사업체수, ",", ""),
+             J.정보통신업_종사자수=str_replace(J.정보통신업_종사자수, ",", ""),
+             K.금융보험업_사업체수=str_replace(K.금융보험업_사업체수, ",", ""),
+             K.금융보험업_종사자수=str_replace(K.금융보험업_종사자수, ",", ""),
+             L.부동산업_사업체수=str_replace(L.부동산업_사업체수, ",", ""),
+             L.부동산업_종사자수=str_replace(L.부동산업_종사자수, ",", ""),
+             M.전문과학기술업_사업체수=str_replace(M.전문과학기술업_사업체수, ",", ""),
+             M.전문과학기술업_종사자수=str_replace(M.전문과학기술업_종사자수, ",", ""),
+             N.사업시설관리임대업_사업체수=str_replace(N.사업시설관리임대업_사업체수, ",", ""),
+             N.사업시설관리임대업_종사자수=str_replace(N.사업시설관리임대업_종사자수, ",", ""),
+             O.공공행정국방업_사업체수=str_replace(O.공공행정국방업_사업체수, ",", ""),
+             O.공공행정국방업_종사자수=str_replace(O.공공행정국방업_종사자수, ",", ""),
+             P.교육서비스업_사업체수=str_replace(P.교육서비스업_사업체수, ",", ""),
+             P.교육서비스업_종사자수=str_replace(P.교육서비스업_종사자수, ",", ""),
+             Q.보건사회복지서비스업_사업체수=str_replace(Q.보건사회복지서비스업_사업체수, ",", ""),
+             Q.보건사회복지서비스업_종사자수=str_replace(Q.보건사회복지서비스업_종사자수, ",", ""),
+             R.예술체육여가서비스업_사업체수=str_replace(R.예술체육여가서비스업_사업체수, ",", ""),
+             R.예술체육여가서비스업_종사자수=str_replace(R.예술체육여가서비스업_종사자수, ",", ""),
+             S.기타개인서비스업_사업체수=str_replace(S.기타개인서비스업_사업체수, ",", ""),
+             S.기타개인서비스업_종사자수=str_replace(S.기타개인서비스업_종사자수, ",", ""))
+
+sorte$사업체수 <- as.numeric(sorte$사업체수)
+sorte$종사자수 <- as.numeric(sorte$종사자수)
+sorte$D.전기가스공급업_사업체수 <- as.numeric(sorte$D.전기가스공급업_사업체수)
+sorte$D.전기가스공급업_종사자수 <- as.numeric(sorte$D.전기가스공급업_종사자수)
+sorte$E.수도하수재생업_사업체수 <- as.numeric(sorte$E.수도하수재생업_사업체수)
+sorte$E.수도하수재생업_종사자수 <- as.numeric(sorte$E.수도하수재생업_종사자수)
+sorte$F.건설업_사업체수 <- as.numeric(sorte$F.건설업_사업체수)
+sorte$F.건설업_종사자수 <- as.numeric(sorte$F.건설업_종사자수)
+sorte$G.도소매업_사업체수 <- as.numeric(sorte$G.도소매업_사업체수)
+sorte$G.도소매업_종사자수 <- as.numeric(sorte$G.도소매업_종사자수)
+sorte$H.운수창고업_사업체수 <- as.numeric(sorte$H.운수창고업_사업체수)
+sorte$H.운수창고업_종사자수 <- as.numeric(sorte$H.운수창고업_종사자수)
+sorte$I.숙박요식업_사업체수 <- as.numeric(sorte$I.숙박요식업_사업체수)
+sorte$I.숙박요식업_종사자수 <- as.numeric(sorte$I.숙박요식업_종사자수)
+sorte$J.정보통신업_사업체수 <- as.numeric(sorte$J.정보통신업_사업체수)
+sorte$J.정보통신업_종사자수 <- as.numeric(sorte$J.정보통신업_종사자수)
+sorte$K.금융보험업_사업체수 <- as.numeric(sorte$K.금융보험업_사업체수)
+sorte$K.금융보험업_종사자수 <- as.numeric(sorte$K.금융보험업_종사자수)
+sorte$L.부동산업_사업체수 <- as.numeric(sorte$L.부동산업_사업체수)
+sorte$L.부동산업_종사자수 <- as.numeric(sorte$L.부동산업_종사자수)
+sorte$M.전문과학기술업_사업체수 <- as.numeric(sorte$M.전문과학기술업_사업체수)
+sorte$M.전문과학기술업_종사자수 <- as.numeric(sorte$M.전문과학기술업_종사자수)
+sorte$N.사업시설관리임대업_사업체수 <- as.numeric(sorte$N.사업시설관리임대업_사업체수)
+sorte$N.사업시설관리임대업_종사자수 <- as.numeric(sorte$N.사업시설관리임대업_종사자수)
+sorte$O.공공행정국방업_사업체수 <- as.numeric(sorte$O.공공행정국방업_사업체수)
+sorte$O.공공행정국방업_종사자수 <- as.numeric(sorte$O.공공행정국방업_종사자수)
+sorte$P.교육서비스업_사업체수 <- as.numeric(sorte$P.교육서비스업_사업체수)
+sorte$P.교육서비스업_종사자수 <- as.numeric(sorte$P.교육서비스업_종사자수)
+sorte$Q.보건사회복지서비스업_사업체수 <- as.numeric(sorte$Q.보건사회복지서비스업_사업체수)
+sorte$Q.보건사회복지서비스업_종사자수 <- as.numeric(sorte$Q.보건사회복지서비스업_종사자수)
+sorte$R.예술체육여가서비스업_사업체수 <- as.numeric(sorte$R.예술체육여가서비스업_사업체수)
+sorte$R.예술체육여가서비스업_종사자수 <- as.numeric(sorte$R.예술체육여가서비스업_종사자수)
+sorte$S.기타개인서비스업_사업체수 <- as.numeric(sorte$S.기타개인서비스업_사업체수)
+sorte$S.기타개인서비스업_종사자수 <- as.numeric(sorte$S.기타개인서비스업_종사자수)
+
+par(mfrow=c(1,3), cex=.5)
+
+plot(log(sorte$종사자수), log(sorte$G.도소매업_종사자수+1), col="white", ylim=c(0,10.5),
+     xlab="전체 종사자수", ylab="해당 업종 종사자수")
+abline(lm(log(sorte$G.도소매업_종사자수+1)~log(sorte$종사자수)), col="orange")
+abline(lm(log(sorte$I.숙박요식업_종사자수+1)~log(sorte$종사자수)), col="palegoldenrod")
+abline(lm(log(sorte$L.부동산업_종사자수+1)~log(sorte$종사자수)), col="peachpuff2")
+abline(lm(log(sorte$R.예술체육여가서비스업_종사자수+1)~log(sorte$종사자수)), col="yellow2")
+abline(lm(log(sorte$S.기타개인서비스업_종사자수+1)~log(sorte$종사자수)), col="yellow4")
+legend("topleft", legend=c("G.도소매업", "I.숙박요식업", "L.부동산업",
+                           "R.예술체육여가서비스업", "S.기타개인서비스업"), 
+       col=c("orange", "palegoldenrod", "peachpuff2", "yellow2", "yellow4"), lty=1)
+
+plot(log(sorte$종사자수), log(sorte$M.전문과학기술업_종사자수+1), col="white", ylim=c(0,10.5),
+     xlab="전체 종사자수", ylab="해당 업종 종사자수")
+abline(lm(log(sorte$F.건설업_종사자수+1)~log(sorte$종사자수)), col="yellowgreen")
+abline(lm(log(sorte$J.정보통신업_종사자수+1)~log(sorte$종사자수)), col="seagreen")
+abline(lm(log(sorte$K.금융보험업_종사자수+1)~log(sorte$종사자수)), col="springgreen4")
+abline(lm(log(sorte$M.전문과학기술업_종사자수+1)~log(sorte$종사자수)), col="turquoise")
+abline(lm(log(sorte$N.사업시설관리임대업_종사자수+1)~log(sorte$종사자수)), col="skyblue2")
+legend("topleft", legend=c("F.건설업", "J.정보통신업", "K.금융보험업",
+                           "M.전문과학기술업", "N.사업시설관리임대업"), 
+       col=c("yellowgreen", "seagreen", "springgreen4", "turquoise", "skyblue2"), lty=1)
+
+plot(log(sorte$종사자수), log(sorte$P.교육서비스업_종사자수+1), col="white", ylim=c(0,10.5),
+     xlab="전체 종사자수", ylab="해당 업종 종사자수")
+abline(lm(log(sorte$D.전기가스공급업_종사자수+1)~log(sorte$종사자수)), col="lightpink")
+abline(lm(log(sorte$E.수도하수재생업_종사자수+1)~log(sorte$종사자수)), col="lightcoral")
+abline(lm(log(sorte$H.운수창고업_종사자수+1)~log(sorte$종사자수)), col="salmon2")
+abline(lm(log(sorte$O.공공행정국방업_종사자수+1)~log(sorte$종사자수)), col="royalblue2")
+abline(lm(log(sorte$P.교육서비스업_종사자수+1)~log(sorte$종사자수)), col="slateblue")
+abline(lm(log(sorte$Q.보건사회복지서비스업_종사자수+1)~log(sorte$종사자수)), col="mediumorchid4")
+legend("topleft", legend=c("D.전기가스공급업", "E.수도하수재생업", "H.운수창고업",
+                           "O.공공행정국방업", "P.교육서비스업", "Q.보건사회복지서비스업"), 
+       col=c("lightpink", "lightcoral", "salmon2", "royalblue2", "slateblue", "mediumorchid4"), lty=1)
+  
+  ## 사업체수와 종사자밀도비 자료(business_number)_지영님
+  
+  # <br>
+  # <br>
+  
+  ## 사업체 영업기간 자료(business_age)_지영님
+  
+  # <br>
+  # <br>
+  
+  ## 사업체 창업률 자료(business_founding)_종호님
+# 2.4.1 변수 설명: 신규진입하는 사업자가 많으면 창업률은 당연히 높을 것.
+# 서비스 증가 > 시장에 신규진입하기 용이한 업종 증가 > 신규진입하는 사용자 증가 > 창업률 증가
+
+# 즉 생산자/소비자 서비스업 및 사업체 창업률는 각각 0.198 및 0.241의 양의 상관성을 지님
+# 특히 생산자보다 소비자에 대한 관계성이 있음
+delta %>% 
+  dplyr::select(생산자서비스업, 생산자서비스업비율, 소비자서비스업, 소비자서비스업비율, 사업체_창업률) %>% 
+  GGally::ggpairs(.) +
+  theme(text = element_text(size = 18))
+
+  # <br>
+  # <br>
+  
+  ## 자영업 종사자수 자료(business_private)_종호님
+# 2.5.1 변수 설명: 신규진입하는 사업자는 대부분 개인사업일 것이기 때문에 이들이 많으면 자영업 종사자수도 많을 것.
+epsilon %>% 
+  dplyr::select(생산자서비스업, 생산자서비스업비율, 소비자서비스업, 소비자서비스업비율, 자영업_종사자수) %>% 
+  GGally::ggpairs(.) +
+  theme(text = element_text(size = 18))
+
+
+  # <br>
+  # <br>
+  ## 생계형사업 종사자수 자료(business_living)_지영님
+  
+  # <br>
+  # <br>
+  
+  # 단순회귀분석 실시
+  ## 산점도로 변수 조망_광원님
+  # ![](./scatterplot.png)
+  
+  ## 서비스업 유형 자료_광원님
+sorte[is.na(sorte)] <- 0
+
+gattung <- sorte %>%
+  mutate(소비자서비스업 = G.도소매업_종사자수 + I.숙박요식업_종사자수 +
+                  L.부동산업_종사자수 + R.예술체육여가서비스업_종사자수 + S.기타개인서비스업_종사자수,
+                생산자서비스업 = F.건설업_종사자수 + J.정보통신업_종사자수 +
+                  K.금융보험업_종사자수 + M.전문과학기술업_종사자수 + N.사업시설관리임대업_종사자수,
+                전체서비스업 = 소비자서비스업 + 생산자서비스업,
+                소비자서비스업비율 = 소비자서비스업 / 전체서비스업,
+                생산자서비스업비율 = 생산자서비스업 / 전체서비스업) %>%
+  select(자치구_행정동, 종사자수, 소비자서비스업, 생산자서비스업, 소비자서비스업비율, 생산자서비스업비율)
+
+alpha <- left_join(markt, gattung, by="자치구_행정동") %>% 
+  mutate(보정영업지수1 = 보정영업지수 + 5) %>%
+  select(-종사자수, -보정영업지수) %>%
+  rename("보정영업지수"="보정영업지수1")
+paged_table(alpha)
+
+par(mfrow=c(1,2), cex=.6)
+
+plot(alpha$소비자서비스업비율, log(alpha$보정영업지수),
+     xlab="소비자서비스업 종사자비율", ylab="보정영업지수")
+abline(lm(log(alpha$보정영업지수)~alpha$소비자서비스업비율), col="slateblue")
+
+plot(alpha$생산자서비스업비율, log(alpha$보정영업지수),
+     xlab="생산자서비스업 종사자비율", ylab="보정영업지수")
+abline(lm(log(alpha$보정영업지수)~alpha$생산자서비스업비율), col="deeppink")
+
+summary(lm(log(보정영업지수)~소비자서비스업비율, alpha))
+summary(lm(log(보정영업지수)~생산자서비스업비율, alpha))
+# ```
+# <br>
+#   <br>
+  
+  ## 사업체수 자료 정리_지영님
+  # ```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+# number <- readr::read_csv("business_number.csv", locale=locale(encoding="EUC-KR"))
+fileInfo = Sys.glob(paste(globalVar$inpPath, "LSH0161_business_number.csv", sep = "/"))
+number <- readr::read_csv(fileInfo, locale=locale(encoding="EUC-KR")) 
+paged_table(number)
+
+nombre <- number %>%
+  select(구, 행정동, 사업체수, 평균종사자, 종사자밀도비) %>%
+  unite("자치구_행정동", 구, 행정동)
+
+beta <- left_join(alpha, nombre, by="자치구_행정동")
+paged_table(beta)
+# ```
+
+# ```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+par(mfrow=c(1,3), cex=.5)
+
+plot(log(beta$사업체수), log(beta$보정영업지수),
+     xlab="log(사업체수)", ylab="보정영업지수")
+abline(lm(log(beta$보정영업지수)~log(beta$사업체수)), col="slateblue")
+
+plot(log(beta$평균종사자), log(beta$보정영업지수),
+     xlab="log(평균종사자)", ylab="보정영업지수")
+abline(lm(log(beta$보정영업지수)~log(beta$평균종사자)), col="deeppink")
+
+plot(log(beta$종사자밀도비), log(beta$보정영업지수),
+     xlab="log(종사자밀도비)", ylab="보정영업지수")
+abline(lm(log(beta$보정영업지수)~log(beta$종사자밀도비)), col="lightseagreen")
+
+summary(lm(log(보정영업지수)~log(사업체수), beta))
+summary(lm(log(보정영업지수)~log(평균종사자), beta))
+summary(lm(log(보정영업지수)~log(종사자밀도비), beta))
+  
+  ## 사업체 영업기간 자료 정리_지영님
+
+fileInfo = Sys.glob(paste(globalVar$inpPath, "LSH0161_business_age.csv", sep = "/"))  
+age <- readr::read_csv(fileInfo, locale=locale(encoding="EUC-KR"))
+paged_table(age)
+
+annee <- age %>%
+  separate(사업체_평균연령, into=c("연", "개월"), sep="년", convert=T) %>%
+  separate(개월, into=c("숫자", "문자"), sep="개월", convert=T) %>%
+  select(-문자) %>% mutate(월 = 숫자/12) %>%
+  select(-숫자) %>% mutate(사업체_영업기간 = 연 + 월) %>%
+  select(-연, -월) %>% filter(!(행정동 %in% c("합계", "소계"))) %>%
+  unite("자치구_행정동", 구, 행정동)
+
+gamma <- left_join(beta, annee, by="자치구_행정동") %>%
+  select(-사업체수.y, -평균종사자.y, -종사자수) %>%
+  rename("사업체수"="사업체수.x", "평균종사자"="평균종사자.x") %>%
+  relocate(연도_분기, 코드, 자치구_행정동, 상권_변화_지표, 운영개월, 폐업개월, 영업지수, 보정영업지수,
+                소비자서비스업비율, 생산자서비스업비율, 사업체수, 평균종사자, 종사자밀도비, 사업체_영업기간)
+paged_table(gamma)
+
+plot(gamma$사업체_영업기간, log(gamma$보정영업지수),
+     xlab="사업체 영업기간", ylab="보정영업지수")
+abline(lm(log(gamma$보정영업지수)~gamma$사업체_영업기간), col="slateblue")
+
+
+# 3.4 사업체 영업기간 자료(business_age) -> 종호님
+# 3.4.1 변수와 종속변수와의 관계 관찰 -> 유의미
+ggData = gamma %>% 
+  dplyr::mutate(
+    x = 사업체_영업기간
+    , y = log(보정영업지수)
+  )
+
+lmFit = lm(y ~ x, data = ggData)
+summary(lmFit)
+
+
+# 연도 분기에 따른 사업체 영업기간 및 보정영업지수의 상관 분석
+# 상관계수는 -0.24 (음의 상관계수)로서 0.001 이하의 유의수준을 보임
+ggpubr::ggscatter(
+  ggData, x = "x", y = "y", color = "연도_분기"
+  , add = "reg.line", conf.int = TRUE, scales = "free_x"
+  , facet.by = "연도_분기"
+  , add.params = list(color = "black", fill = "lightgray")
+) +
+  labs(
+    title = NULL
+    , x = "사업체 영업기간"
+    , y = "보정영업지수"
+    , subtitle = "연도 분기에 따른 사업체 영업기간 및 보정영업지수의 상관 분석"
+  ) +
+  ggpubr::stat_regline_equation(label.x.npc = 0.0, label.y.npc = 0.95) +
+  ggpubr::stat_cor(label.x.npc = 0.0, label.y.npc = 0.85) +
+  theme(text = element_text(size = 14))
+
+
+# 상권 변화 지표에 따른 사업체 영업기간 및 보정영업지수의 상관 분석
+# 상권 변화 지표에 따라 상관 분석 결과 HL의 경우 타 지표에 비해 양의 상관계수를 
+# 보일 뿐만 아니라 0.87로서 유의하지 않는 결과를 보였다.
+# 반면에 LH,LL의 경우 음의 상관계수 및 90% 신뢰구간 하에서 통계적으로 유의한 결과를 보였다.
+ggpubr::ggscatter(
+  ggData, x = "x", y = "y", color = "상권_변화_지표"
+  , add = "reg.line", conf.int = TRUE, scales = "free_x"
+  , facet.by = "상권_변화_지표"
+  , add.params = list(color = "black", fill = "lightgray")
+) +
+  labs(
+    title = NULL
+    , x = "사업체 영업기간"
+    , y = "보정영업지수"
+    , subtitle = "상권 변화 지표에 따른 사업체 영업기간 및 보정영업지수의 상관 분석"
+  ) +
+  ggpubr::stat_regline_equation(label.x.npc = 0.0, label.y.npc = 0.95) +
+  ggpubr::stat_cor(label.x.npc = 0.0, label.y.npc = 0.85) +
+  theme(text = element_text(size = 14))
+
+
+# 3.5 사업체 창업률 자료(business_founding) -> 종호님
+# 3.5.1 변수와 종속변수와의 관계 관찰 -> 유의미
+# founding <- readr::read_csv("business_founding.csv", locale=locale(encoding="EUC-KR"))
+fileInfo = Sys.glob(paste(globalVar$inpPath, "LSH0161_business_founding.csv", sep = "/"))  
+founding <- readr::read_csv(fileInfo, locale=locale(encoding="EUC-KR"))
+paged_table(founding)
+
+fondation <- founding %>%
+  filter(!(행정동 %in% c("합계", "소계"))) %>%
+  unite("자치구_행정동", 구, 행정동)
+
+delta <- left_join(gamma, fondation, by="자치구_행정동") %>%
+  select(-사업체수.y, -평균종사자.y, -종사자수) %>%
+  rename("사업체수"="사업체수.x", "평균종사자"="평균종사자.x")
+paged_table(delta)
+# ```
+
+# 3.5 사업체 창업률 자료(business_founding) -> 종호님
+# 3.5.1 변수와 종속변수와의 관계 관찰 -> 유의미
+# plot(delta$사업체수, log(delta$보정영업지수),
+#      xlab="사업체수", ylab="보정영업지수")
+# abline(lm(log(delta$보정영업지수)~delta$사업체수), col="slateblue")
+# 
+# summary(lm(log(delta$보정영업지수)~delta$사업체수))
+
+ggData = delta %>% 
+  dplyr::mutate(
+    x = log(사업체_창업률)
+    , y = log(보정영업지수)
+    )
+
+ggData = delta %>% 
+  dplyr::mutate(
+    x = log(사업체_창업률)
+    , y = log(보정영업지수)
+  )
+
+
+lmFit = lm(y ~ x, data = ggData)
+summary(lmFit)
+
+# cor(ggData$x, ggData$y)
+
+# 연도 분기에 따른 사업체 창업률 및 보정영업지수의 상관 분석
+# 상관계수는 0.33 (양의 상관계수)로서 0.001 이하의 유의수준을 보임
+ggpubr::ggscatter(
+  ggData, x = "x", y = "y", color = "연도_분기"
+  , add = "reg.line", conf.int = TRUE, scales = "free_x"
+  , facet.by = "연도_분기"
+  , add.params = list(color = "black", fill = "lightgray")
+) +
+  labs(
+    title = NULL
+    , x = "사업체 창업률"
+    , y = "보정영업지수"
+    , subtitle = "연도 분기에 따른 사업체 창업률 및 보정영업지수의 상관 분석"
+  ) +
+  ggpubr::stat_regline_equation(label.x.npc = 0.0, label.y.npc = 0.95) +
+  ggpubr::stat_cor(label.x.npc = 0.0, label.y.npc = 0.85) +
+  theme(text = element_text(size = 14))
+
+
+# 상권 변화 지표에 따른 사업체 창업률 및 보정영업지수의 상관 분석
+# 상권 변화 지표에 따라 상관 분석 결과 모든 지표에 비해 양의 상관계수를 보임
+# 특히 HL의 경우 P값 0.54로서 통계적으로 유의하지 않은 반면 타 지표는 90% 신뢰구간 하에서 통계적으로 유의한 결과를 보였다.
+ggpubr::ggscatter(
+  ggData, x = "x", y = "y", color = "상권_변화_지표"
+  , add = "reg.line", conf.int = TRUE, scales = "free_x"
+  , facet.by = "상권_변화_지표"
+  , add.params = list(color = "black", fill = "lightgray")
+) +
+  labs(
+    title = NULL
+    , x = "사업체 창업률"
+    , y = "보정영업지수"
+    , subtitle = "상권 변화 지표에 따른 사업체 창업률 및 보정영업지수의 상관 분석"
+  ) +
+  ggpubr::stat_regline_equation(label.x.npc = 0.0, label.y.npc = 0.95) +
+  ggpubr::stat_cor(label.x.npc = 0.0, label.y.npc = 0.85) +
+  theme(text = element_text(size = 14))
+
+
+# ```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+# plot(delta$사업체_창업률, log(delta$보정영업지수),
+#      xlab="사업체 창업률", ylab="보정영업지수")
+# abline(lm(log(delta$보정영업지수)~delta$사업체_창업률), col="slateblue")
+# 
+# summary(lm(log(delta$보정영업지수)~delta$사업체_창업률))
+# ```
+# <br>
+  # <br>
+  
+# 3.6 자영업 종사자수 자료(business_private) -> 종호님
+# 3.6.1 로그로 변환하거나 하지 않은 변수 모두에 대해 종속변수와의 관계 관찰 -> 모두 유의미 X
+
+  ## 자영업 종사자수 자료 정리_종호님
+# private <- readr::read_csv("business_private.csv", locale=locale(encoding="EUC-KR"))
+fileInfo = Sys.glob(paste(globalVar$inpPath, "LSH0161_business_private.csv", sep = "/"))  
+private <- readr::read_csv(fileInfo, locale=locale(encoding="EUC-KR"))
+paged_table(private)
+
+prive <- private %>%
+  filter(!(행정동 %in% c("합계", "소계"))) %>%
+  select(구, 행정동, 자영업주_및_무급가족_소계) %>%
+  unite("자치구_행정동", 구, 행정동) %>%
+  rename("자영업_종사자수"="자영업주_및_무급가족_소계")
+
+epsilon <- left_join(delta, prive, by="자치구_행정동")
+paged_table(epsilon)
+# ```
+
+par(mfrow=c(1,2), cex=.6)
+
+plot(epsilon$자영업_종사자수, log(epsilon$보정영업지수),
+     xlab="자영업 종사자수", ylab="보정영업지수")
+abline(lm(log(epsilon$보정영업지수)~epsilon$자영업_종사자수), col="slateblue")
+
+plot(log(epsilon$자영업_종사자수), log(epsilon$보정영업지수),
+     xlab="log(자영업 종사자수)", ylab="보정영업지수")
+abline(lm(log(epsilon$보정영업지수)~log(epsilon$자영업_종사자수)), col="deeppink")
+
+summary(lm(log(epsilon$보정영업지수)~epsilon$자영업_종사자수))
+summary(lm(log(epsilon$보정영업지수)~(log(epsilon$자영업_종사자수))))
+  
+
+ggData = epsilon %>% 
+  dplyr::mutate(
+    # x = 자영업_종사자수
+    x = log(자영업_종사자수)
+    , y = log(보정영업지수)
+  )
+
+# lmFit = lm(y ~ x, data = ggData)
+# summary(lmFit)
+# cor(ggData$x, ggData$y)
+
+# 연도 분기에 따른 자영업 종사자수 및 보정영업지수의 상관 분석
+#******************************************
+# 독립변수 : 자영업_종사자수
+# 종속변수 : log(보정영업지수)
+#******************************************
+# 상관계수는 -0.12 (음의 상관계수)로서 0.005 이하의 유의수준을 보임
+#******************************************
+# 독립변수 : log(자영업_종사자수)
+# 종속변수 : log(보정영업지수)
+#******************************************
+# 상관계수는 -0.055 (음의 상관계수)로서 0.26의 P값으로 통계적으로 유의하지 못함
+ggpubr::ggscatter(
+  ggData, x = "x", y = "y", color = "연도_분기"
+  , add = "reg.line", conf.int = TRUE, scales = "free_x"
+  , facet.by = "연도_분기"
+  , add.params = list(color = "black", fill = "lightgray")
+) +
+  labs(
+    title = NULL
+    , x = "자영업 종사자수"
+    , y = "보정영업지수"
+    , subtitle = "연도 분기에 따른 자영업 종사자수 및 보정영업지수의 상관 분석"
+  ) +
+  ggpubr::stat_regline_equation(label.x.npc = 0.0, label.y.npc = 0.95) +
+  ggpubr::stat_cor(label.x.npc = 0.0, label.y.npc = 0.85) +
+  theme(text = element_text(size = 14))
+
+
+# 상권 변화 지표에 따른 자영업 종사자수 및 보정영업지수의 상관 분석
+#******************************************
+# 독립변수 : 자영업_종사자수
+# 종속변수 : log(보정영업지수)
+#******************************************
+# 상권 변화 지표에 따라 상관 분석 결과 HH를 제외한 모든 지표에서 통계적으로 유의하지 않은 결과를 보임
+# 반면에 HH의 경우 상관계수는 -0.23으로서 95% 신뢰구간 하에서 통계적으로 유의한 결과를 보였다.
+#******************************************
+# 독립변수 : log(자영업_종사자수)
+# 종속변수 : log(보정영업지수)
+#******************************************
+# 모든 지표에서 통계적으로 유의하지 않은 결과를 보임
+ggpubr::ggscatter(
+  ggData, x = "x", y = "y", color = "상권_변화_지표"
+  , add = "reg.line", conf.int = TRUE, scales = "free_x"
+  , facet.by = "상권_변화_지표"
+  , add.params = list(color = "black", fill = "lightgray")
+) +
+  labs(
+    title = NULL
+    , x = "자영업 종사자수"
+    , y = "보정영업지수"
+    , subtitle = "상권 변화 지표에 따른 자영업 종사자수률 및 보정영업지수의 상관 분석"
+  ) +
+  ggpubr::stat_regline_equation(label.x.npc = 0.0, label.y.npc = 0.95) +
+  ggpubr::stat_cor(label.x.npc = 0.0, label.y.npc = 0.85) +
+  theme(text = element_text(size = 14))
+
+  ## 생계형사업 종사자수 자료 정리_지영님
+# living <- readr::read_csv("business_living.csv", locale=locale(encoding="EUC-KR"))
+fileInfo = Sys.glob(paste(globalVar$inpPath, "LSH0161_business_living.csv", sep = "/"))  
+living <- readr::read_csv(fileInfo, locale=locale(encoding="EUC-KR"))
+paged_table(living)
+
+# 커피 전문점 및 기타 비알콜 음료점업, 체인화편의점업 종사자수 구하기
+vie <- living %>%
+  rename("커피전문점업"="커피 전문점 및 기타 비알콜 음료점업", "체인화편의점업"="체인화 편의점") %>%
+  select(구, 행정동, 커피전문점업, 체인화편의점업) %>%
+  mutate(커피전문점업=str_replace(커피전문점업, ",", "")) %>%
+  unite("자치구_행정동", 구, 행정동)
+vie$커피전문점업 <- as.numeric(vie$커피전문점업)
+vie$체인화편의점업 <- as.numeric(vie$체인화편의점업)
+vie[is.na(vie)] <- 0
+
+zeta <- left_join(epsilon, vie, by="자치구_행정동")
+paged_table(zeta)
+
+par(mfrow=c(1,2), cex=.6)
+
+plot(log(zeta$커피전문점업+1), log(zeta$보정영업지수),
+     xlab="log(커피전문점업 종사자수)", ylab="보정영업지수")
+abline(lm(log(zeta$보정영업지수)~log(zeta$커피전문점업+1)), col="slateblue")
+
+plot(log(zeta$체인화편의점업), log(zeta$보정영업지수),
+     xlab="log(체인화편의점업 종사자수)", ylab="보정영업지수")
+abline(lm(log(zeta$보정영업지수)~log(zeta$체인화편의점업)), col="deeppink")
+
+summary(lm(log(zeta$보정영업지수)~log(zeta$커피전문점업+1)))
+summary(lm(log(zeta$보정영업지수)~log(zeta$체인화편의점업)))
+  
+# 교호관계 분석
+eta <- mutate(zeta, log보정영업지수=log(보정영업지수), log종사자밀도비=log(종사자밀도비),
+              log커피전문점업=log(커피전문점업+1), log체인화편의점업=log(체인화편의점업))
+
+ggpairs(eta, columns=c("log보정영업지수", "소비자서비스업비율", "log종사자밀도비",
+                       "사업체_영업기간", "사업체_창업률", "log커피전문점업",
+                       "log체인화편의점업"))+theme_bw()
+
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+#================================================
+# 요구사항
+#================================================
+# R을 이용한 서울시 아파트 실거래가 분석 및 매매 동향 예측
+
+#================================================
+# Set Env
+#================================================
+# globalVar = list()
+# globalVar$inpPath = "."
+# globalVar$figPath = "."
+# globalVar$outPath = "."
+# globalVar$mapPath = "."
+
+rm(list = ls())
+prjName = "test"
+source(here::here("E:/04. TalentPlatform/Github/TalentPlatform-R/src", "InitConfig.R"), encoding = "UTF-8")
+
+serviceName = "LSH0163"
+
+#================================================
+# Main
+#================================================
+library(ggplot2)
+library(tidyverse)
+library(httr)
+library(rvest)
+library(jsonlite)
+library(RCurl)
+library(readr)
+library(magrittr)
+library(ggrepel)
+library(colorRamps)
+library(ggpubr)
+
+# showtext::showtext_opts(dpi = 100)
+# showtext::showtext.auto()
+
+cbMatlab = colorRamps::matlab.like(11)
+
+# 공공데이터포털 API키
+# reqDataKey = globalVar$dataKey
+reqDataKey = "Ftj0WhfmnXN86rrVCPTGvlQJoJs9l+ZQjJzPgtc37yVPWuXs8UOP3kD2lTyy9DFInQZj2VvYFH1+Uh7gNgTLLA=="
+
+# 요청 URL
+reqUrl = "http://openapi.molit.go.kr:8081/OpenAPI_ToolInstallPackage/service/rest/RTMSOBJSvc/getRTMSDataSvcAptTrade"
+# 요청 키
+reqKey = stringr::str_c("?serviceKey=", RCurl::curlEscape(stringr::str_conv(reqDataKey, encoding = "UTF-8")))
+
+# 서울에서 서울특별시 법정동 코드 읽기
+codeInfo = Sys.glob(paste(globalVar$mapPath, "/admCode/법정동코드_전체자료.txt", sep = "/"))
+
+codeList = readr::read_delim(codeInfo, delim = "\t", locale = locale("ko", encoding = "EUC-KR"), col_types = "ccc") %>%
+  magrittr::set_colnames(c("EMD_CD", "addr", "isUse")) %>% 
+  tidyr::separate(col = "addr", into = c("d1", "d2", "d3", "d4"), sep = " ") %>%
+  dplyr::mutate(
+    emdCd = stringr::str_sub(EMD_CD, 1, 5)
+  ) %>% 
+  dplyr::filter(
+    stringr::str_detect(d1, regex("서울특별시"))
+    , stringr::str_detect(isUse, regex("존재"))
+    , is.na(d3)
+    , is.na(d4)
+    )
+
+codeDistList = codeList %>%
+  dplyr::distinct(emdCd)
+
+# 날짜 기간
+dtDateList = seq(as.Date("2017-01-01"), as.Date(format(Sys.time(), "%Y-%m-%d")), "1 month")
+
+
+#***********************************************
+# 공공데이터포털 API (자료 수집)
+#***********************************************
+# i = 1
+# i = 53
+# j = 2
+
+dataL1 = tibble::tibble()
+
+for (i in 1:length(dtDateList)) {
+  for (j in 1:nrow(codeDistList)) {
+    
+    sDate = format(dtDateList[i], "%Y%m")
+  
+    # 요청 법정동
+    reqLawdCd = stringr::str_c("&LAWD_CD=", codeDistList[j, 'emdCd'])
+    
+    # 요청 날짜
+    reqYmd = stringr::str_c("&DEAL_YMD=", sDate)
+    
+    # http://openapi.molit.go.kr:8081/OpenAPI_ToolInstallPackage/service/rest/RTMSOBJSvc/getRTMSDataSvcAptTrade?serviceKey=Ftj0WhfmnXN86rrVCPTGvlQJoJs9l%2BZQjJzPgtc37yVPWuXs8UOP3kD2lTyy9DFInQZj2VvYFH1%2BUh7gNgTLLA%3D%3D&LAWD_CD=11110&DEAL_YMD=202104
+    # http://openapi.molit.go.kr:8081/OpenAPI_ToolInstallPackage/service/rest/RTMSOBJSvc/getRTMSDataSvcAptTrade?serviceKey=Ftj0WhfmnXN86rrVCPTGvlQJoJs9l%2BZQjJzPgtc37yVPWuXs8UOP3kD2lTyy9DFInQZj2VvYFH1%2BUh7gNgTLLA%3D%3D&LAWD_CD=11110&DEAL_YMD=202104
+    
+    # http://openapi.molit.go.kr:8081/OpenAPI_ToolInstallPackage/service/rest/RTMSOBJSvc/getRTMSDataSvcAptTrade?serviceKey=Ftj0WhfmnXN86rrVCPTGvlQJoJs9l%252BZQjJzPgtc37yVPWuXs8UOP3kD2lTyy9DFInQZj2VvYFH1%252BUh7gNgTLLA%253D%253D&LAWD_CD=11110&DEAL_YMD=202105
+    # http://openapi.molit.go.kr:8081/OpenAPI_ToolInstallPackage/service/rest/RTMSOBJSvc/getRTMSDataSvcAptTrade?serviceKey=Ftj0WhfmnXN86rrVCPTGvlQJoJs9l%252BZQjJzPgtc37yVPWuXs8UOP3kD2lTyy9DFInQZj2VvYFH1%252BUh7gNgTLLA%253D%253D&LAWD_CD=11110&DEAL_YMD=202105
+    
+    resData = httr::GET(
+      stringr::str_c(reqUrl, reqKey, reqLawdCd, reqYmd)
+      ) %>% 
+      httr::content(as = "text", encoding = "UTF-8") %>% 
+      jsonlite::fromJSON()
+    
+    resCode = resData$response$header$resultCode
+    if (resCode != "00") { next }
+    
+    resItems = resData$response$body$items
+    if (resItems == "") { next }
+    
+    cat(sprintf(
+      "dtDate : %10s | code : %5s"
+      , sDate
+      , codeList[j, 'emdCd']
+    ), "\n")
+    
+    resItem = resItems$item %>% 
+      as.data.frame()
+      # readr::type_convert()
+    
+    dataL1 = dplyr::bind_rows(
+      dataL1
+      , data.frame(
+        'dtYm' = sDate
+        , 'emdCd' = codeDistList[j, 'emdCd']
+        , resItem
+        )
+      )
+  }
+}
+
+#***********************************************
+# 자료 저장
+#***********************************************
+saveFile = sprintf("%s/%s_%s.csv", globalVar$outPath, serviceName, "seoul apartment transaction")
+readr::write_csv(x = dataL1, file = saveFile)
+
+#***********************************************
+# 데이터 전처리
+#***********************************************
+dataL2 = readr::read_csv(file = saveFile) %>% 
+  readr::type_convert() %>% 
+  dplyr::mutate(
+    지번2 = readr::parse_number(지번)
+    , emdCd2 = as.character(emdCd)
+  ) %>% 
+  dplyr::left_join(codeList, by = c("emdCd2" = "emdCd")) %>%
+  dplyr::mutate(
+    addr = stringr::str_trim(paste(d1, d2, 아파트, 지번, seq = ' '))
+    , val = 거래금액 / 전용면적 # 면적당 거래금액
+  )
+
+dataL3 = dataL2 %>% 
+  dplyr::group_by(d2) %>% 
+  dplyr::summarise(
+    meanVal = mean(val, na.rm = TRUE)
+  )
+
+#***********************************************
+# 통계 분석
+#***********************************************
+dataL2 %>%
+  dplyr::summarise(
+    meanVal = mean(val, na.rm = TRUE) # 평균값
+    , medianVal = median(val, na.rm = TRUE) # 중앙값
+    , sdianVal = sd(val, na.rm = TRUE) # 표준편차
+    , maxVal = max(val, na.rm = TRUE) # 최대값
+    , minVal = min(val, na.rm = TRUE) # 최소값
+    , cnt = n() # 개수
+  ) %>%
+  dplyr::arrange(desc(meanVal))
+
+  
+#***********************************************
+# 그래프 그리기(히스토그램, 상자 수염그림, 산점도 등)
+#***********************************************
+# 히스토그램
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "면적당 거래금액 따른 히스토그램")
+
+ggplot(dataL2, aes(x = val)) +
+  geom_histogram(aes(y = ..density..), colour = "black", fill = "white") +
+  geom_density(alpha = 0.2) +
+  geom_rug(aes(x = val, y = 0), position = position_jitter(height = 0)) +
+  labs(x = "면적당 거래금액", y = "밀도 함수", colour = NULL, fill = NULL, subtitle = "면적당 거래금액 따른 히스토그램") +
+  theme(text = element_text(size = 18)) +
+  ggsave(filename = saveImg, width = 12, height = 6, dpi = 600)
+
+# 히스토그램
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "법정동에 따른 면적당 거래금액 히스토그램")
+
+ggplot(dataL3, aes(x = d2, y = meanVal, fill = meanVal)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  geom_text(aes(label = round(meanVal, 0)), vjust = 1.6, color = "white", size = 4) +
+  labs(x = "법정동", y = "면적당 거래금액", fill = NULL, subtitle = "법정동에 따른 면적당 거래금액 히스토그램") +
+  scale_fill_gradientn(colours = cbMatlab, na.value = NA) +
+  theme(
+    text = element_text(size = 18)
+    , axis.text.x = element_text(angle = 45, hjust = 1)
+    ) +
+  ggsave(filename = saveImg, width = 12, height = 8, dpi = 600)
+
+# 산점도
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "면적당 거래금액 산점도")
+
+ggpubr::ggscatter(
+  dataL2, x = "전용면적", y = "거래금액"
+  , add = "reg.line", conf.int = TRUE, scales = "free_x"
+  # , facet.by = "전체 법정동"
+  , add.params = list(color = "blue", fill = "lightblue")
+  ) +
+  labs(
+    title = NULL
+    , x = "전용면적"
+    , y = "거래금액"
+    , color = NULL
+    , subtitle = "면적당 거래금액 산점도"
+  ) +
+  theme_bw() +
+  ggpubr::stat_regline_equation(label.x.npc = 0.0, label.y.npc = 1.0, size = 5) +
+  ggpubr::stat_cor(label.x.npc = 0.0, label.y.npc = 0.90, p.accuracy  =  0.01,  r.accuracy  =  0.01, size = 5) +
+  theme(text = element_text(size = 18)) +
+  ggsave(filename = saveImg, width = 8, height = 8, dpi = 600)
+
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "법정동에 따른 면적당 거래금액 산점도")
+
+ggpubr::ggscatter(
+  dataL2, x = "전용면적", y = "거래금액", color = "d2"
+  , add = "reg.line", conf.int = TRUE, scales = "free_x"
+  , facet.by = "d2"
+  , add.params = list(color = "black", fill = "lightgray")
+  ) +
+  labs(
+    title = NULL
+    , x = "전용면적"
+    , y = "거래금액"
+    , color = NULL
+    , subtitle = "법정동에 따른 면적당 거래금액 산점도"
+  ) +
+  ggpubr::stat_regline_equation(label.x.npc = 0.0, label.y.npc = 0.95) +
+  ggpubr::stat_cor(label.x.npc = 0.0, label.y.npc = 0.85, p.accuracy  =  0.01,  r.accuracy  =  0.01) +
+  theme(text = element_text(size = 14)) +
+  ggsave(filename = saveImg, width = 12, height = 15, dpi = 600)
+
+#***********************************************
+# 지도 그리기
+#***********************************************
+addrList = dataL2$addr %>% unique() %>% sort() %>%
+  as.tibble() %>% 
+  head(10)
+
+addrData = ggmap::mutate_geocode(addrList, value, source = "google")
+
+dataL4 = dataL2 %>% 
+  dplyr::left_join(addrData, by = c("addr" = "value")) %>% 
+  dplyr::filter(
+    ! is.na(lon)
+    , ! is.na(lat)
+  ) %>% 
+  dplyr::group_by(lon, lat, addr) %>% 
+  dplyr::summarise(
+    meanVal = mean(val, na.rm = TRUE)
+  )
+  
+map = ggmap::get_map(
+  location = c(lon = mean(dataL4$lon, na.rm = TRUE), lat = mean(dataL4$lat, na.rm = TRUE))
+  , zoom = 12
+)
+
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "PostalCode")
+
+ggmap(map, extent = "device") +
+  geom_point(data = dataL4, aes(x = lon, y = lat, color = meanVal, size = meanVal, alpha = 0.3)) +
+  # ggrepel::geom_text_repel(data = dataL4, aes(x = lon, y = lat, label = addr), color = "red") +
+  scale_color_gradientn(colours = cbMatlab, na.value = NA) +
+  labs(
+    subtitle = NULL
+    , x = NULL
+    , y = NULL
+    , fill = NULL
+    , colour = NULL
+    , title = NULL
+    , size = NULL
+  ) +
+  scale_alpha(guide = 'none') +
+  # scale_size(range = c(5, 20)) +
+  # scale_size_discrete(
+  #   "sumOrder"
+  #   , range = c(0, 10)
+  #   # , labels = c("0", "B", "G", "J", "REF")
+  # ) +
+  theme(
+    text = element_text(size = 18)
+    # , legend.position = c(1, 1)
+    # , legend.justification = c(1, 1)
+    # , legend.background = element_rect(fill = "transparent")
+    # , legend.box.background = element_rect(fill = "transparent")
+  ) # +
+  # ggsave(filename = saveImg, width = 10, height = 10, dpi = 600)

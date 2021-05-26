@@ -434,7 +434,7 @@ cbPlasma = rev(viridis::plasma(11))
 # serviceName = "LSH0000"
 
 # log = log4r::create.logger()
-# log4r::logfile(log) = paste0(globalVar$logConfig, "/log4r_", format(Sys.time(), "%Y%m%d"), ".log")
+# log4r::logfile(log) = paste0(globalVar$logPath, "/log4r_", format(Sys.time(), "%Y%m%d"), ".log")
 # log4r::level(log) = "INFO"
 
 # tryCatch(
@@ -460,10 +460,10 @@ cbPlasma = rev(viridis::plasma(11))
 # Set Env
 #================================================
 # globalVar = new.env()
-# globalVar$inpConfig = "."
-# globalVar$figConfig = "."
-# globalVar$outConfig = "."
-# globalVar$logConfig = "."
+# globalVar$inpPath = "."
+# globalVar$figPath = "."
+# globalVar$outPath = "."
+# globalVar$logPath = "."
 
 #================================================
 # Set Fun
@@ -513,12 +513,12 @@ cbPlasma = rev(viridis::plasma(11))
 # openxlsx::addWorksheet(wb, "ggData")
 # openxlsx::writeData(wb, "ggData", ggData, startRow = 1, startCol = 1)
 
-# openxlsx::saveWorkbook(wb, file = paste0(globalVar$outConfig, "/Survery_LSH0078.xlsx"), overwrite = TRUE)
+# openxlsx::saveWorkbook(wb, file = paste0(globalVar$outPath, "/Survery_LSH0078.xlsx"), overwrite = TRUE)
 
 #************************************************
 # File Info
 #************************************************
-# fileInfo = Sys.glob(paste(globalVar$inpConfig, "play.csv", sep = "/"))
+# fileInfo = Sys.glob(paste(globalVar$inpPath, "play.csv", sep = "/"))
 # data = readr::read_csv(file = fileInfo, locale = locale("ko", encoding = "UTF-8"))
 
 # nameList = sort(unique(geoData_L1$sigungu_name))
@@ -526,8 +526,8 @@ cbPlasma = rev(viridis::plasma(11))
 # if (nrow(dataL2) < 1) { next }
 
 
-# saveImg = sprintf("%s/Img_%s_%02d_%s.png", globalVar$figConfig, serviceName, 3, "관계 시각화")
-# saveImg = sprintf("%s/TMP3/Img_%s_%05d_%s_%s.png", globalVar$figConfig, serviceName, 3, "충청남도 시군구별 자원 분포도", nameInfo)
+# saveImg = sprintf("%s/%s_%02d_%s.png", globalVar$figPath, serviceName, 3, "관계 시각화")
+# saveImg = sprintf("%s/TMP3/Img_%s_%05d_%s_%s.png", globalVar$figPath, serviceName, 3, "충청남도 시군구별 자원 분포도", nameInfo)
 
 # isDir = dir.exists(path = fs::path_dir(saveFile))
 # if (isDir == FALSE) { file.create(fs::path_dir(saveFile)) }
@@ -543,3 +543,12 @@ cbPlasma = rev(viridis::plasma(11))
 #     , TRUE ~ "NA"
 #   )
 # )
+
+#************************************************
+# cat sprintf
+#************************************************
+# cat(sprintf(
+#   "dtDate : %10s | code : %5s"
+#   , dtDateList[i]
+#   , codeList[j, 'emdCd']
+# ), "\n")
