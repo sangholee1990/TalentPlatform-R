@@ -24701,3 +24701,10 @@ ggplot(trainCHWL1, aes(x = Temp, y = CHWEUI, color = makeLegend)) +
 #이 부분은  워드파일 3번에 해당합니다. 
 # lmCHW82type2<-lm(CHWEUI~factor(type2, exclude=c('Food','Health'))+poly(Height,2)+poly(Temp,2),data=trainCHW)#'Lab', 
 # summary(lmCHW82type2)
+
+
+
+
+
+
+sdasd
