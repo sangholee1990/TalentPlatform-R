@@ -24623,6 +24623,9 @@ fileInfo = Sys.glob(paste(globalVar$inpPath, "LSH0146_PAhourlyCHW.csv", sep = "/
 PAHourlyCHW = data.table::fread(file = fileInfo)
 
 
+ind = which(PAHourlyCHW$type2 == "office혻")
+PAHourlyCHW[ind, "type2"] = "office"
+
 PAHourlyCHW$weekday <- as.factor(PAHourlyCHW$weekday)
 PAHourlyCHW$type1 <- as.factor(PAHourlyCHW$type1)
 PAHourlyCHW$type2 <- as.factor(PAHourlyCHW$type2)
@@ -24658,16 +24661,16 @@ trainCHWL1 = trainCHW %>%
       stringr::str_detect(type2, regex("Education")) ~ "Education"
       , stringr::str_detect(type2, regex("Lab")) ~ "Lab"
       , stringr::str_detect(type2, regex("Lodge")) ~ "Lodging"
-      , stringr::str_detect(type2, regex("office?")) ~ "Office"
+      , stringr::str_detect(type2, regex("office")) ~ "Office"
       , stringr::str_detect(type2, regex("public")) ~ "Public Assembly"
       , TRUE ~ "NA"
     )
   )
 
 # type2에 대한 factor로 재 갱신
-trainCHWL1$type2 = factor(trainCHWL1$type2)
+publictrainCHWL1$type2 = factor(trainCHWL1$type2)
 
-# Levels: Education Lab Lodge office? public
+# Levels: Education Lab Lodge office? 
 # trainCHWL1$type2 %>% unique() %>% sort()
 
 lmCHW82type2 = lm(CHWEUI ~ type2 + poly(Height, 2) + poly(Temp, 2), data = trainCHWL1)
@@ -24686,6 +24689,15 @@ inData = data.frame(
 )
 
 predict(lmCHW82type2, newdata = inData)
+
+inData = data.frame(
+  type2 = "office"
+  , Temp = maenTemp
+  , Height = meanHeight
+)
+
+predict(lmCHW82type2, newdata = inData)
+
 
 
 # 예측 결과 확인
@@ -26092,7 +26104,7 @@ for (i in 1:length(dtDateList)) {
 # 자료 저장
 #***********************************************
 saveFile = sprintf("%s/%s_%s.csv", globalVar$outPath, serviceName, "seoul apartment transaction")
-readr::write_csv(x = dataL1, file = saveFile)
+# readr::write_csv(x = dataL1, file = saveFile)
 
 #***********************************************
 # 데이터 전처리
@@ -26210,20 +26222,24 @@ addrList = dataL2$addr %>% unique() %>% sort() %>%
 # addrData = ggmap::mutate_geocode(addrList, value, source = "google")
 
 # 각 주소에 따라 위/경도 반환
-for (i in 1:nrow(addrList)) {
-  addrData = ggmap::mutate_geocode(addrList[i, 'value'], value, source = "google")
-  
-  if (nrow(addrData) < 1) { next }
+# for (i in 1:nrow(addrList)) {
+#   addrData = ggmap::mutate_geocode(addrList[i, 'value'], value, source = "google")
+#   
+#   if (nrow(addrData) < 1) { next }
+# 
+#   readr::write_csv(x = addrData, file = saveFile, append = TRUE)
+# }
 
-  saveFile = sprintf("%s/%s_%s.csv", globalVar$outPath, serviceName, "seoul apartment transaction-addrData")
-  readr::write_csv(x = addrData, file = saveFile, append = TRUE)
-}
+saveFile = sprintf("%s/%s_%s.csv", globalVar$outPath, serviceName, "seoul apartment transaction-addrData")
+addrData =  readr::read_csv(file = saveFile, col_names = c("value", "lon", "lat"))
 
 dataL4 = dataL2 %>% 
   dplyr::left_join(addrData, by = c("addr" = "value")) %>% 
   dplyr::filter(
     ! is.na(lon)
     , ! is.na(lat)
+    , dplyr::between(lon, 120, 130)
+    , dplyr::between(lat, 30, 40)
   ) %>% 
   dplyr::group_by(lon, lat, addr) %>% 
   dplyr::summarise(
@@ -26235,7 +26251,7 @@ map = ggmap::get_map(
   , zoom = 12
 )
 
-saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "PostalCode")
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "면적당 거래금액")
 
 ggmap(map, extent = "device") +
   geom_point(data = dataL4, aes(x = lon, y = lat, color = meanVal, size = meanVal, alpha = 0.3)) +
@@ -26263,8 +26279,8 @@ ggmap(map, extent = "device") +
     # , legend.justification = c(1, 1)
     # , legend.background = element_rect(fill = "transparent")
     # , legend.box.background = element_rect(fill = "transparent")
-  ) # +
-  # ggsave(filename = saveImg, width = 10, height = 10, dpi = 600)
+  ) +
+  ggsave(filename = saveImg, width = 10, height = 10, dpi = 600)
 
 #===============================================================================================
 # Routine : Main R program
@@ -26385,4 +26401,5 @@ checkresiduals(capEnd2)
 
 
 # TSET
+# TSET2
 # ARIMA 모델의 예측을 살펴본 후 ARIMA 모델은 대기 중 CO2의 존재가 지속적으로 증가 할 것임을 보여줍니다. 이것은 이미 관찰되고있는 기후의 추가 변화로 이어질 것이지만, 생존하기에 적합한 기후를 가진 지역을 찾기 위해 이미 고군분투하고있는 종의 생존에도 영향을 미칠 것입니다. 작업을 마치는 동안 정현파 패턴의 진폭이 일정한지 아니면 증가하는지 조사하는 데 관심이있었습니다. 처음 24 개월과 지난 24 개월의 진폭을 관찰했지만 출력은 진폭에서 큰 차이를 보이지 않았습니다. 또한 데이터를 고정하고 진폭이 상승하는 추세가 있는지 확인하기 위해 데이터에서 지연 1 차이를 가져 왔지만 여기서도 어떤 변화도 볼 수 없었습니다. 미래에는 breusch pagan 테스트가 회귀 모델에서 일정한 분산을 테스트하는 방식과 같이 분산이 모델 전체에서 일관성이 있는지 테스트 할 함수를 찾는 것이 흥미로울 것입니다. 시리즈에서 진폭이 증가했다는 증거가 있으면 계절이 더 일찍 발생하고 나중에 종료됨에 따라 더 많은 CO2가 방출되고 흡수되고 있음을 보여줍니다.
