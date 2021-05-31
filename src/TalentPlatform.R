@@ -26204,10 +26204,20 @@ ggpubr::ggscatter(
 # 지도 그리기
 #***********************************************
 addrList = dataL2$addr %>% unique() %>% sort() %>%
-  as.tibble() %>% 
-  head(10)
+  as.tibble()
 
-addrData = ggmap::mutate_geocode(addrList, value, source = "google")
+# 구글 API 하루 제한
+# addrData = ggmap::mutate_geocode(addrList, value, source = "google")
+
+# 각 주소에 따라 위/경도 반환
+for (i in 1:nrow(addrList)) {
+  addrData = ggmap::mutate_geocode(addrList[i, 'value'], value, source = "google")
+  
+  if (nrow(addrData) < 1) { next }
+
+  saveFile = sprintf("%s/%s_%s.csv", globalVar$outPath, serviceName, "seoul apartment transaction-addrData")
+  readr::write_csv(x = addrData, file = saveFile, append = TRUE)
+}
 
 dataL4 = dataL2 %>% 
   dplyr::left_join(addrData, by = c("addr" = "value")) %>% 
@@ -26255,3 +26265,120 @@ ggmap(map, extent = "device") +
     # , legend.box.background = element_rect(fill = "transparent")
   ) # +
   # ggsave(filename = saveImg, width = 10, height = 10, dpi = 600)
+
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+#================================================
+# 요구사항
+#================================================
+# R을 이용한 서울시 아파트 실거래가 분석 및 매매 동향 예측
+
+#================================================
+# Set Env
+#================================================
+# globalVar = list()
+# globalVar$inpPath = "."
+# globalVar$figPath = "."
+# globalVar$outPath = "."
+# globalVar$mapPath = "."
+
+rm(list = ls())
+prjName = "test"
+source(here::here("E:/04. TalentPlatform/Github/TalentPlatform-R/src", "InitConfig.R"), encoding = "UTF-8")
+
+serviceName = "LSH0164"
+
+#================================================
+# Main
+#================================================
+library(ggplot2)
+library(tidyverse)
+library(httr)
+library(rvest)
+library(jsonlite)
+
+# 우리 행성의 역사를 통틀어 우리 행성은 기후의 많은 급격한 변화를 견뎌 왔습니다. 5 개의 간빙기 기간을 견디는 것부터 산업 혁명의 영향을 견디기까지 우리 지구와 대기는 인위적 영향으로 악용되었습니다. 이 프로젝트 전체에서 Kaggle 웹 사이트를 통해 얻은 Mauna Loa Volcano의 데이터를 사용하여 대기 CO2 수준을 예측하는 ARIMA 모델을 만들었습니다. Mauna Loa 데이터 세트에는 이산화탄소 기록 및 계절별로 조정 된 기록과 함께 연도와 날짜가 포함됩니다. 데이터 세트와 이산화탄소 기록의 중요성은 연간 CO2 농도를 플롯 할 때 발견 된 사인파 패턴이 있다는 것입니다. 이러한 패턴은 연구자들에 의해 연구되었으며 식물과 나무의 계절별 성장 패턴을 따르는 것으로 밝혀졌습니다. 이는 잎과 식물이 떨어지고 자연적으로 CO2를 대기로 방출하기 때문에 겨울과 가을철에 CO2 농도가 증가하는 것으로 나타 났지만 잎이 자라는 봄과 여름철에는이 잎이 CO2를 적게 흡수하는 것으로 나타났습니다. 대기 CO2 농도. 또한, 현재 연구에 따르면 계절이 우리 대기 중 CO2 증가로 인해 일찍 시작되고 늦게 끝나는 것으로 나타났습니다. 이 연구에서 나는 이러한 정현파 패턴이 미래에 어떻게 변할 것인지 관찰하고 ARIMA 모델이 이러한 변화를 예측할 수있는 최상의 모델을 찾는 데 어떻게 도움을 줄 수 있는지 관찰 할 것입니다.
+
+dat = read.csv('../input/archive.csv',sep=',')
+
+CO2matrix = as.matrix(dat)
+
+mod = cbind('x' = CO2matrix[,1], 'y' = CO2matrix[,4])
+mod.y = cbind(CO2matrix[,4])
+
+Y = ts(mod.y)
+
+autoplot(Y)
+
+checkresiduals(Y)
+
+Acf(Y) 
+
+
+Pacf(Y)
+
+# ACF 및 PACF 플롯은 잔차 플롯입니다. 이론적으로 포인트는 모두 신뢰 구간 인 파란색 선 내에 포함되어야합니다. 신뢰 구간을 벗어난 일부 잔차를 보는 것은 정상이지만 이처럼 보이지 않아야합니다. PACF의 부비동 패턴은 여기에 계절적 측면이 있음을 증명합니다.
+# ARIMA 모델을 적절하게 사용할 수 있도록 mod.y.ts를 12의 빈도로 설정했습니다. 이렇게하면 ARIMA 모델에 월별 데이터로 작업하고 있음을 알리고 ARIMA 모델이 적절한 ARIMA 모델을 찾는 데 적절하게 도움을 줄 수 있습니다. . auto.arima를 사용하기 전에 계절성을 고려하지 않았기 때문에 적절한 ARIMA 모델을 찾는 데 어려움을 겪었습니다. 빈도 = 12를 추가하여 월간 빈도를 얻기 위해 시계열 객체를 변경 한 후 모델이 크게 향상되었음을 알 수 있습니다.
+# 내 첫 번째 auto.arima 모델은 모델에서 단계적 선택을 사용했기 때문에 최고가 아니 었습니다. 결과는 다음과 같습니다.
+
+
+mod.y.ts = ts(mod.y, frequency = 12) 
+
+aa = auto.arima(mod.y.ts, trace = T) 
+
+#AUTO.ARIMA MODEL SUGGESTION IS SUPPOSEDLY
+#ARIMA(3,1,0)(2,1,0)[12]
+
+#something significant seems to be occurring every 3 years. 
+#By setting our lag.max = 60, we are forecasting values for 
+#the next 5 years....
+
+ra = residuals(aa)
+
+Pacf(ra, lag.max = 60) 
+
+Acf(ra, lag.max = 60)
+
+# 아래에서는 단계별 선택을 사용하지 않고 아리마 모델이 작동하도록 결정했습니다. 잔차의 결과가 더 좋으며 3 년 잔차에 대한 문제를 표시하지 않습니다.
+aaNEW = auto.arima(mod.y.ts, trace = T, stepwise=FALSE, approximation=FALSE, ic = c("aicc"))
+
+
+# auto.arima는 선택한 정보 기준의 근사값을 사용합니다. 여기서는 auto.arima 함수에 단계별 선택 사용을 피하도록 지시했으며 각 arima 모델에 대한 정확한 aicc (내 정보 기준으로 사용중인 항목)도 제공합니다. 최고의 arima 모델은 가장 낮은 AICc 값을 갖습니다. R이 테스트 할 모든 ARIMA 모델을 표시하기 위해 (trace = T)를 사용했습니다.
+
+#Testing our new ARIMA models...
+
+#our first ARIMA model
+capEnd = arima(mod.y.ts, order = c(0,1,3), seasonal = c(0,1,1))
+autoplot(forecast(capEnd, h = 120))
+
+resCapEnd = residuals(capEnd)
+
+Pacf(resCapEnd, lag.max = 60) 
+
+Acf(resCapEnd, lag.max = 60)
+
+checkresiduals(capEnd)
+
+#our second ARIMA model
+capEnd2 = arima(mod.y.ts, order = c(1,1,1), seasonal = c(0,1,1))
+
+autoplot(forecast(capEnd2, h = 120))
+
+resCapEnd2 = residuals(capEnd2)
+
+Pacf(resCapEnd2, lag.max = 60) 
+
+Acf(resCapEnd2, lag.max = 60)
+
+
+checkresiduals(capEnd2) 
+
+# ARIMA 모델의 예측을 살펴본 후 ARIMA 모델은 대기 중 CO2의 존재가 지속적으로 증가 할 것임을 보여줍니다. 이것은 이미 관찰되고있는 기후의 추가 변화로 이어질 것이지만, 생존하기에 적합한 기후를 가진 지역을 찾기 위해 이미 고군분투하고있는 종의 생존에도 영향을 미칠 것입니다. 작업을 마치는 동안 정현파 패턴의 진폭이 일정한지 아니면 증가하는지 조사하는 데 관심이있었습니다. 처음 24 개월과 지난 24 개월의 진폭을 관찰했지만 출력은 진폭에서 큰 차이를 보이지 않았습니다. 또한 데이터를 고정하고 진폭이 상승하는 추세가 있는지 확인하기 위해 데이터에서 지연 1 차이를 가져 왔지만 여기서도 어떤 변화도 볼 수 없었습니다. 미래에는 breusch pagan 테스트가 회귀 모델에서 일정한 분산을 테스트하는 방식과 같이 분산이 모델 전체에서 일관성이 있는지 테스트 할 함수를 찾는 것이 흥미로울 것입니다. 시리즈에서 진폭이 증가했다는 증거가 있으면 계절이 더 일찍 발생하고 나중에 종료됨에 따라 더 많은 CO2가 방출되고 흡수되고 있음을 보여줍니다.
