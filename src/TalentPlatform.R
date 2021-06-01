@@ -25982,7 +25982,7 @@ ggpairs(eta, columns=c("log보정영업지수", "소비자서비스업비율", "
 # globalVar$figPath = "."
 # globalVar$outPath = "."
 # globalVar$mapPath = "."
-
+``
 rm(list = ls())
 prjName = "test"
 source(here::here("E:/04. TalentPlatform/Github/TalentPlatform-R/src", "InitConfig.R"), encoding = "UTF-8")
@@ -26061,12 +26061,6 @@ for (i in 1:length(dtDateList)) {
     # 요청 날짜
     reqYmd = stringr::str_c("&DEAL_YMD=", sDate)
     
-    # http://openapi.molit.go.kr:8081/OpenAPI_ToolInstallPackage/service/rest/RTMSOBJSvc/getRTMSDataSvcAptTrade?serviceKey=Ftj0WhfmnXN86rrVCPTGvlQJoJs9l%2BZQjJzPgtc37yVPWuXs8UOP3kD2lTyy9DFInQZj2VvYFH1%2BUh7gNgTLLA%3D%3D&LAWD_CD=11110&DEAL_YMD=202104
-    # http://openapi.molit.go.kr:8081/OpenAPI_ToolInstallPackage/service/rest/RTMSOBJSvc/getRTMSDataSvcAptTrade?serviceKey=Ftj0WhfmnXN86rrVCPTGvlQJoJs9l%2BZQjJzPgtc37yVPWuXs8UOP3kD2lTyy9DFInQZj2VvYFH1%2BUh7gNgTLLA%3D%3D&LAWD_CD=11110&DEAL_YMD=202104
-    
-    # http://openapi.molit.go.kr:8081/OpenAPI_ToolInstallPackage/service/rest/RTMSOBJSvc/getRTMSDataSvcAptTrade?serviceKey=Ftj0WhfmnXN86rrVCPTGvlQJoJs9l%252BZQjJzPgtc37yVPWuXs8UOP3kD2lTyy9DFInQZj2VvYFH1%252BUh7gNgTLLA%253D%253D&LAWD_CD=11110&DEAL_YMD=202105
-    # http://openapi.molit.go.kr:8081/OpenAPI_ToolInstallPackage/service/rest/RTMSOBJSvc/getRTMSDataSvcAptTrade?serviceKey=Ftj0WhfmnXN86rrVCPTGvlQJoJs9l%252BZQjJzPgtc37yVPWuXs8UOP3kD2lTyy9DFInQZj2VvYFH1%252BUh7gNgTLLA%253D%253D&LAWD_CD=11110&DEAL_YMD=202105
-    
     resData = httr::GET(
       stringr::str_c(reqUrl, reqKey, reqLawdCd, reqYmd)
       ) %>% 
@@ -26130,7 +26124,21 @@ dataL3 = dataL2 %>%
 #***********************************************
 # 통계 분석
 #***********************************************
+# 면적당 거래금액 따른 기초 통계량
 dataL2 %>%
+  dplyr::summarise(
+    meanVal = mean(val, na.rm = TRUE) # 평균값
+    , medianVal = median(val, na.rm = TRUE) # 중앙값
+    , sdianVal = sd(val, na.rm = TRUE) # 표준편차
+    , maxVal = max(val, na.rm = TRUE) # 최대값
+    , minVal = min(val, na.rm = TRUE) # 최소값
+    , cnt = n() # 개수
+  ) %>%
+  dplyr::arrange(desc(meanVal))
+
+# 법정동에 따른 면적당 거래금액 따른 기초 통계량
+dataL2 %>%
+  dplyr::group_by(d2) %>% 
   dplyr::summarise(
     meanVal = mean(val, na.rm = TRUE) # 평균값
     , medianVal = median(val, na.rm = TRUE) # 중앙값
@@ -26145,7 +26153,7 @@ dataL2 %>%
 #***********************************************
 # 그래프 그리기(히스토그램, 상자 수염그림, 산점도 등)
 #***********************************************
-# 히스토그램
+# 면적당 거래금액 따른 히스토그램
 saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "면적당 거래금액 따른 히스토그램")
 
 ggplot(dataL2, aes(x = val)) +
@@ -26156,7 +26164,7 @@ ggplot(dataL2, aes(x = val)) +
   theme(text = element_text(size = 18)) +
   ggsave(filename = saveImg, width = 12, height = 6, dpi = 600)
 
-# 히스토그램
+# 법정동에 따른 면적당 거래금액 히스토그램
 saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "법정동에 따른 면적당 거래금액 히스토그램")
 
 ggplot(dataL3, aes(x = d2, y = meanVal, fill = meanVal)) +
@@ -26170,7 +26178,30 @@ ggplot(dataL3, aes(x = d2, y = meanVal, fill = meanVal)) +
     ) +
   ggsave(filename = saveImg, width = 12, height = 8, dpi = 600)
 
-# 산점도
+
+# 면적당 거래금액 따른 상자 그림
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "면적당 거래금액 따른 상자 그림")
+
+ggplot(dataL2, aes(y = val)) +
+  geom_boxplot() +
+  labs(x = NULL, y = "면적당 거래금액", colour = NULL, fill = NULL, subtitle = "면적당 거래금액 따른 상자 그림") +
+  theme(text = element_text(size = 18)) +
+  ggsave(filename = saveImg, width = 12, height = 6, dpi = 600)
+
+# 법정동에 따른 면적당 거래금액 상자 그림
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "법정동에 따른 면적당 거래금액 상자 그림")
+
+ggplot(dataL2, aes(x = d2, y = val, color = d2)) +
+  geom_boxplot() +
+  labs(x = "법정동", y = "면적당 거래금액", fill = NULL, subtitle = "법정동에 따른 면적당 거래금액 상자 그림") +
+  # scale_colour_gradientn(colours = cbMatlab, na.value = NA) +
+  theme(
+    text = element_text(size = 18)
+    , axis.text.x = element_text(angle = 45, hjust = 1)
+  ) +
+  ggsave(filename = saveImg, width = 12, height = 8, dpi = 600)
+
+# 면적당 거래금액 산점도
 saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "면적당 거래금액 산점도")
 
 ggpubr::ggscatter(
@@ -26192,6 +26223,7 @@ ggpubr::ggscatter(
   theme(text = element_text(size = 18)) +
   ggsave(filename = saveImg, width = 8, height = 8, dpi = 600)
 
+# 법정동에 따른 면적당 거래금액 산점도
 saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "법정동에 따른 면적당 거래금액 산점도")
 
 ggpubr::ggscatter(
@@ -26255,7 +26287,6 @@ saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "면적당 거
 
 ggmap(map, extent = "device") +
   geom_point(data = dataL4, aes(x = lon, y = lat, color = meanVal, size = meanVal, alpha = 0.3)) +
-  # ggrepel::geom_text_repel(data = dataL4, aes(x = lon, y = lat, label = addr), color = "red") +
   scale_color_gradientn(colours = cbMatlab, na.value = NA) +
   labs(
     subtitle = NULL
@@ -26267,18 +26298,8 @@ ggmap(map, extent = "device") +
     , size = NULL
   ) +
   scale_alpha(guide = 'none') +
-  # scale_size(range = c(5, 20)) +
-  # scale_size_discrete(
-  #   "sumOrder"
-  #   , range = c(0, 10)
-  #   # , labels = c("0", "B", "G", "J", "REF")
-  # ) +
   theme(
     text = element_text(size = 18)
-    # , legend.position = c(1, 1)
-    # , legend.justification = c(1, 1)
-    # , legend.background = element_rect(fill = "transparent")
-    # , legend.box.background = element_rect(fill = "transparent")
   ) +
   ggsave(filename = saveImg, width = 10, height = 10, dpi = 600)
 
