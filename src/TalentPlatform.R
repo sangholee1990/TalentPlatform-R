@@ -527,6 +527,9 @@ remDr = remoteDriver(
 
 data = read_excel("INPUT/o2job/크롤링_의뢰_엑셀시트.xlsx", sheet = "아파트 매매 실거래가")
 
+# excel -------------------------------------------------------------------
+
+
 
 # 크롬 열기
 remDr$open()
@@ -26303,6 +26306,7 @@ ggmap(map, extent = "device") +
   ) +
   ggsave(filename = saveImg, width = 10, height = 10, dpi = 600)
 
+
 #===============================================================================================
 # Routine : Main R program
 #
@@ -26424,3 +26428,359 @@ checkresiduals(capEnd2)
 # TSET
 # TSET2
 # ARIMA 모델의 예측을 살펴본 후 ARIMA 모델은 대기 중 CO2의 존재가 지속적으로 증가 할 것임을 보여줍니다. 이것은 이미 관찰되고있는 기후의 추가 변화로 이어질 것이지만, 생존하기에 적합한 기후를 가진 지역을 찾기 위해 이미 고군분투하고있는 종의 생존에도 영향을 미칠 것입니다. 작업을 마치는 동안 정현파 패턴의 진폭이 일정한지 아니면 증가하는지 조사하는 데 관심이있었습니다. 처음 24 개월과 지난 24 개월의 진폭을 관찰했지만 출력은 진폭에서 큰 차이를 보이지 않았습니다. 또한 데이터를 고정하고 진폭이 상승하는 추세가 있는지 확인하기 위해 데이터에서 지연 1 차이를 가져 왔지만 여기서도 어떤 변화도 볼 수 없었습니다. 미래에는 breusch pagan 테스트가 회귀 모델에서 일정한 분산을 테스트하는 방식과 같이 분산이 모델 전체에서 일관성이 있는지 테스트 할 함수를 찾는 것이 흥미로울 것입니다. 시리즈에서 진폭이 증가했다는 증거가 있으면 계절이 더 일찍 발생하고 나중에 종료됨에 따라 더 많은 CO2가 방출되고 흡수되고 있음을 보여줍니다.
+# 
+
+
+
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+#================================================
+# 요구사항
+#================================================
+# R을 이용한 기후 지표 계산
+
+#================================================
+# Set Env
+#================================================
+# globalVar = list()
+# globalVar$inpPath = "."
+# globalVar$figPath = "."
+# globalVar$outPath = "."
+# globalVar$mapPath = "."
+``
+rm(list = ls())
+prjName = "test"
+source(here::here("E:/04. TalentPlatform/Github/TalentPlatform-R/src", "InitConfig.R"), encoding = "UTF-8")
+
+serviceName = "LSH0168"
+
+#================================================
+# Main
+#================================================
+library(ggplot2)
+library(tidyverse)
+library(httr)
+library(rvest)
+library(jsonlite)
+library(RCurl)
+library(readr)
+library(magrittr)
+library(ggrepel)
+library(colorRamps)
+library(ggpubr)
+library(ClimInd)
+
+# showtext::showtext_opts(dpi = 100)
+# showtext::showtext.auto()
+
+
+fileInfo = Sys.glob(paste(globalVar$inpPath, "LSH0168_LSH0168_Fix+LSTM+pr+CanESM5+historical+FIX.csv", sep = "/"))
+data = readr::read_csv(file = fileInfo, locale = locale("ko", encoding = "EUC-KR"))
+
+
+data(data_all)
+
+data_all
+
+dd = data_all$rr
+
+attributes(dd)
+
+d = structure(1:1000000, my_attribute = c(rep("This is a vector", 1000)))
+
+ttt3 <- structure(
+  list(
+  v1 = c(1:4)
+  , v2 = c(1:4)
+  , v3 = c(1:4)
+  , v4 = c(1:4)
+  )
+  # list(
+  # v1 = as.factor(c(2001, 2002, 2004, 2006))
+  # ,v2 = I(c(2001, 2002, 2004, 2006))
+  # ,v3 = ordered(c(2001, 2002, 2004, 2006))
+  # ,v4 = as.double(c(366.3240, 365.4124, 366.5323423, 364.9573234)))
+  # ,.Names = c("year", "AsIs Year","yearO", "length of days")
+  # ,.typeOf = c("factor")
+  ,row.names = c(NA, -4L)
+  ,names = c(NA, -4L)
+  # ,class = "data.frame"
+  # ,comment = "Ordered YearO for categorical analysis and other variables"
+  )
+
+y <- 1:10
+g2 = attr(y, "my_attribute") <- "This is a vector"
+g = attr(y, "my_attribute")
+#> [1] "This is a vector"
+str(attributes(y))
+
+t = dd %>% 
+  as.data.frame()
+
+b = t %>% 
+  as.list()
+attr(baskets.team,'season') <- '2010-2011'
+
+
+library(sjlabelled)
+efc.sub <- subset(efc, subset = e16sex == 1, select = c(4:8))
+str(efc.sub)
+
+efc.sub <- copy_labels(efc.sub, efc)
+str(efc.sub)
+
+
+my.array = c(1, 2, 3, 4)
+attributes(my.array)
+attr(baskets.team,'season') <- '2010-2011'
+attr(baskets.team,'season')
+# attr(baskets.team,'season') <- NULL
+
+ttt = data_all$rr
+
+ClimInd::prcptot(data = ttt)
+
+# RR1
+ClimInd::prcptot(data = data_all$rr)
+
+
+# CDD
+ClimInd::cdd(data = data_all$rr)
+
+# CWD
+ClimInd::cwd(data = data_all$rr)
+
+
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+#================================================
+# 요구사항
+#================================================
+# R을 이용한 교통사고 다발지역 시각화
+
+#================================================
+# Set Env
+#================================================
+# globalVar = list()
+# globalVar$inpPath = "."
+# globalVar$figPath = "."
+# globalVar$outPath = "."
+# globalVar$mapPath = "."
+
+rm(list = ls())
+prjName = "test"
+source(here::here("E:/04. TalentPlatform/Github/TalentPlatform-R/src", "InitConfig.R"), encoding = "UTF-8")
+
+serviceName = "LSH0171"
+
+#================================================
+# Main
+#================================================
+library(ggplot2)
+library(tidyverse)
+library(readr)
+library(magrittr)
+
+# showtext::showtext_opts(dpi = 100)
+# showtext::showtext.auto()
+
+fileInfo = Sys.glob(paste(globalVar$inpPath, "LSH0171_도로교통공단_교통사고다발지역_20191010.xlsx", sep = "/"))
+data = openxlsx::read.xlsx(fileInfo, sheet = 1) %>%
+  tibble::as.tibble() %>% 
+  dplyr::rename(
+    year = 사고년도
+    , area = 시도시군구명
+    , type = 사고유형구분
+    , val = 발생
+    , val2 = 사상
+    , val3 = 사망
+  ) %>% 
+  dplyr::select(year, area, type, val, val2, val3)
+
+# 0값을 NA로 변환
+# dataL1 = data %>%
+  # dplyr::na_if(0)
+
+dataL1 = data
+
+#========================================================
+# 다음 3개의 그래프를 작성후 2.script로 저장
+#========================================================
+dataL2 = dataL1 %>% 
+  dplyr::group_by(year) %>% 
+  dplyr::summarise(
+    YearBS_CAR = mean(val, na.rm = TRUE)
+    , YearSS_CAR = mean(val2, na.rm = TRUE)
+    , YearSM_CAR = mean(val3, na.rm = TRUE)
+  )
+
+#*************************************
+# 사고년도별 평균 발생건수
+#*************************************
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "사고년도별 평균 발생건수")
+
+ggplot(dataL2, aes(x = year, y = YearBS_CAR, fill = YearBS_CAR)) +
+  geom_col() +
+  labs(x = "사고년도", y = "평균 발생건수", colour = NULL, fill = NULL, subtitle = "사고년도별 평균 발생건수") +
+  theme(text = element_text(size = 18)) +
+  ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
+
+
+#*************************************
+# 사고년도별 평균 사상자수
+#*************************************
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "사고년도별 평균 사상자수")
+
+ggplot(dataL2, aes(x = year, y = YearSS_CAR, fill = YearSS_CAR)) +
+  geom_line() +
+  labs(x = "사고년도", y = "평균 사상자수", colour = NULL, fill = NULL, subtitle = "사고년도별 평균 사상자수") +
+  theme(text = element_text(size = 18)) +
+  ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
+
+
+#*************************************
+# 사고년도별 평균 사망자수
+#*************************************
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "사고년도별 평균 사망자수")
+
+ggplot(dataL2, aes(x = year, y = YearSM_CAR, fill = YearSM_CAR)) +
+  geom_col() +
+  labs(x = "사고년도", y = "평균 사망자수", colour = NULL, fill = NULL, subtitle = "사고년도별 평균 사망자수") +
+  theme(text = element_text(size = 18)) +
+  ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
+
+
+#========================================================
+# 다음 2개의 그래프를 작성후 3.script 로 저장 
+#========================================================
+dataL2 = dataL1 %>% 
+  dplyr::group_by(area) %>% 
+  dplyr::summarise(
+    Top10ss_CAR = mean(val2, na.rm = TRUE)
+    , Top10SM_CAR = mean(val3, na.rm = TRUE)
+  )
+
+#*************************************
+# 시도시군구명별 평균 사상자수 
+#*************************************
+dataL3 = dataL2 %>% 
+  dplyr::arrange(desc(Top10ss_CAR)) %>%
+  dplyr::slice(1:10)
+
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "시도시군구명별 평균 사상자수")
+
+ggplot(dataL3, aes(x = Top10ss_CAR, y = reorder(area, Top10ss_CAR), fill = Top10ss_CAR)) +
+  geom_col() +
+  labs(x = "평균 사상자수", y = "시도시군구명", colour = NULL, fill = NULL, subtitle = "시도시군구명별 평균 사상자수") +
+  theme(text = element_text(size = 18)) +
+  ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
+
+
+#*************************************
+# 시도시군구명별 평균 사망자수 
+#*************************************
+dataL3 = dataL2 %>%
+  dplyr::arrange(desc(Top10SM_CAR)) %>%
+  dplyr::slice(1:10)
+
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "시도시군구명별 평균 사망자수")
+
+ggplot(dataL3, aes(x = Top10SM_CAR, y = reorder(area, Top10SM_CAR), fill = Top10ss_CAR)) +
+  geom_col() +
+  labs(x = "평균 사망자수", y = "시도시군구명", colour = NULL, fill = NULL, subtitle = "시도시군구명별 평균 사망자수") +
+  theme(text = element_text(size = 18)) +
+  ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
+
+
+#========================================================
+# 4.Script 로 저장 
+#========================================================
+
+#*************************************
+# 사고년도 및 사고유형별 평균 발생건수
+#*************************************
+dataL2 = dataL1 %>% 
+  dplyr::group_by(year, type) %>% 
+  dplyr::summarise(
+    Year_TypeB_CAR = mean(val, na.rm = TRUE)
+    , Year_TypeSS_CAR = mean(val2, na.rm = TRUE)
+    , Year_TypeSM_CAR = mean(val3, na.rm = TRUE)
+  ) 
+
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "사고년도 및 사고유형별 평균 발생건수 막대 그래프")
+
+# 막대
+ggplot(dataL2, aes(x = year, y = Year_TypeB_CAR, fill = type)) +
+  geom_col(position = "dodge") +
+  labs(x = "사고년도", y = "평균 발생건수", colour = NULL, fill = "사고유형 구분", subtitle = "사고년도 및 사고유형별 평균 발생건수") +
+  theme(text = element_text(size = 18)) +
+  ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
+
+# 시계열
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "사고년도 및 사고유형별 평균 발생건수 시계열 그래프")
+
+ggplot(dataL2, aes(x = year, y = Year_TypeB_CAR, color = type)) +
+  geom_line() +
+  labs(x = "사고년도", y = "평균 발생건수", colour = "사고유형 구분", fill = NULL, subtitle = "사고년도 및 사고유형별 평균 발생건수") +
+  theme(text = element_text(size = 18)) +
+  ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
+
+
+#*************************************
+# 사고년도 및 사고유형별 평균 사상자수
+#*************************************
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "사고년도 및 사고유형별 평균 사상자수 막대 그래프")
+
+# 막대
+ggplot(dataL2, aes(x = year, y = Year_TypeSS_CAR, fill = type)) +
+  geom_col(position = "dodge") +
+  labs(x = "사고년도", y = "평균 사상자수", colour = NULL, fill = "사고유형 구분", subtitle = "사고년도 및 사고유형별 평균 사상자수") +
+  theme(text = element_text(size = 18)) +
+  ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
+
+# 시계열
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "사고년도 및 사고유형별 평균 사상자수 시계열 그래프")
+
+ggplot(dataL2, aes(x = year, y = Year_TypeSS_CAR, colour = type)) +
+  geom_line() +
+  labs(x = "사고년도", y = "평균 사상자수", colour = "사고유형 구분", fill = NULL, subtitle = "사고년도 및 사고유형별 평균 사상자수") +
+  theme(text = element_text(size = 18)) +
+  ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
+
+#*************************************
+# 사고년도 및 사고유형별 평균 사망자수
+#*************************************
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "사고년도 및 사고유형별 평균 사망자수 막대 그래프")
+
+# 막대
+ggplot(dataL2, aes(x = year, y = Year_TypeSM_CAR, fill = type)) +
+  geom_col(position = "dodge") +
+  labs(x = "사고년도", y = "평균 사망자수", colour = NULL, fill = "사고유형 구분", subtitle = "사고년도 및 사고유형별 평균 사망자수") +
+  theme(text = element_text(size = 18)) +
+  ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
+
+# 시계열
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "사고년도 및 사고유형별 평균 사망자수 시계열 그래프")
+
+ggplot(dataL2, aes(x = year, y = Year_TypeSM_CAR, colour = type)) +
+  geom_line() +
+  labs(x = "사고년도", y = "평균 사망자수", colour = "사고유형 구분", fill = NULL, subtitle = "사고년도 및 사고유형별 평균 사망자수") +
+  theme(text = element_text(size = 18)) +
+  ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
+
