@@ -25985,7 +25985,7 @@ ggpairs(eta, columns=c("log보정영업지수", "소비자서비스업비율", "
 # globalVar$figPath = "."
 # globalVar$outPath = "."
 # globalVar$mapPath = "."
-``
+
 rm(list = ls())
 prjName = "test"
 source(here::here("E:/04. TalentPlatform/Github/TalentPlatform-R/src", "InitConfig.R"), encoding = "UTF-8")
@@ -26041,7 +26041,8 @@ codeDistList = codeList %>%
   dplyr::distinct(emdCd)
 
 # 날짜 기간
-dtDateList = seq(as.Date("2017-01-01"), as.Date(format(Sys.time(), "%Y-%m-%d")), "1 month")
+# dtDateList = seq(as.Date("2017-01-01"), as.Date(format(Sys.time(), "%Y-%m-%d")), "1 month")
+dtDateList = seq(as.Date("2018-12-01"), as.Date(format(Sys.time(), "%Y-%m-%d")), "1 month")
 
 
 #***********************************************
@@ -26055,37 +26056,37 @@ dataL1 = tibble::tibble()
 
 for (i in 1:length(dtDateList)) {
   for (j in 1:nrow(codeDistList)) {
-    
+
     sDate = format(dtDateList[i], "%Y%m")
-  
+
     # 요청 법정동
     reqLawdCd = stringr::str_c("&LAWD_CD=", codeDistList[j, 'emdCd'])
-    
+
     # 요청 날짜
     reqYmd = stringr::str_c("&DEAL_YMD=", sDate)
-    
+
     resData = httr::GET(
       stringr::str_c(reqUrl, reqKey, reqLawdCd, reqYmd)
-      ) %>% 
-      httr::content(as = "text", encoding = "UTF-8") %>% 
+      ) %>%
+      httr::content(as = "text", encoding = "UTF-8") %>%
       jsonlite::fromJSON()
-    
+
     resCode = resData$response$header$resultCode
     if (resCode != "00") { next }
-    
+
     resItems = resData$response$body$items
     if (resItems == "") { next }
-    
+
     cat(sprintf(
       "dtDate : %10s | code : %5s"
       , sDate
       , codeList[j, 'emdCd']
     ), "\n")
-    
-    resItem = resItems$item %>% 
+
+    resItem = resItems$item %>%
       as.data.frame()
       # readr::type_convert()
-    
+
     dataL1 = dplyr::bind_rows(
       dataL1
       , data.frame(
@@ -26259,7 +26260,7 @@ addrList = dataL2$addr %>% unique() %>% sort() %>%
 # 각 주소에 따라 위/경도 반환
 # for (i in 1:nrow(addrList)) {
 #   addrData = ggmap::mutate_geocode(addrList[i, 'value'], value, source = "google")
-#   
+# 
 #   if (nrow(addrData) < 1) { next }
 # 
 #   readr::write_csv(x = addrData, file = saveFile, append = TRUE)
@@ -26784,3 +26785,386 @@ ggplot(dataL2, aes(x = year, y = Year_TypeSM_CAR, colour = type)) +
   theme(text = element_text(size = 18)) +
   ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
 
+
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+#================================================
+# 요구사항
+#================================================
+# R을 이용한 마크다운, 다양한 그래프 시각화
+
+#================================================
+# Set Env
+#================================================
+# globalVar = list()
+# globalVar$inpPath = "."
+# globalVar$figPath = "."
+# globalVar$outPath = "."
+# globalVar$mapPath = "."
+
+rm(list = ls())
+prjName = "test"
+source(here::here("E:/04. TalentPlatform/Github/TalentPlatform-R/src", "InitConfig.R"), encoding = "UTF-8")
+
+serviceName = "LSH0166"
+
+#================================================
+# Main
+#================================================
+
+#====================================================================
+# 2번 문제
+#====================================================================
+library(ggplot2)
+library(tidyverse)
+library(readr)
+
+fileInfo = Sys.glob(paste(globalVar$inpPath, "LSH0166_exam.csv", sep = "/"))
+data = readr::read_csv(file = fileInfo)
+
+#*********************************************************************
+# exam 데이터셋에서 class가 1인 경우만 추출해서 데이터를 출력하고
+# summary(), cor(), hist(), qplot(), boxplot(), pairs()를 적용하시오.
+#*********************************************************************
+dataL1 = data %>% 
+  dplyr::filter(class == 1)
+
+dplyr::tbl_df(dataL1)
+summary(dataL1)
+cor(dataL1)
+hist(dataL1)
+qplot(dataL1$english, dataL1$science)
+pairs(dataL1)
+
+#*********************************************************************
+# exam 데이터셋에서 class가 2인 경우만 추출해서 데이터를 출력하고
+# summary(), cor(), hist(), qplot(), boxplot(), pairs()를 적용하시오.
+#*********************************************************************
+dataL1 = data %>% 
+  dplyr::filter(class == 2)
+
+dplyr::tbl_df(dataL1)
+summary(dataL1)
+cor(dataL1)
+hist(dataL1)
+qplot(dataL1$english, dataL1$science)
+pairs(dataL1)
+
+#*********************************************************************
+# exam 데이터셋에서 english가 80이상인 경우만 추출해서 데이터를 출력하고
+# summary(), cor(), hist(), qplot(), boxplot(), pairs()를 적용하시오.
+#*********************************************************************
+dataL1 = data %>% 
+  dplyr::filter(english >= 80)
+
+dplyr::tbl_df(dataL1)
+summary(dataL1)
+cor(dataL1)
+hist(dataL1)
+qplot(dataL1$english, dataL1$science)
+pairs(dataL1)
+
+
+#*********************************************************************
+# exam 데이터셋에서 class가 1이고 english가 80이상인 경우만 추출해서 데이터를 출력하고
+# summary(), cor(), hist(), qplot(), boxplot(), pairs()를 적용하시오.
+#*********************************************************************
+dataL1 = data %>% 
+  dplyr::filter(
+    class == 1
+    , english >= 80
+    )
+
+dplyr::tbl_df(dataL1)
+summary(dataL1)
+cor(dataL1)
+hist(dataL1)
+qplot(dataL1$english, dataL1$science)
+pairs(dataL1)
+
+#*********************************************************************
+# class별로 english와 science의 평균을 계산해서 다음과 같이 출력하시오.
+#*********************************************************************
+dataL1 = data %>% 
+  dplyr::group_by(class) %>% 
+  dplyr::summarise(
+    english_mean = mean(english, na.rm = TRUE)
+    , science_mean = mean(science, na.rm = TRUE)
+  )
+
+dplyr::tbl_df(dataL1)
+
+#====================================================================
+# 3번 문제
+#====================================================================
+library(faraway)
+
+data(nepali)
+
+nepali <- nepali %>% 
+  dplyr::select(id, sex, wt, ht, age) %>% 
+  dplyr::mutate(
+    id = factor(id)
+    , sex = factor(sex, levels = c(1, 2), labels = c("Male", "Female"))
+  ) %>% 
+  dplyr::distinct(id, .keep_all = TRUE)
+
+# 실습 1
+# 체중을 기준으로 히스토그램을 시각화
+ggplot(nepali, aes(x = ht)) +
+  geom_histogram()
+
+# 실습 2
+# 체중을 기준으로 히스토그램을 시각화
+# fill (채우기) 및 color (테두리)를 통해 설정
+# 그림 제목, x축 이름, x축의 범위를 추가
+ggplot(nepali, aes(x = ht)) +
+  geom_histogram(fill = "lightblue", color = "black")+
+  ggtitle("Height of children") +
+  xlab("Height (cm)") +
+  xlim(c(0, 120))
+
+# 실습 3
+# 키 (x축) 및 체중 (y축)을 기준으로 산점도를 시각화
+ggplot(nepali, aes(x = ht, y = wt)) +
+  geom_point()
+
+# 실습 4
+# 키 (x축) 및 체중 (y축)을 기준으로 산점도를 시각화
+# size (크기) 및 color (테두리)를 통해 설정
+# 그림 제목, x축 이름, y축 이름을 추가
+ggplot(nepali, aes(x = ht, y = wt)) +
+  geom_point(color = "blue", size = 0.5) +
+  ggtitle("Weight vsrsus Height") +
+  xlab("Height (cm)") +
+  ylab("Weight (kg)")
+
+# 실습 5
+# 키 (x축) 및 체중 (y축) 및 컬러 (성별)를 기준으로 산점도를 시각화
+# size (크기)를 통해 설정
+# 그림 제목, x축 이름, y축 이름을 추가
+ggplot(nepali, aes(x = ht, y = wt, color = sex)) +
+  geom_point(size = 0.5) +
+  ggtitle("Weight vsrsus Height") +
+  xlab("Height (cm)") +
+  ylab("Weight (kg)")
+
+# 실습 6
+# 임의의 상수 (x축) 및 키 (y축)를 기준으로 상자 그림을 시각화
+# x축 이름, y축 이름을 추가
+ggplot(nepali, aes(x = 1, y = ht)) +
+  geom_boxplot() +
+  xlab("") +
+  ylab("Height (kg)")
+  
+# 실습 7
+# 성별 (x축) 및 키 (y축)를 기준으로 상자 그림을 시각화
+# x축 이름, y축 이름을 추가
+ggplot(nepali, aes(x = sex, y = ht)) +
+  geom_boxplot() +
+  xlab("Sex") +
+  ylab("Height (kg)")
+
+
+#====================================================================
+# 4번 문제
+#====================================================================
+getwd()
+
+x = data.frame(
+  id = 1:4
+  , name = c("Kim", "Lee", "Park", "Choi")
+)
+
+library(tidyr)
+library(dplyr)
+
+#====================================================================
+# 5번 문제
+#====================================================================
+
+library(GGally)
+
+# GGally 패키지에 포함되어있는 ggpairs은 다변량 시각화 전문 라이브러리
+# 즉 여러 변수와 변수 간의 관계를 통해 하나의 그림으로 시각화
+# base의 graphics에 수록되어있는 panel.pairs()의 ggplot 버전
+# ggplot의 지식을 살려 원하는대로 사용자 정의 가능 (자유도가 매우 높은)
+
+# 그에 따른 upper, lower, diag로 구성되어 있음
+# upper
+# 연속량 × 연속량 : 상관계수 (상관관계)
+# 연속량 × 이산량 (factor) : 상자 그림 (분포)
+# 이산량 × 이산량 : factor 다른 막대
+
+# lower
+# 연속량 × 연속량 : 산점도 (상관관계)
+# 연속량 × 이산량 : factor 별 히스토그램 (분포)
+# 이산량 × 이산량 : factor 다른 막대
+
+# diag
+# 연속량 : 밀도 (분포)
+# 이산량 : 막대 그래프 (분포)
+
+
+# 이 그림에서는 상관관계 (상관계수, 산점도), 분포 (밀도, 막대그래프, 상자 그림, 히스토그램)로 시각화
+# 그 결과 체중의 경우 나이보다 키에 높은 상관계수 (0.957)뿐만 아니라 0.01 이하의 통계적 유의수준을 보임
+# 일반적으로 키는 정규분포를 띠나 체중 및 나이의 경우 다봉분포를 확인
+
+nepali %>% 
+  dplyr::select(sex, wt, ht, age) %>% 
+  GGally::ggpairs()
+
+
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+#================================================
+# 요구사항
+#================================================
+# R을 이용한 2004년 4월-2019년 12월까지 환율 데이터 변동률 계산 및 시계열 시각화
+
+#================================================
+# Set Env
+#================================================
+# globalVar = list()
+# globalVar$inpPath = "."
+# globalVar$figPath = "."
+# globalVar$outPath = "."
+# globalVar$mapPath = "."
+
+rm(list = ls())
+prjName = "test"
+source(here::here("E:/04. TalentPlatform/Github/TalentPlatform-R/src", "InitConfig.R"), encoding = "UTF-8")
+
+serviceName = "LSH0173"
+
+#================================================
+# Main
+#================================================
+library(ggplot2)
+library(tidyverse)
+library(xlsx)
+library(rJava)
+library(xlsxjars)
+library(dplyr)
+library(dint)
+
+# fileInfo1 = Sys.glob(paste(globalVar$inpPath, "LSH0164_NIKKEI225.csv", sep = "/"))
+# NKI <-read.csv(fileInfo1) %>% 
+#   filter(NIKKEI225 != ".") %>%
+#   tibble::as.tibble()
+# 
+# fileInfo2 = Sys.glob(paste(globalVar$inpPath, "LSH0164_NASDAQCOM.csv", sep = "/"))
+# GDI <- read.csv(fileInfo2) %>% 
+#   filter(NASDAQCOM != ".") %>%
+#   tibble::as.tibble()
+# 
+# fileInfo3 = Sys.glob(paste(globalVar$inpPath, "LSH0164_DGS10.csv", sep = "/"))
+# LIBOR <- read.csv(fileInfo3) %>%
+#   dplyr::filter(DGS10 != ".") %>%
+#   tibble::as.tibble()
+
+fileInfo1 = Sys.glob(paste(globalVar$inpPath, "LSH0173_NIKKEI225+from+FRED(2004).csv", sep = "/"))
+NKI <-read.csv(fileInfo1) %>% 
+  filter(NIKKEI225 != ".") %>%
+  dplyr::mutate(DATE = readr::parse_date(Date, "%m/%d/%y")) %>% 
+  tibble::as.tibble()
+
+fileInfo2 = Sys.glob(paste(globalVar$inpPath, "LSH0173_NASDAQCOM.csv", sep = "/"))
+GDI <- read.csv(fileInfo2) %>% 
+  filter(NASDAQCOM != ".") %>%
+  dplyr::mutate(DATE = readr::parse_date(Date, "%m/%d/%y")) %>% 
+  tibble::as.tibble()
+
+
+# dtDateKst = seq(
+#   lubridate::ymd(min(NKI$DATE, GDI$DATE, LIBOR$DATE, na.rm = TRUE), tz = "Asia/Seoul")
+#   , lubridate::ymd(max(NKI$DATE, GDI$DATE, LIBOR$DATE, na.rm = TRUE), tz = "Asia/Seoul")
+#   , by = "1 day"
+# )
+
+dtDateKst = seq(
+  lubridate::ymd(min(NKI$DATE, GDI$DATE, na.rm = TRUE), tz = "Asia/Seoul")
+  , lubridate::ymd(max(NKI$DATE, GDI$DATE, na.rm = TRUE), tz = "Asia/Seoul")
+  , by = "1 day"
+)
+
+dtDateList = tibble::tibble(dtDateKst) %>%
+  dplyr::mutate(
+    sQuart = dint::date_yq(lubridate::year(dtDateKst), lubridate::month(dtDateKst))
+    , sDateKst = format(dtDateKst, "%Y-%m-%d")
+    # , dtDateUtc = lubridate::with_tz(dtDateKst, "UTC")
+  )
+
+data = dtDateList %>% 
+  dplyr::left_join(NKI, by = c("dtDateKst" = "DATE")) %>% 
+  dplyr::left_join(GDI, by = c("dtDateKst" = "DATE")) %>% 
+  # dplyr::left_join(LIBOR, by = c("sDateKst" = "DATE")) %>% 
+  readr::type_convert()
+
+dataL1 = data %>% 
+  dplyr::mutate(
+    perNKI = (NIKKEI225 - lag(NIKKEI225)) / lag(NIKKEI225) * 100.0
+    , perNAS = (NASDAQCOM - lag(NASDAQCOM)) / lag(NASDAQCOM) * 100.0
+    # , perDGS = (DGS10 - lag(DGS10)) / lag(DGS10) * 100.0
+  ) %>% 
+  dplyr::filter(
+    dplyr::between(sDateKst, as.Date("2004-04-01"), as.Date("2019-12-31"))
+  )
+
+quartList = dataL1$sQuart %>% unique() %>% sort()
+
+dataL3 = tibble::tibble()
+
+# quartInfo = "2004-Q2"
+for (quartInfo in quartList) {
+  
+  dataL2 = dataL1 %>% 
+    dplyr::filter(sQuart == quartInfo)
+  
+  if (nrow(dataL2) < 1) next
+  
+  lmFit = lm(perNAS ~ perNKI, data = dataL2)
+  
+  # 데이터 병합
+  dataL3 = dplyr::bind_rows(
+    dataL3
+    , data.frame(
+      sQuart = stringr::str_sub(quartInfo, 3, 8)
+      # sQuart = quartInfo
+      , slope = coef(lmFit)[2]
+    )
+  )
+}
+
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "연도 4분기에 따른 기울기 시계열")
+
+ggplot(aes(x = sQuart, y = slope, group=1), data = dataL3) +
+  geom_line() +
+  labs(
+    title = NULL
+    , x = "연도 4분기"
+    , y = "기울기"
+    , color = NULL
+    , subtitle = "연도 4분기에 따른 기울기 시계열"
+  ) +
+  theme(
+    text = element_text(size = 14)
+    , axis.text.x = element_text(angle = 90, hjust = 1)
+    ) +
+  ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
