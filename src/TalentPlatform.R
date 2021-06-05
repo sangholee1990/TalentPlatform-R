@@ -26336,7 +26336,7 @@ rm(list = ls())
 prjName = "test"
 source(here::here("E:/04. TalentPlatform/Github/TalentPlatform-R/src", "InitConfig.R"), encoding = "UTF-8")
 
-serviceName = "LSH0164"
+serviceName = "SADFASDFASDF"
 
 #================================================
 # Main
@@ -26348,7 +26348,6 @@ library(rvest)
 library(jsonlite)
 
 # 우리 행성의 역사를 통틀어 우리 행성은 기후의 많은 급격한 변화를 견뎌 왔습니다. 5 개의 간빙기 기간을 견디는 것부터 산업 혁명의 영향을 견디기까지 우리 지구와 대기는 인위적 영향으로 악용되었습니다. 이 프로젝트 전체에서 Kaggle 웹 사이트를 통해 얻은 Mauna Loa Volcano의 데이터를 사용하여 대기 CO2 수준을 예측하는 ARIMA 모델을 만들었습니다. Mauna Loa 데이터 세트에는 이산화탄소 기록 및 계절별로 조정 된 기록과 함께 연도와 날짜가 포함됩니다. 데이터 세트와 이산화탄소 기록의 중요성은 연간 CO2 농도를 플롯 할 때 발견 된 사인파 패턴이 있다는 것입니다. 이러한 패턴은 연구자들에 의해 연구되었으며 식물과 나무의 계절별 성장 패턴을 따르는 것으로 밝혀졌습니다. 이는 잎과 식물이 떨어지고 자연적으로 CO2를 대기로 방출하기 때문에 겨울과 가을철에 CO2 농도가 증가하는 것으로 나타 났지만 잎이 자라는 봄과 여름철에는이 잎이 CO2를 적게 흡수하는 것으로 나타났습니다. 대기 CO2 농도. 또한, 현재 연구에 따르면 계절이 우리 대기 중 CO2 증가로 인해 일찍 시작되고 늦게 끝나는 것으로 나타났습니다. 이 연구에서 나는 이러한 정현파 패턴이 미래에 어떻게 변할 것인지 관찰하고 ARIMA 모델이 이러한 변화를 예측할 수있는 최상의 모델을 찾는 데 어떻게 도움을 줄 수 있는지 관찰 할 것입니다.
-
 dat = read.csv('../input/archive.csv',sep=',')
 
 CO2matrix = as.matrix(dat)
@@ -27041,21 +27040,23 @@ nepali %>%
 #================================================
 # Set Env
 #================================================
-# globalVar = list()
-# globalVar$inpPath = "."
-# globalVar$figPath = "."
-# globalVar$outPath = "."
-# globalVar$mapPath = "."
+# R 프로그래밍을 위한 기초 환경변수 (입력자료 경로, 이미지저장 경로, 출력자료 경로, 지도 맵 경로) 설정
+globalVar = list()
+globalVar$inpPath = "."
+globalVar$figPath = "."
+globalVar$outPath = "."
+globalVar$mapPath = "."
 
-rm(list = ls())
-prjName = "test"
-source(here::here("E:/04. TalentPlatform/Github/TalentPlatform-R/src", "InitConfig.R"), encoding = "UTF-8")
+# rm(list = ls())
+# prjName = "test"
+# source(here::here("E:/04. TalentPlatform/Github/TalentPlatform-R/src", "InitConfig.R"), encoding = "UTF-8")
 
 serviceName = "LSH0173"
 
 #================================================
 # Main
 #================================================
+# 필요한 라이브러리 읽기
 library(ggplot2)
 library(tidyverse)
 library(xlsx)
@@ -27063,7 +27064,9 @@ library(rJava)
 library(xlsxjars)
 library(dplyr)
 library(dint)
+library(zoo)
 
+# 기존 데이터
 # fileInfo1 = Sys.glob(paste(globalVar$inpPath, "LSH0164_NIKKEI225.csv", sep = "/"))
 # NKI <-read.csv(fileInfo1) %>% 
 #   filter(NIKKEI225 != ".") %>%
@@ -27079,92 +27082,610 @@ library(dint)
 #   dplyr::filter(DGS10 != ".") %>%
 #   tibble::as.tibble()
 
+# 신규 데이터
 fileInfo1 = Sys.glob(paste(globalVar$inpPath, "LSH0173_NIKKEI225+from+FRED(2004).csv", sep = "/"))
 NKI <-read.csv(fileInfo1) %>% 
   filter(NIKKEI225 != ".") %>%
   dplyr::mutate(DATE = readr::parse_date(Date, "%m/%d/%y")) %>% 
   tibble::as.tibble()
 
-fileInfo2 = Sys.glob(paste(globalVar$inpPath, "LSH0173_NASDAQCOM.csv", sep = "/"))
-GDI <- read.csv(fileInfo2) %>% 
-  filter(NASDAQCOM != ".") %>%
-  dplyr::mutate(DATE = readr::parse_date(Date, "%m/%d/%y")) %>% 
-  tibble::as.tibble()
+# fileInfo2 = Sys.glob(paste(globalVar$inpPath, "LSH0173_NASDAQCOM.csv", sep = "/"))
+# fileInfo2 = Sys.glob(paste(globalVar$inpPath, "LSH0173_sp500 index.csv", sep = "/"))
+fileList = Sys.glob(paste(globalVar$inpPath, "LSH0173_*.csv", sep = "/"))
 
-
-# dtDateKst = seq(
-#   lubridate::ymd(min(NKI$DATE, GDI$DATE, LIBOR$DATE, na.rm = TRUE), tz = "Asia/Seoul")
-#   , lubridate::ymd(max(NKI$DATE, GDI$DATE, LIBOR$DATE, na.rm = TRUE), tz = "Asia/Seoul")
-#   , by = "1 day"
-# )
-
-dtDateKst = seq(
-  lubridate::ymd(min(NKI$DATE, GDI$DATE, na.rm = TRUE), tz = "Asia/Seoul")
-  , lubridate::ymd(max(NKI$DATE, GDI$DATE, na.rm = TRUE), tz = "Asia/Seoul")
-  , by = "1 day"
-)
-
-dtDateList = tibble::tibble(dtDateKst) %>%
-  dplyr::mutate(
-    sQuart = dint::date_yq(lubridate::year(dtDateKst), lubridate::month(dtDateKst))
-    , sDateKst = format(dtDateKst, "%Y-%m-%d")
-    # , dtDateUtc = lubridate::with_tz(dtDateKst, "UTC")
+for (fileInfo in fileList) {
+  
+  if (stringr::str_detect(fileInfo, regex("NIKKEI225"))) next
+  
+  fileName = tools::file_path_sans_ext(fs::path_file(fileInfo))
+  
+  GDI <- read.csv(fileInfo) %>% 
+    filter(
+      val != "."
+      , val != "null"
+      ) %>%
+    dplyr::mutate(DATE = readr::parse_date(as.character(date), "%m/%d/%y")) %>% 
+    tibble::as.tibble()
+  
+  dtDateKst = seq(
+    lubridate::ymd(min(NKI$DATE, GDI$DATE, na.rm = TRUE), tz = "Asia/Seoul")
+    , lubridate::ymd(max(NKI$DATE, GDI$DATE, na.rm = TRUE), tz = "Asia/Seoul")
+    , by = "1 day"
   )
-
-data = dtDateList %>% 
-  dplyr::left_join(NKI, by = c("dtDateKst" = "DATE")) %>% 
-  dplyr::left_join(GDI, by = c("dtDateKst" = "DATE")) %>% 
-  # dplyr::left_join(LIBOR, by = c("sDateKst" = "DATE")) %>% 
-  readr::type_convert()
-
-dataL1 = data %>% 
-  dplyr::mutate(
-    perNKI = (NIKKEI225 - lag(NIKKEI225)) / lag(NIKKEI225) * 100.0
-    , perNAS = (NASDAQCOM - lag(NASDAQCOM)) / lag(NASDAQCOM) * 100.0
-    # , perDGS = (DGS10 - lag(DGS10)) / lag(DGS10) * 100.0
-  ) %>% 
-  dplyr::filter(
-    dplyr::between(sDateKst, as.Date("2004-04-01"), as.Date("2019-12-31"))
-  )
-
-quartList = dataL1$sQuart %>% unique() %>% sort()
-
-dataL3 = tibble::tibble()
-
-# quartInfo = "2004-Q2"
-for (quartInfo in quartList) {
   
-  dataL2 = dataL1 %>% 
-    dplyr::filter(sQuart == quartInfo)
-  
-  if (nrow(dataL2) < 1) next
-  
-  lmFit = lm(perNAS ~ perNKI, data = dataL2)
-  
-  # 데이터 병합
-  dataL3 = dplyr::bind_rows(
-    dataL3
-    , data.frame(
-      sQuart = stringr::str_sub(quartInfo, 3, 8)
-      # sQuart = quartInfo
-      , slope = coef(lmFit)[2]
+  dtDateList = tibble::tibble(dtDateKst) %>%
+    dplyr::mutate(
+      sQuart = stringr::str_c(format(dtDateKst, "%y"), "-Q", lubridate::quarter(dtDateKst))
+      # sQuart = dint::date_yq(lubridate::year(dtDateKst), lubridate::month(dtDateKst))
+      , sDateKst = format(dtDateKst, "%Y-%m-%d")
+      # , dtDateUtc = lubridate::with_tz(dtDateKst, "UTC")
     )
-  )
+  
+  data = dtDateList %>% 
+    dplyr::left_join(NKI, by = c("dtDateKst" = "DATE")) %>% 
+    dplyr::left_join(GDI, by = c("dtDateKst" = "DATE")) %>% 
+    # dplyr::left_join(LIBOR, by = c("sDateKst" = "DATE")) %>% 
+    readr::type_convert() # %>% 
+    # tidyr::fill(NIKKEI225, NASDAQCOM)
+  
+  dataL1 = data %>% 
+    dplyr::mutate(
+      perNKI = (NIKKEI225 - lag(NIKKEI225)) / lag(NIKKEI225) * 100.0
+      , perVal = (val - lag(val)) / lag(val) * 100.0
+      # , perDGS = (DGS10 - lag(DGS10)) / lag(DGS10) * 100.0
+    ) %>% 
+    dplyr::filter(
+      dplyr::between(sDateKst, as.Date("2004-04-01"), as.Date("2019-12-31"))
+    ) %>% 
+    na.omit()
+  
+  quartList = dataL1$sQuart %>% unique() %>% sort()
+  
+  dataL3 = tibble::tibble()
+  
+  # quartInfo = "2004-Q2"
+  for (quartInfo in quartList) {
+    
+    dataL2 = dataL1 %>% 
+      dplyr::filter(sQuart == quartInfo)
+    
+    if (nrow(dataL2) < 1) next
+    
+    lmFit = lm(perVal ~ perNKI, data = dataL2)
+    
+    # 데이터 병합
+    dataL3 = dplyr::bind_rows(
+      dataL3
+      , data.frame(
+        sQuart = quartInfo
+        , slope = coef(lmFit)[2]
+      )
+    )
+  }
+  
+  saveFile = sprintf("%s/%s_%s_%s.csv", globalVar$outPath, serviceName, fileName, "dataL1")
+  readr::write_csv(x = dataL1, file = saveFile)
+  
+  saveFile = sprintf("%s/%s_%s_%s.csv", globalVar$outPath, serviceName, fileName, "dataL3")
+  readr::write_csv(x = dataL3, file = saveFile)
+  
+  saveImg = sprintf("%s/%s_%s_%s.png", globalVar$figPath, serviceName, fileName, "연도 4분기에 따른 기울기 시계열")
+  
+  ggplot(aes(x = sQuart, y = slope, group=1), data = dataL3) +
+    geom_line() +
+    labs(
+      title = NULL
+      , x = "연도 4분기"
+      , y = "기울기"
+      , color = NULL
+      , subtitle = "연도 4분기에 따른 기울기 시계열"
+    ) +
+    theme(
+      text = element_text(size = 14)
+      , axis.text.x = element_text(angle = 90, hjust = 1)
+      ) +
+    ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
+
 }
 
-saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "연도 4분기에 따른 기울기 시계열")
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
 
-ggplot(aes(x = sQuart, y = slope, group=1), data = dataL3) +
-  geom_line() +
+#================================================
+# 요구사항
+#================================================
+# R을 이용한 서울시 아파트 실거래가 회귀분석 및 주택 가격 결정 요인
+
+# 먼저 데이터를 수집합니다 (예 : 거주 국가의 10 년 도시 수준 데이터).
+# 데이터 세트에는 주택 가격, 소득, 도시 크기 및 기타 변수가 있어야합니다.
+# 그런 다음 회귀를 실행하고 
+# 소득을 주택 가격으로 나눈 값으로 측정 한 주택 가격 결정 요인을 테스트 할 수 있습니다.
+
+#================================================
+# Set Env
+#================================================
+# globalVar = list()
+# globalVar$inpPath = "."
+# globalVar$figPath = "."
+# globalVar$outPath = "."
+# globalVar$mapPath = "."
+
+rm(list = ls())
+prjName = "test"
+source(here::here("E:/04. TalentPlatform/Github/TalentPlatform-R/src", "InitConfig.R"), encoding = "UTF-8")
+
+serviceName = "LSH0169"
+
+#================================================
+# Main
+#================================================
+library(ggplot2)
+library(tidyverse)
+library(httr)
+library(rvest)
+library(jsonlite)
+library(RCurl)
+library(readr)
+library(magrittr)
+library(ggrepel)
+library(colorRamps)
+library(ggpubr)
+library(lm.beta)
+library(ggpmisc)
+
+cbMatlab = colorRamps::matlab.like(11)
+
+# 공공데이터포털 API키
+# reqDataKey = globalVar$dataKey
+reqDataKey = "Ftj0WhfmnXN86rrVCPTGvlQJ%oJs9l+ZQjJzPgtc37yVPWuXs8UOP3kD2lTyy9DFInQZj2VvYFH1+Uh7gNgTLLA=="
+
+# 요청 URL
+reqUrl = "http://openapi.molit.go.kr:8081/OpenAPI_ToolInstallPackage/service/rest/RTMSOBJSvc/getRTMSDataSvcAptTrade"
+# 요청 키
+reqKey = stringr::str_c("?serviceKey=", RCurl::curlEscape(stringr::str_conv(reqDataKey, encoding = "UTF-8")))
+
+# 서울에서 서울특별시 법정동 코드 읽기
+codeInfo = Sys.glob(paste(globalVar$mapPath, "/admCode/법정동코드_전체자료.txt", sep = "/"))
+
+codeList = readr::read_delim(codeInfo, delim = "\t", locale = locale("ko", encoding = "EUC-KR"), col_types = "ccc") %>%
+  magrittr::set_colnames(c("EMD_CD", "addr", "isUse")) %>% 
+  tidyr::separate(col = "addr", into = c("d1", "d2", "d3", "d4"), sep = " ") %>%
+  dplyr::mutate(
+    emdCd = stringr::str_sub(EMD_CD, 1, 5)
+  ) %>% 
+  dplyr::filter(
+    stringr::str_detect(d1, regex("서울특별시"))
+    , stringr::str_detect(isUse, regex("존재"))
+    , is.na(d3)
+    , is.na(d4)
+  )
+
+codeDistList = codeList %>%
+  dplyr::distinct(emdCd)
+
+# 날짜 기간
+# dtDateList = seq(as.Date("2017-01-01"), as.Date(format(Sys.time(), "%Y-%m-%d")), "1 month")
+dtDateList = seq(as.Date("2018-12-01"), as.Date(format(Sys.time(), "%Y-%m-%d")), "1 month")
+
+fileInfo = Sys.glob(paste(globalVar$inpPath, "LSH0169_가구_특성정보_(+소득정보)_201211.csv", sep = "/"))
+costData = readr::read_csv(file = fileInfo) %>%
+  dplyr::mutate(
+    emdCd = stringr::str_sub(as.character(raw_dn_cd), 1, 5)
+  ) %>% 
+  dplyr::group_by(emdCd) %>% 
+  dplyr::summarise(
+    meanCost = mean(avrg_income_amount_am, na.rm = TRUE)
+  )
+
+#***********************************************
+# 공공데이터포털 API (자료 수집)
+#***********************************************
+# i = 1
+# i = 53
+# j = 2
+
+dataL1 = tibble::tibble()
+
+for (i in 1:length(dtDateList)) {
+  for (j in 1:nrow(codeDistList)) {
+    
+    sDate = format(dtDateList[i], "%Y%m")
+    
+    # 요청 법정동
+    reqLawdCd = stringr::str_c("&LAWD_CD=", codeDistList[j, 'emdCd'])
+    
+    # 요청 날짜
+    reqYmd = stringr::str_c("&DEAL_YMD=", sDate)
+    
+    resData = httr::GET(
+      stringr::str_c(reqUrl, reqKey, reqLawdCd, reqYmd)
+    ) %>%
+      httr::content(as = "text", encoding = "UTF-8") %>%
+      jsonlite::fromJSON()
+    
+    resCode = resData$response$header$resultCode
+    if (resCode != "00") { next }
+    
+    resItems = resData$response$body$items
+    if (resItems == "") { next }
+    
+    cat(sprintf(
+      "dtDate : %10s | code : %5s"
+      , sDate
+      , codeList[j, 'emdCd']
+    ), "\n")
+    
+    resItem = resItems$item %>%
+      as.data.frame()
+    # readr::type_convert()
+    
+    dataL1 = dplyr::bind_rows(
+      dataL1
+      , data.frame(
+        'dtYm' = sDate
+        , 'emdCd' = codeDistList[j, 'emdCd']
+        , resItem
+      )
+    )
+  }
+}
+
+#***********************************************
+# 자료 저장
+#***********************************************
+# saveFile = sprintf("%s/%s_%s", globalVar$outPath, serviceName, "seoul apartment transaction.csv")
+# readr::write_csv(x = dataL1, file = saveFile)
+
+#***********************************************
+# 데이터 전처리
+#***********************************************
+fileInfo = Sys.glob(paste(globalVar$outPath, "LSH0169_seoul apartment transaction.csv", sep = "/"))
+
+dataL2 = readr::read_csv(file = fileInfo) %>% 
+  readr::type_convert() %>% 
+  dplyr::mutate(
+    지번2 = readr::parse_number(지번)
+    , emdCd = as.character(emdCd)
+  ) %>% 
+  dplyr::left_join(codeList, by = c("emdCd" = "emdCd")) %>%
+  dplyr::left_join(costData, by = c("emdCd" = "emdCd")) %>% 
+  dplyr::mutate(
+    addr = stringr::str_trim(paste(d1, d2, 아파트, 지번, seq = ' '))
+    , val = 거래금액 / meanCost # 연소득당 거래금액
+    , val2 = 거래금액 / 전용면적 # 면적당 거래금액
+  )
+
+dataL3 = dataL2 %>% 
+  dplyr::group_by(d2) %>% 
+  dplyr::summarise(
+    meanVal = mean(val, na.rm = TRUE)
+  )
+
+#***********************************************
+# 통계 분석
+#***********************************************
+# 연소득당 거래금액 따른 기초 통계량
+dataL2 %>%
+  dplyr::summarise(
+    meanVal = mean(val, na.rm = TRUE) # 평균값
+    , medianVal = median(val, na.rm = TRUE) # 중앙값
+    , sdVal = sd(val, na.rm = TRUE) # 표준편차
+    , maxVal = max(val, na.rm = TRUE) # 최대값
+    , minVal = min(val, na.rm = TRUE) # 최소값
+    , cnt = n() # 개수
+  ) %>%
+  dplyr::arrange(desc(meanVal))
+
+# 법정동에 따른 연소득당 거래금액 따른 기초 통계량
+dataL2 %>%
+  dplyr::group_by(d2) %>% 
+  dplyr::summarise(
+    meanVal = mean(val, na.rm = TRUE) # 평균값
+    , medianVal = median(val, na.rm = TRUE) # 중앙값
+    , sdVal = sd(val, na.rm = TRUE) # 표준편차
+    , maxVal = max(val, na.rm = TRUE) # 최대값
+    , minVal = min(val, na.rm = TRUE) # 최소값
+    , cnt = n() # 개수
+  ) %>%
+  dplyr::arrange(desc(meanVal))
+
+
+#***********************************************
+# 그래프 그리기(히스토그램, 상자 수염그림, 산점도 등)
+#***********************************************
+# 연소득당 거래금액 따른 히스토그램
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "연소득당 거래금액 따른 히스토그램")
+
+ggplot(dataL2, aes(x = val)) +
+  geom_histogram(aes(y = ..density..), colour = "black", fill = "white") +
+  geom_density(alpha = 0.2) +
+  geom_rug(aes(x = val, y = 0), position = position_jitter(height = 0)) +
+  labs(x = "연소득당 거래금액", y = "밀도 함수", colour = NULL, fill = NULL, subtitle = "연소득당 거래금액 따른 히스토그램") +
+  theme(text = element_text(size = 18)) +
+  ggsave(filename = saveImg, width = 12, height = 6, dpi = 600)
+
+# 법정동에 따른 연소득당 거래금액 히스토그램
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "법정동에 따른 연소득당 거래금액 히스토그램")
+
+ggplot(dataL3, aes(x = d2, y = meanVal, fill = meanVal)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  geom_text(aes(label = round(meanVal, 0)), vjust = 1.6, color = "white", size = 4) +
+  labs(x = "법정동", y = "연소득당 거래금액", fill = NULL, subtitle = "법정동에 따른 연소득당 거래금액 히스토그램") +
+  scale_fill_gradientn(colours = cbMatlab, na.value = NA) +
+  theme(
+    text = element_text(size = 18)
+    , axis.text.x = element_text(angle = 45, hjust = 1)
+  ) +
+  ggsave(filename = saveImg, width = 12, height = 8, dpi = 600)
+
+
+# 연소득당 거래금액 따른 상자 그림
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "연소득당 거래금액 따른 상자 그림")
+
+ggplot(dataL2, aes(y = val)) +
+  geom_boxplot() +
+  labs(x = NULL, y = "연소득당 거래금액", colour = NULL, fill = NULL, subtitle = "연소득당 거래금액 따른 상자 그림") +
+  theme(text = element_text(size = 18)) +
+  ggsave(filename = saveImg, width = 12, height = 6, dpi = 600)
+
+# 법정동에 따른 연소득당 거래금액 상자 그림
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "법정동에 따른 연소득당 거래금액 상자 그림")
+
+ggplot(dataL2, aes(x = d2, y = val, color = d2)) +
+  geom_boxplot() +
+  labs(x = "법정동", y = "연소득당 거래금액", fill = NULL, subtitle = "법정동에 따른 연소득당 거래금액 상자 그림") +
+  # scale_colour_gradientn(colours = cbMatlab, na.value = NA) +
+  theme(
+    text = element_text(size = 18)
+    , axis.text.x = element_text(angle = 45, hjust = 1)
+  ) +
+  ggsave(filename = saveImg, width = 12, height = 8, dpi = 600)
+
+# 연소득당 거래금액 산점도
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "연소득당 거래금액 산점도")
+
+ggpubr::ggscatter(
+  dataL2, x = "meanCost", y = "거래금액"
+  , add = "reg.line", conf.int = TRUE, scales = "free_x"
+  # , facet.by = "전체 법정동"
+  , add.params = list(color = "blue", fill = "lightblue")
+) +
   labs(
     title = NULL
-    , x = "연도 4분기"
-    , y = "기울기"
+    , x = "연소득"
+    , y = "거래금액"
     , color = NULL
-    , subtitle = "연도 4분기에 따른 기울기 시계열"
+    , subtitle = "연소득당 거래금액 산점도"
   ) +
+  theme_bw() +
+  ggpubr::stat_regline_equation(label.x.npc = 0.0, label.y.npc = 1.0, size = 5) +
+  ggpubr::stat_cor(label.x.npc = 0.0, label.y.npc = 0.90, p.accuracy  =  0.01,  r.accuracy  =  0.01, size = 5) +
+  theme(text = element_text(size = 18)) +
+  ggsave(filename = saveImg, width = 8, height = 8, dpi = 600)
+
+# 법정동에 따른 연소득당 거래금액 산점도
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "법정동에 따른 연소득당 거래금액 산점도")
+
+ggpubr::ggscatter(
+  dataL2, x = "meanCost", y = "거래금액", color = "d2"
+  , add = "reg.line", conf.int = TRUE, scales = "free_x"
+  , facet.by = "d2"
+  , add.params = list(color = "black", fill = "lightgray")
+) +
+  labs(
+    title = NULL
+    , x = "연소득"
+    , y = "거래금액"
+    , color = NULL
+    , subtitle = "법정동에 따른 연소득당 거래금액 산점도"
+  ) +
+  ggpubr::stat_regline_equation(label.x.npc = 0.0, label.y.npc = 0.95) +
+  ggpubr::stat_cor(label.x.npc = 0.0, label.y.npc = 0.85, p.accuracy  =  0.01,  r.accuracy  =  0.01) +
+  theme(text = element_text(size = 14)) +
+  ggsave(filename = saveImg, width = 12, height = 15, dpi = 600)
+
+#***********************************************
+# 지도 그리기
+#***********************************************
+addrList = dataL2$addr %>% unique() %>% sort() %>%
+  as.tibble()
+
+# 구글 API 하루 제한
+# addrData = ggmap::mutate_geocode(addrList, value, source = "google")
+
+# 각 주소에 따라 위/경도 반환
+# for (i in 1:nrow(addrList)) {
+#   addrData = ggmap::mutate_geocode(addrList[i, 'value'], value, source = "google")
+# 
+#   if (nrow(addrData) < 1) { next }
+# 
+#   readr::write_csv(x = addrData, file = saveFile, append = TRUE)
+# }
+
+saveFile = sprintf("%s/%s_%s.csv", globalVar$outPath, serviceName, "seoul apartment transaction-addrData")
+addrData =  readr::read_csv(file = saveFile, col_names = c("value", "lon", "lat"))
+
+dataL4 = dataL2 %>% 
+  dplyr::left_join(addrData, by = c("addr" = "value")) %>% 
+  dplyr::filter(
+    ! is.na(lon)
+    , ! is.na(lat)
+    , dplyr::between(lon, 120, 130)
+    , dplyr::between(lat, 30, 40)
+  ) %>% 
+  dplyr::group_by(lon, lat, addr) %>% 
+  dplyr::summarise(
+    meanVal = mean(val, na.rm = TRUE)
+  )
+
+map = ggmap::get_map(
+  location = c(lon = mean(dataL4$lon, na.rm = TRUE), lat = mean(dataL4$lat, na.rm = TRUE))
+  , zoom = 12
+)
+
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "연소득당 거래금액 지도 매핑")
+
+ggmap(map, extent = "device") +
+  geom_point(data = dataL4, aes(x = lon, y = lat, color = meanVal, size = meanVal, alpha = 0.3)) +
+  scale_color_gradientn(colours = cbMatlab, na.value = NA) +
+  labs(
+    subtitle = NULL
+    , x = NULL
+    , y = NULL
+    , fill = NULL
+    , colour = NULL
+    , title = NULL
+    , size = NULL
+  ) +
+  scale_alpha(guide = 'none') +
   theme(
-    text = element_text(size = 14)
-    , axis.text.x = element_text(angle = 90, hjust = 1)
-    ) +
-  ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
+    text = element_text(size = 18)
+  ) +
+  ggsave(filename = saveImg, width = 10, height = 10, dpi = 600)
+
+
+#***********************************************
+# 주택 가격 결정 요인을 위한 회귀분석
+#***********************************************
+dataL4 = dataL2 %>%
+  dplyr::select(건축년도, 전용면적, 층, val2, d2, val)
+
+#+++++++++++++++++++++++++++++++++++++++++++++++
+# 전체 아파트
+dataL5 = dataL4
+
+# 중형 이상 아파트 (66 m2 이상)
+dataL5 = dataL4 %>% 
+  dplyr::filter(전용면적 >= 66) %>% 
+  dplyr::select(-전용면적)
+
+# 소형 아파트 (66 m2 미만)
+dataL5 = dataL4 %>% 
+  dplyr::filter(전용면적 < 66) %>% 
+  dplyr::select(-전용면적)
+#+++++++++++++++++++++++++++++++++++++++++++++++
+
+# 선형회귀분석
+lmFit = lm(val ~ ., data = dataL5)
+summary(lmFit)
+
+# 단계별 소거법
+lmFitStep = MASS::stepAIC(lmFit, direction = "both")
+summary(lmFitStep)
+
+# Beta 회귀계수
+lmBetaFit = lm.beta::lm.beta(lmFitStep)
+lmBetaFit$standardized.coefficients %>% round(2) %>% sort() %>% rev()
+
+# 산점도 그림
+validData = data.frame(
+  xAxis = predict(lmFitStep)
+  , yAxis = dataL5$val
+  # , type = "전체 아파트"
+  # , type = "중형 아파트"
+  , type = "소형 아파트"
+  
+)
+
+# corVal = cor(validData$xAxis, validData$yAxis)
+biasVal = Metrics::bias(validData$xAxis, validData$yAxis)
+rmseVal = Metrics::rmse(validData$xAxis, validData$yAxis)
+
+# 전체 아파트에 대한 주택가격 결정요인 (연소득당 거래금액) 예측 산점도
+# saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "전체 아파트에 대한 주택가격 결정요인 예측 산점도")
+# saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "중형 아파트에 대한 주택가격 결정요인 예측 산점도")
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "소형 아파트에 대한 주택가격 결정요인 예측 산점도")
+
+ggscatter(
+  validData, x = "xAxis", y = "yAxis", color = "black"
+  , add = "reg.line", conf.int = TRUE
+  , facet.by = "type"
+  , add.params = list(color = "blue", fill = "lightblue")
+  ) +
+  theme_bw() +
+  ggpubr::stat_regline_equation(label.x.npc = 0.0, label.y.npc = 1.0, size = 4) +
+  ggpubr::stat_cor(label.x.npc = 0.0, label.y.npc = 0.9, size = 4) +
+  ggpp::annotate("text_npc", npcx = 0.05, npcy = 0.8, label = sprintf("Bias = %s", round(biasVal, 2)), hjust = 0, size = 4) +
+  ggpp::annotate("text_npc", npcx = 0.05, npcy = 0.7, label = sprintf("RMSE = %s", round(rmseVal, 2)), hjust = 0, size = 4) +
+  # ggpp::annotate("text_npc", npcx = 0.05, npcy = 0.60, label = sprintf("Bias = %s", round(biasVal, 2)), hjust = 0, size = 4) +
+  # ggpp::annotate("text_npc", npcx = 0.05, npcy = 0.55, label = sprintf("RMSE = %s", round(rmseVal, 2)), hjust = 0, size = 4) +
+  labs(
+    title = NULL
+    , x = "예측"
+    , y = "실측"
+    # , subtitle = "전체 아파트에 대한 주택가격 결정요인 예측 산점도"
+    # , subtitle = "중형 아파트에 대한 주택가격 결정요인 예측 산점도"
+    , subtitle = "소형 아파트에 대한 주택가격 결정요인 예측 산점도"
+  ) +
+  theme(text = element_text(size = 16)) +
+  ggsave(filename = saveImg, width = 6, height = 6, dpi = 600)
+
+
+# 주택 가격 결정 요인을 위한 관계성
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "주택 가격 결정 요인을 위한 관계성")
+
+dataL2 %>%
+  dplyr::select(건축년도, 전용면적, 층, val2, val) %>% 
+  dplyr::rename(
+     "면적당거래금액" = val2
+     , "연소득당거래금액" = val
+  ) %>% 
+  GGally::ggpairs(.) +
+  theme(text = element_text(size = 18))
+
+ggsave(filename = saveImg, width = 12, height = 8, dpi = 600)
+
+# 전체 아파트
+# > lmBetaFit$standardized.coefficients %>% round(2)
+# (Intercept)    건축년도    전용면적          층        val2    d2강동구 
+# 0.00        0.01        0.70        0.01        0.86        0.19 
+# d2강북구    d2강서구    d2관악구    d2광진구    d2구로구    d2금천구 
+# 0.21        0.30        0.21        0.15        0.27        0.16 
+# d2노원구    d2도봉구  d2동대문구    d2동작구    d2마포구  d2서대문구 
+# 0.35        0.25        0.23        0.17        0.19        0.22 
+# d2서초구    d2성동구    d2성북구    d2송파구    d2양천구  d2영등포구 
+# -0.01        0.19        0.27        0.16        0.22        0.23 
+# d2용산구    d2은평구    d2종로구      d2중구    d2중랑구 
+# 0.16        0.24        0.09        0.10        0.23 
+
+# 소형아파트
+# > lmBetaFit$standardized.coefficients %>% round(2)
+# (Intercept)    건축년도          층        val2    d2강동구    d2강북구 
+# 0.00       -0.06        0.05        0.97        0.27        0.32 
+# d2강서구    d2관악구    d2광진구    d2구로구    d2금천구    d2노원구 
+# 0.45        0.32        0.21        0.41        0.24        0.56 
+# d2도봉구  d2동대문구    d2동작구    d2마포구  d2서대문구    d2서초구 
+# 0.35        0.36        0.25        0.30        0.34        0.06 
+# d2성동구    d2성북구    d2송파구    d2양천구  d2영등포구    d2용산구 
+# 0.34        0.47        0.22        0.32        0.30        0.16 
+# d2은평구    d2종로구      d2중구    d2중랑구 
+# 0.36        0.12        0.14        0.32 
+
+# 중형아파트 이상
+# > lmBetaFit$standardized.coefficients %>% round(2)
+# (Intercept)    건축년도          층        val2    d2강동구    d2강북구 
+# 0.00        0.04        0.07        0.89        0.08        0.13 
+# d2강서구    d2관악구    d2광진구    d2구로구    d2금천구    d2노원구 
+# 0.18        0.12        0.11        0.14        0.08        0.14 
+# d2도봉구  d2동대문구    d2동작구    d2마포구  d2서대문구    d2서초구 
+# 0.12        0.14        0.10        0.11        0.14       -0.03 
+# d2성동구    d2성북구    d2송파구    d2양천구  d2영등포구    d2용산구 
+# 0.11        0.17        0.08        0.14        0.16        0.21 
+# d2은평구    d2종로구      d2중구    d2중랑구 
+# 0.16        0.07        0.06        0.13 
+
+# 첫째, 회귀분석의 결정계수 차이로 판단할 때,
+# 소형아파트는 가격결정 구조가 중대형보다 단순하며 따라서 가격 추정도 용이하다.
+# 둘째, 중대형아파트 가격은 전용면적, 브랜드, 향․층, 접근성, 주택밀도 등 모든 변수로부터 골고루영향을 받으나 
+# 소형아파트는 전용면적과 접근성에 편향되어 영향을 받는다. 
+
+# 셋째, 소형이 중대형에 비해 독립변수들의 영향력이 전반적으로 안정적이다. 
+# 넷째, 전용면적, 브랜드, 향․층, 접근성, 주택밀도 등 5개 요인들의 상대적 영향력 변동은 소형과 중대형 모두 주택시장 경기변동과 무관하다. 
+# 다섯째, 전용면적과 주택밀도가 주택가격에 미치는 상대적 영향력은 소형이 중대형보다 크다. 
