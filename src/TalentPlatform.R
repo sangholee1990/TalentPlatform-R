@@ -26006,6 +26006,8 @@ library(magrittr)
 library(ggrepel)
 library(colorRamps)
 library(ggpubr)
+library(sp)
+library(gstat)
 
 # showtext::showtext_opts(dpi = 100)
 # showtext::showtext.auto()
@@ -26107,7 +26109,8 @@ saveFile = sprintf("%s/%s_%s.csv", globalVar$outPath, serviceName, "seoul apartm
 #***********************************************
 # 데이터 전처리
 #***********************************************
-dataL2 = readr::read_csv(file = saveFile) %>% 
+fileInfo = Sys.glob(paste(globalVar$inpPath, "LSH0163_seoul apartment transaction.csv", sep = "/"))
+dataL2 = readr::read_csv(file = fileInfo) %>% 
   readr::type_convert() %>% 
   dplyr::mutate(
     지번2 = readr::parse_number(지번)
@@ -26281,17 +26284,70 @@ dataL4 = dataL2 %>%
   dplyr::summarise(
     meanVal = mean(val, na.rm = TRUE)
   )
-  
+
 map = ggmap::get_map(
   location = c(lon = mean(dataL4$lon, na.rm = TRUE), lat = mean(dataL4$lat, na.rm = TRUE))
   , zoom = 12
 )
 
-saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "면적당 거래금액")
+# 면적당 거래금액 지도 맵핑
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "면적당 거래금액 지도 맵핑")
 
 ggmap(map, extent = "device") +
-  geom_point(data = dataL4, aes(x = lon, y = lat, color = meanVal, size = meanVal, alpha = 0.3)) +
+  geom_point(data = dataL4, aes(x = lon, y = lat, fill = meanVal, color = meanVal, size = meanVal, alpha = 0.3)) +
   scale_color_gradientn(colours = cbMatlab, na.value = NA) +
+  scale_fill_gradientn(colours = cbMatlab, na.value = NA) +
+  labs(
+    subtitle = NULL
+    , x = NULL
+    , y = NULL
+    , fill = NULL
+    , colour = NULL
+    , title = NULL
+    , size = NULL
+  ) +
+  scale_alpha(guide = 'none') +
+  theme(
+    text = element_text(size = 18)
+  ) +
+  ggsave(filename = saveImg, width = 10, height = 10, dpi = 600)
+
+
+# 면적당 거래금액 지도 집중도
+spNewData = expand.grid(
+  x = seq(from = min(dataL4$lon, na.rm = TRUE), to = max(dataL4$lon, na.rm = TRUE), by = 0.003)
+  , y = seq(from = min(dataL4$lat, na.rm = TRUE), to = max(dataL4$lat, na.rm = TRUE), by = 0.003)
+)
+sp::coordinates(spNewData) = ~ x + y
+sp::gridded(spNewData) = TRUE
+
+spData = dataL4
+sp::coordinates(spData) = ~ lon + lat
+# sp::gridded(spData) = TRUE
+
+# IDW 학습 및 전처리수행
+spDataL1 = gstat::idw(
+  formula = meanVal ~ 1
+  , locations = spData
+  , newdata = spNewData
+  , nmax = 4
+) %>%
+  as.data.frame() %>%
+  dplyr::rename(
+    lon = x
+    , lat = y
+    , val = var1.pred
+  ) %>%
+  dplyr::select(-var1.var) %>% 
+  as.tibble()
+
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "면적당 거래금액 지도 집중도")
+
+ggmap(map, extent = "device") +
+  geom_tile(data = spDataL1, aes(x = lon, y = lat, fill = val, alpha = 0.2)) +
+  # geom_raster(data = spDataL1, aes(x = lon, y = lat, fill = val, alpha = 0.2)) +
+  # scale_color_gradientn(colours = cbMatlab, na.value = NA) +
+  scale_fill_gradientn(colours = cbMatlab, na.value = NA) +
   labs(
     subtitle = NULL
     , x = NULL
@@ -27525,6 +27581,7 @@ dataL4 = dataL2 %>%
     meanVal = mean(val, na.rm = TRUE)
   )
 
+
 map = ggmap::get_map(
   location = c(lon = mean(dataL4$lon, na.rm = TRUE), lat = mean(dataL4$lat, na.rm = TRUE))
   , zoom = 12
@@ -27688,4 +27745,500 @@ ggsave(filename = saveImg, width = 12, height = 8, dpi = 600)
 
 # 셋째, 소형이 중대형에 비해 독립변수들의 영향력이 전반적으로 안정적이다. 
 # 넷째, 전용면적, 브랜드, 향․층, 접근성, 주택밀도 등 5개 요인들의 상대적 영향력 변동은 소형과 중대형 모두 주택시장 경기변동과 무관하다. 
-# 다섯째, 전용면적과 주택밀도가 주택가격에 미치는 상대적 영향력은 소형이 중대형보다 크다. 
+# 다섯째, 전용면적과 주택밀도가 주택가격에 미치는 상대적 영향력은 소형이 중대형보다 크다.
+
+
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+#================================================
+# 요구사항
+#================================================
+# R을 이용한 서울시 아파트 실거래가 회귀분석 및 주택 가격 결정 요인
+
+# 데이터 및 데이터베이스 구조 설명 (데이터, 테이블 등)
+# 데이터 처리과정 설명 (데이터 import/export 과정, SQL 문장 등)
+# 데이터 요약 (요약통계량, 표/그래프 활용)
+# 데이터 분석 (데이터 분석 기법 활용)
+# 결론
+
+#================================================
+# Set Env
+#================================================
+globalVar = list()
+globalVar$inpPath = "."
+globalVar$figPath = "."
+globalVar$outPath = "."
+globalVar$mapPath = "."
+globalVar$dbPath = "."
+
+# rm(list = ls())
+# prjName = "test"
+# source(here::here("E:/04. TalentPlatform/Github/TalentPlatform-R/src", "InitConfig.R"), encoding = "UTF-8")
+
+serviceName = "LSH0167"
+
+#================================================
+# Main
+#================================================
+library(ggplot2)
+library(tidyverse)
+library(httr)
+library(rvest)
+library(jsonlite)
+library(RCurl)
+library(readr)
+library(magrittr)
+library(ggrepel)
+library(colorRamps)
+library(ggpubr)
+library(lm.beta)
+library(ggpmisc)
+library(DBI)
+library(RSQLite)
+
+cbMatlab = colorRamps::matlab.like(11)
+
+dbInfo = sprintf("%s/%s_%s.sqlite", globalVar$dbPath, serviceName, "db4")
+
+# DB에 연결하기
+con = DBI::dbConnect(SQLite(), dbname = dbInfo)
+
+#***********************************************
+# 공공데이터포털 API (자료 수집)
+# - 서울특별시 아파트 실거래 데이터
+#***********************************************
+# 공공데이터포털 API키
+# reqDataKey = globalVar$dataKey
+# reqDataKey = "Ftj0WhfmnXN86rrVCPTGvlQJ%oJs9l+ZQjJzPgtc37yVPWuXs8UOP3kD2lTyy9DFInQZj2VvYFH1+Uh7gNgTLLA=="
+# 요청 URL
+# reqUrl = "http://openapi.molit.go.kr:8081/OpenAPI_ToolInstallPackage/service/rest/RTMSOBJSvc/getRTMSDataSvcAptTrade"
+# 요청 키
+# reqKey = stringr::str_c("?serviceKey=", RCurl::curlEscape(stringr::str_conv(reqDataKey, encoding = "UTF-8")))
+# 날짜 기간
+# dtDateList = seq(as.Date("2017-01-01"), as.Date(format(Sys.time(), "%Y-%m-%d")), "1 month")
+# codeDistList = data.frame(
+#   emdCd = c(11000, 11110, 11140, 11170)
+# )
+# dataL1 = tibble::tibble()
+# 
+# for (i in 1:length(dtDateList)) {
+#   for (j in 1:nrow(codeDistList)) {
+#     
+#     sDate = format(dtDateList[i], "%Y%m")
+#     
+#     # 요청 법정동
+#     reqLawdCd = stringr::str_c("&LAWD_CD=", codeDistList[j, 'emdCd'])
+#     
+#     # 요청 날짜
+#     reqYmd = stringr::str_c("&DEAL_YMD=", sDate)
+#     
+#     resData = httr::GET(
+#       stringr::str_c(reqUrl, reqKey, reqLawdCd, reqYmd)
+#     ) %>%
+#       httr::content(as = "text", encoding = "UTF-8") %>%
+#       jsonlite::fromJSON()
+#     
+#     resCode = resData$response$header$resultCode
+#     if (resCode != "00") { next }
+#     
+#     resItems = resData$response$body$items
+#     if (resItems == "") { next }
+#     
+#     cat(sprintf(
+#       "dtDate : %10s | code : %5s"
+#       , sDate
+#       , codeList[j, 'emdCd']
+#     ), "\n")
+#     
+#     resItem = resItems$item %>%
+#       as.data.frame()
+#     # readr::type_convert()
+#     
+#     dataL1 = dplyr::bind_rows(
+#       dataL1
+#       , data.frame(
+#         'dtYm' = sDate
+#         , 'emdCd' = codeDistList[j, 'emdCd']
+#         , resItem
+#       )
+#     )
+#   }
+# }
+
+#***********************************************
+# 자료 저장
+#***********************************************
+# saveFile = sprintf("%s/%s_%s", globalVar$outPath, serviceName, "seoul apartment transaction.csv")
+# readr::write_csv(x = dataL1, file = saveFile)
+
+#*************************************************
+# 데이터 처리과정 설명 (데이터 import/export 과정, SQL 문장 등)
+#*************************************************
+
+#++++++++++++++++++++++++++++++++++++++
+# 법정동 코드
+#++++++++++++++++++++++++++++++++++++++
+# 데이터 읽기
+codeInfo = Sys.glob(paste(globalVar$mapPath, "/admCode/법정동코드_전체자료.txt", sep = "/"))
+tbCode = readr::read_delim(codeInfo, delim = "\t", locale = locale("ko", encoding = "EUC-KR"), col_types = "ccc")
+
+# 테이블 생성 
+rs = DBI::dbSendQuery(
+  con
+  , "CREATE TABLE IF NOT EXISTS TB_CODE 
+    (
+    CODE_ID INTEGER PRIMARY KEY AUTOINCREMENT
+    , 법정동코드 TEXT 
+    , 법정동명 TEXT
+    , 폐지여부 TEXT
+  )"
+  )
+
+DBI::dbClearResult(rs)
+
+# 데이터 삽입
+DBI::dbWriteTable(con, "TB_CODE", tbCode, row.names = FALSE, append = TRUE)
+
+# 데이터 확인
+sqlCodeList = DBI::dbGetQuery(con, "SELECT * FROM TB_CODE")
+
+#++++++++++++++++++++++++++++++++++++++
+# 아파트 실거래 데이터
+#++++++++++++++++++++++++++++++++++++++
+# 데이터 읽기
+fileInfo = Sys.glob(paste(globalVar$outPath, "LSH0169_seoul apartment transaction.csv", sep = "/"))
+tbApa = readr::read_csv(file = fileInfo) %>% 
+  readr::type_convert() %>% 
+  dplyr::rename(
+    날짜 = dtYm
+    , 법정동코드 = emdCd
+  )
+
+# 테이블 생성
+rs = DBI::dbSendQuery(
+  con
+  , "CREATE TABLE IF NOT EXISTS TB_APA 
+    (
+    APA_ID INTEGER PRIMARY KEY AUTOINCREMENT
+    , 날짜 NUMERIC 
+    , 법정동코드 NUMERIC
+    , 거래금액 NUMERIC
+    , 건축년도 NUMERIC
+    , 년 NUMERIC
+    , 법정동 TEXT
+    , 아파트 TEXT
+    , 월 NUMERIC
+    , 일 NUMERIC
+    , 전용면적 NUMERIC
+    , 지번 TEXT
+    , 지역코드 NUMERIC
+    , 층 NUMERIC
+    , 해제사유발생일 TEXT
+    , 해제여부 TEXT
+  )"
+)
+
+DBI::dbClearResult(rs)
+
+# 데이터 삽입
+DBI::dbWriteTable(con, "TB_APA", tbApa, row.names = FALSE, append = TRUE)
+
+# 테이블 확인
+sqlApa = DBI::dbGetQuery(con, "SELECT * FROM TB_APA")
+
+#++++++++++++++++++++++++++++++++++++++
+# 법정동 소득 데이터
+#++++++++++++++++++++++++++++++++++++++
+# 데이터 읽기
+fileInfo = Sys.glob(paste(globalVar$inpPath, "LSH0169_가구_특성정보_(+소득정보)_201211.csv", sep = "/"))
+tbCost = readr::read_csv(file = fileInfo) %>% 
+  magrittr::set_colnames(c("행정동", "행정동코드", "법정동", "법정동코드", "총인구수", "총가구수", "가구당인구수", "평균소득금액"))
+
+# 테이블 생성
+rs = DBI::dbSendQuery(
+  con
+  , "CREATE TABLE IF NOT EXISTS TB_COST 
+    (
+    COST_ID INTEGER PRIMARY KEY AUTOINCREMENT
+    , 행정동 TEXT 
+    , 행정동코드 NUMERIC
+    , 법정동 TEXT
+    , 법정동코드 NUMERIC
+    , 총인구수 NUMERIC
+    , 총가구수 NUMERIC
+    , 가구당인구수 NUMERIC
+    , 평균소득금액 NUMERIC
+  )"
+)
+
+DBI::dbClearResult(rs)
+
+# 데이터 삽입
+DBI::dbWriteTable(con, "TB_COST", tbCost, row.names = FALSE, append = TRUE)
+
+# 테이블 확인
+sqlCost = DBI::dbGetQuery(con, "SELECT * FROM TB_COST")
+
+#***********************************************
+# 개별 데이터 전처리
+#***********************************************
+
+codeList = sqlCodeList %>% 
+  magrittr::set_colnames(c("ID", "EMD_CD", "addr", "isUse")) %>% 
+  tidyr::separate(col = "addr", into = c("d1", "d2", "d3", "d4"), sep = " ") %>%
+  dplyr::mutate(
+    emdCd = stringr::str_sub(EMD_CD, 1, 5)
+  ) %>%
+  dplyr::filter(
+    stringr::str_detect(d1, regex("서울특별시"))
+    , stringr::str_detect(isUse, regex("존재"))
+    , is.na(d3)
+    , is.na(d4)
+  ) %>% 
+  as.tibble()
+
+codeDistList = codeList %>%
+  dplyr::distinct(emdCd)
+
+apaData = sqlApa %>% 
+  dplyr::rename(
+    dtYm = 날짜
+    , emdCd = 법정동코드
+  ) %>% 
+  dplyr::mutate(
+    지번2 = readr::parse_number(지번)
+    , emdCd = as.character(emdCd)
+  ) %>% 
+  as.tibble()
+
+costData = sqlCost %>%
+  dplyr::rename(
+    raw_dn_cd = 법정동코드
+    , avrg_income_amount_am = 평균소득금액
+  ) %>% 
+  dplyr::mutate(
+    emdCd = stringr::str_sub(as.character(raw_dn_cd), 1, 5)
+  )  %>% 
+  dplyr::group_by(emdCd) %>%
+  dplyr::summarise(
+    meanCost = mean(avrg_income_amount_am, na.rm = TRUE)
+  ) %>% 
+  as.tibble()
+
+
+#***********************************************
+# 통합 데이터 전처리
+#***********************************************
+dataL2 = apaData %>% 
+  dplyr::left_join(codeList, by = c("emdCd" = "emdCd")) %>%
+  dplyr::left_join(costData, by = c("emdCd" = "emdCd")) %>% 
+  dplyr::mutate(
+    addr = stringr::str_trim(paste(d1, d2, 아파트, 지번, seq = ' '))
+    , val = 거래금액 / meanCost # 연소득당 거래금액
+    , val2 = 거래금액 / 전용면적 # 면적당 거래금액
+  )
+
+dataL3 = dataL2 %>% 
+  dplyr::group_by(d2) %>% 
+  dplyr::summarise(
+    meanVal = mean(val, na.rm = TRUE)
+  )
+
+saveFile = sprintf("%s/%s_%s", globalVar$outPath, serviceName, "dataL2.csv")
+readr::write_csv(x = dataL2, file = saveFile)
+
+saveFile = sprintf("%s/%s_%s", globalVar$outPath, serviceName, "seoul apartment transaction.csv")
+readr::write_csv(x = dataL1, file = saveFile)
+
+
+#***********************************************
+# 데이터 요약 (요약통계량)
+#***********************************************
+# 연소득당 거래금액 따른 기초 통계량
+dataL2 %>%
+  dplyr::summarise(
+    meanVal = mean(val, na.rm = TRUE) # 평균값
+    , medianVal = median(val, na.rm = TRUE) # 중앙값
+    , sdVal = sd(val, na.rm = TRUE) # 표준편차
+    , maxVal = max(val, na.rm = TRUE) # 최대값
+    , minVal = min(val, na.rm = TRUE) # 최소값
+    , cnt = n() # 개수
+  ) %>%
+  dplyr::arrange(desc(meanVal))
+
+# 법정동에 따른 연소득당 거래금액 따른 기초 통계량
+dataL2 %>%
+  dplyr::group_by(d2) %>% 
+  dplyr::summarise(
+    meanVal = mean(val, na.rm = TRUE) # 평균값
+    , medianVal = median(val, na.rm = TRUE) # 중앙값
+    , sdVal = sd(val, na.rm = TRUE) # 표준편차
+    , maxVal = max(val, na.rm = TRUE) # 최대값
+    , minVal = min(val, na.rm = TRUE) # 최소값
+    , cnt = n() # 개수
+  ) %>%
+  dplyr::arrange(desc(meanVal))
+
+#*******************************************************
+# 데이터 요약 (표/그래프 활용)
+#*******************************************************
+# 연소득당 거래금액 따른 히스토그램
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "연소득당 거래금액 따른 히스토그램")
+
+ggplot(dataL2, aes(x = val)) +
+  geom_histogram(aes(y = ..density..), colour = "black", fill = "white") +
+  geom_density(alpha = 0.2) +
+  geom_rug(aes(x = val, y = 0), position = position_jitter(height = 0)) +
+  labs(x = "연소득당 거래금액", y = "밀도 함수", colour = NULL, fill = NULL, subtitle = "연소득당 거래금액 따른 히스토그램") +
+  theme(text = element_text(size = 18)) +
+  ggsave(filename = saveImg, width = 12, height = 6, dpi = 600)
+
+# 법정동에 따른 연소득당 거래금액 히스토그램
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "법정동에 따른 연소득당 거래금액 히스토그램")
+
+ggplot(dataL3, aes(x = d2, y = meanVal, fill = meanVal)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  geom_text(aes(label = round(meanVal, 0)), vjust = 1.6, color = "white", size = 4) +
+  labs(x = "법정동", y = "연소득당 거래금액", fill = NULL, subtitle = "법정동에 따른 연소득당 거래금액 히스토그램") +
+  scale_fill_gradientn(colours = cbMatlab, na.value = NA) +
+  theme(
+    text = element_text(size = 18)
+    , axis.text.x = element_text(angle = 45, hjust = 1)
+  ) +
+  ggsave(filename = saveImg, width = 12, height = 8, dpi = 600)
+
+
+# 연소득당 거래금액 따른 상자 그림
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "연소득당 거래금액 따른 상자 그림")
+
+ggplot(dataL2, aes(y = val)) +
+  geom_boxplot() +
+  labs(x = NULL, y = "연소득당 거래금액", colour = NULL, fill = NULL, subtitle = "연소득당 거래금액 따른 상자 그림") +
+  theme(text = element_text(size = 18)) +
+  ggsave(filename = saveImg, width = 12, height = 6, dpi = 600)
+
+# 법정동에 따른 연소득당 거래금액 상자 그림
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "법정동에 따른 연소득당 거래금액 상자 그림")
+
+ggplot(dataL2, aes(x = d2, y = val, color = d2)) +
+  geom_boxplot() +
+  labs(x = "법정동", y = "연소득당 거래금액", fill = NULL, subtitle = "법정동에 따른 연소득당 거래금액 상자 그림") +
+  # scale_colour_gradientn(colours = cbMatlab, na.value = NA) +
+  theme(
+    text = element_text(size = 18)
+    , axis.text.x = element_text(angle = 45, hjust = 1)
+  ) +
+  ggsave(filename = saveImg, width = 12, height = 8, dpi = 600)
+
+# 연소득당 거래금액 산점도
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "연소득당 거래금액 산점도")
+
+ggpubr::ggscatter(
+  dataL2, x = "meanCost", y = "거래금액"
+  , add = "reg.line", conf.int = TRUE, scales = "free_x"
+  # , facet.by = "전체 법정동"
+  , add.params = list(color = "blue", fill = "lightblue")
+) +
+  labs(
+    title = NULL
+    , x = "연소득"
+    , y = "거래금액"
+    , color = NULL
+    , subtitle = "연소득당 거래금액 산점도"
+  ) +
+  theme_bw() +
+  ggpubr::stat_regline_equation(label.x.npc = 0.0, label.y.npc = 1.0, size = 5) +
+  ggpubr::stat_cor(label.x.npc = 0.0, label.y.npc = 0.90, p.accuracy  =  0.01,  r.accuracy  =  0.01, size = 5) +
+  theme(text = element_text(size = 18)) +
+  ggsave(filename = saveImg, width = 8, height = 8, dpi = 600)
+
+#*******************************************************
+# 데이터 분석 (데이터 분석 기법 활용)
+#*******************************************************
+# 주택 가격 결정 요인을 위한 회귀분석
+dataL4 = dataL2 %>%
+  dplyr::select(건축년도, 전용면적, 층, val2, d2, val)
+
+
+# 주택 가격 결정 요인을 위한 관계성
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "주택 가격 결정 요인을 위한 관계성")
+
+dataL4 %>% 
+  dplyr::rename(
+    "면적당거래금액" = val2
+    , "연소득당거래금액" = val
+  ) %>% 
+  GGally::ggpairs(.) +
+  theme(text = element_text(size = 18))
+
+ggsave(filename = saveImg, width = 12, height = 8, dpi = 600)
+
+
+#+++++++++++++++++++++++++++++++++++++++++++++++
+# 전체 아파트
+dataL5 = dataL4
+
+# # 중형 이상 아파트 (66 m2 이상)
+# dataL5 = dataL4 %>% 
+#   dplyr::filter(전용면적 >= 66) %>% 
+#   dplyr::select(-전용면적)
+# 
+# # 소형 아파트 (66 m2 미만)
+# dataL5 = dataL4 %>% 
+#   dplyr::filter(전용면적 < 66) %>% 
+#   dplyr::select(-전용면적)
+#+++++++++++++++++++++++++++++++++++++++++++++++
+
+# 선형회귀분석
+lmFit = lm(val ~ ., data = dataL5)
+summary(lmFit)
+
+# 단계별 소거법
+lmFitStep = MASS::stepAIC(lmFit, direction = "both")
+summary(lmFitStep)
+
+# Beta 회귀계수
+lmBetaFit = lm.beta::lm.beta(lmFitStep)
+lmBetaFit$standardized.coefficients %>% round(2) %>% sort() %>% rev()
+
+# 산점도 그림
+validData = data.frame(
+  xAxis = predict(lmFitStep)
+  , yAxis = dataL5$val
+  , type = "전체 아파트"
+)
+
+# corVal = cor(validData$xAxis, validData$yAxis)
+biasVal = Metrics::bias(validData$xAxis, validData$yAxis)
+rmseVal = Metrics::rmse(validData$xAxis, validData$yAxis)
+
+# 전체 아파트에 대한 주택가격 결정요인 (연소득당 거래금액) 예측 산점도
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "전체 아파트에 대한 주택가격 결정요인 예측 산점도")
+
+ggscatter(
+  validData, x = "xAxis", y = "yAxis", color = "black"
+  , add = "reg.line", conf.int = TRUE
+  , facet.by = "type"
+  , add.params = list(color = "blue", fill = "lightblue")
+) +
+  theme_bw() +
+  ggpubr::stat_regline_equation(label.x.npc = 0.0, label.y.npc = 1.0, size = 4) +
+  ggpubr::stat_cor(label.x.npc = 0.0, label.y.npc = 0.9, size = 4) +
+  ggpp::annotate("text_npc", npcx = 0.05, npcy = 0.8, label = sprintf("Bias = %s", round(biasVal, 2)), hjust = 0, size = 4) +
+  ggpp::annotate("text_npc", npcx = 0.05, npcy = 0.7, label = sprintf("RMSE = %s", round(rmseVal, 2)), hjust = 0, size = 4) +
+  labs(
+    title = NULL
+    , x = "예측"
+    , y = "실측"
+    , subtitle = "전체 아파트에 대한 주택가격 결정요인 예측 산점도"
+  ) +
+  theme(text = element_text(size = 16)) +
+  ggsave(filename = saveImg, width = 6, height = 6, dpi = 600)
