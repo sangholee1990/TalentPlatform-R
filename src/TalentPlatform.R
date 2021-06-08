@@ -26377,257 +26377,6 @@ ggmap(map, extent = "device") +
 #================================================
 # 요구사항
 #================================================
-# R을 이용한 서울시 아파트 실거래가 분석 및 매매 동향 예측
-
-#================================================
-# Set Env
-#================================================
-# globalVar = list()
-# globalVar$inpPath = "."
-# globalVar$figPath = "."
-# globalVar$outPath = "."
-# globalVar$mapPath = "."
-
-rm(list = ls())
-prjName = "test"
-source(here::here("E:/04. TalentPlatform/Github/TalentPlatform-R/src", "InitConfig.R"), encoding = "UTF-8")
-
-serviceName = "SADFASDFASDF"
-
-#================================================
-# Main
-#================================================
-library(ggplot2)
-library(tidyverse)
-library(httr)
-library(rvest)
-library(jsonlite)
-
-# 우리 행성의 역사를 통틀어 우리 행성은 기후의 많은 급격한 변화를 견뎌 왔습니다. 5 개의 간빙기 기간을 견디는 것부터 산업 혁명의 영향을 견디기까지 우리 지구와 대기는 인위적 영향으로 악용되었습니다. 이 프로젝트 전체에서 Kaggle 웹 사이트를 통해 얻은 Mauna Loa Volcano의 데이터를 사용하여 대기 CO2 수준을 예측하는 ARIMA 모델을 만들었습니다. Mauna Loa 데이터 세트에는 이산화탄소 기록 및 계절별로 조정 된 기록과 함께 연도와 날짜가 포함됩니다. 데이터 세트와 이산화탄소 기록의 중요성은 연간 CO2 농도를 플롯 할 때 발견 된 사인파 패턴이 있다는 것입니다. 이러한 패턴은 연구자들에 의해 연구되었으며 식물과 나무의 계절별 성장 패턴을 따르는 것으로 밝혀졌습니다. 이는 잎과 식물이 떨어지고 자연적으로 CO2를 대기로 방출하기 때문에 겨울과 가을철에 CO2 농도가 증가하는 것으로 나타 났지만 잎이 자라는 봄과 여름철에는이 잎이 CO2를 적게 흡수하는 것으로 나타났습니다. 대기 CO2 농도. 또한, 현재 연구에 따르면 계절이 우리 대기 중 CO2 증가로 인해 일찍 시작되고 늦게 끝나는 것으로 나타났습니다. 이 연구에서 나는 이러한 정현파 패턴이 미래에 어떻게 변할 것인지 관찰하고 ARIMA 모델이 이러한 변화를 예측할 수있는 최상의 모델을 찾는 데 어떻게 도움을 줄 수 있는지 관찰 할 것입니다.
-dat = read.csv('../input/archive.csv',sep=',')
-
-CO2matrix = as.matrix(dat)
-
-mod = cbind('x' = CO2matrix[,1], 'y' = CO2matrix[,4])
-mod.y = cbind(CO2matrix[,4])
-
-Y = ts(mod.y)
-
-autoplot(Y)
-
-checkresiduals(Y)
-
-Acf(Y) 
-
-
-Pacf(Y)
-
-# ACF 및 PACF 플롯은 잔차 플롯입니다. 이론적으로 포인트는 모두 신뢰 구간 인 파란색 선 내에 포함되어야합니다. 신뢰 구간을 벗어난 일부 잔차를 보는 것은 정상이지만 이처럼 보이지 않아야합니다. PACF의 부비동 패턴은 여기에 계절적 측면이 있음을 증명합니다.
-# ARIMA 모델을 적절하게 사용할 수 있도록 mod.y.ts를 12의 빈도로 설정했습니다. 이렇게하면 ARIMA 모델에 월별 데이터로 작업하고 있음을 알리고 ARIMA 모델이 적절한 ARIMA 모델을 찾는 데 적절하게 도움을 줄 수 있습니다. . auto.arima를 사용하기 전에 계절성을 고려하지 않았기 때문에 적절한 ARIMA 모델을 찾는 데 어려움을 겪었습니다. 빈도 = 12를 추가하여 월간 빈도를 얻기 위해 시계열 객체를 변경 한 후 모델이 크게 향상되었음을 알 수 있습니다.
-# 내 첫 번째 auto.arima 모델은 모델에서 단계적 선택을 사용했기 때문에 최고가 아니 었습니다. 결과는 다음과 같습니다.
-
-
-mod.y.ts = ts(mod.y, frequency = 12) 
-
-aa = auto.arima(mod.y.ts, trace = T) 
-
-#AUTO.ARIMA MODEL SUGGESTION IS SUPPOSEDLY
-#ARIMA(3,1,0)(2,1,0)[12]
-
-#something significant seems to be occurring every 3 years. 
-#By setting our lag.max = 60, we are forecasting values for 
-#the next 5 years....
-
-ra = residuals(aa)
-
-Pacf(ra, lag.max = 60) 
-
-Acf(ra, lag.max = 60)
-
-# 아래에서는 단계별 선택을 사용하지 않고 아리마 모델이 작동하도록 결정했습니다. 잔차의 결과가 더 좋으며 3 년 잔차에 대한 문제를 표시하지 않습니다.
-aaNEW = auto.arima(mod.y.ts, trace = T, stepwise=FALSE, approximation=FALSE, ic = c("aicc"))
-
-
-# auto.arima는 선택한 정보 기준의 근사값을 사용합니다. 여기서는 auto.arima 함수에 단계별 선택 사용을 피하도록 지시했으며 각 arima 모델에 대한 정확한 aicc (내 정보 기준으로 사용중인 항목)도 제공합니다. 최고의 arima 모델은 가장 낮은 AICc 값을 갖습니다. R이 테스트 할 모든 ARIMA 모델을 표시하기 위해 (trace = T)를 사용했습니다.
-
-#Testing our new ARIMA models...
-
-#our first ARIMA model
-capEnd = arima(mod.y.ts, order = c(0,1,3), seasonal = c(0,1,1))
-autoplot(forecast(capEnd, h = 120))
-
-resCapEnd = residuals(capEnd)
-
-Pacf(resCapEnd, lag.max = 60) 
-
-Acf(resCapEnd, lag.max = 60)
-
-checkresiduals(capEnd)
-
-#our second ARIMA model
-capEnd2 = arima(mod.y.ts, order = c(1,1,1), seasonal = c(0,1,1))
-
-autoplot(forecast(capEnd2, h = 120))
-
-resCapEnd2 = residuals(capEnd2)
-
-Pacf(resCapEnd2, lag.max = 60) 
-
-Acf(resCapEnd2, lag.max = 60)
-
-
-checkresiduals(capEnd2) 
-
-# ARIMA 모델의 예측을 살펴본 후 ARIMA 모델은 대기 중 CO2의 존재가 지속적으로 증가 할 것임을 보여줍니다. 이것은 이미 관찰되고있는 기후의 추가 변화로 이어질 것이지만, 생존하기에 적합한 기후를 가진 지역을 찾기 위해 이미 고군분투하고있는 종의 생존에도 영향을 미칠 것입니다. 작업을 마치는 동안 정현파 패턴의 진폭이 일정한지 아니면 증가하는지 조사하는 데 관심이있었습니다. 처음 24 개월과 지난 24 개월의 진폭을 관찰했지만 출력은 진폭에서 큰 차이를 보이지 않았습니다. 또한 데이터를 고정하고 진폭이 상승하는 추세가 있는지 확인하기 위해 데이터에서 지연 1 차이를 가져 왔지만 여기서도 어떤 변화도 볼 수 없었습니다. 미래에는 breusch pagan 테스트가 회귀 모델에서 일정한 분산을 테스트하는 방식과 같이 분산이 모델 전체에서 일관성이 있는지 테스트 할 함수를 찾는 것이 흥미로울 것입니다. 시리즈에서 진폭이 증가했다는 증거가 있으면 계절이 더 일찍 발생하고 나중에 종료됨에 따라 더 많은 CO2가 방출되고 흡수되고 있음을 보여줍니다.
-
-
-# TSET
-# TSET2
-# ARIMA 모델의 예측을 살펴본 후 ARIMA 모델은 대기 중 CO2의 존재가 지속적으로 증가 할 것임을 보여줍니다. 이것은 이미 관찰되고있는 기후의 추가 변화로 이어질 것이지만, 생존하기에 적합한 기후를 가진 지역을 찾기 위해 이미 고군분투하고있는 종의 생존에도 영향을 미칠 것입니다. 작업을 마치는 동안 정현파 패턴의 진폭이 일정한지 아니면 증가하는지 조사하는 데 관심이있었습니다. 처음 24 개월과 지난 24 개월의 진폭을 관찰했지만 출력은 진폭에서 큰 차이를 보이지 않았습니다. 또한 데이터를 고정하고 진폭이 상승하는 추세가 있는지 확인하기 위해 데이터에서 지연 1 차이를 가져 왔지만 여기서도 어떤 변화도 볼 수 없었습니다. 미래에는 breusch pagan 테스트가 회귀 모델에서 일정한 분산을 테스트하는 방식과 같이 분산이 모델 전체에서 일관성이 있는지 테스트 할 함수를 찾는 것이 흥미로울 것입니다. 시리즈에서 진폭이 증가했다는 증거가 있으면 계절이 더 일찍 발생하고 나중에 종료됨에 따라 더 많은 CO2가 방출되고 흡수되고 있음을 보여줍니다.
-# 
-
-
-
-#===============================================================================================
-# Routine : Main R program
-#
-# Purpose : 재능상품 오투잡
-#
-# Author : 해솔
-#
-# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
-#===============================================================================================
-
-#================================================
-# 요구사항
-#================================================
-# R을 이용한 기후 지표 계산
-
-#================================================
-# Set Env
-#================================================
-# globalVar = list()
-# globalVar$inpPath = "."
-# globalVar$figPath = "."
-# globalVar$outPath = "."
-# globalVar$mapPath = "."
-``
-rm(list = ls())
-prjName = "test"
-source(here::here("E:/04. TalentPlatform/Github/TalentPlatform-R/src", "InitConfig.R"), encoding = "UTF-8")
-
-serviceName = "LSH0168"
-
-#================================================
-# Main
-#================================================
-library(ggplot2)
-library(tidyverse)
-library(httr)
-library(rvest)
-library(jsonlite)
-library(RCurl)
-library(readr)
-library(magrittr)
-library(ggrepel)
-library(colorRamps)
-library(ggpubr)
-library(ClimInd)
-
-# showtext::showtext_opts(dpi = 100)
-# showtext::showtext.auto()
-
-
-fileInfo = Sys.glob(paste(globalVar$inpPath, "LSH0168_LSH0168_Fix+LSTM+pr+CanESM5+historical+FIX.csv", sep = "/"))
-data = readr::read_csv(file = fileInfo, locale = locale("ko", encoding = "EUC-KR"))
-
-
-data(data_all)
-
-data_all
-
-dd = data_all$rr
-
-attributes(dd)
-
-d = structure(1:1000000, my_attribute = c(rep("This is a vector", 1000)))
-
-ttt3 <- structure(
-  list(
-  v1 = c(1:4)
-  , v2 = c(1:4)
-  , v3 = c(1:4)
-  , v4 = c(1:4)
-  )
-  # list(
-  # v1 = as.factor(c(2001, 2002, 2004, 2006))
-  # ,v2 = I(c(2001, 2002, 2004, 2006))
-  # ,v3 = ordered(c(2001, 2002, 2004, 2006))
-  # ,v4 = as.double(c(366.3240, 365.4124, 366.5323423, 364.9573234)))
-  # ,.Names = c("year", "AsIs Year","yearO", "length of days")
-  # ,.typeOf = c("factor")
-  ,row.names = c(NA, -4L)
-  ,names = c(NA, -4L)
-  # ,class = "data.frame"
-  # ,comment = "Ordered YearO for categorical analysis and other variables"
-  )
-
-y <- 1:10
-g2 = attr(y, "my_attribute") <- "This is a vector"
-g = attr(y, "my_attribute")
-#> [1] "This is a vector"
-str(attributes(y))
-
-t = dd %>% 
-  as.data.frame()
-
-b = t %>% 
-  as.list()
-attr(baskets.team,'season') <- '2010-2011'
-
-
-library(sjlabelled)
-efc.sub <- subset(efc, subset = e16sex == 1, select = c(4:8))
-str(efc.sub)
-
-efc.sub <- copy_labels(efc.sub, efc)
-str(efc.sub)
-
-
-my.array = c(1, 2, 3, 4)
-attributes(my.array)
-attr(baskets.team,'season') <- '2010-2011'
-attr(baskets.team,'season')
-# attr(baskets.team,'season') <- NULL
-
-ttt = data_all$rr
-
-ClimInd::prcptot(data = ttt)
-
-# RR1
-ClimInd::prcptot(data = data_all$rr)
-
-
-# CDD
-ClimInd::cdd(data = data_all$rr)
-
-# CWD
-ClimInd::cwd(data = data_all$rr)
-
-
-#===============================================================================================
-# Routine : Main R program
-#
-# Purpose : 재능상품 오투잡
-#
-# Author : 해솔
-#
-# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
-#===============================================================================================
-
-#================================================
-# 요구사항
-#================================================
 # R을 이용한 교통사고 다발지역 시각화
 
 #================================================
@@ -27097,15 +26846,15 @@ nepali %>%
 # Set Env
 #================================================
 # R 프로그래밍을 위한 기초 환경변수 (입력자료 경로, 이미지저장 경로, 출력자료 경로, 지도 맵 경로) 설정
-globalVar = list()
-globalVar$inpPath = "."
-globalVar$figPath = "."
-globalVar$outPath = "."
-globalVar$mapPath = "."
+# globalVar = list()
+# globalVar$inpPath = "."
+# globalVar$figPath = "."
+# globalVar$outPath = "."
+# globalVar$mapPath = "."
 
-# rm(list = ls())
-# prjName = "test"
-# source(here::here("E:/04. TalentPlatform/Github/TalentPlatform-R/src", "InitConfig.R"), encoding = "UTF-8")
+rm(list = ls())
+prjName = "test"
+source(here::here("E:/04. TalentPlatform/Github/TalentPlatform-R/src", "InitConfig.R"), encoding = "UTF-8")
 
 serviceName = "LSH0173"
 
@@ -27159,7 +26908,7 @@ for (fileInfo in fileList) {
     filter(
       val != "."
       , val != "null"
-      ) %>%
+    ) %>%
     dplyr::mutate(DATE = readr::parse_date(as.character(date), "%m/%d/%y")) %>% 
     tibble::as.tibble()
   
@@ -27182,7 +26931,7 @@ for (fileInfo in fileList) {
     dplyr::left_join(GDI, by = c("dtDateKst" = "DATE")) %>% 
     # dplyr::left_join(LIBOR, by = c("sDateKst" = "DATE")) %>% 
     readr::type_convert() # %>% 
-    # tidyr::fill(NIKKEI225, NASDAQCOM)
+  # tidyr::fill(NIKKEI225, NASDAQCOM)
   
   dataL1 = data %>% 
     dplyr::mutate(
@@ -27239,9 +26988,9 @@ for (fileInfo in fileList) {
     theme(
       text = element_text(size = 14)
       , axis.text.x = element_text(angle = 90, hjust = 1)
-      ) +
+    ) +
     ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
-
+  
 }
 
 #===============================================================================================
@@ -27267,15 +27016,15 @@ for (fileInfo in fileList) {
 #================================================
 # Set Env
 #================================================
-# globalVar = list()
-# globalVar$inpPath = "."
-# globalVar$figPath = "."
-# globalVar$outPath = "."
-# globalVar$mapPath = "."
+globalVar = list()
+globalVar$inpPath = "."
+globalVar$figPath = "."
+globalVar$outPath = "."
+globalVar$mapPath = "."
 
-rm(list = ls())
-prjName = "test"
-source(here::here("E:/04. TalentPlatform/Github/TalentPlatform-R/src", "InitConfig.R"), encoding = "UTF-8")
+# rm(list = ls())
+# prjName = "test"
+# source(here::here("E:/04. TalentPlatform/Github/TalentPlatform-R/src", "InitConfig.R"), encoding = "UTF-8")
 
 serviceName = "LSH0169"
 
@@ -27665,7 +27414,7 @@ ggscatter(
   , add = "reg.line", conf.int = TRUE
   , facet.by = "type"
   , add.params = list(color = "blue", fill = "lightblue")
-  ) +
+) +
   theme_bw() +
   ggpubr::stat_regline_equation(label.x.npc = 0.0, label.y.npc = 1.0, size = 4) +
   ggpubr::stat_cor(label.x.npc = 0.0, label.y.npc = 0.9, size = 4) +
@@ -27691,62 +27440,13 @@ saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "주택 가격
 dataL2 %>%
   dplyr::select(건축년도, 전용면적, 층, val2, val) %>% 
   dplyr::rename(
-     "면적당거래금액" = val2
-     , "연소득당거래금액" = val
+    "면적당거래금액" = val2
+    , "연소득당거래금액" = val
   ) %>% 
   GGally::ggpairs(.) +
   theme(text = element_text(size = 18))
 
 ggsave(filename = saveImg, width = 12, height = 8, dpi = 600)
-
-# 전체 아파트
-# > lmBetaFit$standardized.coefficients %>% round(2)
-# (Intercept)    건축년도    전용면적          층        val2    d2강동구 
-# 0.00        0.01        0.70        0.01        0.86        0.19 
-# d2강북구    d2강서구    d2관악구    d2광진구    d2구로구    d2금천구 
-# 0.21        0.30        0.21        0.15        0.27        0.16 
-# d2노원구    d2도봉구  d2동대문구    d2동작구    d2마포구  d2서대문구 
-# 0.35        0.25        0.23        0.17        0.19        0.22 
-# d2서초구    d2성동구    d2성북구    d2송파구    d2양천구  d2영등포구 
-# -0.01        0.19        0.27        0.16        0.22        0.23 
-# d2용산구    d2은평구    d2종로구      d2중구    d2중랑구 
-# 0.16        0.24        0.09        0.10        0.23 
-
-# 소형아파트
-# > lmBetaFit$standardized.coefficients %>% round(2)
-# (Intercept)    건축년도          층        val2    d2강동구    d2강북구 
-# 0.00       -0.06        0.05        0.97        0.27        0.32 
-# d2강서구    d2관악구    d2광진구    d2구로구    d2금천구    d2노원구 
-# 0.45        0.32        0.21        0.41        0.24        0.56 
-# d2도봉구  d2동대문구    d2동작구    d2마포구  d2서대문구    d2서초구 
-# 0.35        0.36        0.25        0.30        0.34        0.06 
-# d2성동구    d2성북구    d2송파구    d2양천구  d2영등포구    d2용산구 
-# 0.34        0.47        0.22        0.32        0.30        0.16 
-# d2은평구    d2종로구      d2중구    d2중랑구 
-# 0.36        0.12        0.14        0.32 
-
-# 중형아파트 이상
-# > lmBetaFit$standardized.coefficients %>% round(2)
-# (Intercept)    건축년도          층        val2    d2강동구    d2강북구 
-# 0.00        0.04        0.07        0.89        0.08        0.13 
-# d2강서구    d2관악구    d2광진구    d2구로구    d2금천구    d2노원구 
-# 0.18        0.12        0.11        0.14        0.08        0.14 
-# d2도봉구  d2동대문구    d2동작구    d2마포구  d2서대문구    d2서초구 
-# 0.12        0.14        0.10        0.11        0.14       -0.03 
-# d2성동구    d2성북구    d2송파구    d2양천구  d2영등포구    d2용산구 
-# 0.11        0.17        0.08        0.14        0.16        0.21 
-# d2은평구    d2종로구      d2중구    d2중랑구 
-# 0.16        0.07        0.06        0.13 
-
-# 첫째, 회귀분석의 결정계수 차이로 판단할 때,
-# 소형아파트는 가격결정 구조가 중대형보다 단순하며 따라서 가격 추정도 용이하다.
-# 둘째, 중대형아파트 가격은 전용면적, 브랜드, 향․층, 접근성, 주택밀도 등 모든 변수로부터 골고루영향을 받으나 
-# 소형아파트는 전용면적과 접근성에 편향되어 영향을 받는다. 
-
-# 셋째, 소형이 중대형에 비해 독립변수들의 영향력이 전반적으로 안정적이다. 
-# 넷째, 전용면적, 브랜드, 향․층, 접근성, 주택밀도 등 5개 요인들의 상대적 영향력 변동은 소형과 중대형 모두 주택시장 경기변동과 무관하다. 
-# 다섯째, 전용면적과 주택밀도가 주택가격에 미치는 상대적 영향력은 소형이 중대형보다 크다.
-
 
 #===============================================================================================
 # Routine : Main R program
@@ -27772,16 +27472,16 @@ ggsave(filename = saveImg, width = 12, height = 8, dpi = 600)
 #================================================
 # Set Env
 #================================================
-globalVar = list()
-globalVar$inpPath = "."
-globalVar$figPath = "."
-globalVar$outPath = "."
-globalVar$mapPath = "."
-globalVar$dbPath = "."
+# globalVar = list()
+# globalVar$inpPath = "."
+# globalVar$figPath = "."
+# globalVar$outPath = "."
+# globalVar$mapPath = "."
+# globalVar$dbPath = "."
 
-# rm(list = ls())
-# prjName = "test"
-# source(here::here("E:/04. TalentPlatform/Github/TalentPlatform-R/src", "InitConfig.R"), encoding = "UTF-8")
+rm(list = ls())
+prjName = "test"
+source(here::here("E:/04. TalentPlatform/Github/TalentPlatform-R/src", "InitConfig.R"), encoding = "UTF-8")
 
 serviceName = "LSH0167"
 
@@ -27900,7 +27600,7 @@ rs = DBI::dbSendQuery(
     , 법정동명 TEXT
     , 폐지여부 TEXT
   )"
-  )
+)
 
 DBI::dbClearResult(rs)
 
@@ -28055,8 +27755,8 @@ dataL3 = dataL2 %>%
 saveFile = sprintf("%s/%s_%s", globalVar$outPath, serviceName, "dataL2.csv")
 readr::write_csv(x = dataL2, file = saveFile)
 
-saveFile = sprintf("%s/%s_%s", globalVar$outPath, serviceName, "seoul apartment transaction.csv")
-readr::write_csv(x = dataL1, file = saveFile)
+saveFile = sprintf("%s/%s_%s", globalVar$outPath, serviceName, "dataL3.csv")
+readr::write_csv(x = dataL3, file = saveFile)
 
 
 #***********************************************
@@ -28242,3 +27942,991 @@ ggscatter(
   ) +
   theme(text = element_text(size = 16)) +
   ggsave(filename = saveImg, width = 6, height = 6, dpi = 600)
+
+
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+#================================================
+# 요구사항
+#================================================
+# R을 이용한 기후 지표 (ClimInd) 계산
+
+#================================================
+# Set Env
+#================================================
+# globalVar = list()
+# globalVar$inpPath = "."
+# globalVar$figPath = "."
+# globalVar$outPath = "."
+# globalVar$mapPath = "."
+
+rm(list = ls())
+prjName = "test"
+source(here::here("E:/04. TalentPlatform/Github/TalentPlatform-R/src", "InitConfig.R"), encoding = "UTF-8")
+
+serviceName = "LSH0168"
+
+#================================================
+# Main
+#================================================
+library(ggplot2)
+library(tidyverse)
+library(httr)
+library(rvest)
+library(jsonlite)
+library(RCurl)
+library(readr)
+library(magrittr)
+library(ggrepel)
+library(colorRamps)
+library(ggpubr)
+library(ClimInd)
+
+# showtext::showtext_opts(dpi = 100)
+# showtext::showtext.auto()
+
+fileInfo = Sys.glob(paste(globalVar$inpPath, "LSH0168_LSH0168_Fix+LSTM+pr+CanESM5+historical+FIX.csv", sep = "/"))
+data = readr::read_csv(file = fileInfo, locale = locale("ko", encoding = "EUC-KR"))
+
+dataL1 = data %>% 
+  dplyr::mutate(
+    dtDate = readr::parse_date(as.character(PERIOD), "%Y-%m-%d")
+    , sDate = format(dtDate, "%m/%d/%y")
+  )
+
+
+dataL2 = tibble()
+
+# i = "강릉"
+for (i in names(dataL1)) {
+  if (i == "PERIOD" | i == "dtDate" | i == "sDate") next
+  
+  val = dataL1[i] %>% unlist()
+  
+  if (length(val) < 1) next
+  
+  names(val) = dataL1["sDate"] %>% unlist()
+  
+  resData = tibble(
+    stationName = i
+    , year = names(ClimInd::cdd(data = val))
+    , d50mm = ClimInd::d50mm(data = val)
+    , d95p = ClimInd::d95p(data = val)
+    , dr1mm = ClimInd::dr1mm(data = val)
+    , dr3mm = ClimInd::dr3mm(data = val)
+    , prcptot = ClimInd::prcptot(data = val)
+    , r10mm = ClimInd::r10mm(data = val)
+    , r20mm = ClimInd::r20mm(data = val)
+    , rti = ClimInd::rti(data = val)
+    , rx1day = ClimInd::rx1day(data = val)
+    , rx5d = ClimInd::rx5d(data = val)
+    , sdii = ClimInd::sdii(data = val)
+    , cdd = ClimInd::cdd(data = val)
+    , cwd = ClimInd::cwd(data = val)
+  )
+  
+  dataL2 = dplyr::bind_rows(dataL2, resData)
+}
+
+saveFile = sprintf("%s/%s_%s", globalVar$outPath, serviceName, "climate-index.csv")
+readr::write_csv(x = dataL2, file = saveFile)
+
+dataL3 = dataL2 %>% 
+  tidyr::gather(-stationName, -year, key = "key", value = "val") %>% 
+  tidyr::spread(key = "stationName", value = "val")
+
+saveFile = sprintf("%s/%s_%s", globalVar$outPath, serviceName, "climate-index-format.csv")
+readr::write_csv(x = dataL3, file = saveFile)
+
+
+#================================================
+# 요구사항
+#================================================
+# R을 이용한 튼살 화장품 마케팅 분석
+
+#================================================
+# Set Env
+#================================================
+# globalVar = list()
+# globalVar$inpPath = "."
+# globalVar$figPath = "."
+# globalVar$outPath = "."
+# globalVar$mapPath = "."
+
+serviceName = "LSH0172"
+
+#================================================
+# Main
+#================================================
+library(ggplot2)
+library(tidyverse)
+library(tm)
+library(wordcloud)
+library(wordcloud2)
+library(data.table)
+library(stringr)
+library(qgraph)
+library(ggplot2)
+library(SnowballC)
+library(KoNLP)
+library(parallel)
+library(topicmodels)
+library(lda)
+library(qgraph)
+
+
+useNIADic()
+
+# showtext::showtext_opts(dpi = 100)
+# showtext::showtext.auto()
+
+#
+#튼살화장품 분석용 단어 사전에 추가
+#
+mergeUserDic(data.frame(c("비오템", "클라란스", "프라젠트라"), "ncn"))
+mergeUserDic(data.frame(c("플라젠트라", "몽디에스", "아토팜"), "ncn"))
+mergeUserDic(data.frame(c("출산용품", "세타필", "임부"), "ncn"))
+mergeUserDic(data.frame(c("임산부", "튼살", "바디워시"), "ncn"))
+mergeUserDic(data.frame(c("수딩젤", "튼살크림", "베이비로션"), "ncn"))
+mergeUserDic(data.frame(c("바스", "베이비크림", "biotherm"), "ncn"))
+mergeUserDic(data.frame(c("clarins", "atopalm", "mongdies"), "ncn"))
+mergeUserDic(data.frame(c("팔머스", "팔머즈","farmers"), "ncn"))
+mergeUserDic(data.frame(c("plagentra","베이비크림", "파머스"), "ncn"))
+mergeUserDic(data.frame(c( "아르간", "유해성분", "유발성분"), "ncn"))
+mergeUserDic(data.frame(c("아르간오일", "리에락","lierac"), "ncn"))
+mergeUserDic(data.frame(c("nuxe", "눅스", "세일"), "ncn"))
+mergeUserDic(data.frame(c("쎄타필", "세타필", "cetaphil"), "ncn"))
+mergeUserDic(data.frame(c("대용량", "소용량", "위험성분"), "ncn"))
+mergeUserDic(data.frame(c("위해성분", "무해성분", "보습성분"), "ncn"))
+mergeUserDic(data.frame(c("천연성분", "스테로이드", "폴리아크릴아마이드"), "ncn"))
+mergeUserDic(data.frame(c("유투버", "뷰티유투버", "프리미엄"), "ncn"))
+mergeUserDic(data.frame(c("premium", "보습", "보습력"), "ncn"))
+mergeUserDic(data.frame(c("콜라겐", "부신피질", "호르몬"), "ncn"))
+
+fileInfo = Sys.glob(paste(globalVar$inpPath, "LSH0172_13주차_튼살화장품분석실습.RData", sep = "/"))
+load(file=fileInfo)
+
+# v_data <- read.csv("cosmetic_data.csv")
+v_data <- v_data[[1]]
+v_data_bak <- v_data
+
+# 속도 향상을 위한 병렬처리
+# options(mc.cores=12)
+#
+# 원하는 단어 포함된 벡터 만들기
+v_base <- v_data[grepl("*튼살*|*튼 살*", v_data)]
+v_tr <- v_data[grepl("*튼살치료*|*튼살 치료*|*튼살완화*|*튼살 완화*", v_data)]
+v_biotem <- v_data[grepl("*비오템*|*biotherm*", v_data)]
+v_cla <- v_data[grepl("*클라란스*|*clarins*", v_data)]
+v_pla <- v_data[grepl("*프라젠트라*|*plagentra*|*플라젠트라*", v_data)]
+v_ato <- v_data[grepl("*아토팜*|*atopalm*", v_data)]
+v_mon <- v_data[grepl("*몽디에스*|*mongdies*", v_data)]
+
+# # 분석 데이터셋 설정
+# vec_blog <- v_tr
+# base_name <- "튼살"
+vec_blog <- v_pla
+base_name <- "프라젠트라"
+
+
+# 코퍼스 만들기
+docs<- Corpus(VectorSource(vec_blog))
+
+# 전처리 수행
+docs <- tm_map(docs, stripWhitespace)
+docs <- tm_map(docs, removePunctuation)
+
+# URL 제거 함수 작성 후 말뭉치(Corpus)에서 URL 제거
+removeURL<-function(x) gsub("http[^[:space:]]*", "", x)
+docs <- tm_map(docs, content_transformer(removeURL))
+
+# 명사 추출
+docs <- tm_map(docs, extractNoun)
+docs_tr <- docs
+
+# 텍스트 전처리
+docs <- docs_biotem
+
+# 한글, 영문, 숫자, 공백문자를 제외한 나머지 문자 삭제
+docs <- tm_map(docs, content_transformer(function(x) {
+  gsub("[^0-9a-zA-Z가-? ]", "", x)}))
+
+# 코퍼스 content 문자열의 첫번째 영문자 c 삭제(왜 생기는지 모르겠음)
+docs <- tm_map(docs, content_transformer(function(x) {gsub("^c", "", x)}))
+
+
+# rm.word에 삭제할 단어 추가 후 for 문으로 단어 삭제.
+# 여기서 반복하여 전처리를 꼼꼼히 해야함
+rm.word <- c("언니", "기타", "해서")
+rm.word <- c(rm.word, "이거", "정도", "보기")
+rm.word <- c(rm.word, "번역", "본문", "복사")
+rm.word <- c(rm.word, "하지", "번역", "도착")
+rm.word <- c(rm.word, "들이", "때문", "하기")
+rm.word <- c(rm.word, "진짜", "하면", "2018")
+rm.word <- c(rm.word, "우리", "사실", "시작")
+rm.word <- c(rm.word, "출발", "오늘", "추가")
+rm.word <- c(rm.word, "바울", "처음", "생각")
+rm.word <- c(rm.word, "요트", "사진", "가지")
+rm.word <- c(rm.word, "이번", "제품", "ampgtamplt")
+rm.word <- c(rm.word, "여기", "추천", "너무")
+rm.word <- c(rm.word, "하루", "하나", "사람")
+rm.word <- c(rm.word, "하게", "하다", "사용")
+
+for (word in rm.word) {
+  docs <- tm_map(docs, 
+                 content_transformer(function(x) {gsub(word, "", x)}))
+}
+
+
+#단어문서 행렬 작성
+tdm <- TermDocumentMatrix(docs, 
+                          control = list(wordLengths = c(4, 12)))
+
+#tdm #term-document 매트릭스 확인
+
+
+doc.matrix <- as.matrix(tdm) #tdm을 매트릭스로 변환
+doc.row <- rowSums(doc.matrix) #단어 빈도 구하기
+
+#단어 빈도 높은 순서로 정렬
+word.order <- order(doc.row, decreasing=TRUE)
+#빈출 순서로 단어 30개 매트릭스 구하기
+freq.words <- doc.matrix[word.order[1:50], ]
+
+#전치 행렬 곱셈을 통해 관계 매트릭스 생성
+co.matrix <- freq.words %*% t(freq.words)
+
+
+#빈출단어 그래프 작성
+
+
+#각 단어의 사용횟수 기록
+term.freq <- rowSums(as.matrix(tdm))
+
+# 원하는 횟수 이상 사용된 단어만 다시 저장
+term.freq1 <- subset(term.freq, term.freq >= 100)
+df_term_freq1 <- data.frame(term = names(term.freq1), freq = term.freq1)
+
+# 빈도 막대그래프 그리기
+ggplot(df_term_freq1, aes(x=reorder(term, freq), y=freq)) + 
+  geom_bar(stat="identity") + 
+  xlab("빈출단어") + 
+  ylab("빈도") +
+  coord_flip() + 
+  theme(axis.text=element_text(size=12))
+
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "프라젠트라_빈도막대그래프")
+
+# 빈도 막대그래프 저장
+ggsave(
+  # paste0("비오템_빈도막대그래프.png"),
+  saveImg, 
+  plot = last_plot(),
+  device = NULL,
+  #path = "d:/work",
+  scale = 1,
+  width = NA,
+  height = NA,
+  #units = c("in", "cm", "mm"),
+  dpi = 600,
+  limitsize = TRUE
+)
+
+# 워드클라우드2 그리기
+term.freq3 <- subset(term.freq, term.freq >= 30)
+df_term_freq3 <- data.frame(term = names(term.freq3), freq = term.freq3)
+
+wordcloud2(df_term_freq3,
+           size = 0.7,
+           color = "random-light",
+           rotateRatio = 10,
+           backgroundColor = "grey")
+
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "프라젠트라_워드클라우드2")
+
+ggsave(
+  # paste0("비오템_워드클라우드2.png"),
+  saveImg,
+  plot = last_plot(),
+  device = NULL,
+  #path = "d:/work",
+  scale = 1,
+  width = NA,
+  height = NA,
+  #units = c("in", "cm", "mm"),
+  dpi = 600,
+  limitsize = TRUE
+)
+
+
+
+
+base_name <- "프라젠트라"
+
+# tdm을 dtm으로 변경
+dtm <- as.DocumentTermMatrix(tdm)
+
+# 토픽 갯수 설정
+topic_num <- 6
+# 개별 토픽에서 출현빈도 기준 상위 n개 단어 지정. 여기서는 20개로 지정함
+w_num <- 20
+
+# seed를 특정 숫자로 설정하여 반복 실행시 동일한 값이 나오도록 함
+set.seed(123)
+ldaform<-dtm2ldaformat(dtm, omit_empty = F)
+
+start = Sys.time()
+# Gibbs sampling은 간단히 말하면 변수를 하나씩 바꿔가면서 표본을 수집하여 모형을 근사하는 방식
+# 이때, burnin은 처음부터 burnin에 지정한 값까지는 제외시키고 나머지 값만을 모형 근사에 사용하겠다는 선언
+# keep은 정한 값마다 log likelihood 값을 구해서 저장하도록 설정하는 변수
+# iterations는 사후확률의 업데이트 횟수
+# burnin은 확률 추정시 제외되는 초반부 이터레이션 값
+# alpha는 문서내에서 토픽들의 확률분포(1을 주면 유니폼 분포)
+# eta: 한 토픽 내에 단어들의 확률분포
+result.lda <- lda.collapsed.gibbs.sampler(ldaform$documents,
+                                          K = topic_num,
+                                          vocab = ldaform$vocab,
+                                          num.iterations = 10000,
+                                          burnin = 100,
+                                          alpha = 0.01,
+                                          eta = 0.01)
+
+end <- Sys.time()
+end - start
+
+# 토픽 상위 20개 가져오기
+top_topic <- top.topic.words(result.lda$topics,20,by.score=T)
+
+## 비율로 변환 및 추가
+theta = rowSums(result.lda$document_sums)
+topic.proportion = theta/sum(theta)
+
+#
+# 토픽내에 단어별 출현 확률 계산
+#
+
+top.words = top.topic.words(result.lda$topics, w_num)
+
+# 빈도 상위단어 데이터 타입을 문자형으로 변환
+c_top.words <- as.character(top.words)
+
+# 추출된 상위단어의 토픽 선정하여 new.topics에 저장
+new.topics <- subset(result.lda$topics,select=c_top.words)
+count_by_words<-new.topics
+
+#count 합계 함수
+a=1
+k=0
+for(j in 1:ncol(new.topics))
+{
+  if(a * w_num + 1 == j)
+  {
+    k <- w_num * a
+    a <- a + 1
+  }
+  count_by_words[a,j-k] <- count_by_words[a,j]
+}
+
+# 비율구하기
+proportion_by_words <- t(count_by_words[,1:w_num]/
+                           as.integer(result.lda$topic_sums))
+
+#단어와 비율을 연결하여 행렬 생성
+result <- matrix(paste(top.topic.words(result.lda$topics, w_num),
+                       "(",proportion_by_words,")"),byrow = F, nrow = w_num)
+output <- rbind(result,topic.proportion,t(result.lda$topic_sums))
+
+# 토픽 빈도와 출현확률 출력
+output
+
+
+# LDA 분석 결과 파일로 저장
+saveFile = sprintf("%s/%s_%s.csv", globalVar$outPath, serviceName, "top_topic")
+write.csv(top_topic, file = saveFile, row.names = FALSE)
+
+saveFile = sprintf("%s/%s_%s.csv", globalVar$outPath, serviceName, "topic_output")
+write.csv(output, file = saveFile, row.names = FALSE)
+
+#단어문서 행렬 작성
+tdm <- TermDocumentMatrix(docs, 
+                          control = list(wordLengths = c(4, 12)))
+
+doc.matrix <- as.matrix(tdm) #tdm을 매트릭스로 변환
+doc.row <- rowSums(doc.matrix) #단어 빈도 구하기
+
+#단어 빈도 높은 순서로 정렬
+word.order <- order(doc.row, decreasing=TRUE)
+#빈출 순서로 단어 30개 매트릭스 구하기
+freq.words <- doc.matrix[word.order[1:50], ]
+
+#전치 행렬 곱셈을 통해 관계 매트릭스 생성
+co.matrix <- freq.words %*% t(freq.words)
+
+# saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, paste0("전체 기능성튼살화장품: ", base_name))
+
+# 네트웍 그래프 1: 전체 확인
+qgraph(co.matrix, 
+       normalize = T,
+       labels=rownames(co.matrix),
+       label.scale = TRUE,
+       label.scale.equal = T,
+       label.prop = 2,
+       label.cex = 1,
+       #edge.labels = TRUE,
+       minimum = 150,
+       #threshold = 200, # 지정 값 이하의 에지는 생략됨
+       #cut = 100,
+       #edge.label.bg = ifelse(edge >= 0.5, "red", "blue"),
+       loopRotation = T,
+       curveAll = T,
+       fade = T,
+       details = T,
+       theme = "TeamFortress", # "classic", "colorblind", "gray", "Hollywood", "Borkulo", "gimme", "TeamFortress", "Reddit", "Leuven" or "Fried"
+       borders = T,
+       border.color = "#606060",
+       shape = "square", # "circle", "square", "triangle", "diamond"
+       vTrans =220, # 노드의 투명도 설정 0-255
+       palette = 'pastel',
+       rainbowStart = 0,
+       #color = "green",
+       title = paste0("기능성튼살화장품: ", base_name), 
+       title.cex = 2,
+       diag=F, 
+       layout='spring', 
+       #단어 빈도에 따라 원 크기 설정
+       vsize=log(diag(co.matrix)) * 0.7 
+) 
+
+
+# 네트웍 그래프 2: 연결빈도가 높은 관계만 연결(threahold 값 조절)
+# saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, paste0("높은빈도 기능성튼살화장품: ", base_name))
+
+qgraph(co.matrix, 
+       normalize = T,
+       labels=rownames(co.matrix),
+       label.scale = TRUE,
+       label.scale.equal = T,
+       label.prop = 1.8,
+       label.cex = 1,
+       #edge.labels = TRUE,
+       minimum = 20,
+       threshold = 300,
+       #edge.label.bg = ifelse(edge >= 0.5, "red", "blue"),
+       loopRotation = T,
+       curveAll = T,
+       fade = T,
+       details = T,
+       theme = "TeamFortress", # "classic", "colorblind", "gray", "Hollywood", "Borkulo", "gimme", "TeamFortress", "Reddit", "Leuven" or "Fried"
+       borders = T,
+       border.color = "#606060",
+       shape = "circle", # "circle", "square", "triangle", "diamond"
+       vTrans =220, # 노드의 투명도 설정 0-255
+       palette = 'pastel',
+       rainbowStart = 0,
+       #color = "green",
+       title = paste0("기능성튼살화장품: ", base_name), 
+       title.cex = 2,
+       diag=F, 
+       layout='spring', 
+       vsize=log(diag(co.matrix)) * 0.8 #단어 빈도에 따라 원 크기 설정
+)
+
+
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+#================================================
+# 요구사항
+#================================================
+# R을 이용한 Fortran 전처리 모듈 수정
+
+#================================================
+# Set Env
+#================================================
+# globalVar = list()
+# globalVar$inpPath = "."
+# globalVar$figPath = "."
+# globalVar$outPath = "."
+# globalVar$mapPath = "."
+
+rm(list = ls())
+prjName = "test"
+source(here::here("E:/04. TalentPlatform/Github/TalentPlatform-R/src", "InitConfig.R"), encoding = "UTF-8")
+
+serviceName = "LSH0176"
+
+#================================================
+# Main
+#================================================
+library(ggplot2)
+library(tidyverse)
+library(httr)
+library(rvest)
+library(jsonlite)
+library(RCurl)
+library(readr)
+library(magrittr)
+library(ggrepel)
+library(colorRamps)
+library(ggpubr)
+library(ClimInd)
+
+# showtext::showtext_opts(dpi = 100)
+# showtext::showtext.auto()
+
+# data = readr::read_csv(file = fileInfo, locale = locale("ko", encoding = "EUC-KR"))
+# 
+# dataL1 = data %>% 
+#   dplyr::mutate(
+#     dtDate = readr::parse_date(as.character(PERIOD), "%Y-%m-%d")
+#     , sDate = format(dtDate, "%m/%d/%y")
+#   )
+
+
+
+
+########################################################################
+# rm(list = ls()); gc()
+
+# setting path where the data is
+# path <- "F:/R/tu/tttt/tut/GCM/Interpolation act/dataset/LSTM/dataset/REA SSP245"
+# setwd(path)
+
+# input file name
+# input_file_name1 <- "1 _historical"
+# input_file_name2 <- "1 _Nearfut SSP245"
+# 
+# fileInfo = Sys.glob(paste(globalVar$inpPath, "LSH0168_LSH0168_Fix+LSTM+pr+CanESM5+historical+FIX.csv", sep = "/"))
+
+# reading csv
+# 1 --> left side input
+# 2 --> right side input
+# inputt1 <- read.csv(paste0(input_file_name1, ".csv"))
+# inputt2 <- read.csv(paste0(input_file_name2, ".csv"))
+
+fileInfo1 = Sys.glob(paste(globalVar$inpPath, "LSH0176_historical.csv", sep = "/"))
+fileInfo2 = Sys.glob(paste(globalVar$inpPath, "LSH0176_Nearfut+SSP245.csv", sep = "/"))
+
+inputt1 <- read.csv(fileInfo1)
+inputt2 <- read.csv(fileInfo2)
+inpul1<-inputt1[,]
+input1<-inpul1[]
+inpul2<-inputt2[,]
+input2<-inpul2[,]
+
+# how many models using at a time
+model_num <- ncol(input1)-1
+
+# setting specific indices to select
+indices <- 1:10957
+
+# deltaT matrix calculation
+deltaT_mat <- data.frame(matrix(NA, 1, ncol(input1)))
+colnames(deltaT_mat) <- c(colnames(input1)[1:model_num], "Ensemble")
+
+for (i in 1:model_num) {
+  deltaT_mat[1, i] <- -abs(mean(input2[indices, i]) - mean(input1[indices, i]))
+}
+deltaT_mat$Ensemble <- mean(as.numeric(deltaT_mat[1, 1:model_num]))
+
+# Bi + Ri together
+R_mat <- data.frame(matrix(NA, 1, model_num))
+colnames(R_mat) <- paste0("B", 1:model_num)
+
+# B1, 2, 3, 4 calculation
+for (i in 1:model_num) {
+  R_mat[1, i] <- mean(input1[indices, i]) - mean(input1[indices, 5])
+}
+
+# moving average calculation
+mov_avg_list <- c()
+for (i in 1:7306) { # (nrow(input1)-119)
+  mov_avg_list <- c(mov_avg_list, mean(input1$X5[i:(i+3651)]))
+}
+
+
+mov_avg_diff <- max(mov_avg_list) - min(mov_avg_list)
+# to make calculation easy setting 1st element of R1_avg as deltaT_Ensemble
+R1_avg <- deltaT_mat[1, "Ensemble"]
+
+
+#==================================
+# Fortran을 이용한 반복 수행
+# ==================================
+# setwd("C:/Users/soooy/OneDrive/바탕 화면/Test")
+setwd("E:/04. TalentPlatform/Github/TalentPlatform-R/src/fortran")
+
+dimD = tibble(deltaT_mat) %>%
+  tidyr::gather(key = "key", value = "val") %>%
+  dplyr::select(val)
+
+dimR = tibble(R_mat) %>%
+  tidyr::gather(key = "key", value = "val") %>%
+  dplyr::select(val)
+
+dimAvg = tibble(R1_avg) %>%
+  tidyr::gather(key = "key", value = "val") %>%
+  dplyr::select(val)
+
+dimMovAvg = tibble(mov_avg_diff) %>%
+  tidyr::gather(key = "key", value = "val") %>%
+  dplyr::select(val)
+
+# utils::write.table(dimD, file = "C:/Users/soooy/OneDrive/바탕 화면/Test/input-dimD.dat", col.names = FALSE, row.names = FALSE)
+# utils::write.table(dimR, file = "C:/Users/soooy/OneDrive/바탕 화면/Test/input-dimR.dat", col.names = FALSE, row.names = FALSE)
+# utils::write.table(dimAvg, file = "C:/Users/soooy/OneDrive/바탕 화면/Test/input-dimAvg.dat", col.names = FALSE, row.names = FALSE)
+# utils::write.table(dimMovAvg, file = "C:/Users/soooy/OneDrive/바탕 화면/Test/input-dimMovAvg.dat", col.names = FALSE, row.names = FALSE)
+
+utils::write.table(dimD, file = "./input-dimD.dat", col.names = FALSE, row.names = FALSE)
+utils::write.table(dimR, file = "./input-dimR.dat", col.names = FALSE, row.names = FALSE)
+utils::write.table(dimAvg, file = "./input-dimAvg.dat", col.names = FALSE, row.names = FALSE)
+utils::write.table(dimMovAvg, file = "./input-dimMovAvg.dat", col.names = FALSE, row.names = FALSE)
+
+
+# getwd()
+system(paste(
+  "gfortran"
+  , "./CallFortranInR_20210610.f90"
+))
+
+system(paste(
+  "./a.exe"
+))
+
+# a<-read.table("C:/Users/soooy/OneDrive/바탕 화면/Test/result-dimR.dat")
+# b<-read.table("C:/Users/soooy/OneDrive/바탕 화면/Test/result-dimD.dat")
+# c<-read.table("C:/Users/soooy/OneDrive/바탕 화면/Test/result-dimAvg.dat")
+
+a<-read.table("./result-dimR.dat")
+b<-read.table("./result-dimD.dat")
+c<-read.table("./result-dimAvg.dat")
+
+# write.csv(a,"F:/R/tu/tttt/tut/GCM/Interpolation act/dataset/LSTM/REA/R_mat/NEAR/SSP245/SSP245 Near S1.csv")
+# write.csv(b,"F:/R/tu/tttt/tut/GCM/Interpolation act/dataset/LSTM/REA/D_mat/NEAR/SSP245/SSP245 Near S1.csv")
+# write.csv(c,"F:/R/tu/tttt/tut/GCM/Interpolation act/dataset/LSTM/REA/R_mat/NEAR/SSP245/SSP245 Near S1 AVG.csv")
+
+
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+#================================================
+# 요구사항
+#================================================
+# R을 이용한 2047-2054년에 대한 회귀식 시각화
+
+#================================================
+# Set Env
+#================================================
+# setwd("\\\\bluerosa/rosa/Partition 1/UF phd research with Ravi/2020UPenn_journal/LSH0146 _edited")
+
+# globalVar = list()
+# globalVar$inpPath = "."
+# globalVar$figPath = "."
+# globalVar$outPath = "."
+# globalVar$mapPath = "."
+
+# serviceName = "CHWfuture"
+
+rm(list = ls())
+prjName = "test"
+source(here::here("E:/04. TalentPlatform/Github/TalentPlatform-R/src", "InitConfig.R"), encoding = "UTF-8")
+
+serviceName = "LSH0179"
+
+#================================================
+# Main
+#================================================
+library(readxl)
+library(tidyverse)
+library(ggplot2)
+library(ggmap)
+library(lubridate)
+library(MASS)
+library(scales)
+library(dplyr)
+library(hrbrthemes)
+library(data.table)
+library(ggpubr)
+library(forcats)
+library(lubridate)
+library(openxlsx)
+
+#****************************************
+# 주 데이터
+#****************************************
+# fileInfo = Sys.glob(paste(globalVar$inpPath, "LSH0146_PAhourlyCHW.csv", sep = "/"))
+fileInfo = Sys.glob(paste(globalVar$inpPath, "LSH0179_PAhourlyCHW.csv", sep = "/"))
+
+# PAHourlyCHW <- read.csv(file = fileInfo, stringsAsFactors = TRUE)
+PAHourlyCHW = data.table::fread(file = fileInfo)
+
+ind = which(stringr::str_detect(PAHourlyCHW$type2, regex("office")))
+PAHourlyCHW[ind, "type2"] = "office"
+summary(PAHourlyCHW) 
+PAHourlyCHW$weekday<-as.factor(PAHourlyCHW$weekday)
+PAHourlyCHW$type2<-as.factor(PAHourlyCHW$type2)
+PAHourlyCHW$YMDH2<-ymd_hms(PAHourlyCHW$YMDH)
+summary(PAHourlyCHW) 
+
+trainCHWL1 = PAHourlyCHW %>%
+  dplyr::filter(
+    ! as.numeric(type2) %in%  c(2, 3)
+  ) %>% 
+  dplyr::mutate(
+    makeLegend = dplyr::case_when(
+      stringr::str_detect(type2, regex("Education")) ~ "Education"
+      , stringr::str_detect(type2, regex("Lab")) ~ "Lab"
+      , stringr::str_detect(type2, regex("Lodge")) ~ "Lodging"
+      , stringr::str_detect(type2, regex("office?")) ~ "Office"
+      , stringr::str_detect(type2, regex("public")) ~ "Public Assembly"
+      , TRUE ~ "NA"
+    )
+  )
+
+#-------------------------
+trainCHW <-subset(trainCHWL1, trainCHWL1$YMDH2<"2016-06-30 23:30:00")
+summary(trainCHW)#2015-07-01 01:00:00 -2016-07-01 01:00:00
+testCHW <-subset(trainCHWL1, trainCHWL1$YMDH2>"2016-06-30 23:30:00" & trainCHWL1$YMDH<"2016-08-14 23:30:00")
+summary(testCHW)#2016-07-02 02:00:00 - 2016-08-14 14:00:00
+
+lmCHW82type2 = lm(CHWEUI ~ type2 + poly(Height,2) + poly(Temp,2), data = trainCHW)
+summary(lmCHW82type2)
+
+
+#****************************************
+# 보조 데이터
+#****************************************
+dataL1 = trainCHW %>% 
+  dplyr::group_by(type2) %>% 
+  dplyr::summarise(
+    Height = mean(Height, na.rm = TRUE)
+  )
+
+fileInfo2 = Sys.glob(paste(globalVar$inpPath, "LSH0179_Future_Temp.xlsx", sep = "/"))
+future = openxlsx::read.xlsx(fileInfo2, sheet = 1) %>% 
+  tibble::as.tibble() %>% 
+  dplyr::mutate(
+    sDate = paste(Year, Month, Day, Hour, sep = "-")
+    , dtDate = lubridate::ymd_h(sDate)
+  ) %>% 
+  dplyr::select(dtDate, Temp) 
+
+
+typeList = dataL1$type2 %>% unique() %>% sort()
+
+dataL2 = tibble::tibble()
+for (type in typeList) {
+  
+  tmpData = future %>% 
+    dplyr::mutate(
+      type2 = type
+    ) %>% 
+    dplyr::left_join(dataL1, by = c("type2" = "type2"))
+  
+  dataL2 = dplyr::bind_rows(dataL2, tmpData)
+}
+
+# 테스트셋 전처리
+PAHourlyCHWL1 = dplyr::bind_rows(trainCHW, testCHW) %>% 
+  tibble::as.tibble() %>%
+  dplyr::rename(dtDate = YMDH) %>% 
+  dplyr::select(names(dataL2))
+
+# 통합 데이터셋
+dataL3 = dplyr::bind_rows(dataL2, PAHourlyCHWL1) %>% 
+  dplyr::mutate(
+    type3 = dplyr::case_when(
+      dtDate < lubridate::ymd_h("2047-01-01 00") ~ "2015-2016"
+      , lubridate::ymd_h("2047-01-01 00") <= dtDate & dtDate < lubridate::ymd_h("2054-01-01 00") ~ "2047"
+      , lubridate::ymd_h("2054-01-01 00") <= dtDate ~ "2054"
+      , TRUE ~ "NA"
+    )
+  ) %>% 
+  modelr::add_predictions(lmCHW82type2)
+
+# 통합 데이터셋 확인
+dataL3$type3 %>% unique() %>% sort()
+
+dataL3 %>% 
+  dplyr::filter(dtDate == lubridate::ymd_h("2047-01-01 01"))
+
+#****************************************
+# 시각화
+#****************************************
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "종류에 따른 2016,2047,2053 연도별 시계열")
+
+ggplot(dataL3, aes(x = dtDate, y = pred, color = type2)) +
+  geom_line() +
+  geom_smooth(method = 'lm', se = TRUE) +
+  # ggpubr::stat_regline_equation(label.x.npc = 0.0, label.y.npc = 1.0) +
+  # ggpubr::stat_cor(label.x.npc = 0.8, label.y.npc = 1.0) +
+  labs(
+    x = "Date"
+    , y = "Chilled water consumption (kEUI)"
+    , color = NULL
+    , fill = NULL
+    , subtitle = "종류에 따른 2016,2047,2053 연도별 시계열"
+  ) +
+  # facet_wrap(~Year, ncol = 3, scale = "free") +
+  facet_wrap(~type3, nrow = 3, scale = "free_x") +
+  theme(
+    text = element_text(size = 18)
+    , legend.position = "bottom"
+  ) +
+  ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
+
+
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+#================================================
+# 요구사항
+#================================================
+# R을 이용한 이산화탄소 시계열 데이터 분석 (ARIMA, 평활법, 분해시계열) 및 보고서 작성
+
+#================================================
+# Set Env
+#================================================
+# globalVar = list()
+# globalVar$inpPath = "."
+# globalVar$figPath = "."
+# globalVar$outPath = "."
+# globalVar$mapPath = "."
+
+rm(list = ls())
+prjName = "test"
+source(here::here("E:/04. TalentPlatform/Github/TalentPlatform-R/src", "InitConfig.R"), encoding = "UTF-8")
+
+serviceName = "LSH0162"
+
+#================================================
+# Main
+#================================================
+library(ggplot2)
+library(tidyverse)
+library(httr)
+library(rvest)
+library(jsonlite)
+
+# 우리 행성의 역사를 통틀어 우리 행성은 기후의 많은 급격한 변화를 견뎌 왔습니다. 5 개의 간빙기 기간을 견디는 것부터 산업 혁명의 영향을 견디기까지 우리 지구와 대기는 인위적 영향으로 악용되었습니다. 
+# 이 프로젝트 전체에서 Kaggle 웹 사이트를 통해 얻은 Mauna Loa Volcano의 데이터를 사용하여 대기 CO2 수준을 예측하는 ARIMA 모델을 만들었습니다.
+# Mauna Loa 데이터 세트에는 이산화탄소 기록 및 계절별로 조정 된 기록과 함께 연도와 날짜가 포함됩니다.
+# 데이터 세트와 이산화탄소 기록의 중요성은 연간 CO2 농도를 플롯 할 때 발견 된 사인파 패턴이 있다는 것입니다.
+# 이러한 패턴은 연구자들에 의해 연구되었으며 식물과 나무의 계절별 성장 패턴을 따르는 것으로 밝혀졌습니다.
+# 이는 잎과 식물이 떨어지고 자연적으로 CO2를 대기로 방출하기 때문에 겨울과 가을철에 CO2 농도가 증가하는 것으로 나타 났지만 잎이 자라는 봄과 여름철에는이 잎이 CO2를 적게 흡수하는 것으로 나타났습니다.
+# 대기 CO2 농도. 또한, 현재 연구에 따르면 계절이 우리 대기 중 CO2 증가로 인해 일찍 시작되고 늦게 끝나는 것으로 나타났습니다. 이 연구에서 나는 이러한 정현파 패턴이 미래에 어떻게 변할 것인지 관찰하고 ARIMA 모델이 이러한 변화를 예측할 수있는 최상의 모델을 찾는 데 어떻게 도움을 줄 수 있는지 관찰 할 것입니다.
+
+# LSH0162_이산화탄소 농도_1999-2019.xlsx
+dat = read.csv('../input/archive.csv',sep=',')
+
+fileInfo = Sys.glob(paste(globalVar$inpPath, "LSH0162_이산화탄소 농도_1999-2019.xlsx", sep = "/"))
+data = openxlsx::read.xlsx(fileInfo, sheet = 1)
+
+CO2matrix = as.matrix(data)
+
+mod = cbind('x' = CO2matrix[,1], 'y' = CO2matrix[,4])
+mod.y = cbind(CO2matrix[,4])
+
+Y = ts(mod.y)
+
+autoplot(Y)
+
+checkresiduals(Y)
+
+Acf(Y) 
+
+
+Pacf(Y)
+
+# ACF 및 PACF 플롯은 잔차 플롯입니다. 이론적으로 포인트는 모두 신뢰 구간 인 파란색 선 내에 포함되어야합니다. 신뢰 구간을 벗어난 일부 잔차를 보는 것은 정상이지만 이처럼 보이지 않아야합니다. PACF의 부비동 패턴은 여기에 계절적 측면이 있음을 증명합니다.
+# ARIMA 모델을 적절하게 사용할 수 있도록 mod.y.ts를 12의 빈도로 설정했습니다. 이렇게하면 ARIMA 모델에 월별 데이터로 작업하고 있음을 알리고 ARIMA 모델이 적절한 ARIMA 모델을 찾는 데 적절하게 도움을 줄 수 있습니다. . auto.arima를 사용하기 전에 계절성을 고려하지 않았기 때문에 적절한 ARIMA 모델을 찾는 데 어려움을 겪었습니다. 빈도 = 12를 추가하여 월간 빈도를 얻기 위해 시계열 객체를 변경 한 후 모델이 크게 향상되었음을 알 수 있습니다.
+# 내 첫 번째 auto.arima 모델은 모델에서 단계적 선택을 사용했기 때문에 최고가 아니 었습니다. 결과는 다음과 같습니다.
+
+
+mod.y.ts = ts(mod.y, frequency = 12) 
+
+aa = auto.arima(mod.y.ts, trace = T) 
+
+#AUTO.ARIMA MODEL SUGGESTION IS SUPPOSEDLY
+#ARIMA(3,1,0)(2,1,0)[12]
+
+#something significant seems to be occurring every 3 years. 
+#By setting our lag.max = 60, we are forecasting values for 
+#the next 5 years....
+
+ra = residuals(aa)
+
+Pacf(ra, lag.max = 60) 
+
+Acf(ra, lag.max = 60)
+
+# 아래에서는 단계별 선택을 사용하지 않고 아리마 모델이 작동하도록 결정했습니다. 잔차의 결과가 더 좋으며 3 년 잔차에 대한 문제를 표시하지 않습니다.
+aaNEW = auto.arima(mod.y.ts, trace = T, stepwise=FALSE, approximation=FALSE, ic = c("aicc"))
+
+
+# auto.arima는 선택한 정보 기준의 근사값을 사용합니다. 여기서는 auto.arima 함수에 단계별 선택 사용을 피하도록 지시했으며 각 arima 모델에 대한 정확한 aicc (내 정보 기준으로 사용중인 항목)도 제공합니다. 최고의 arima 모델은 가장 낮은 AICc 값을 갖습니다. R이 테스트 할 모든 ARIMA 모델을 표시하기 위해 (trace = T)를 사용했습니다.
+
+#Testing our new ARIMA models...
+
+#our first ARIMA model
+capEnd = arima(mod.y.ts, order = c(0,1,3), seasonal = c(0,1,1))
+autoplot(forecast(capEnd, h = 120))
+
+resCapEnd = residuals(capEnd)
+
+Pacf(resCapEnd, lag.max = 60) 
+
+Acf(resCapEnd, lag.max = 60)
+
+checkresiduals(capEnd)
+
+#our second ARIMA model
+capEnd2 = arima(mod.y.ts, order = c(1,1,1), seasonal = c(0,1,1))
+
+autoplot(forecast(capEnd2, h = 120))
+
+resCapEnd2 = residuals(capEnd2)
+
+Pacf(resCapEnd2, lag.max = 60) 
+
+Acf(resCapEnd2, lag.max = 60)
+
+
+checkresiduals(capEnd2) 
+
+# ARIMA 모델의 예측을 살펴본 후 ARIMA 모델은 대기 중 CO2의 존재가 지속적으로 증가 할 것임을 보여줍니다. 이것은 이미 관찰되고있는 기후의 추가 변화로 이어질 것이지만, 생존하기에 적합한 기후를 가진 지역을 찾기 위해 이미 고군분투하고있는 종의 생존에도 영향을 미칠 것입니다. 작업을 마치는 동안 정현파 패턴의 진폭이 일정한지 아니면 증가하는지 조사하는 데 관심이있었습니다. 처음 24 개월과 지난 24 개월의 진폭을 관찰했지만 출력은 진폭에서 큰 차이를 보이지 않았습니다. 또한 데이터를 고정하고 진폭이 상승하는 추세가 있는지 확인하기 위해 데이터에서 지연 1 차이를 가져 왔지만 여기서도 어떤 변화도 볼 수 없었습니다. 미래에는 breusch pagan 테스트가 회귀 모델에서 일정한 분산을 테스트하는 방식과 같이 분산이 모델 전체에서 일관성이 있는지 테스트 할 함수를 찾는 것이 흥미로울 것입니다. 시리즈에서 진폭이 증가했다는 증거가 있으면 계절이 더 일찍 발생하고 나중에 종료됨에 따라 더 많은 CO2가 방출되고 흡수되고 있음을 보여줍니다.
+
+
+# TSET
+# TSET2
+# ARIMA 모델의 예측을 살펴본 후 ARIMA 모델은 대기 중 CO2의 존재가 지속적으로 증가 할 것임을 보여줍니다. 이것은 이미 관찰되고있는 기후의 추가 변화로 이어질 것이지만, 생존하기에 적합한 기후를 가진 지역을 찾기 위해 이미 고군분투하고있는 종의 생존에도 영향을 미칠 것입니다. 작업을 마치는 동안 정현파 패턴의 진폭이 일정한지 아니면 증가하는지 조사하는 데 관심이있었습니다. 처음 24 개월과 지난 24 개월의 진폭을 관찰했지만 출력은 진폭에서 큰 차이를 보이지 않았습니다. 또한 데이터를 고정하고 진폭이 상승하는 추세가 있는지 확인하기 위해 데이터에서 지연 1 차이를 가져 왔지만 여기서도 어떤 변화도 볼 수 없었습니다. 미래에는 breusch pagan 테스트가 회귀 모델에서 일정한 분산을 테스트하는 방식과 같이 분산이 모델 전체에서 일관성이 있는지 테스트 할 함수를 찾는 것이 흥미로울 것입니다. 시리즈에서 진폭이 증가했다는 증거가 있으면 계절이 더 일찍 발생하고 나중에 종료됨에 따라 더 많은 CO2가 방출되고 흡수되고 있음을 보여줍니다.
+# 
