@@ -28833,9 +28833,11 @@ serviceName = "LSH0162"
 #================================================
 library(ggplot2)
 library(tidyverse)
-library(httr)
-library(rvest)
-library(jsonlite)
+library(forecast)
+library(GGally)
+library(fpp2)
+library(here)
+library(tseries)
 
 # 우리 행성의 역사를 통틀어 우리 행성은 기후의 많은 급격한 변화를 견뎌 왔습니다. 5 개의 간빙기 기간을 견디는 것부터 산업 혁명의 영향을 견디기까지 우리 지구와 대기는 인위적 영향으로 악용되었습니다. 
 # 이 프로젝트 전체에서 Kaggle 웹 사이트를 통해 얻은 Mauna Loa Volcano의 데이터를 사용하여 대기 CO2 수준을 예측하는 ARIMA 모델을 만들었습니다.
@@ -28845,20 +28847,165 @@ library(jsonlite)
 # 이는 잎과 식물이 떨어지고 자연적으로 CO2를 대기로 방출하기 때문에 겨울과 가을철에 CO2 농도가 증가하는 것으로 나타 났지만 잎이 자라는 봄과 여름철에는이 잎이 CO2를 적게 흡수하는 것으로 나타났습니다.
 # 대기 CO2 농도. 또한, 현재 연구에 따르면 계절이 우리 대기 중 CO2 증가로 인해 일찍 시작되고 늦게 끝나는 것으로 나타났습니다. 이 연구에서 나는 이러한 정현파 패턴이 미래에 어떻게 변할 것인지 관찰하고 ARIMA 모델이 이러한 변화를 예측할 수있는 최상의 모델을 찾는 데 어떻게 도움을 줄 수 있는지 관찰 할 것입니다.
 
-# LSH0162_이산화탄소 농도_1999-2019.xlsx
-dat = read.csv('../input/archive.csv',sep=',')
-
 fileInfo = Sys.glob(paste(globalVar$inpPath, "LSH0162_이산화탄소 농도_1999-2019.xlsx", sep = "/"))
-data = openxlsx::read.xlsx(fileInfo, sheet = 1)
+data = openxlsx::read.xlsx(fileInfo, sheet = 1) %>% 
+  tidyr::gather(-X1, key = "key", value = "val") %>% 
+  dplyr::mutate(
+    dtDate = readr::parse_date(paste(X1, key, sep = "-"), "%Y-%m월")
+  ) %>% 
+  dplyr::arrange(dtDate)
 
-CO2matrix = as.matrix(data)
+tsData = ts(data$val, start = c(1999, 1), frequency = 12)
 
-mod = cbind('x' = CO2matrix[,1], 'y' = CO2matrix[,4])
-mod.y = cbind(CO2matrix[,4])
+# 시계열 안정성 진단 및 검정
+# P값이 0.01로서 귀무가설 기각 (정상 시계열)
+adf.test(tsData, alternative = c("stationary"), k = 0)
+# Dickey-Fuller = -5.0135178, Lag order = 0, p-value = 0.01
 
-Y = ts(mod.y)
 
-autoplot(Y)
+# 자료에 대한 시계열 그래프 
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "1999-2019년 안면도에서 연도별 이산화탄소 농도 시계열")
+
+autoplot(tsData) +
+  geom_smooth(method = 'lm', se = TRUE) +
+  ggpubr::stat_regline_equation(label.x.npc = 0.0, label.y.npc = 1.0, size = 5) +
+  ggpubr::stat_cor(label.x.npc = 0.0, label.y.npc = 0.9, size = 5) +
+  labs(
+    x = "연도"
+    , y = "이산화탄소 농도 [ppm]"
+    , color = NULL
+    , fill = NULL
+    , subtitle = "1999-2019년 안면도에서 연도별 이산화탄소 농도 시계열"
+  ) +
+  theme(
+    text = element_text(size = 18)
+    , legend.position = "bottom"
+  ) +
+  ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
+
+
+#******************************************
+# (계절형) ARIMA 모형
+#******************************************
+# 시계열로부터 최종선택한 모형
+bestModel = auto.arima(tsData, trace = TRUE)
+# ARIMA(0,1,4)(1,1,2)[12]
+# 비계절 : AR(0), 1차 차분, MA(4)
+# 계절 : AR(1), 2차 차분 (24개월), MA(2)
+
+# 모형의 통계적 유의성 검정
+# X-squared = 0.071471882, df = 1, p-value = 0.7892057
+Box.test(bestModel$residuals, lag = 1, type = "Ljung")
+
+# 최종선택한 모형을 사용하여 구한 예측값(월별자료는 향후 12개월)을 나타내는 그래프
+akimaData = forecast::forecast(bestModel, h = 12)
+
+# 성능 비교
+accuracy(akimaData)
+
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "1999-2019년 안면도에서 연도별 이산화탄소 농도 시계열 + 향후 ARIMA 12개월 예측")
+
+autoplot(akimaData) +
+  geom_smooth(method = 'lm', se = TRUE) +
+  ggpubr::stat_regline_equation(label.x.npc = 0.0, label.y.npc = 1.0, size = 5) +
+  ggpubr::stat_cor(label.x.npc = 0.0, label.y.npc = 0.9, size = 5) +
+  labs(
+    x = "연도"
+    , y = "이산화탄소 농도 [ppm]"
+    , color = NULL
+    , fill = NULL
+    , subtitle = "1999-2019년 안면도에서 연도별 이산화탄소 농도 시계열 + 향후 ARIMA 12개월 예측"
+  ) +
+  theme(
+    text = element_text(size = 18)
+    , legend.position = "bottom"
+  ) +
+  ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
+
+
+#******************************************
+# 평활법
+#******************************************
+# 단순지수평활법(Simple Exponential Smoothing with 1 parameter)
+# simpleModel = HoltWinters(tsData, alpha = 0.2, beta = FALSE, gamma = FALSE)
+
+# 비계절적 Holt-Winters (with 2 parameter)
+# multiModel = HoltWinters(tsData, gamma = FALSE)
+
+# ETS 모델
+etsModel = forecast::ets(tsData)
+
+autoplot(etsModel)
+
+etsData = forecast::forecast(etsModel, h = 12)
+
+# 성능 비교
+accuracy(etsData)
+
+
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "1999-2019년 안면도에서 연도별 이산화탄소 농도 시계열 + 향후 ETS 12개월 예측")
+
+autoplot(etsData) +
+  geom_smooth(method = 'lm', se = TRUE) +
+  ggpubr::stat_regline_equation(label.x.npc = 0.0, label.y.npc = 1.0, size = 5) +
+  ggpubr::stat_cor(label.x.npc = 0.0, label.y.npc = 0.9, size = 5) +
+  labs(
+    x = "연도"
+    , y = "이산화탄소 농도 [ppm]"
+    , color = NULL
+    , fill = NULL
+    , subtitle = "1999-2019년 안면도에서 연도별 이산화탄소 농도 시계열 + 향후 ETS 12개월 예측"
+  ) +
+  theme(
+    text = element_text(size = 18)
+    , legend.position = "bottom"
+  ) +
+  ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
+
+
+#******************************************
+# 분해시계열모형
+#******************************************
+# 시계열 요소 분해 시각화
+autoplot(decompose(tsData))
+
+# 계절 조정
+decomp = stl(tsData, t.window=13, s.window="periodic", robust=TRUE)
+seasonData = forecast(decomp)
+# seasonData = forecast::seasadj(decomp)
+
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "1999-2019년 안면도에서 연도별 이산화탄소 농도 시계열 + 계절 조정")
+
+autoplot(seasonData) +
+  geom_smooth(method = 'lm', se = TRUE) +
+  ggpubr::stat_regline_equation(label.x.npc = 0.0, label.y.npc = 1.0, size = 5) +
+  ggpubr::stat_cor(label.x.npc = 0.0, label.y.npc = 0.9, size = 5) +
+  labs(
+    x = "연도"
+    , y = "이산화탄소 농도 [ppm]"
+    , color = NULL
+    , fill = NULL
+    , subtitle = "1999-2019년 안면도에서 연도별 이산화탄소 농도 시계열 + 계절 조정"
+  ) +
+  theme(
+    text = element_text(size = 18)
+    , legend.position = "bottom"
+  ) +
+  ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
+
+# 최종선택한 모형식에 대한 예측값
+
+
+
+
+# CO2matrix = as.matrix(data)
+
+# mod = cbind('x' = CO2matrix[,1], 'y' = CO2matrix[,4])
+# mod.y = cbind(CO2matrix[,4])
+
+# Y = ts(mod.y)
+
+# autoplot(tsData)
 
 checkresiduals(Y)
 
@@ -28872,7 +29019,7 @@ Pacf(Y)
 # 내 첫 번째 auto.arima 모델은 모델에서 단계적 선택을 사용했기 때문에 최고가 아니 었습니다. 결과는 다음과 같습니다.
 
 
-mod.y.ts = ts(mod.y, frequency = 12) 
+mod.y.ts = ts(tsData, frequency = 12) 
 
 aa = auto.arima(mod.y.ts, trace = T) 
 
@@ -28889,11 +29036,15 @@ Pacf(ra, lag.max = 60)
 
 Acf(ra, lag.max = 60)
 
-# 아래에서는 단계별 선택을 사용하지 않고 아리마 모델이 작동하도록 결정했습니다. 잔차의 결과가 더 좋으며 3 년 잔차에 대한 문제를 표시하지 않습니다.
+# 아래에서는 단계별 선택을 사용하지 않고 아리마 모델이 작동하도록 결정했습니다.
+# 잔차의 결과가 더 좋으며 3 년 잔차에 대한 문제를 표시하지 않습니다.
 aaNEW = auto.arima(mod.y.ts, trace = T, stepwise=FALSE, approximation=FALSE, ic = c("aicc"))
 
 
-# auto.arima는 선택한 정보 기준의 근사값을 사용합니다. 여기서는 auto.arima 함수에 단계별 선택 사용을 피하도록 지시했으며 각 arima 모델에 대한 정확한 aicc (내 정보 기준으로 사용중인 항목)도 제공합니다. 최고의 arima 모델은 가장 낮은 AICc 값을 갖습니다. R이 테스트 할 모든 ARIMA 모델을 표시하기 위해 (trace = T)를 사용했습니다.
+# auto.arima는 선택한 정보 기준의 근사값을 사용합니다.
+# 여기서는 auto.arima 함수에 단계별 선택 사용을 피하도록 지시했으며 각 arima 모델에 대한 정확한 aicc (내 정보 기준으로 사용중인 항목)도 제공합니다.
+# 최고의 arima 모델은 가장 낮은 AICc 값을 갖습니다.
+# R이 테스트 할 모든 ARIMA 모델을 표시하기 위해 (trace = T)를 사용했습니다.
 
 #Testing our new ARIMA models...
 
