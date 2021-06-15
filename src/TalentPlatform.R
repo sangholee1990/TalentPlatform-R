@@ -25962,6 +25962,7 @@ ggpairs(eta, columns=c("log보정영업지수", "소비자서비스업비율", "
                        "사업체_영업기간", "사업체_창업률", "log커피전문점업",
                        "log체인화편의점업"))+theme_bw()
 
+
 #===============================================================================================
 # Routine : Main R program
 #
@@ -28634,183 +28635,6 @@ c<-read.table("./result-dimAvg.dat")
 #================================================
 # 요구사항
 #================================================
-# R을 이용한 2047-2054년에 대한 회귀식 시각화
-
-#================================================
-# Set Env
-#================================================
-# setwd("\\\\bluerosa/rosa/Partition 1/UF phd research with Ravi/2020UPenn_journal/LSH0146 _edited")
-
-# globalVar = list()
-# globalVar$inpPath = "."
-# globalVar$figPath = "."
-# globalVar$outPath = "."
-# globalVar$mapPath = "."
-
-# serviceName = "CHWfuture"
-
-rm(list = ls())
-prjName = "test"
-source(here::here("E:/04. TalentPlatform/Github/TalentPlatform-R/src", "InitConfig.R"), encoding = "UTF-8")
-
-serviceName = "LSH0179"
-
-#================================================
-# Main
-#================================================
-library(readxl)
-library(tidyverse)
-library(ggplot2)
-library(ggmap)
-library(lubridate)
-library(MASS)
-library(scales)
-library(dplyr)
-library(hrbrthemes)
-library(data.table)
-library(ggpubr)
-library(forcats)
-library(lubridate)
-library(openxlsx)
-
-#****************************************
-# 주 데이터
-#****************************************
-# fileInfo = Sys.glob(paste(globalVar$inpPath, "LSH0146_PAhourlyCHW.csv", sep = "/"))
-fileInfo = Sys.glob(paste(globalVar$inpPath, "LSH0179_PAhourlyCHW.csv", sep = "/"))
-
-# PAHourlyCHW <- read.csv(file = fileInfo, stringsAsFactors = TRUE)
-PAHourlyCHW = data.table::fread(file = fileInfo)
-
-ind = which(stringr::str_detect(PAHourlyCHW$type2, regex("office")))
-PAHourlyCHW[ind, "type2"] = "office"
-summary(PAHourlyCHW) 
-PAHourlyCHW$weekday<-as.factor(PAHourlyCHW$weekday)
-PAHourlyCHW$type2<-as.factor(PAHourlyCHW$type2)
-PAHourlyCHW$YMDH2<-ymd_hms(PAHourlyCHW$YMDH)
-summary(PAHourlyCHW) 
-
-trainCHWL1 = PAHourlyCHW %>%
-  dplyr::filter(
-    ! as.numeric(type2) %in%  c(2, 3)
-  ) %>% 
-  dplyr::mutate(
-    makeLegend = dplyr::case_when(
-      stringr::str_detect(type2, regex("Education")) ~ "Education"
-      , stringr::str_detect(type2, regex("Lab")) ~ "Lab"
-      , stringr::str_detect(type2, regex("Lodge")) ~ "Lodging"
-      , stringr::str_detect(type2, regex("office?")) ~ "Office"
-      , stringr::str_detect(type2, regex("public")) ~ "Public Assembly"
-      , TRUE ~ "NA"
-    )
-  )
-
-#-------------------------
-trainCHW <-subset(trainCHWL1, trainCHWL1$YMDH2<"2016-06-30 23:30:00")
-summary(trainCHW)#2015-07-01 01:00:00 -2016-07-01 01:00:00
-testCHW <-subset(trainCHWL1, trainCHWL1$YMDH2>"2016-06-30 23:30:00" & trainCHWL1$YMDH<"2016-08-14 23:30:00")
-summary(testCHW)#2016-07-02 02:00:00 - 2016-08-14 14:00:00
-
-lmCHW82type2 = lm(CHWEUI ~ type2 + poly(Height,2) + poly(Temp,2), data = trainCHW)
-summary(lmCHW82type2)
-
-
-#****************************************
-# 보조 데이터
-#****************************************
-dataL1 = trainCHW %>% 
-  dplyr::group_by(type2) %>% 
-  dplyr::summarise(
-    Height = mean(Height, na.rm = TRUE)
-  )
-
-fileInfo2 = Sys.glob(paste(globalVar$inpPath, "LSH0179_Future_Temp.xlsx", sep = "/"))
-future = openxlsx::read.xlsx(fileInfo2, sheet = 1) %>% 
-  tibble::as.tibble() %>% 
-  dplyr::mutate(
-    sDate = paste(Year, Month, Day, Hour, sep = "-")
-    , dtDate = lubridate::ymd_h(sDate)
-  ) %>% 
-  dplyr::select(dtDate, Temp) 
-
-
-typeList = dataL1$type2 %>% unique() %>% sort()
-
-dataL2 = tibble::tibble()
-for (type in typeList) {
-  
-  tmpData = future %>% 
-    dplyr::mutate(
-      type2 = type
-    ) %>% 
-    dplyr::left_join(dataL1, by = c("type2" = "type2"))
-  
-  dataL2 = dplyr::bind_rows(dataL2, tmpData)
-}
-
-# 테스트셋 전처리
-PAHourlyCHWL1 = dplyr::bind_rows(trainCHW, testCHW) %>% 
-  tibble::as.tibble() %>%
-  dplyr::rename(dtDate = YMDH) %>% 
-  dplyr::select(names(dataL2))
-
-# 통합 데이터셋
-dataL3 = dplyr::bind_rows(dataL2, PAHourlyCHWL1) %>% 
-  dplyr::mutate(
-    type3 = dplyr::case_when(
-      dtDate < lubridate::ymd_h("2047-01-01 00") ~ "2015-2016"
-      , lubridate::ymd_h("2047-01-01 00") <= dtDate & dtDate < lubridate::ymd_h("2054-01-01 00") ~ "2047"
-      , lubridate::ymd_h("2054-01-01 00") <= dtDate ~ "2054"
-      , TRUE ~ "NA"
-    )
-  ) %>% 
-  modelr::add_predictions(lmCHW82type2)
-
-# 통합 데이터셋 확인
-dataL3$type3 %>% unique() %>% sort()
-
-dataL3 %>% 
-  dplyr::filter(dtDate == lubridate::ymd_h("2047-01-01 01"))
-
-#****************************************
-# 시각화
-#****************************************
-saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "종류에 따른 2016,2047,2053 연도별 시계열")
-
-ggplot(dataL3, aes(x = dtDate, y = pred, color = type2)) +
-  geom_line() +
-  geom_smooth(method = 'lm', se = TRUE) +
-  # ggpubr::stat_regline_equation(label.x.npc = 0.0, label.y.npc = 1.0) +
-  # ggpubr::stat_cor(label.x.npc = 0.8, label.y.npc = 1.0) +
-  labs(
-    x = "Date"
-    , y = "Chilled water consumption (kEUI)"
-    , color = NULL
-    , fill = NULL
-    , subtitle = "종류에 따른 2016,2047,2053 연도별 시계열"
-  ) +
-  # facet_wrap(~Year, ncol = 3, scale = "free") +
-  facet_wrap(~type3, nrow = 3, scale = "free_x") +
-  theme(
-    text = element_text(size = 18)
-    , legend.position = "bottom"
-  ) +
-  ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
-
-
-#===============================================================================================
-# Routine : Main R program
-#
-# Purpose : 재능상품 오투잡
-#
-# Author : 해솔
-#
-# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
-#===============================================================================================
-
-#================================================
-# 요구사항
-#================================================
 # R을 이용한 이산화탄소 시계열 데이터 분석 (ARIMA, 평활법, 분해시계열) 및 보고서 작성
 
 #================================================
@@ -28942,7 +28766,6 @@ etsData = forecast::forecast(etsModel, h = 12)
 # 성능 비교
 accuracy(etsData)
 
-
 saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "1999-2019년 안면도에서 연도별 이산화탄소 농도 시계열 + 향후 ETS 12개월 예측")
 
 autoplot(etsData) +
@@ -28974,6 +28797,9 @@ decomp = stl(tsData, t.window=13, s.window="periodic", robust=TRUE)
 seasonData = forecast(decomp)
 # seasonData = forecast::seasadj(decomp)
 
+# 성능 비교
+accuracy(seasonData)
+
 saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "1999-2019년 안면도에서 연도별 이산화탄소 농도 시계열 + 계절 조정")
 
 autoplot(seasonData) +
@@ -28993,91 +28819,702 @@ autoplot(seasonData) +
   ) +
   ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
 
-# 최종선택한 모형식에 대한 예측값
 
 
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+#================================================
+# 요구사항
+#================================================
+# R을 이용한 2047-2054년에 대한 회귀식 시각화
+
+#================================================
+# Set Env
+#================================================
+# setwd("\\\\bluerosa/rosa/Partition 1/UF phd research with Ravi/2020UPenn_journal/LSH0146 _edited")
+
+# globalVar = list()
+# globalVar$inpPath = "."
+# globalVar$figPath = "."
+# globalVar$outPath = "."
+# globalVar$mapPath = "."
+
+# serviceName = "CHWfuture"
+
+rm(list = ls())
+prjName = "test"
+source(here::here("E:/04. TalentPlatform/Github/TalentPlatform-R/src", "InitConfig.R"), encoding = "UTF-8")
+
+serviceName = "LSH0179"
+
+#================================================
+# Main
+#================================================
+library(readxl)
+library(tidyverse)
+library(ggplot2)
+library(ggmap)
+library(lubridate)
+library(MASS)
+library(scales)
+library(dplyr)
+library(hrbrthemes)
+library(data.table)
+library(ggpubr)
+library(forcats)
+library(lubridate)
+library(openxlsx)
+
+#****************************************
+# 주 데이터
+#****************************************
+# fileInfo = Sys.glob(paste(globalVar$inpPath, "LSH0146_PAhourlyCHW.csv", sep = "/"))
+fileInfo = Sys.glob(paste(globalVar$inpPath, "LSH0179_PAhourlyCHW.csv", sep = "/"))
+
+# PAHourlyCHW <- read.csv(file = fileInfo, stringsAsFactors = TRUE)
+PAHourlyCHW = data.table::fread(file = fileInfo)
+
+ind = which(stringr::str_detect(PAHourlyCHW$type2, regex("office")))
+PAHourlyCHW[ind, "type2"] = "office"
+summary(PAHourlyCHW) 
+
+PAHourlyCHW$weekday<-as.factor(PAHourlyCHW$weekday)
+PAHourlyCHW$type2<-as.factor(PAHourlyCHW$type2)
+PAHourlyCHW$YMDH2<-ymd_hms(PAHourlyCHW$YMDH)
+summary(PAHourlyCHW) 
+
+trainCHWL1 = PAHourlyCHW %>%
+  dplyr::filter(
+    ! as.numeric(type2) %in%  c(2, 3)
+  ) %>% 
+  dplyr::mutate(
+    makeLegend = dplyr::case_when(
+      stringr::str_detect(type2, regex("Education")) ~ "Education"
+      , stringr::str_detect(type2, regex("Lab")) ~ "Lab"
+      , stringr::str_detect(type2, regex("Lodge")) ~ "Lodging"
+      , stringr::str_detect(type2, regex("office")) ~ "Office"
+      , stringr::str_detect(type2, regex("public")) ~ "Public Assembly"
+      , TRUE ~ "NA"
+    )
+  ) %>% 
+  as.tibble()
+
+dd = trainCHWL1 %>% 
+  dplyr::filter(YMDH2 == lubridate::ymd_hms("2016-06-30 23:30:00"))
 
 
-# CO2matrix = as.matrix(data)
+#-------------------------
+# [ADD] 
+trainCHW <-subset(trainCHWL1, trainCHWL1$YMDH2 < lubridate::ymd_hms("2016-06-30 23:30:00"))
+summary(trainCHW)#2015-07-01 01:00:00 -2016-07-01 01:00:00
 
-# mod = cbind('x' = CO2matrix[,1], 'y' = CO2matrix[,4])
-# mod.y = cbind(CO2matrix[,4])
+# [ADD] 
+testCHW <-subset(trainCHWL1, trainCHWL1$YMDH2 > lubridate::ymd_hms("2016-06-30 23:30:00") & trainCHWL1$YMDH < lubridate::ymd_hms("2016-08-14 23:30:00"))
+summary(testCHW)#2016-07-02 02:00:00 - 2016-08-14 14:00:00
 
-# Y = ts(mod.y)
+lmCHW82type2 = lm(CHWEUI ~ type2 + poly(Height,2) + poly(Temp,2), data = trainCHW)
+summary(lmCHW82type2)
 
-# autoplot(tsData)
+#****************************************
+# 보조 데이터
+#****************************************
+dataL1 = trainCHW %>% 
+  dplyr::group_by(type2) %>% 
+  dplyr::summarise(
+    Height = mean(Height, na.rm = TRUE)
+  )
 
-checkresiduals(Y)
-
-Acf(Y) 
-
-
-Pacf(Y)
-
-# ACF 및 PACF 플롯은 잔차 플롯입니다. 이론적으로 포인트는 모두 신뢰 구간 인 파란색 선 내에 포함되어야합니다. 신뢰 구간을 벗어난 일부 잔차를 보는 것은 정상이지만 이처럼 보이지 않아야합니다. PACF의 부비동 패턴은 여기에 계절적 측면이 있음을 증명합니다.
-# ARIMA 모델을 적절하게 사용할 수 있도록 mod.y.ts를 12의 빈도로 설정했습니다. 이렇게하면 ARIMA 모델에 월별 데이터로 작업하고 있음을 알리고 ARIMA 모델이 적절한 ARIMA 모델을 찾는 데 적절하게 도움을 줄 수 있습니다. . auto.arima를 사용하기 전에 계절성을 고려하지 않았기 때문에 적절한 ARIMA 모델을 찾는 데 어려움을 겪었습니다. 빈도 = 12를 추가하여 월간 빈도를 얻기 위해 시계열 객체를 변경 한 후 모델이 크게 향상되었음을 알 수 있습니다.
-# 내 첫 번째 auto.arima 모델은 모델에서 단계적 선택을 사용했기 때문에 최고가 아니 었습니다. 결과는 다음과 같습니다.
-
-
-mod.y.ts = ts(tsData, frequency = 12) 
-
-aa = auto.arima(mod.y.ts, trace = T) 
-
-#AUTO.ARIMA MODEL SUGGESTION IS SUPPOSEDLY
-#ARIMA(3,1,0)(2,1,0)[12]
-
-#something significant seems to be occurring every 3 years. 
-#By setting our lag.max = 60, we are forecasting values for 
-#the next 5 years....
-
-ra = residuals(aa)
-
-Pacf(ra, lag.max = 60) 
-
-Acf(ra, lag.max = 60)
-
-# 아래에서는 단계별 선택을 사용하지 않고 아리마 모델이 작동하도록 결정했습니다.
-# 잔차의 결과가 더 좋으며 3 년 잔차에 대한 문제를 표시하지 않습니다.
-aaNEW = auto.arima(mod.y.ts, trace = T, stepwise=FALSE, approximation=FALSE, ic = c("aicc"))
+fileInfo2 = Sys.glob(paste(globalVar$inpPath, "LSH0179_Future_Temp.xlsx", sep = "/"))
+future = openxlsx::read.xlsx(fileInfo2, sheet = 1) %>% 
+  tibble::as.tibble() %>% 
+  dplyr::mutate(
+    sDate = paste(Year, Month, Day, Hour, sep = "-")
+    , dtDate = lubridate::ymd_h(sDate)
+  ) %>% 
+  dplyr::select(dtDate, Temp) 
 
 
-# auto.arima는 선택한 정보 기준의 근사값을 사용합니다.
-# 여기서는 auto.arima 함수에 단계별 선택 사용을 피하도록 지시했으며 각 arima 모델에 대한 정확한 aicc (내 정보 기준으로 사용중인 항목)도 제공합니다.
-# 최고의 arima 모델은 가장 낮은 AICc 값을 갖습니다.
-# R이 테스트 할 모든 ARIMA 모델을 표시하기 위해 (trace = T)를 사용했습니다.
+typeList = dataL1$type2 %>% unique() %>% sort()
 
-#Testing our new ARIMA models...
+dataL2 = tibble::tibble()
+for (type in typeList) {
+  
+  tmpData = future %>% 
+    dplyr::mutate(
+      type2 = type
+    ) %>% 
+    dplyr::left_join(dataL1, by = c("type2" = "type2"))
+  
+  dataL2 = dplyr::bind_rows(dataL2, tmpData)
+}
 
-#our first ARIMA model
-capEnd = arima(mod.y.ts, order = c(0,1,3), seasonal = c(0,1,1))
-autoplot(forecast(capEnd, h = 120))
+# [ADD] [Case 1] 테스트셋 전처리
+testCHWL1 = testCHW %>% # [ADD] 
+  tibble::as.tibble() %>%
+  dplyr::rename(
+    dtDate = YMDH2
+  ) %>% 
+  dplyr::select(names(dataL2))
 
-resCapEnd = residuals(capEnd)
-
-Pacf(resCapEnd, lag.max = 60) 
-
-Acf(resCapEnd, lag.max = 60)
-
-checkresiduals(capEnd)
-
-#our second ARIMA model
-capEnd2 = arima(mod.y.ts, order = c(1,1,1), seasonal = c(0,1,1))
-
-autoplot(forecast(capEnd2, h = 120))
-
-resCapEnd2 = residuals(capEnd2)
-
-Pacf(resCapEnd2, lag.max = 60) 
-
-Acf(resCapEnd2, lag.max = 60)
-
-
-checkresiduals(capEnd2) 
-
-# ARIMA 모델의 예측을 살펴본 후 ARIMA 모델은 대기 중 CO2의 존재가 지속적으로 증가 할 것임을 보여줍니다. 이것은 이미 관찰되고있는 기후의 추가 변화로 이어질 것이지만, 생존하기에 적합한 기후를 가진 지역을 찾기 위해 이미 고군분투하고있는 종의 생존에도 영향을 미칠 것입니다. 작업을 마치는 동안 정현파 패턴의 진폭이 일정한지 아니면 증가하는지 조사하는 데 관심이있었습니다. 처음 24 개월과 지난 24 개월의 진폭을 관찰했지만 출력은 진폭에서 큰 차이를 보이지 않았습니다. 또한 데이터를 고정하고 진폭이 상승하는 추세가 있는지 확인하기 위해 데이터에서 지연 1 차이를 가져 왔지만 여기서도 어떤 변화도 볼 수 없었습니다. 미래에는 breusch pagan 테스트가 회귀 모델에서 일정한 분산을 테스트하는 방식과 같이 분산이 모델 전체에서 일관성이 있는지 테스트 할 함수를 찾는 것이 흥미로울 것입니다. 시리즈에서 진폭이 증가했다는 증거가 있으면 계절이 더 일찍 발생하고 나중에 종료됨에 따라 더 많은 CO2가 방출되고 흡수되고 있음을 보여줍니다.
+# [ADD] [Case 2] 테스트셋 전처리
+testCHWL12 = testCHW %>% # [ADD] 
+  tibble::as.tibble() %>%
+  plyr::group_by(YMDH2, type2) %>%
+  dplyr::summarise(
+    meanTemp = mean(Temp, na.rm = TRUE)
+    , meanHeight = mean(Height, na.rm = TRUE)
+  ) %>% 
+  dplyr::rename(
+    dtDate = YMDH2
+    , Temp = meanTemp
+    , Height = meanHeight
+    ) %>% 
+  dplyr::select(names(dataL2))
 
 
-# TSET
-# TSET2
-# ARIMA 모델의 예측을 살펴본 후 ARIMA 모델은 대기 중 CO2의 존재가 지속적으로 증가 할 것임을 보여줍니다. 이것은 이미 관찰되고있는 기후의 추가 변화로 이어질 것이지만, 생존하기에 적합한 기후를 가진 지역을 찾기 위해 이미 고군분투하고있는 종의 생존에도 영향을 미칠 것입니다. 작업을 마치는 동안 정현파 패턴의 진폭이 일정한지 아니면 증가하는지 조사하는 데 관심이있었습니다. 처음 24 개월과 지난 24 개월의 진폭을 관찰했지만 출력은 진폭에서 큰 차이를 보이지 않았습니다. 또한 데이터를 고정하고 진폭이 상승하는 추세가 있는지 확인하기 위해 데이터에서 지연 1 차이를 가져 왔지만 여기서도 어떤 변화도 볼 수 없었습니다. 미래에는 breusch pagan 테스트가 회귀 모델에서 일정한 분산을 테스트하는 방식과 같이 분산이 모델 전체에서 일관성이 있는지 테스트 할 함수를 찾는 것이 흥미로울 것입니다. 시리즈에서 진폭이 증가했다는 증거가 있으면 계절이 더 일찍 발생하고 나중에 종료됨에 따라 더 많은 CO2가 방출되고 흡수되고 있음을 보여줍니다.
+# [ADD] 트레이닝셋
+trainCHWL1 = trainCHW %>%
+  tibble::as.tibble() %>%
+  dplyr::group_by(YMDH2, type2) %>%
+  dplyr::summarise(
+    meanCHWEUI = mean(CHWEUI, na.rm = TRUE)
+  ) %>% 
+  dplyr::rename(
+    dtDate = YMDH2
+    , pred = meanCHWEUI
+    )
+
+# 통합 데이터셋
+dataL3 = dplyr::bind_rows(dataL2, testCHWL1) %>%  # [ADD] 
+  modelr::add_predictions(lmCHW82type2) %>% 
+  dplyr::bind_rows(trainCHWL1) %>% # [ADD] 
+  dplyr::mutate(
+    type3 = dplyr::case_when(
+      dtDate < lubridate::ymd_h("2047-01-01 00") ~ "2015-2016"
+      , lubridate::ymd_h("2047-01-01 00") <= dtDate & dtDate < lubridate::ymd_h("2054-01-01 00") ~ "2047"
+      , lubridate::ymd_h("2054-01-01 00") <= dtDate ~ "2054"
+      , TRUE ~ "NA"
+    )
+  )
+
+# 통합 데이터셋 확인
+dataL3$type3 %>% unique() %>% sort()
+
+dataL3 %>% 
+  dplyr::filter(dtDate == lubridate::ymd_h("2047-01-01 01"))
+
+#****************************************
+# 시각화
+#****************************************
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "Energy consumption prediction by building type in 2047 and 2053")
+# saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "[Case 2] Energy consumption prediction by building type in 2047 and 2053")
+
+
+Sys.setlocale("LC_ALL", "English")
+
+ggplot(dataL3, aes(x = dtDate, y = pred, color = type2)) +
+  geom_line() +
+  # geom_smooth(method = 'lm', se = TRUE) +
+  # ggpubr::stat_regline_equation(label.x.npc = 0.0, label.y.npc = 1.0) +
+  # ggpubr::stat_cor(label.x.npc = 0.8, label.y.npc = 1.0) +
+  labs(
+    x = "Date"
+    , y = "Chilled water consumption (kBTU/GSF)"
+    , color = NULL
+    , fill = NULL
+    , subtitle = "Energy consumption prediction by building type in 2047 and 2053"
+  ) +
+  # facet_wrap(~Year, ncol = 3, scale = "free") +
+  # facet_wrap(~type3, nrow = 3, scale = "free_x") +
+  facet_wrap(~type3, ncol = 3, scale = "free_x") +
+  theme(
+    text = element_text(size = 18)
+    , axis.text.x = element_text(angle = 45, hjust = 1)
+    , legend.position = "bottom"
+  ) +
+  ggsave(filename = saveImg, width = 12, height = 8, dpi = 600)
+
+
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+#================================================
+# 요구사항
+#================================================
+# R을 이용한 자유 주제에 대한 보고서
+
+# [R을 이용한 서울시 아파트 실거래가 회귀분석 및 주택가격 결정 요인]
+# 약 364,917개의 데이터 처리를 위해 빅데이터 처리 연산프로그램인 R 프로그래밍을 활용
 # 
+# 자료수집 1
+# - 자료 설명 : 법정동 코드 목록
+# - 수집 방법 : 해당 URL에서 자료 다운로드
+# - 자료 개수 : 46,180개
+# - URL : https://www.code.go.kr/stdcode/regCodeL.do
+# - 출처 : 행정표준코드관리시스템
+# 
+# 자료수집 2
+# - 자료 설명 : 국토교통부_아파트매매 실거래자료
+# - 수집 방법 : 공공데이터포털에서 오픈 API 자료 수집
+# - 자료 기간 : 2017년 – 2020년 05월
+# - 자료 개수 : 364,917개
+# - URL : https://www.data.go.kr/data/15058747/openapi.do
+# - 출처 : 공공데이터포털 (국토교통부)
+# 
+# 자료수집 3
+# - 자료 설명 : 가구 특성정보 (+소득정보)
+# - 자료 개수 : 39,094개
+# - URL : https://www.bigdata-environment.kr/user/data_market/detail.do?id=8cee0160-2dff-11ea-9713-eb3e5186fb38
+# - 출처 : 공공데이터포털 (국토교통부)
+# 
+# 아파트 실거래 가격 데이터를 이용하여 연소득당 거래금액 (주택 가격 결정 요인) 계산 및 기초통계 분석
+# 특히 전체 및 법정동을 구분하여 히스토그램, 상자, 산점도 그래프뿐만 아니라 공간 분포  시각화 (TMAP) 수행
+# 또한 주택 가격 결정 요인을 분석하기 위해서 다음과 같은 독립변수 및 종속변수를 설정하여 회귀분석을 수행
+# - 독립변수 : 건축년도, 전용면적, 층, 법정동, 면적당 거래금액
+# - 종속변수 : 연소득당 거래금액 (주택 가격 결정 요인)
+
+#================================================
+# Set Env
+# #================================================
+# globalVar = list()
+# globalVar$inpPath = "."
+# globalVar$figPath = "."
+# globalVar$outPath = "."
+# globalVar$mapPath = "."
+
+rm(list = ls())
+prjName = "test"
+source(here::here("E:/04. TalentPlatform/Github/TalentPlatform-R/src", "InitConfig.R"), encoding = "UTF-8")
+
+serviceName = "LSH0178"
+
+#================================================
+# Main
+#================================================
+library(ggplot2)
+library(tidyverse)
+library(httr)
+library(rvest)
+library(jsonlite)
+library(RCurl)
+library(readr)
+library(magrittr)
+library(ggrepel)
+library(colorRamps)
+library(ggpubr)
+library(lm.beta)
+library(ggpmisc)
+
+cbMatlab = colorRamps::matlab.like(11)
+
+# 공공데이터포털 API키
+# reqDataKey = globalVar$dataKey
+reqDataKey = "Ftj0WhfmnXN86rrVCPTGvlQJ%oJs9l+ZQjJzPgtc37yVPWuXs8UOP3kD2lTyy9DFInQZj2VvYFH1+Uh7gNgTLLA=="
+
+# 요청 URL
+reqUrl = "http://openapi.molit.go.kr:8081/OpenAPI_ToolInstallPackage/service/rest/RTMSOBJSvc/getRTMSDataSvcAptTrade"
+# 요청 키
+reqKey = stringr::str_c("?serviceKey=", RCurl::curlEscape(stringr::str_conv(reqDataKey, encoding = "UTF-8")))
+
+# 서울에서 서울특별시 법정동 코드 읽기
+codeInfo = Sys.glob(paste(globalVar$mapPath, "/admCode/법정동코드_전체자료.txt", sep = "/"))
+
+codeList = readr::read_delim(codeInfo, delim = "\t", locale = locale("ko", encoding = "EUC-KR"), col_types = "ccc") %>%
+  magrittr::set_colnames(c("EMD_CD", "addr", "isUse")) %>% 
+  tidyr::separate(col = "addr", into = c("d1", "d2", "d3", "d4"), sep = " ") %>%
+  dplyr::mutate(
+    emdCd = stringr::str_sub(EMD_CD, 1, 5)
+  ) %>% 
+  dplyr::filter(
+    stringr::str_detect(d1, regex("서울특별시"))
+    , stringr::str_detect(isUse, regex("존재"))
+    , is.na(d3)
+    , is.na(d4)
+  )
+
+codeDistList = codeList %>%
+  dplyr::distinct(emdCd)
+
+# 날짜 기간
+# dtDateList = seq(as.Date("2017-01-01"), as.Date(format(Sys.time(), "%Y-%m-%d")), "1 month")
+dtDateList = seq(as.Date("2018-12-01"), as.Date(format(Sys.time(), "%Y-%m-%d")), "1 month")
+
+fileInfo = Sys.glob(paste(globalVar$inpPath, "LSH0178_가구_특성정보_(+소득정보)_201211.csv", sep = "/"))
+costData = readr::read_csv(file = fileInfo) %>%
+  dplyr::mutate(
+    emdCd = stringr::str_sub(as.character(raw_dn_cd), 1, 5)
+  ) %>% 
+  dplyr::group_by(emdCd) %>% 
+  dplyr::summarise(
+    meanCost = mean(avrg_income_amount_am, na.rm = TRUE)
+  )
+
+#***********************************************
+# 공공데이터포털 API (자료 수집)
+#***********************************************
+# dataL1 = tibble::tibble()
+# 
+# for (i in 1:length(dtDateList)) {
+#   for (j in 1:nrow(codeDistList)) {
+#     
+#     sDate = format(dtDateList[i], "%Y%m")
+#     
+#     # 요청 법정동
+#     reqLawdCd = stringr::str_c("&LAWD_CD=", codeDistList[j, 'emdCd'])
+#     
+#     # 요청 날짜
+#     reqYmd = stringr::str_c("&DEAL_YMD=", sDate)
+#     
+#     resData = httr::GET(
+#       stringr::str_c(reqUrl, reqKey, reqLawdCd, reqYmd)
+#     ) %>%
+#       httr::content(as = "text", encoding = "UTF-8") %>%
+#       jsonlite::fromJSON()
+#     
+#     resCode = resData$response$header$resultCode
+#     if (resCode != "00") { next }
+#     
+#     resItems = resData$response$body$items
+#     if (resItems == "") { next }
+#     
+#     cat(sprintf(
+#       "dtDate : %10s | code : %5s"
+#       , sDate
+#       , codeList[j, 'emdCd']
+#     ), "\n")
+#     
+#     resItem = resItems$item %>%
+#       as.data.frame()
+#     # readr::type_convert()
+#     
+#     dataL1 = dplyr::bind_rows(
+#       dataL1
+#       , data.frame(
+#         'dtYm' = sDate
+#         , 'emdCd' = codeDistList[j, 'emdCd']
+#         , resItem
+#       )
+#     )
+#   }
+# }
+
+#***********************************************
+# 자료 저장
+#***********************************************
+# saveFile = sprintf("%s/%s_%s", globalVar$outPath, serviceName, "seoul apartment transaction.csv")
+# readr::write_csv(x = dataL1, file = saveFile)
+
+#***********************************************
+# 데이터 전처리
+#***********************************************
+fileInfo = Sys.glob(paste(globalVar$inpPath, "LSH0178_seoul apartment transaction.csv", sep = "/"))
+
+dataL2 = readr::read_csv(file = fileInfo) %>% 
+  readr::type_convert() %>% 
+  dplyr::mutate(
+    지번2 = readr::parse_number(지번)
+    , emdCd = as.character(emdCd)
+  ) %>% 
+  dplyr::left_join(codeList, by = c("emdCd" = "emdCd")) %>%
+  dplyr::left_join(costData, by = c("emdCd" = "emdCd")) %>% 
+  dplyr::mutate(
+    addr = stringr::str_trim(paste(d1, d2, 아파트, 지번, seq = ' '))
+    , val = 거래금액 / meanCost # 연소득당 거래금액
+    , val2 = 거래금액 / 전용면적 # 면적당 거래금액
+  )
+
+dataL3 = dataL2 %>% 
+  dplyr::group_by(d2) %>% 
+  dplyr::summarise(
+    meanVal = mean(val, na.rm = TRUE)
+  )
+
+#***********************************************
+# 통계 분석
+#***********************************************
+# 연소득당 거래금액 따른 기초 통계량
+dataL2 %>%
+  dplyr::summarise(
+    meanVal = mean(val, na.rm = TRUE) # 평균값
+    , medianVal = median(val, na.rm = TRUE) # 중앙값
+    , sdVal = sd(val, na.rm = TRUE) # 표준편차
+    , maxVal = max(val, na.rm = TRUE) # 최대값
+    , minVal = min(val, na.rm = TRUE) # 최소값
+    , cnt = n() # 개수
+  ) %>%
+  dplyr::arrange(desc(meanVal))
+
+# 법정동에 따른 연소득당 거래금액 따른 기초 통계량
+dataL2 %>%
+  dplyr::group_by(d2) %>% 
+  dplyr::summarise(
+    meanVal = mean(val, na.rm = TRUE) # 평균값
+    , medianVal = median(val, na.rm = TRUE) # 중앙값
+    , sdVal = sd(val, na.rm = TRUE) # 표준편차
+    , maxVal = max(val, na.rm = TRUE) # 최대값
+    , minVal = min(val, na.rm = TRUE) # 최소값
+    , cnt = n() # 개수
+  ) %>%
+  dplyr::arrange(desc(meanVal))
+
+
+#**********************************************************
+# 그래프 그리기(히스토그램, 상자 수염그림, 산점도 등)
+#**********************************************************
+# 연소득당 거래금액 따른 히스토그램
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "연소득당 거래금액 따른 히스토그램")
+
+ggplot(dataL2, aes(x = val)) +
+  geom_histogram(aes(y = ..density..), colour = "black", fill = "white") +
+  geom_density(alpha = 0.2) +
+  geom_rug(aes(x = val, y = 0), position = position_jitter(height = 0)) +
+  labs(x = "연소득당 거래금액", y = "밀도 함수", colour = NULL, fill = NULL, subtitle = "연소득당 거래금액 따른 히스토그램") +
+  theme(text = element_text(size = 18)) +
+  ggsave(filename = saveImg, width = 12, height = 6, dpi = 600)
+
+# 법정동에 따른 연소득당 거래금액 히스토그램
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "법정동에 따른 연소득당 거래금액 히스토그램")
+
+ggplot(dataL3, aes(x = d2, y = meanVal, fill = meanVal)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  geom_text(aes(label = round(meanVal, 0)), vjust = 1.6, color = "white", size = 4) +
+  labs(x = "법정동", y = "연소득당 거래금액", fill = NULL, subtitle = "법정동에 따른 연소득당 거래금액 히스토그램") +
+  scale_fill_gradientn(colours = cbMatlab, na.value = NA) +
+  theme(
+    text = element_text(size = 18)
+    , axis.text.x = element_text(angle = 45, hjust = 1)
+  ) +
+  ggsave(filename = saveImg, width = 12, height = 8, dpi = 600)
+
+
+# 연소득당 거래금액 따른 상자 그림
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "연소득당 거래금액 따른 상자 그림")
+
+ggplot(dataL2, aes(y = val)) +
+  geom_boxplot() +
+  labs(x = NULL, y = "연소득당 거래금액", colour = NULL, fill = NULL, subtitle = "연소득당 거래금액 따른 상자 그림") +
+  theme(text = element_text(size = 18)) +
+  ggsave(filename = saveImg, width = 12, height = 6, dpi = 600)
+
+# 법정동에 따른 연소득당 거래금액 상자 그림
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "법정동에 따른 연소득당 거래금액 상자 그림")
+
+ggplot(dataL2, aes(x = d2, y = val, color = d2)) +
+  geom_boxplot() +
+  labs(x = "법정동", y = "연소득당 거래금액", fill = NULL, subtitle = "법정동에 따른 연소득당 거래금액 상자 그림") +
+  # scale_colour_gradientn(colours = cbMatlab, na.value = NA) +
+  theme(
+    text = element_text(size = 18)
+    , axis.text.x = element_text(angle = 45, hjust = 1)
+  ) +
+  ggsave(filename = saveImg, width = 12, height = 8, dpi = 600)
+
+# 연소득당 거래금액 산점도
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "연소득당 거래금액 산점도")
+
+ggpubr::ggscatter(
+  dataL2, x = "meanCost", y = "거래금액"
+  , add = "reg.line", conf.int = TRUE, scales = "free_x"
+  # , facet.by = "전체 법정동"
+  , add.params = list(color = "blue", fill = "lightblue")
+) +
+  labs(
+    title = NULL
+    , x = "연소득"
+    , y = "거래금액"
+    , color = NULL
+    , subtitle = "연소득당 거래금액 산점도"
+  ) +
+  theme_bw() +
+  ggpubr::stat_regline_equation(label.x.npc = 0.0, label.y.npc = 1.0, size = 5) +
+  ggpubr::stat_cor(label.x.npc = 0.0, label.y.npc = 0.90, p.accuracy  =  0.01,  r.accuracy  =  0.01, size = 5) +
+  theme(text = element_text(size = 18)) +
+  ggsave(filename = saveImg, width = 8, height = 8, dpi = 600)
+
+# 법정동에 따른 연소득당 거래금액 산점도
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "법정동에 따른 연소득당 거래금액 산점도")
+
+ggpubr::ggscatter(
+  dataL2, x = "meanCost", y = "거래금액", color = "d2"
+  , add = "reg.line", conf.int = TRUE, scales = "free_x"
+  , facet.by = "d2"
+  , add.params = list(color = "black", fill = "lightgray")
+) +
+  labs(
+    title = NULL
+    , x = "연소득"
+    , y = "거래금액"
+    , color = NULL
+    , subtitle = "법정동에 따른 연소득당 거래금액 산점도"
+  ) +
+  ggpubr::stat_regline_equation(label.x.npc = 0.0, label.y.npc = 0.95) +
+  ggpubr::stat_cor(label.x.npc = 0.0, label.y.npc = 0.85, p.accuracy  =  0.01,  r.accuracy  =  0.01) +
+  theme(text = element_text(size = 14)) +
+  ggsave(filename = saveImg, width = 12, height = 15, dpi = 600)
+
+#***********************************************
+# 지도 그리기
+#***********************************************
+addrList = dataL2$addr %>% unique() %>% sort() %>%
+  as.tibble()
+
+# 구글 API 하루 제한
+# addrData = ggmap::mutate_geocode(addrList, value, source = "google")
+
+# 각 주소에 따라 위/경도 반환
+# for (i in 1:nrow(addrList)) {
+#   addrData = ggmap::mutate_geocode(addrList[i, 'value'], value, source = "google")
+# 
+#   if (nrow(addrData) < 1) { next }
+# 
+#   readr::write_csv(x = addrData, file = saveFile, append = TRUE)
+# }
+
+saveFile = sprintf("%s/%s_%s.csv", globalVar$outPath, serviceName, "seoul apartment transaction-addrData")
+addrData =  readr::read_csv(file = saveFile, col_names = c("value", "lon", "lat"))
+
+dataL4 = dataL2 %>% 
+  dplyr::left_join(addrData, by = c("addr" = "value")) %>% 
+  dplyr::filter(
+    ! is.na(lon)
+    , ! is.na(lat)
+    , dplyr::between(lon, 120, 130)
+    , dplyr::between(lat, 30, 40)
+  ) %>% 
+  dplyr::group_by(lon, lat, addr) %>% 
+  dplyr::summarise(
+    meanVal = mean(val, na.rm = TRUE)
+  )
+
+
+map = ggmap::get_map(
+  location = c(lon = mean(dataL4$lon, na.rm = TRUE), lat = mean(dataL4$lat, na.rm = TRUE))
+  , zoom = 12
+)
+
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "연소득당 거래금액 지도 매핑")
+
+ggmap(map, extent = "device") +
+  geom_point(data = dataL4, aes(x = lon, y = lat, color = meanVal, size = meanVal, alpha = 0.3)) +
+  scale_color_gradientn(colours = cbMatlab, na.value = NA) +
+  labs(
+    subtitle = NULL
+    , x = NULL
+    , y = NULL
+    , fill = NULL
+    , colour = NULL
+    , title = NULL
+    , size = NULL
+  ) +
+  scale_alpha(guide = 'none') +
+  theme(
+    text = element_text(size = 18)
+  ) +
+  ggsave(filename = saveImg, width = 10, height = 10, dpi = 600)
+
+
+#***********************************************
+# 주택 가격 결정 요인을 위한 회귀분석
+#***********************************************
+dataL4 = dataL2 %>%
+  dplyr::select(건축년도, 전용면적, 층, val2, d2, val)
+
+#+++++++++++++++++++++++++++++++++++++++++++++++
+# 전체 아파트
+dataL5 = dataL4
+
+# 중형 이상 아파트 (66 m2 이상)
+# dataL5 = dataL4 %>% 
+#   dplyr::filter(전용면적 >= 66) %>% 
+#   dplyr::select(-전용면적)
+
+# 소형 아파트 (66 m2 미만)
+# dataL5 = dataL4 %>% 
+#   dplyr::filter(전용면적 < 66) %>% 
+#   dplyr::select(-전용면적)
+#+++++++++++++++++++++++++++++++++++++++++++++++
+
+# 선형회귀분석
+lmFit = lm(val ~ ., data = dataL5)
+summary(lmFit)
+
+# 단계별 소거법
+lmFitStep = MASS::stepAIC(lmFit, direction = "both")
+summary(lmFitStep)
+
+# Beta 회귀계수
+lmBetaFit = lm.beta::lm.beta(lmFitStep)
+lmBetaFit$standardized.coefficients %>% round(2) %>% sort() %>% rev()
+
+# 산점도 그림
+validData = data.frame(
+  xAxis = predict(lmFitStep)
+  , yAxis = dataL5$val
+  , type = "전체 아파트"
+  # , type = "중형 아파트"
+  # , type = "소형 아파트"
+  
+)
+
+# corVal = cor(validData$xAxis, validData$yAxis)
+biasVal = Metrics::bias(validData$xAxis, validData$yAxis)
+rmseVal = Metrics::rmse(validData$xAxis, validData$yAxis)
+
+# 전체 아파트에 대한 주택가격 결정요인 (연소득당 거래금액) 예측 산점도
+# saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "전체 아파트에 대한 주택가격 결정요인 예측 산점도")
+# saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "중형 아파트에 대한 주택가격 결정요인 예측 산점도")
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "소형 아파트에 대한 주택가격 결정요인 예측 산점도")
+
+ggscatter(
+  validData, x = "xAxis", y = "yAxis", color = "black"
+  , add = "reg.line", conf.int = TRUE
+  , facet.by = "type"
+  , add.params = list(color = "blue", fill = "lightblue")
+) +
+  theme_bw() +
+  ggpubr::stat_regline_equation(label.x.npc = 0.0, label.y.npc = 1.0, size = 4) +
+  ggpubr::stat_cor(label.x.npc = 0.0, label.y.npc = 0.9, size = 4) +
+  ggpp::annotate("text_npc", npcx = 0.05, npcy = 0.8, label = sprintf("Bias = %s", round(biasVal, 2)), hjust = 0, size = 4) +
+  ggpp::annotate("text_npc", npcx = 0.05, npcy = 0.7, label = sprintf("RMSE = %s", round(rmseVal, 2)), hjust = 0, size = 4) +
+  # ggpp::annotate("text_npc", npcx = 0.05, npcy = 0.60, label = sprintf("Bias = %s", round(biasVal, 2)), hjust = 0, size = 4) +
+  # ggpp::annotate("text_npc", npcx = 0.05, npcy = 0.55, label = sprintf("RMSE = %s", round(rmseVal, 2)), hjust = 0, size = 4) +
+  labs(
+    title = NULL
+    , x = "예측"
+    , y = "실측"
+    # , subtitle = "전체 아파트에 대한 주택가격 결정요인 예측 산점도"
+    # , subtitle = "중형 아파트에 대한 주택가격 결정요인 예측 산점도"
+    , subtitle = "소형 아파트에 대한 주택가격 결정요인 예측 산점도"
+  ) +
+  theme(text = element_text(size = 16)) +
+  ggsave(filename = saveImg, width = 6, height = 6, dpi = 600)
+
+
+# 주택 가격 결정 요인을 위한 관계성
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "주택 가격 결정 요인을 위한 관계성")
+
+dataL2 %>%
+  dplyr::select(건축년도, 전용면적, 층, val2, val) %>% 
+  dplyr::rename(
+    "면적당거래금액" = val2
+    , "연소득당거래금액" = val
+  ) %>% 
+  GGally::ggpairs(.) +
+  theme(text = element_text(size = 18))
+
+ggsave(filename = saveImg, width = 12, height = 8, dpi = 600)
