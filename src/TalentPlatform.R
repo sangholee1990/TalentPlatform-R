@@ -28965,9 +28965,9 @@ testCHWL1 = testCHW %>% # [ADD]
   dplyr::select(names(dataL2))
 
 # [ADD] [Case 2] 테스트셋 전처리
-testCHWL12 = testCHW %>% # [ADD] 
+testCHWL1 = testCHW %>% # [ADD] 
   tibble::as.tibble() %>%
-  plyr::group_by(YMDH2, type2) %>%
+  dplyr::group_by(YMDH2, type2) %>%
   dplyr::summarise(
     meanTemp = mean(Temp, na.rm = TRUE)
     , meanHeight = mean(Height, na.rm = TRUE)
@@ -29015,9 +29015,8 @@ dataL3 %>%
 # 시각화
 #****************************************
 saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "Energy consumption prediction by building type in 2047 and 2053")
-# saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "[Case 2] Energy consumption prediction by building type in 2047 and 2053")
 
-
+# [ADD]
 Sys.setlocale("LC_ALL", "English")
 
 ggplot(dataL3, aes(x = dtDate, y = pred, color = type2)) +
@@ -29119,6 +29118,9 @@ library(colorRamps)
 library(ggpubr)
 library(lm.beta)
 library(ggpmisc)
+# unloadNamespace('raster')
+library(gstat)
+library(sf)
 
 cbMatlab = colorRamps::matlab.like(11)
 
@@ -29236,7 +29238,9 @@ dataL2 = readr::read_csv(file = fileInfo) %>%
     addr = stringr::str_trim(paste(d1, d2, 아파트, 지번, seq = ' '))
     , val = 거래금액 / meanCost # 연소득당 거래금액
     , val2 = 거래금액 / 전용면적 # 면적당 거래금액
+    , dtYear = lubridate::year(lubridate::ym(dtYm))
   )
+
 
 dataL3 = dataL2 %>% 
   dplyr::group_by(d2) %>% 
@@ -29316,7 +29320,7 @@ saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "법정동에 
 
 ggplot(dataL2, aes(x = d2, y = val, color = d2)) +
   geom_boxplot() +
-  labs(x = "법정동", y = "연소득당 거래금액", fill = NULL, subtitle = "법정동에 따른 연소득당 거래금액 상자 그림") +
+  labs(x = "법정동", y = "연소득당 거래금액", color = "법정동", fill = NULL, subtitle = "법정동에 따른 연소득당 거래금액 상자 그림") +
   # scale_colour_gradientn(colours = cbMatlab, na.value = NA) +
   theme(
     text = element_text(size = 18)
@@ -29346,27 +29350,6 @@ ggpubr::ggscatter(
   theme(text = element_text(size = 18)) +
   ggsave(filename = saveImg, width = 8, height = 8, dpi = 600)
 
-# 법정동에 따른 연소득당 거래금액 산점도
-saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "법정동에 따른 연소득당 거래금액 산점도")
-
-ggpubr::ggscatter(
-  dataL2, x = "meanCost", y = "거래금액", color = "d2"
-  , add = "reg.line", conf.int = TRUE, scales = "free_x"
-  , facet.by = "d2"
-  , add.params = list(color = "black", fill = "lightgray")
-) +
-  labs(
-    title = NULL
-    , x = "연소득"
-    , y = "거래금액"
-    , color = NULL
-    , subtitle = "법정동에 따른 연소득당 거래금액 산점도"
-  ) +
-  ggpubr::stat_regline_equation(label.x.npc = 0.0, label.y.npc = 0.95) +
-  ggpubr::stat_cor(label.x.npc = 0.0, label.y.npc = 0.85, p.accuracy  =  0.01,  r.accuracy  =  0.01) +
-  theme(text = element_text(size = 14)) +
-  ggsave(filename = saveImg, width = 12, height = 15, dpi = 600)
-
 #***********************************************
 # 지도 그리기
 #***********************************************
@@ -29385,7 +29368,7 @@ addrList = dataL2$addr %>% unique() %>% sort() %>%
 #   readr::write_csv(x = addrData, file = saveFile, append = TRUE)
 # }
 
-saveFile = sprintf("%s/%s_%s.csv", globalVar$outPath, serviceName, "seoul apartment transaction-addrData")
+saveFile = sprintf("%s/%s_%s.csv", globalVar$inpPath, serviceName, "seoul apartment transaction-addrData")
 addrData =  readr::read_csv(file = saveFile, col_names = c("value", "lon", "lat"))
 
 dataL4 = dataL2 %>% 
@@ -29405,6 +29388,7 @@ dataL4 = dataL2 %>%
 map = ggmap::get_map(
   location = c(lon = mean(dataL4$lon, na.rm = TRUE), lat = mean(dataL4$lat, na.rm = TRUE))
   , zoom = 12
+  , maptype = "hybrid"
 )
 
 saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "연소득당 거래금액 지도 매핑")
@@ -29426,6 +29410,150 @@ ggmap(map, extent = "device") +
     text = element_text(size = 18)
   ) +
   ggsave(filename = saveImg, width = 10, height = 10, dpi = 600)
+
+
+#***********************************************
+# IDW 지도 그리기
+#***********************************************
+dtYearList = dataL2$dtYear %>% unique() %>% sort()
+
+# dtYearInfo = 2017
+for (dtYearInfo in dtYearList) {
+  
+  dataL5 = dataL2 %>% 
+    dplyr::left_join(addrData, by = c("addr" = "value")) %>% 
+    dplyr::filter(
+      ! is.na(lon)
+      , ! is.na(lat)
+      , dplyr::between(lon, 120, 130)
+      , dplyr::between(lat, 30, 40)
+      , dtYear == dtYearInfo
+    ) %>% 
+    dplyr::group_by(lon, lat, addr) %>% 
+    dplyr::summarise(
+      meanVal = mean(val, na.rm = TRUE)
+    )
+  
+  # 면적당 거래금액 지도 집중도
+  spNewData = expand.grid(
+    x = seq(from = min(dataL5$lon, na.rm = TRUE), to = max(dataL5$lon, na.rm = TRUE), by = 0.003)
+    , y = seq(from = min(dataL5$lat, na.rm = TRUE), to = max(dataL5$lat, na.rm = TRUE), by = 0.003)
+  )
+  sp::coordinates(spNewData) = ~ x + y
+  sp::gridded(spNewData) = TRUE
+  
+  spData = dataL5
+  sp::coordinates(spData) = ~ lon + lat
+  
+  # IDW 학습 및 전처리수행
+  spDataL1 = gstat::idw(
+    formula = meanVal ~ 1
+    , locations = spData
+    , newdata = spNewData
+    , nmax = 4
+  ) %>%
+    as.data.frame() %>%
+    dplyr::rename(
+      lon = x
+      , lat = y
+      , val = var1.pred
+    ) %>%
+    dplyr::select(-var1.var) %>% 
+    as.tibble()
+  
+  summary(spDataL1)
+  saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, stringr::str_c(dtYearInfo, "년 연소득당 거래금액 IDW 지도 매핑"))
+  
+  ggmap(map, extent = "device") +
+    geom_tile(data = spDataL1, aes(x = lon, y = lat, fill = val, alpha = 0.2)) +
+    # geom_raster(data = spDataL1, aes(x = lon, y = lat, fill = val, alpha = 0.2)) +
+    # scale_color_gradientn(colours = cbMatlab, na.value = NA) +
+    scale_fill_gradientn(colours = cbMatlab, na.value = NA) +
+    labs(
+      subtitle = stringr::str_c(dtYearInfo, "년 연소득당 거래금액 IDW 지도 매핑")
+      , x = NULL
+      , y = NULL
+      , fill = NULL
+      , colour = NULL
+      , title = NULL
+      , size = NULL
+    ) +
+    scale_alpha(guide = 'none') +
+    theme(
+      text = element_text(size = 18)
+    ) +
+    ggsave(filename = saveImg, width = 10, height = 10, dpi = 600)
+  
+}
+
+#==========================================
+# TMAP 주제도 그리기
+#==========================================
+mapInfo = Sys.glob(paste(globalVar$mapPath, "/koreaInfo/TL_SCCO_SIG.shp", sep = "/"))
+mapShape = sf::st_read(mapInfo, options = "ENCODING=EUC-KR")
+
+# 전체 법정동에 따른 연소득당 거래금액 주제도
+dataL6 = dataL2 %>% 
+  dplyr::left_join(addrData, by = c("addr" = "value")) %>% 
+  dplyr::filter(
+    ! is.na(lon)
+    , ! is.na(lat)
+    , dplyr::between(lon, 120, 130)
+    , dplyr::between(lat, 30, 40)
+  ) %>% 
+  dplyr::group_by(emdCd) %>%
+  dplyr::summarise(
+    meanVal = mean(val, na.rm = TRUE)
+  )
+
+mapShapeL1 = mapShape %>% 
+  dplyr::inner_join(dataL6, by = c("SIG_CD" = "emdCd"))
+
+setTilte = "전체 법정동에 따른 연소득당 거래금액 주제도"
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName,  setTilte)
+
+tmap::tmap_mode("view")
+
+tmap::tm_shape(mapShapeL1) +
+  tmap::tm_polygons(col = "meanVal", alpha = 0.5, palette = cbMatlab, legend.hist = TRUE, style = "cont") +
+  tmap::tm_text(text = "SIG_KOR_NM") +
+  tmap::tm_legend(outside = TRUE) + 
+  tmap::tm_layout(title = setTilte) +
+  tmap_save(filename = saveImg, width = 10, height = 10, dpi = 600)
+
+# 연도별 법정동에 따른 연소득당 거래금액 주제도
+# dtYearInfo = 2017
+for (dtYearInfo in dtYearList) {
+
+  dataL7 = dataL2 %>% 
+    dplyr::left_join(addrData, by = c("addr" = "value")) %>% 
+    dplyr::filter(
+      ! is.na(lon)
+      , ! is.na(lat)
+      , dplyr::between(lon, 120, 130)
+      , dplyr::between(lat, 30, 40)
+      , dtYear == dtYearInfo
+    ) %>% 
+    dplyr::group_by(emdCd) %>%
+    dplyr::summarise(
+      meanVal = mean(val, na.rm = TRUE)
+    )
+  
+  mapShapeL1 = mapShape %>% 
+    dplyr::inner_join(dataL7, by = c("SIG_CD" = "emdCd"))
+
+  setTilte = stringr::str_c(dtYearInfo, "년 법정동에 따른 연소득당 거래금액 주제도")
+  saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, setTilte)
+  
+  tmap::tmap_mode("view")
+  
+  tmap::tm_shape(mapShapeL1) +
+    tmap::tm_polygons(col = "meanVal", alpha = 0.5, palette = cbMatlab, legend.hist = TRUE, style = "cont") +
+    tmap::tm_text(text = "SIG_KOR_NM") +
+    tmap::tm_legend(outside = TRUE) + 
+    tmap::tm_layout(title = setTilte) +
+    tmap_save(filename = saveImg, width = 10, height = 10, dpi = 600)
+}
 
 
 #***********************************************
