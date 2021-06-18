@@ -29646,3 +29646,214 @@ dataL2 %>%
   theme(text = element_text(size = 18))
 
 ggsave(filename = saveImg, width = 12, height = 8, dpi = 600)
+
+
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+#================================================
+# 요구사항
+#================================================
+# R을 이용한 머신러닝을 이용한 Pima 데이터 분석
+
+#================================================
+# Set Env
+# #================================================
+globalVar = list()
+globalVar$inpPath = "."
+globalVar$figPath = "."
+globalVar$outPath = "."
+globalVar$mapPath = "."
+
+# rm(list = ls())
+# prjName = "test"
+# source(here::here("E:/04. TalentPlatform/Github/TalentPlatform-R/src", "InitConfig.R"), encoding = "UTF-8")
+
+serviceName = "LSH0180"
+
+#================================================
+# Main
+#================================================
+# install.packages("kernlab")
+# install.packages("e1071")
+# install.packages("reshape")
+
+library(ggplot2)
+library(kernlab)
+library(e1071)   # e1071 : SVM 모형 구축을 위한 라이브러리 입니다.
+library(caret)
+library(reshape)
+library(tidyverse)
+library(neuralnet)
+
+options(max.print=999999)   
+# [ reached 'max' / getOption("max.print") -- omitted 656 rows ] 오류를 해결하기위한 조치를 취함.
+
+# Train 데이터
+fileInfo1 = Sys.glob(paste(globalVar$inpPath, "LSH0180_pima-indians-diabetes_train.data", sep = "/"))
+pima_train = read.csv(fileInfo1, header=F)
+# pima_train = read.csv("C:/Users/chemy/Desktop/데마_15주차과제/pima-indians-diabetes_train.data",header=F)
+
+head(pima_train)
+tail(pima_train)     
+str(pima_train)
+
+# 출력 변수 V9 = Class variable (0 or 1)  미리, factor 형으로 변환하여 삽입한다. 나중에 에러 안 나도록!!
+pima_train$V9 <- as.factor(pima_train$V9)
+str(pima_train$V9)
+
+# Test 데이터
+fileInfo2 = Sys.glob(paste(globalVar$inpPath, "LSH0180_pima-indians-diabetes_test.data", sep = "/"))
+pima_test = read.csv(fileInfo2, header=F)
+# pima_test = read.csv("C:/Users/chemy/Desktop/데마_15주차과제/pima-indians-diabetes_test.data",header=F)
+head(pima_test)
+tail(pima_test)     
+str(pima_test)
+
+# 마찬가지, 출력 변수는 미리 factor 형으로 형변환 시켜줍니다.
+pima_test$V9 <- as.factor(pima_test$V9)
+str(pima_test$V9)
+
+idx <- createDataPartition(pima$V9, p=0.7, list=F)
+pima_train <- pima[idx,]
+pima_test <- pima[-idx,]
+
+pima_train$V9 = as.factor(pima_train$V9)
+pima_test$V9 = as.factor(pima_test$V9)
+
+# 트레이닝 셋
+dplyr::tbl_df(pima_train)
+
+# 테스트 셋
+dplyr::tbl_df(pima_test)
+
+#*************************************************
+# 모형 선정
+#*************************************************
+# 독립변수: V9 변수를 제외한 모든 변수
+xVar = "."
+
+# 종속변수: V9 변수
+yVar = "V9"
+
+form = paste0(yVar, " ~ ", xVar)
+
+resultData = data.frame()
+
+# pima_trainL1 = pima_train %>% 
+#   readr::type_convert()
+  
+
+# summary(pima_train)
+
+#*************************************************
+# 로지스틱회귀모형 (GLM)
+#*************************************************
+glmFit = glm(form, data = pima_train, family = binomial)
+
+# 회귀모형에 대한 요약 결과
+summary(glmFit)
+
+# 실제 파트타임
+yObs = as.numeric(pima_test$V9) - 1
+
+# 테스트셋을 이용한 예측 파트타임
+yHat = predict.glm(glmFit, newdata = pima_test, type = "response")
+yHatPred = ifelse(yHat > 0.5, 1, 0)
+
+resultData = dplyr::bind_rows(
+  resultData
+  , data.frame(
+    type = "GLM"
+    , pred = yHatPred
+    , real = yObs
+  )
+)
+
+#*************************************************
+# 서포트벡터머신 (SVM)
+#*************************************************
+# linear SVM 모델 만들기.
+#  >>>  : 모델 학습과 최적의 cost 값을 구하는 과정입니다.
+linear.tune <- tune.svm(V9~., data=pima_train, kernel="linear", 
+                        cost=c(0.001, 0.01, 0.1, 1, 5, 10))
+#  >>> tune.svm 은 cost 값을 찾는 함수 입니다.
+
+summary(linear.tune)   # 최적의 cost값이 0.1로 나오네요!
+
+
+# linear SVM 평가.
+### best model 객체 만들기
+best.linear <- linear.tune$best.model
+
+# predict() 함수 이용 :
+### 1. 모델에 적용할 때, newdata 에는 "분류하고자하는 데이터를 대입"
+### 2. 모델의 정확도 계산하기
+tune.test <- predict(best.linear, newdata=pima_test)
+tune.test
+table(tune.test, pima_test$V9)
+confusionMatrix(tune.test, pima_test$V9)
+
+# 테스트셋을 이용한 예측 파트타임
+yHat = as.numeric(predict(best.linear, newdata = pima_test))
+yHatPred = yHat - 1
+
+
+resultData = dplyr::bind_rows(
+  resultData
+  , data.frame(
+    type = "SVM"
+    , pred = yHatPred
+    , real = yObs
+  )
+)
+
+#=====================================
+# Plot
+#=====================================
+typeList = resultData$type %>% unique() %>% sort()
+
+typeInfo = "GLM"
+for (typeInfo in typeList) {
+  
+  resultDataL1 = resultData %>%
+    dplyr::filter(type == typeInfo)
+  
+  xAxis = resultDataL1$pred
+  yAxis = resultDataL1$real
+  
+  # 검증 측정을 위한 기초 설정
+  lmPred = ROCR::prediction(xAxis, yAxis)
+  
+  # AUC 측정 : 1에 가까울수록 최고 성능
+  getVal1 = ROCR::performance(lmPred, "auc")@y.values[[1]] %>% round(2)
+  
+  # 이항편차 측정 : 낮을수록 좋음
+  getVal2 = abdiv::binomial_deviance(xAxis, yAxis) %>% round(2)
+  
+  cat(sprintf(
+          "[%10s] AUC : %10s | abdiv : %5s"
+          , typeInfo
+          , getVal1
+          , getVal2
+        ), "\n")
+
+  saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, paste(typeInfo, "ROC", sep = "-"))
+  
+  png(file = saveImg, width = 8, height = 8, units = "in", res = 600)
+  
+  # ROC 커브를 위한 설정
+  perform = ROCR::performance(lmPred, "tpr", "fpr")
+  plot(perform, main = paste0("[", typeInfo, "] ", 'ROC Curve'))
+  
+  dev.off()
+}
+
+
