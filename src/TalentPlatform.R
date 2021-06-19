@@ -28048,6 +28048,16 @@ saveFile = sprintf("%s/%s_%s", globalVar$outPath, serviceName, "climate-index-fo
 readr::write_csv(x = dataL3, file = saveFile)
 
 
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
 #================================================
 # 요구사항
 #================================================
@@ -29665,16 +29675,18 @@ ggsave(filename = saveImg, width = 12, height = 8, dpi = 600)
 
 #================================================
 # Set Env
-# #================================================
-globalVar = list()
-globalVar$inpPath = "."
-globalVar$figPath = "."
-globalVar$outPath = "."
-globalVar$mapPath = "."
+#================================================
+# 입력/출력/이미지/맵 경로 설정
+# setwd("E:/04. TalentPlatform/Github/TalentPlatform-R")
+# globalVar = list()
+# globalVar$inpPath = "."
+# globalVar$figPath = "."
+# globalVar$outPath = "."
+# globalVar$mapPath = "."
 
-# rm(list = ls())
-# prjName = "test"
-# source(here::here("E:/04. TalentPlatform/Github/TalentPlatform-R/src", "InitConfig.R"), encoding = "UTF-8")
+rm(list = ls())
+prjName = "test"
+source(here::here("E:/04. TalentPlatform/Github/TalentPlatform-R/src", "InitConfig.R"), encoding = "UTF-8")
 
 serviceName = "LSH0180"
 
@@ -29718,8 +29730,10 @@ tail(pima_test)
 str(pima_test)
 
 # 마찬가지, 출력 변수는 미리 factor 형으로 형변환 시켜줍니다.
-pima_test$V9 <- as.factor(pima_test$V9)
-str(pima_test$V9)
+# pima_test$V9 <- as.factor(pima_test$V9)
+# str(pima_test$V9)
+
+pima = dplyr::bind_rows(pima_train, pima_test)
 
 idx <- createDataPartition(pima$V9, p=0.7, list=F)
 pima_train <- pima[idx,]
@@ -29805,7 +29819,6 @@ confusionMatrix(tune.test, pima_test$V9)
 yHat = as.numeric(predict(best.linear, newdata = pima_test))
 yHatPred = yHat - 1
 
-
 resultData = dplyr::bind_rows(
   resultData
   , data.frame(
@@ -29857,6 +29870,443 @@ for (typeInfo in typeList) {
 }
 
 
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+#================================================
+# 요구사항
+#================================================
+# R을 이용한 튼살 화장품 마케팅 분석
+
+#================================================
+# Set Env
+#================================================
+# globalVar = list()
+# globalVar$inpPath = "."
+# globalVar$figPath = "."
+# globalVar$outPath = "."
+# globalVar$mapPath = "."
+
+rm(list = ls())
+prjName = "test"
+source(here::here("E:/04. TalentPlatform/Github/TalentPlatform-R/src", "InitConfig.R"), encoding = "UTF-8")
+
+serviceName = "LSH0181"
+
+#================================================
+# Main
+#================================================
+# KoNLP을 위해 신규 설치
+# Sys.setenv(JAVA_HOME='C:\\Program Files\\Java\\jre1.8.0_291')
+# install.packages("rJava")
+# remotes::install_github('haven-jeon/KoNLP', upgrade = "never", INSTALL_opts=c("--no-multiarch"), force = TRUE)
+
+# install.packages("rJava")
+library(rJava)
+library(KoNLP)
+
+library(ggplot2)
+library(tidyverse)
+library(tm)
+library(wordcloud)
+library(wordcloud2)
+library(data.table)
+library(stringr)
+library(qgraph)
+library(ggplot2)
+library(SnowballC)
+library(parallel)
+library(topicmodels)
+library(lda)
+library(qgraph)
+library(multilinguer)
+library(stringr)
+
+useNIADic()
+# buildDictionary()
+
+# 튼살화장품 분석용 단어 사전에 추가
+mergeUserDic(data.frame(c("비오템", "클라란스", "프라젠트라"), "ncn"))
+mergeUserDic(data.frame(c("플라젠트라", "몽디에스", "아토팜"), "ncn"))
+mergeUserDic(data.frame(c("출산용품", "세타필", "임부"), "ncn"))
+mergeUserDic(data.frame(c("임산부", "튼살", "바디워시"), "ncn"))
+mergeUserDic(data.frame(c("수딩젤", "튼살크림", "베이비로션"), "ncn"))
+mergeUserDic(data.frame(c("바스", "베이비크림", "biotherm"), "ncn"))
+mergeUserDic(data.frame(c("clarins", "atopalm", "mongdies"), "ncn"))
+mergeUserDic(data.frame(c("팔머스", "팔머즈","farmers"), "ncn"))
+mergeUserDic(data.frame(c("plagentra","베이비크림", "파머스"), "ncn"))
+mergeUserDic(data.frame(c( "아르간", "유해성분", "유발성분"), "ncn"))
+mergeUserDic(data.frame(c("아르간오일", "리에락","lierac"), "ncn"))
+mergeUserDic(data.frame(c("nuxe", "눅스", "세일"), "ncn"))
+mergeUserDic(data.frame(c("쎄타필", "세타필", "cetaphil"), "ncn"))
+mergeUserDic(data.frame(c("대용량", "소용량", "위험성분"), "ncn"))
+mergeUserDic(data.frame(c("위해성분", "무해성분", "보습성분"), "ncn"))
+mergeUserDic(data.frame(c("천연성분", "스테로이드", "폴리아크릴아마이드"), "ncn"))
+mergeUserDic(data.frame(c("유투버", "뷰티유투버", "프리미엄"), "ncn"))
+mergeUserDic(data.frame(c("premium", "보습", "보습력"), "ncn"))
+mergeUserDic(data.frame(c("콜라겐", "부신피질", "호르몬"), "ncn"))
+
+# buildDictionary(ext_dic = "woorimalsam", category_dic_nms = "",
+#                 user_dic =data.frame(c("콜라겐", "부신피질", "호르몬"), "ncn"), replace_usr_dic = F, verbose = F)
+
+fileInfo = Sys.glob(paste(globalVar$inpPath, "LSH0172_13주차_튼살화장품분석실습.RData", sep = "/"))
+load(file=fileInfo)
+
+# v_data <- read.csv("cosmetic_data.csv")
+# 테스트
+# 15482
+v_data <- v_data[1:100]
+# v_data_bak <- v_data
+
+# 속도 향상을 위한 병렬처리
+# options(mc.cores=12)
+
+# 원하는 단어 포함된 벡터 만들기
+v_base <- v_data[grepl("*튼살*|*튼 살*", v_data)]
+v_tr <- v_data[grepl("*튼살치료*|*튼살 치료*|*튼살완화*|*튼살 완화*", v_data)]
+v_biotem <- v_data[grepl("*비오템*|*biotherm*", v_data)]
+v_cla <- v_data[grepl("*클라란스*|*clarins*", v_data)]
+v_pla <- v_data[grepl("*프라젠트라*|*plagentra*|*플라젠트라*", v_data)]
+v_ato <- v_data[grepl("*아토팜*|*atopalm*", v_data)]
+v_mon <- v_data[grepl("*몽디에스*|*mongdies*", v_data)]
+
+# # 분석 데이터셋 설정
+# vec_blog <- v_tr
+# base_name <- "튼살"
+
+# vec_blog <- v_pla
+# base_name <- "프라젠트라"
+
+# vec_blog <- v_ato
+# base_name <- "아토팜"
+
+vec_blog <- v_tr
+base_name <- "튼살 원인"
+
+# 코퍼스 만들기
+docs<- Corpus(VectorSource(vec_blog))
+
+# 전처리 수행
+docs <- tm_map(docs, stripWhitespace)
+docs <- tm_map(docs, removePunctuation)
+
+# URL 제거 함수 작성 후 말뭉치(Corpus)에서 URL 제거
+removeURL<-function(x) gsub("http[^[:space:]]*", "", x)
+docs <- tm_map(docs, content_transformer(removeURL))
+
+# 명사 추출
+docs <- tm_map(docs, extractNoun)
+docs_tr <- docs
+
+# 텍스트 전처리
+docs <- docs_biotem
+
+# 한글, 영문, 숫자, 공백문자를 제외한 나머지 문자 삭제
+# docs <- tm_map(docs, content_transformer(function(x) gsub("http[[:alnum:]]*", "", x)))
+# docs <- tm_map(docs, content_transformer(function(x) gsub('[^0-9a-zA-Z가-?]', '', x)))
+docs=tm_map(docs, content_transformer(tolower))
+docs=tm_map(docs, removeNumbers)
+docs=tm_map(docs, removePunctuation)
+docs=tm_map(docs, removeWords, stopwords("english"))
+docs=tm_map(docs, removeWords, c("own", "stop", "words"))
+docs=tm_map(docs, stripWhitespace)
+
+# 코퍼스 content 문자열의 첫번째 영문자 c 삭제(왜 생기는지 모르겠음)
+docs <- tm_map(docs, content_transformer(function(x) {gsub("^c", "", x)}))
+
+
+# rm.word에 삭제할 단어 추가 후 for 문으로 단어 삭제.
+# 여기서 반복하여 전처리를 꼼꼼히 해야함
+rm.word <- c("언니", "기타", "해서")
+rm.word <- c(rm.word, "이거", "정도", "보기")
+rm.word <- c(rm.word, "번역", "본문", "복사")
+rm.word <- c(rm.word, "하지", "번역", "도착")
+rm.word <- c(rm.word, "들이", "때문", "하기")
+rm.word <- c(rm.word, "진짜", "하면", "2018")
+rm.word <- c(rm.word, "우리", "사실", "시작")
+rm.word <- c(rm.word, "출발", "오늘", "추가")
+rm.word <- c(rm.word, "바울", "처음", "생각")
+rm.word <- c(rm.word, "요트", "사진", "가지")
+rm.word <- c(rm.word, "이번", "제품", "ampgtamplt")
+rm.word <- c(rm.word, "여기", "추천", "너무")
+rm.word <- c(rm.word, "하루", "하나", "사람")
+rm.word <- c(rm.word, "하게", "하다", "사용")
+rm.word <- c(rm.word, "ㅋ", "ㅋㅋ", "ㅋㅋㅋ", "ㅋㅋㅋㅋ")
+rm.word <- c(rm.word, "ㅠ", "ㅠㅠ", "ㅠㅠㅠ", "ㅠㅠㅠㅠ")
+rm.word <- c(rm.word, "ㅎ", "ㅎㅎ", "ㅎㅎㅎ", "ㅎㅎㅎㅎ")
+
+
+for (word in rm.word) {
+  docs <- tm_map(docs, 
+                 content_transformer(function(x) {gsub(word, "", x)}))
+}
+
+
+#단어문서 행렬 작성
+tdm <- TermDocumentMatrix(docs, 
+                          control = list(wordLengths = c(4, 12)))
+
+#tdm #term-document 매트릭스 확인
+
+
+doc.matrix <- as.matrix(tdm) #tdm을 매트릭스로 변환
+doc.row <- rowSums(doc.matrix) #단어 빈도 구하기
+
+#단어 빈도 높은 순서로 정렬
+word.order <- order(doc.row, decreasing=TRUE)
+#빈출 순서로 단어 30개 매트릭스 구하기
+freq.words <- doc.matrix[word.order[1:50], ]
+
+#전치 행렬 곱셈을 통해 관계 매트릭스 생성
+co.matrix <- freq.words %*% t(freq.words)
+
+
+#빈출단어 그래프 작성
+
+
+#각 단어의 사용횟수 기록
+term.freq <- rowSums(as.matrix(tdm))
+
+# 원하는 횟수 이상 사용된 단어만 다시 저장
+term.freq1 <- subset(term.freq, term.freq >= 100)
+df_term_freq1 <- data.frame(term = names(term.freq1), freq = term.freq1)
+
+showtext::showtext_opts(dpi = 600)
+showtext::showtext.auto()
+
+# 빈도 막대그래프 그리기
+ggplot(df_term_freq1, aes(x=reorder(term, freq), y=freq)) + 
+  geom_bar(stat="identity") + 
+  xlab("빈출단어") + 
+  ylab("빈도") +
+  coord_flip() + 
+  theme(
+    # axis.text=element_text(size=12)
+    text = element_text(size = 10)
+    )
+
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, paste(base_name, "빈도막대그래프", sep = "_"))
+
+# 빈도 막대그래프 저장
+ggsave(
+  # paste0("비오템_빈도막대그래프.png"),
+  saveImg, 
+  plot = last_plot(),
+  device = NULL,
+  #path = "d:/work",
+  scale = 1,
+  width = NA,
+  height = NA,
+  #units = c("in", "cm", "mm"),
+  dpi = 600,
+  limitsize = TRUE
+)
+
+# 워드클라우드2 그리기
+term.freq3 <- subset(term.freq, term.freq >= 30)
+df_term_freq3 <- data.frame(term = names(term.freq3), freq = term.freq3)
+
+wordcloud2(df_term_freq3,
+           size = 0.7,
+           color = "random-light",
+           rotateRatio = 10,
+           backgroundColor = "grey")
+
+# saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, paste(base_name, "빈도막대그래프2", sep = "_"))
+# 
+# ggsave(
+#   # paste0("비오템_워드클라우드2.png"),
+#   saveImg,
+#   plot = last_plot(),
+#   device = NULL,
+#   #path = "d:/work",
+#   scale = 1,
+#   width = NA,
+#   height = NA,
+#   #units = c("in", "cm", "mm"),
+#   dpi = 600,
+#   limitsize = TRUE
+# )
 
 
 
+
+# base_name <- "프라젠트라"
+
+# tdm을 dtm으로 변경
+dtm <- as.DocumentTermMatrix(tdm)
+
+# 토픽 갯수 설정
+topic_num <- 6
+# 개별 토픽에서 출현빈도 기준 상위 n개 단어 지정. 여기서는 20개로 지정함
+w_num <- 20
+
+# seed를 특정 숫자로 설정하여 반복 실행시 동일한 값이 나오도록 함
+set.seed(123)
+ldaform<-dtm2ldaformat(dtm, omit_empty = F)
+
+start = Sys.time()
+# Gibbs sampling은 간단히 말하면 변수를 하나씩 바꿔가면서 표본을 수집하여 모형을 근사하는 방식
+# 이때, burnin은 처음부터 burnin에 지정한 값까지는 제외시키고 나머지 값만을 모형 근사에 사용하겠다는 선언
+# keep은 정한 값마다 log likelihood 값을 구해서 저장하도록 설정하는 변수
+# iterations는 사후확률의 업데이트 횟수
+# burnin은 확률 추정시 제외되는 초반부 이터레이션 값
+# alpha는 문서내에서 토픽들의 확률분포(1을 주면 유니폼 분포)
+# eta: 한 토픽 내에 단어들의 확률분포
+result.lda <- lda.collapsed.gibbs.sampler(ldaform$documents,
+                                          K = topic_num,
+                                          vocab = ldaform$vocab,
+                                          num.iterations = 10000,
+                                          burnin = 100,
+                                          alpha = 0.01,
+                                          eta = 0.01)
+
+end <- Sys.time()
+end - start
+
+# 토픽 상위 20개 가져오기
+top_topic <- top.topic.words(result.lda$topics,20,by.score=T)
+
+## 비율로 변환 및 추가
+theta = rowSums(result.lda$document_sums)
+topic.proportion = theta/sum(theta)
+
+#
+# 토픽내에 단어별 출현 확률 계산
+#
+
+top.words = top.topic.words(result.lda$topics, w_num)
+
+# 빈도 상위단어 데이터 타입을 문자형으로 변환
+c_top.words <- as.character(top.words)
+
+# 추출된 상위단어의 토픽 선정하여 new.topics에 저장
+new.topics <- subset(result.lda$topics,select=c_top.words)
+count_by_words<-new.topics
+
+#count 합계 함수
+a=1
+k=0
+for(j in 1:ncol(new.topics))
+{
+  if(a * w_num + 1 == j)
+  {
+    k <- w_num * a
+    a <- a + 1
+  }
+  count_by_words[a,j-k] <- count_by_words[a,j]
+}
+
+# 비율구하기
+proportion_by_words <- t(count_by_words[,1:w_num]/
+                           as.integer(result.lda$topic_sums))
+
+#단어와 비율을 연결하여 행렬 생성
+result <- matrix(paste(top.topic.words(result.lda$topics, w_num),
+                       "(",proportion_by_words,")"),byrow = F, nrow = w_num)
+output <- rbind(result,topic.proportion,t(result.lda$topic_sums))
+
+# 토픽 빈도와 출현확률 출력
+output
+
+
+# LDA 분석 결과 파일로 저장
+saveFile = sprintf("%s/%s_%s.csv", globalVar$outPath, serviceName, paste(base_name, "top_topic", sep = "_"))
+write.csv(top_topic, file = saveFile, row.names = FALSE)
+
+saveFile = sprintf("%s/%s_%s.csv", globalVar$outPath, serviceName, paste(base_name, "topic_output", sep = "_"))
+write.csv(output, file = saveFile, row.names = FALSE)
+
+#단어문서 행렬 작성
+tdm <- TermDocumentMatrix(docs, 
+                          control = list(wordLengths = c(4, 12)))
+
+doc.matrix <- as.matrix(tdm) #tdm을 매트릭스로 변환
+doc.row <- rowSums(doc.matrix) #단어 빈도 구하기
+
+#단어 빈도 높은 순서로 정렬
+word.order <- order(doc.row, decreasing=TRUE)
+#빈출 순서로 단어 30개 매트릭스 구하기
+freq.words <- doc.matrix[word.order[1:50], ]
+
+#전치 행렬 곱셈을 통해 관계 매트릭스 생성
+co.matrix <- freq.words %*% t(freq.words)
+
+# saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, paste0("전체 기능성튼살화장품: ", base_name))
+
+showtext::showtext_opts(dpi = 600)
+showtext::showtext.auto()
+
+# 네트웍 그래프 1: 전체 확인
+qgraph(co.matrix, 
+       normalize = T,
+       labels=rownames(co.matrix),
+       label.scale = TRUE,
+       label.scale.equal = T,
+       label.prop = 2,
+       label.cex = 1,
+       #edge.labels = TRUE,
+       minimum = 150,
+       #threshold = 200, # 지정 값 이하의 에지는 생략됨
+       #cut = 100,
+       #edge.label.bg = ifelse(edge >= 0.5, "red", "blue"),
+       loopRotation = T,
+       curveAll = T,
+       fade = T,
+       details = T,
+       theme = "TeamFortress", # "classic", "colorblind", "gray", "Hollywood", "Borkulo", "gimme", "TeamFortress", "Reddit", "Leuven" or "Fried"
+       borders = T,
+       border.color = "#606060",
+       shape = "square", # "circle", "square", "triangle", "diamond"
+       vTrans =220, # 노드의 투명도 설정 0-255
+       palette = 'pastel',
+       rainbowStart = 0,
+       #color = "green",
+       title = paste0("기능성튼살화장품: ", base_name),
+       title.cex = 1,
+       diag=F, 
+       layout='spring', 
+       #단어 빈도에 따라 원 크기 설정
+       vsize=log(diag(co.matrix)) * 0.7 
+) 
+
+
+# 네트웍 그래프 2: 연결빈도가 높은 관계만 연결(threahold 값 조절)
+# saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, paste0("높은빈도 기능성튼살화장품: ", base_name))
+
+qgraph(co.matrix, 
+       normalize = T,
+       labels=rownames(co.matrix),
+       label.scale = TRUE,
+       label.scale.equal = T,
+       label.prop = 1.8,
+       label.cex = 1,
+       #edge.labels = TRUE,
+       minimum = 20,
+       threshold = 300,
+       #edge.label.bg = ifelse(edge >= 0.5, "red", "blue"),
+       loopRotation = T,
+       curveAll = T,
+       fade = T,
+       details = T,
+       theme = "TeamFortress", # "classic", "colorblind", "gray", "Hollywood", "Borkulo", "gimme", "TeamFortress", "Reddit", "Leuven" or "Fried"
+       borders = T,
+       border.color = "#606060",
+       shape = "circle", # "circle", "square", "triangle", "diamond"
+       vTrans =220, # 노드의 투명도 설정 0-255
+       palette = 'pastel',
+       rainbowStart = 0,
+       #color = "green",
+       title = paste0("기능성튼살화장품: ", base_name), 
+       title.cex = 1,
+       diag=F, 
+       layout='spring', 
+       vsize=log(diag(co.matrix)) * 0.8 #단어 빈도에 따라 원 크기 설정
+)
