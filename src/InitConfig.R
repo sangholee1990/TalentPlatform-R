@@ -9,7 +9,7 @@
 #=====================================
 # Init Env
 #=====================================
-# rm(list = ls())
+# rm(list = setdiff(ls(), c("env", "prjName", "serviceName", "contextPath")))
 
 #=====================================
 # Set Env
@@ -29,28 +29,38 @@ Sys.setenv(LANG = "ko_KR.UTF-8")
 # Sys.setlocale("LC_CTYPE", ".1251")
 # Sys.setlocale("LC_CTYPE", "Korean")
 
-globalVar = list()
+# Open API Key
+configInfo = yaml::yaml.load_file(file.path(contextPath, "resources", "config", "system.cfg"))
 
-globalVar$optDig = 10
-globalVar$memLimit = 9999999999999
+globalVar = list(
+  "optDig" = 10
+  , "memLimit" = 9999999999999
+  , "contextPath" = contextPath
+  , "initResPath" = file.path(contextPath, "InitResource")
+  , "srcPath" = file.path(contextPath, "src")
+  , "resPath" = file.path(contextPath, "resources")
+  , "cfgPath" = file.path(contextPath, "resources", "config")
+  , "inpPath" = file.path(contextPath, "resources", "input", prjName)
+  , "figPath" = file.path(contextPath, "resources", "fig", prjName)
+  , "outPath" = file.path(contextPath, "resources", "output", prjName)
+  , "logPath" = file.path(contextPath, "resources", "log", prjName)
+  , "mapPath" = file.path(contextPath, "resources", "config", "mapInfo")
+  , "dbPath" = file.path(contextPath, "resources", "config", "db")
+  , "systemPath" = file.path(contextPath, "resources", "config", "system.cfg")
+  , "seleniumPath" = file.path(contextPath, "resources", "config", "selenium")
+  , "fontPath" = file.path(contextPath, "resources", "config", "fontInfo")
+  , "googleKey" = configInfo$default$googleKey
+  , "dataKey" = configInfo$default$dataKey
+  , "naverKeyId" = configInfo$default$naverKeyId
+  , "naverKeyPw" = configInfo$default$naverKeyPw
+  , "kakaoRestApiKey" = configInfo$default$kakaoRestApiKey
+  , "gyeonggiDataKey" = configInfo$default$gyeonggiDataKey
+  , "naverApigwApiKeyId" = configInfo$default$naverApigwApiKeyId
+  , "naverApigwApiKey" = configInfo$default$naverApigwApiKey
+)
 
-# config
-globalVar$initResPath = "E://04. TalentPlatform//Github//TalentPlatform-R//InitResource"
+utils::ls.str(globalVar)
 
-globalVar$contextPath = getwd()
-# globalVar$config = "E:/04. TalentPlatform/Github/TalentPlatform-R"
-globalVar$srcPath = file.path(globalVar$contextPath, "src")
-globalVar$resPath = file.path(globalVar$contextPath, "resources")
-globalVar$cfgPath = file.path(globalVar$resPath, "config")
-globalVar$inpPath = file.path(globalVar$resPath, "input", prjName)
-globalVar$figPath = file.path(globalVar$resPath, "fig", prjName)
-globalVar$outPath = file.path(globalVar$resPath, "output", prjName)
-globalVar$logPath = file.path(globalVar$resPath, "log", prjName)
-globalVar$mapPath = file.path(globalVar$cfgPath, "mapInfo")
-globalVar$dbPath = file.path(globalVar$cfgPath, "db")
-globalVar$systemPath = file.path(globalVar$cfgPath, "system.cfg")
-globalVar$seleniumPath = file.path(globalVar$cfgPath, "selenium")
-globalVar$fontPath = file.path(globalVar$cfgPath, "fontInfo")
 
 # 기본 설정 복사
 isResDir = dir.exists(path = globalVar$resPath)
@@ -69,27 +79,14 @@ for (i in 1:length(globalVar)) {
   val = globalVar[[key]]
 
   isKey = stringr::str_detect(key, stringr::regex("input|output|log"))
-  if (isKey == FALSE) { next }
+  if (isKey == FALSE) next
 
   isDir = dir.exists(path = val)
-  if (isDir == TRUE) { next }
+  if (isDir == TRUE) next
 
   sprintf("[생성] 디렉터리 : mkdir %s", val)
   dir.create(val)
 }
-
-# Open API Key
-configInfo = yaml::yaml.load_file(globalVar$systemPath)
-globalVar$googleKey = configInfo$default$googleKey
-globalVar$dataKey = configInfo$default$dataKey
-globalVar$naverKeyId = configInfo$default$naverKeyId
-globalVar$naverKeyPw = configInfo$default$naverKeyPw
-globalVar$kakaoRestApiKey = configInfo$default$kakaoRestApiKey
-globalVar$gyeonggiDataKey = configInfo$default$gyeonggiDataKey
-globalVar$naverApigwApiKeyId = configInfo$default$naverApigwApiKeyId
-globalVar$naverApigwApiKey = configInfo$default$naverApigwApiKey
-
-utils::ls.str(globalVar)
 
 # Rtools
 # writeLines('PATH="${RTOOLS40_HOME}\\usr\\bin;${PATH}"', con = "~/.Renviron")
@@ -127,9 +124,7 @@ log4r::level(log) = "INFO"
 tryCatch(
 
   expr = {
-    # 주 소스 코드
     log4r::info(log, sprintf("%s", "[START] Main R"))
-
   }
 
   , warning = function(warning) {
