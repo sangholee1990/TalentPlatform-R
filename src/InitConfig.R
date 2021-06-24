@@ -48,8 +48,11 @@ Sys.setenv(LANG = "ko_KR.UTF-8")
 configInfo = yaml::yaml.load_file(file.path(contextPath, "resources", "config", "system.cfg"))
 
 globalVar = list(
+  # 사용자 옵션
   "optDig" = 10
   , "memLimit" = 9999999999999
+
+  # 환경변수 경로  
   , "contextPath" = contextPath
   , "initResPath" = file.path(contextPath, "InitResource")
   , "srcPath" = file.path(contextPath, "src")
@@ -64,6 +67,8 @@ globalVar = list(
   , "systemPath" = file.path(contextPath, "resources", "config", "system.cfg")
   , "seleniumPath" = file.path(contextPath, "resources", "config", "selenium")
   , "fontPath" = file.path(contextPath, "resources", "config", "fontInfo")
+  
+  # 오픈 API키
   , "googleKey" = configInfo$default$googleKey
   , "dataKey" = configInfo$default$dataKey
   , "naverKeyId" = configInfo$default$naverKeyId

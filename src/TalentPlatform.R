@@ -30363,13 +30363,16 @@ prjName = "test"
 serviceName = "LSH0182"
 contextPath = ifelse(env == "local", getwd(), "E:/04. TalentPlatform/Github/TalentPlatform-R")
 
+# 입력 자료 : inpPath
+# 그림 자료 : figPath
+# 출력 자료 : outPath
+# 로그 자료 : logPath
 if (env == 'local') {
   globalVar = list(
     "inpPath" = contextPath
     , "figPath" = contextPath
     , "outPath" = contextPath
-    , "mapPath" = contextPath
-    , "cfgPath" = contextPath
+    , "logPath" = contextPath
   )
 } else {
   source(here::here(file.path(contextPath, "src"), "InitConfig.R"), encoding = "UTF-8")
@@ -30386,9 +30389,10 @@ library(dynlm)
 library(ggpubr)
 library(modelr)
 
-file.path(globalVar$inpPath, "LSH0182_data_3_Okun.csv")
+fileInfoPattrn = sprintf("%s/%s", globalVar$inpPath, "LSH0182_data_3_Okun.csv")
+fileInfo = Sys.glob(file.path(fileInfoPattrn))
+if (length(fileInfo) < 1) sprintf("[ERROR] fileInfo : %s : %s", "자료를 확인해주세요.", fileInfoPattrn)
 
-fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0182_data_3_Okun.csv"))
 data = readr::read_csv(file = fileInfo)
 
 #**************************************************************************************
