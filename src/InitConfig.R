@@ -1,15 +1,30 @@
 #=====================================
 # Usage
 #=====================================
-# rm(list = ls())
-# prjName="o2job"
-# prjName="test"
-# source(here::here("E:/04. TalentPlatform/Github/TalentPlatform-R", "InitConfig.R"), encoding = "UTF-8")
+# # env = "local"   # 로컬 : 원도우 환경, 작업환경 (현재 소스 코드 환경 시 .) 설정
+# env = "dev"   # 개발 : 원도우 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+# # env = "oper"  # 운영 : 리눅스 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+# 
+# prjName = "test"
+# serviceName = "LSH0182"
+# contextPath = ifelse(env == "local", getwd(), "E:/04. TalentPlatform/Github/TalentPlatform-R")
+# 
+# if (env == 'local') {
+#   globalVar = list(
+#     "inpPath" = contextPath
+#     , "figPath" = contextPath
+#     , "outPath" = contextPath
+#     , "mapPath" = contextPath
+#     , "cfgPath" = contextPath
+#   )
+# } else {
+#   source(here::here(file.path(contextPath, "src"), "InitConfig.R"), encoding = "UTF-8")
+# }
 
 #=====================================
 # Init Env
 #=====================================
-# rm(list = setdiff(ls(), c("env", "prjName", "serviceName", "contextPath")))
+rm(list = setdiff(ls(), c("env", "prjName", "serviceName", "contextPath")))
 
 #=====================================
 # Set Env
