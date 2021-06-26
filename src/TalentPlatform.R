@@ -30363,16 +30363,13 @@ prjName = "test"
 serviceName = "LSH0182"
 contextPath = ifelse(env == "local", getwd(), "E:/04. TalentPlatform/Github/TalentPlatform-R")
 
-# 입력 자료 : inpPath
-# 그림 자료 : figPath
-# 출력 자료 : outPath
-# 로그 자료 : logPath
-if (env == 'local') {
+if (env == "local") {
   globalVar = list(
     "inpPath" = contextPath
     , "figPath" = contextPath
     , "outPath" = contextPath
-    , "logPath" = contextPath
+    , "mapPath" = contextPath
+    , "cfgPath" = contextPath
   )
 } else {
   source(here::here(file.path(contextPath, "src"), "InitConfig.R"), encoding = "UTF-8")
@@ -30389,10 +30386,7 @@ library(dynlm)
 library(ggpubr)
 library(modelr)
 
-fileInfoPattrn = sprintf("%s/%s", globalVar$inpPath, "LSH0182_data_3_Okun.csv")
-fileInfo = Sys.glob(file.path(fileInfoPattrn))
-if (length(fileInfo) < 1) sprintf("[ERROR] fileInfo : %s : %s", "자료를 확인해주세요.", fileInfoPattrn)
-
+fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0182_data_3_Okun.csv"))
 data = readr::read_csv(file = fileInfo)
 
 #**************************************************************************************
@@ -30513,3 +30507,400 @@ summary(stepAic)
 # = 1 / exp(-0.04883)
 # = 1.050042
 # 즉 실업률 1% 증가하면 실질 GDP 성장률 1.05% 감소
+
+
+
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+#================================================
+# 요구사항
+#================================================
+
+
+#================================================
+# 초기 환경변수 설정
+#================================================
+# env = "local"   # 로컬 : 원도우 환경, 작업환경 (현재 소스 코드 환경 시 .) 설정
+env = "dev"   # 개발 : 원도우 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+# env = "oper"  # 운영 : 리눅스 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+
+prjName = "test"
+serviceName = "LSH0188"
+contextPath = ifelse(env == "local", getwd(), "E:/04. TalentPlatform/Github/TalentPlatform-R")
+
+if (env == "local") {
+  globalVar = list(
+    "inpPath" = contextPath
+    , "figPath" = contextPath
+    , "outPath" = contextPath
+    , "mapPath" = contextPath
+    , "cfgPath" = contextPath
+  )
+} else {
+  source(here::here(file.path(contextPath, "src"), "InitConfig.R"), encoding = "UTF-8")
+}
+
+#================================================
+# 비즈니스 로직 수행
+#================================================
+library(ggplot2)
+library(tidyverse)
+library(gmm)
+library(forecast)
+library(dynlm)
+library(ggpubr)
+library(modelr)
+
+fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0188_아파트(매매)_실거래가_20210630211015.csv"))
+data = readr::read_csv(file = fileInfo)
+
+
+# https://rstudio-pubs-static.s3.amazonaws.com/545602_d1aa011099ba466281f1034439aed6b4.html (참고 URL)
+
+### 인스톨 및 라이브러리 ###
+# install.packages("installr")
+# library(installr)
+# check.for.updates.R()
+# install.R()
+# version
+
+# install.packages("dplyr")
+# install.packages("ggplot2")
+# install.packages("stringr")
+# install.packages("reshape")
+# install.packages("randomForest")
+# install.packages("rvest")
+# install.packages("KoNLP")
+# install.packages("wordcloud")
+# install.packages("RColorBrewer")
+# install.packages("readxl")
+
+library(dplyr) # data handling
+library(ggplot2) # data visualization
+library(stringr) # data handling
+library(reshape2) # data handling
+library(randomForest) # randomForest model
+library(rvest) # web crawling
+library(KoNLP) # elemental analysis
+library(wordcloud) # wordcloud
+library(RColorBrewer) # color
+library(readxl)
+
+
+
+### 데이터 불러오기 ### 
+# 데이터 업로드
+# raw_property_df <- read.csv("C:/Workspaces/Rwork_project/data/아파트(매매)_실거래가_20210630211015.csv", fileEncoding = "UCS-2LE")
+
+fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0188_아파트(매매)_실거래가_20210630211015.csv"))
+raw_property_df <- read.csv(fileInfo, fileEncoding = "UCS-2LE")
+# raw_property_df <- read.csv(fileInfo, fileEncoding = "UTF-8")
+
+# 데이터확인
+head(raw_property_df)
+
+# 데이터 인덱스, 컬럼 파악
+dim(raw_property_df)
+
+# 자료형 파악
+str(raw_property_df)
+
+# 데이터 요약
+summary(raw_property_df)
+
+
+
+### 데이터 처리 ###
+# 필요한 컬럼만 추출
+raw_property_df <- cbind(raw_property_df$시군구, raw_property_df[,5:11])
+# View(raw_property_df)
+
+# 시구동 분할
+# colname = c("시", "구", "동")
+# mutate_df <- colsplit(raw_property_df[,1], " ", colname)
+# Error in type.convert.default(piece, ...) : '<ec><84><9c>?명듅蹂꾩떆'에서 유효하지 않은 멀티바이트 문자열이 있습니다
+# property_df <- cbind(mutate_df, raw_property_df[,2:8])
+
+property_df = raw_property_df %>%
+  tidyr::separate(col = "raw_property_df$시군구", into =  c("시", "구", "동"), sep = " ")
+
+colnames(property_df) <- c("city", "gu", "dong", "apt_name", "use_area", "contract_ym", "contract_day", "transaction_cost", "floor", "architecture_year")
+
+# ","제거 및 거래금액 컬럼을 숫자형으로 변환
+property_df$transaction_cost <- property_df$transaction_cost %>% 
+  as.character() %>% 
+  str_replace_all(",", "") %>% 
+  as.numeric()
+
+# 1평당 거래가격(cost_pyeong) 컬럼 생성
+
+property_df <- mutate(property_df, cost_pyeong = property_df$transaction_cost / property_df$use_area *3.3)
+
+# 거래량(count) 컬럼 생성 
+
+property_df <- mutate(property_df, count = 1)
+
+
+# 자료형 factor로 변환
+
+property_df$city <- property_df$city %>% as.factor()
+
+property_df$gu <- property_df$gu %>% as.factor()
+
+property_df$dong <- property_df$dong %>% as.factor()
+
+property_df$contract_ym <- property_df$contract_ym %>% as.factor()
+
+property_df$architecture_year <- property_df$architecture_year %>% as.factor()
+
+# 자료형 확인
+str(property_df)
+
+
+
+### 데이터 시각화 ###
+# 구별 거래금액의 평균
+gu_cost_data <- property_df %>%
+  group_by(gu) %>%
+  summarise(mean_cost_pyoeng = mean(cost_pyeong)) %>%
+  arrange(desc(mean_cost_pyoeng)) %>%
+  as.data.frame()
+
+ggplot(data = gu_cost_data, aes(x = reorder(gu,mean_cost_pyoeng), y = mean_cost_pyoeng,
+                                fill = mean_cost_pyoeng)) +
+  xlab("구") +
+  ylab("거래금액평균") +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  theme_bw()
+
+### 층별 거래량 확인 ###
+# 층 그룹화
+property_df$floor_group <- ifelse(property_df$floor <= 0, "지하",
+                                  ifelse(property_df$floor <= 5,"1~5층",
+                                         ifelse(property_df$floor <= 10,"6~10층",
+                                                ifelse(property_df$floor <= 15,"11~15층",
+                                                       ifelse(property_df$floor <= 20,"16~20층",
+                                                              ifelse(property_df$floor <= 25,"21~25층",
+                                                                     ifelse(property_df$floor <= 30,"26~30층","31층이상")))))))
+# 층별 거래량
+floor_group_ggplot <- property_df %>%
+  group_by(floor_group) %>%
+  summarise(trade_count = sum(count)) %>%
+  arrange(desc(trade_count)) %>%
+  as.data.frame()
+
+ggplot(data = floor_group_ggplot, aes(x = reorder(floor_group,trade_count), y = trade_count ,
+                                      fill = trade_count )) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  theme_bw()
+
+
+### 건축년도별 거래량, 거래금액평균 ###
+# 건축년도별 거래량
+architecture_year_count_ggplot <- property_df %>%
+  group_by(architecture_year) %>%
+  summarise(trade_count = sum(count)) %>%
+  arrange(desc(trade_count)) %>%
+  as.data.frame()
+
+# 건축년도별 거래금액평균
+architecture_year_cost_ggplot <- property_df %>%
+  group_by(architecture_year) %>%
+  summarise(mean_cost_pyeong = mean(cost_pyeong)) %>%
+  arrange(desc(mean_cost_pyeong)) %>%
+  as.data.frame()
+
+ggplot(data = architecture_year_count_ggplot, aes(x = architecture_year, 
+                                                  y = trade_count ,
+                                                  fill = trade_count )) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  theme_bw()
+
+ggplot(data = architecture_year_cost_ggplot, aes(x = architecture_year, 
+                                                 y = mean_cost_pyeong ,
+                                                 fill = mean_cost_pyeong )) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  theme_bw()
+
+### 구별 및 월별 거래량 ###
+# 구별 거래량
+gu_trade_count <- property_df %>% 
+  group_by(gu) %>% 
+  summarise(trade_count = sum(count)) %>% 
+  as.data.frame()
+
+ggplot(data = gu_trade_count, aes(x = gu, y = trade_count, fill = trade_count)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  theme_bw()
+
+# 월별 거래량
+
+month_trade_count <- property_df %>% 
+  group_by(contract_ym) %>% 
+  summarise(trade_count = sum(count)) %>% 
+  as.data.frame()
+
+ggplot(data = month_trade_count, aes(x = contract_ym , y = trade_count, fill = trade_count)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  theme_bw()
+
+
+### 전용면적별 거래량 ###
+# 전용면적별 그룹화
+property_df$use_area_group <- ifelse(property_df$use_area <= 33, "1~10평",
+                                     ifelse(property_df$use_area <= 66,"11~20평",
+                                            ifelse(property_df$use_area <= 99,"21~30평",
+                                                   ifelse(property_df$use_area <= 132,"31~40평",
+                                                          ifelse(property_df$use_area <= 165,"41~50평",
+                                                                 ifelse(property_df$use_area <= 198,"51~60평","61평이상"))))))
+
+# 전용면적별 거래량
+use_area_trade_count <- property_df %>%
+  group_by(use_area_group) %>%
+  summarise(trade_count = sum(count)) %>%
+  arrange(desc(trade_count)) %>%
+  as.data.frame()
+
+ggplot(data = use_area_trade_count, aes(x = use_area_group, y = trade_count ,
+                                        fill = trade_count )) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  theme_bw()
+
+
+### 랜덤 포레스트 모델 ###
+# data 생성
+df <- property_df
+
+# train/test sampling
+training_sampling <- sort(sample(1:nrow(df), nrow(df) * 0.7 ))
+test_sampling <- setdiff(1:nrow(df),training_sampling)
+
+# traning_set, test_set
+training_set <- df[training_sampling,]
+test_set <- df[test_sampling,]
+
+# randomForest model
+rf_m <- randomForest(cost_pyeong ~ gu + floor , data = training_set)
+
+# importance
+rf_importance <- randomForest(cost_pyeong ~ gu + floor , data = training_set, importance = TRUE)
+
+importance(rf_m)
+
+varImpPlot(rf_m)
+
+# predict cost
+rf_p <- predict(rf_m, newdata = test_set, type = "class")
+
+# predict dataframe 생성
+predict_df <- cbind(cost_pyeong = test_set$cost_pyeong, p_cost_pyeong = rf_p) %>% 
+  as.data.frame()
+
+# 오차 컬럼 생성
+predict_df <- mutate(predict_df, error = abs(cost_pyeong - p_cost_pyeong))
+mean(predict_df$error)
+
+# 요약
+summary(predict_df$error)
+
+# error density ggplot
+predict_df$error <- predict_df$error %>% as.numeric()
+
+ggplot (data=predict_df, aes (x= error)) +
+  geom_density() +
+  ggtitle("density") +
+  theme_bw()
+
+# Root Mean Squared Error
+RMSE <- function(error) { sqrt(mean(error^2)) }
+RMSE(predict_df$error)
+
+# Mean Absolute Error
+mae <- function(error) { mean(abs(error)) }
+mae(predict_df$error)
+
+
+### 부동산 뉴스 워드 클라우드 ###
+page_list <- c(1:3)
+
+news_text_list <- c()
+
+# page = page_list[2]
+for (page in page_list) {
+  estate_url <- paste0("https://search.naver.com/search.naver?&where=news&query=%EB%B6%80%EB%8F%99%EC%82%B0%20114&sm=tab_pge&sort=0&photo=0&field=0&reporter_article=&pd=0&ds=&de=&docid=&nso=so:r,p:all,a:all&mynews=0&cluster_rank=17&start=",page,"&refresh_start=0")
+  
+  
+  estate_html <- read_html(estate_url) 
+  
+  estate_urls <- estate_html %>% 
+    html_nodes(".type01") %>%
+    html_nodes("a") %>%
+    html_attr("href") %>% 
+    unique() 
+  
+  
+  estate_urls <- estate_urls[grep("naver.com",estate_urls)]
+  
+  
+  news_text <- lapply(estate_urls, function(news_page){
+    news_page %>% 
+      read_html() %>% 
+      html_nodes("#articleBodyContents._article_body_contents") %>% 
+      html_text()
+  })
+  
+  
+  news_text <- news_text %>% 
+    unlist() %>% 
+    str_replace_all("flash 오류를 우회하기 위한 함수 추가","") %>% 
+    str_replace_all("function _flash_removeCallback","") %>% 
+    str_replace_all("동영상 뉴스","") %>% 
+    str_replace_all("\\W"," ") %>% 
+    str_replace_all("[[A-Za-z]]"," ") %>% 
+    str_replace_all("\\d"," ") %>% 
+    str_replace_all("  "," ")  %>% 
+    unique()
+  
+  news_text_list <- append(news_text_list,news_text)
+  
+  # Sys.sleep(20)
+}
+
+word.freq <- paste0(news_text_list[1:12],collapse = " ")
+
+
+nouns <- KoNLP::extractNoun(word.freq)
+
+
+nouns <- nouns[nchar(nouns) >= 2]
+
+wordcount <- table(unlist(nouns))
+
+df.word  <- as.data.frame(wordcount, stringsAsFactors = FALSE)
+df.word <- rename(df.word, word = Var1, freq = Freq)
+
+word.freq  <- df.word %>% 
+  filter(freq >= 2) %>% 
+  arrange(desc(freq)) 
+
+
+wordcloud::wordcloud(words = word.freq$word, freq = word.freq$freq,
+                     min.freq = 2, max.words = 200,
+                     random.order = FALSE, rot.per = 0.1,
+                     scale= c(5,0.5),
+                     colors = brewer.pal(8, "Dark2"))
