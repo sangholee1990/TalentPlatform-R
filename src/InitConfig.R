@@ -62,6 +62,7 @@ globalVar = list(
   , "figPath" = file.path(contextPath, "resources", "fig", prjName)
   , "outPath" = file.path(contextPath, "resources", "output", prjName)
   , "logPath" = file.path(contextPath, "resources", "log", prjName)
+  , "tmpPath" = file.path(contextPath, "resources", "tmp", prjName)
   , "mapPath" = file.path(contextPath, "resources", "config", "mapInfo")
   , "dbPath" = file.path(contextPath, "resources", "config", "db")
   , "systemPath" = file.path(contextPath, "resources", "config", "system.cfg")

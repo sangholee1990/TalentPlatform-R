@@ -30523,7 +30523,7 @@ summary(stepAic)
 #================================================
 # 요구사항
 #================================================
-
+# R을 이용한 네이버 기사 제목 크롤링 및 워드클라우드 시각화
 
 #================================================
 # 초기 환경변수 설정
@@ -30541,8 +30541,7 @@ if (env == "local") {
     "inpPath" = contextPath
     , "figPath" = contextPath
     , "outPath" = contextPath
-    , "mapPath" = contextPath
-    , "cfgPath" = contextPath
+    , "tmpPath" = contextPath
   )
 } else {
   source(here::here(file.path(contextPath, "src"), "InitConfig.R"), encoding = "UTF-8")
@@ -30551,20 +30550,6 @@ if (env == "local") {
 #================================================
 # 비즈니스 로직 수행
 #================================================
-library(ggplot2)
-library(tidyverse)
-library(gmm)
-library(forecast)
-library(dynlm)
-library(ggpubr)
-library(modelr)
-
-fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0188_아파트(매매)_실거래가_20210630211015.csv"))
-data = readr::read_csv(file = fileInfo)
-
-
-# https://rstudio-pubs-static.s3.amazonaws.com/545602_d1aa011099ba466281f1034439aed6b4.html (참고 URL)
-
 ### 인스톨 및 라이브러리 ###
 # install.packages("installr")
 # library(installr)
@@ -30592,8 +30577,16 @@ library(rvest) # web crawling
 library(KoNLP) # elemental analysis
 library(wordcloud) # wordcloud
 library(RColorBrewer) # color
-library(readxl)
 
+library(readxl)
+library(ggplot2)
+library(tidyverse)
+library(foreach)
+library(purrr)
+library(utf8)
+library(RcppMeCab)
+# 명사 모음집 다운로드
+# RmecabKo::install_mecab("c:/mecab")
 
 
 ### 데이터 불러오기 ### 
@@ -30747,7 +30740,6 @@ ggplot(data = gu_trade_count, aes(x = gu, y = trade_count, fill = trade_count)) 
   theme_bw()
 
 # 월별 거래량
-
 month_trade_count <- property_df %>% 
   group_by(contract_ym) %>% 
   summarise(trade_count = sum(count)) %>% 
@@ -30835,72 +30827,111 @@ mae <- function(error) { mean(abs(error)) }
 mae(predict_df$error)
 
 
-### 부동산 뉴스 워드 클라우드 ###
-page_list <- c(1:3)
+#*********************************************************
+# 부동산 뉴스 워드 클라우드
+#*********************************************************
+Sys.setlocale("LC_ALL")
+options(encoding = "UTF-8")
+Sys.setenv(LANG = "en_US.UTF-8")
 
-news_text_list <- c()
-
-# page = page_list[2]
-for (page in page_list) {
-  estate_url <- paste0("https://search.naver.com/search.naver?&where=news&query=%EB%B6%80%EB%8F%99%EC%82%B0%20114&sm=tab_pge&sort=0&photo=0&field=0&reporter_article=&pd=0&ds=&de=&docid=&nso=so:r,p:all,a:all&mynews=0&cluster_rank=17&start=",page,"&refresh_start=0")
-  
-  
-  estate_html <- read_html(estate_url) 
-  
-  estate_urls <- estate_html %>% 
-    html_nodes(".type01") %>%
-    html_nodes("a") %>%
-    html_attr("href") %>% 
-    unique() 
-  
-  
-  estate_urls <- estate_urls[grep("naver.com",estate_urls)]
-  
-  
-  news_text <- lapply(estate_urls, function(news_page){
-    news_page %>% 
-      read_html() %>% 
-      html_nodes("#articleBodyContents._article_body_contents") %>% 
-      html_text()
-  })
-  
-  
-  news_text <- news_text %>% 
-    unlist() %>% 
-    str_replace_all("flash 오류를 우회하기 위한 함수 추가","") %>% 
-    str_replace_all("function _flash_removeCallback","") %>% 
-    str_replace_all("동영상 뉴스","") %>% 
-    str_replace_all("\\W"," ") %>% 
-    str_replace_all("[[A-Za-z]]"," ") %>% 
-    str_replace_all("\\d"," ") %>% 
-    str_replace_all("  "," ")  %>% 
-    unique()
-  
-  news_text_list <- append(news_text_list,news_text)
-  
-  # Sys.sleep(20)
+getUrlTagText = function(url, tag) {
+  xml2::read_html(url) %>%
+    rvest::html_nodes(tag) %>%
+    rvest::html_text() %>%
+    str_replace_all(pattern = "\n", replacement = " ") %>%
+    str_replace_all(pattern = "[\\^]", replacement = " ") %>%
+    str_replace_all(pattern = "\"", replacement = " ") %>%
+    str_replace_all(pattern = "\\s+", replacement = " ") %>%
+    str_trim(side = "both")
 }
 
-word.freq <- paste0(news_text_list[1:12],collapse = " ")
+# 검색 키워드
+keywordList = c("부동산 114")
+
+# 검색 키워드에 따른 개수 설정
+cntList = c(10)
+
+# i = 1
+foreach::foreach(i = 1:length(keywordList), .combine = c) %do% {
+  
+  cat(sprintf(
+    "키워드 : %s"
+    , keywordList[i]
+  ), "\n")
+  
+  # 기간 1년, 언론사 선정
+  contextPath = paste0("https://search.naver.com/search.naver?where=news&query=", utils::URLencode(iconv(keywordList[i], to = "UTF-8")), "&sm=tab_pge&sort=0&photo=0&field=0&reporter_article=&pd=0&ds=&de=&docid=&nso=so:r,p:all,a:all&mynews=0&")
+  urlInfo = paste0(contextPath, sprintf("start=%d&refresh_start=0", seq(1, cntList[i], 10)))
+  
+  # 제목 
+  urlDtlInfo = urlInfo %>%
+    purrr::map(~getUrlTagText(.x, '.list_news div > div > a.news_tit')) %>%
+    unlist()
+  
+  cat(sprintf(
+    "data : %s"
+    , length(urlDtlInfo)
+  ), "\n")
+  
+}
+
+data = tibble(urlDtlInfo)
+
+#==================================================
+# 기사 제목에서 명사 추출
+#==================================================
+dataL2 = data.frame()
+
+foreach::foreach(i = 1:nrow(data), .combine = c) %do% {
+  
+  dataL1 = RcppMeCab::pos(utf8::as_utf8(data$data[i]), format = "data.frame") %>%
+    dplyr::filter(pos == "NNG") %>%
+    dplyr::select(token)
+  
+  dataL2 = dplyr::bind_rows(dataL2, dataL1)
+}
 
 
-nouns <- KoNLP::extractNoun(word.freq)
+#==================================================
+# 키워드 빈도에 따른 시각화
+#==================================================
+keywordData = dataL2 %>%
+  dplyr::group_by(token) %>%
+  dplyr::summarise(freq = n()) %>%
+  dplyr::arrange(desc(freq)) %>%
+  as.data.frame() %>%
+  dplyr::top_n(n = 100)
+
+fig = wordcloud2::wordcloud2(data = keywordData)
+
+# html 저장
+htmlwidgets::saveWidget(fig, "fig.html", selfcontained = FALSE)
 
 
-nouns <- nouns[nchar(nouns) >= 2]
+# html에서 png로 저장
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "워드 클라우드")
+webshot::webshot("fig.html", saveImg, vwidth = 800, vheight = 600, delay = 10)
 
-wordcount <- table(unlist(nouns))
-
-df.word  <- as.data.frame(wordcount, stringsAsFactors = FALSE)
-df.word <- rename(df.word, word = Var1, freq = Freq)
-
-word.freq  <- df.word %>% 
-  filter(freq >= 2) %>% 
-  arrange(desc(freq)) 
-
-
-wordcloud::wordcloud(words = word.freq$word, freq = word.freq$freq,
-                     min.freq = 2, max.words = 200,
-                     random.order = FALSE, rot.per = 0.1,
-                     scale= c(5,0.5),
-                     colors = brewer.pal(8, "Dark2"))
+# word.freq <- paste0(news_text_list[1:12],collapse = " ")
+# 
+# 
+# nouns <- KoNLP::extractNoun(word.freq)
+# 
+# 
+# nouns <- nouns[nchar(nouns) >= 2]
+# 
+# wordcount <- table(unlist(nouns))
+# 
+# df.word  <- as.data.frame(wordcount, stringsAsFactors = FALSE)
+# df.word <- rename(df.word, word = Var1, freq = Freq)
+# 
+# word.freq  <- df.word %>% 
+#   filter(freq >= 2) %>% 
+#   arrange(desc(freq)) 
+# 
+# 
+# wordcloud::wordcloud(words = word.freq$word, freq = word.freq$freq,
+#                      min.freq = 2, max.words = 200,
+#                      random.order = FALSE, rot.per = 0.1,
+#                      scale= c(5,0.5),
+#                      colors = brewer.pal(8, "Dark2"))
