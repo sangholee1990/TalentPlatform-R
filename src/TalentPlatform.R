@@ -30907,31 +30907,6 @@ fig = wordcloud2::wordcloud2(data = keywordData)
 # html 저장
 htmlwidgets::saveWidget(fig, "fig.html", selfcontained = FALSE)
 
-
 # html에서 png로 저장
 saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "워드 클라우드")
 webshot::webshot("fig.html", saveImg, vwidth = 800, vheight = 600, delay = 10)
-
-# word.freq <- paste0(news_text_list[1:12],collapse = " ")
-# 
-# 
-# nouns <- KoNLP::extractNoun(word.freq)
-# 
-# 
-# nouns <- nouns[nchar(nouns) >= 2]
-# 
-# wordcount <- table(unlist(nouns))
-# 
-# df.word  <- as.data.frame(wordcount, stringsAsFactors = FALSE)
-# df.word <- rename(df.word, word = Var1, freq = Freq)
-# 
-# word.freq  <- df.word %>% 
-#   filter(freq >= 2) %>% 
-#   arrange(desc(freq)) 
-# 
-# 
-# wordcloud::wordcloud(words = word.freq$word, freq = word.freq$freq,
-#                      min.freq = 2, max.words = 200,
-#                      random.order = FALSE, rot.per = 0.1,
-#                      scale= c(5,0.5),
-#                      colors = brewer.pal(8, "Dark2"))

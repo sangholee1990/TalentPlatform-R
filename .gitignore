@@ -6,12 +6,10 @@ InitResources/
 resources/
 .RDataFiles/
 .idea/
-
 # 특정 파일
 .Rproj.user
 .Rhistory
 .RData*
- 
 # 하위 파일 전체
 *.cfg
 *.ttf
@@ -22,15 +20,14 @@ resources/
 *.o
 *.exe
 .RData*
-
 #=========================================
 # 캐시 지우기
 #=========================================
 # 특정 파일
 # git rm --cached test.txt
-
 # 하위 전체 파일
 # git rm --cached .RData*
-
 # 폴더
 # git rm --cached .idea/ -r
+fig.html
+fig_files
