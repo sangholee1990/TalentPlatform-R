@@ -23096,50 +23096,6 @@ saveFile = sprintf("%s/%s_%s.csv", globalVar$outPath, serviceName, "obs-to-idw")
 readr::write_csv(x = dataL4, file = saveFile)
 
 
-#.28675 < 2.22e-16 ***
-#   Size                         714.095503      0.927668 769.77489 < 2.22e-16 ***
-#   floor                        564.777648      4.502576 125.43435 < 2.22e-16 ***
-#   age                         -148.336805      3.191817 -46.47410 < 2.22e-16 ***
-#   month..서울특별시강남구    64829.526498    166.050030 390.42165 < 2.22e-16 ***
-#   month..서울특별시강북구     -805.734690    218.561292  -3.68654 0.00022734 ***
-#   month..서울특별시강서구     8053.255943    166.176981  48.46192 < 2.22e-16 ***
-#   month..서울특별시관악구     3729.689058    189.166040  19.71648 < 2.22e-16 ***
-#   month..서울특별시광진구    20243.945770    216.924873  93.32238 < 2.22e-16 ***
-#   month..서울특별시구로구     2175.713896    170.686670  12.74683 < 2.22e-16 ***
-#   month..서울특별시금천구    -2234.774512    225.847891  -9.89504 < 2.22e-16 ***
-#   month..서울특별시노원구     4886.230846    153.575292  31.81652 < 2.22e-16 ***
-#   month..서울특별시도봉구     -592.799775    173.696904  -3.41284 0.00064292 ***
-#   month..서울특별시동대문구   3779.582525    186.466948  20.26945 < 2.22e-16 ***
-#   month..서울특별시동작구    15775.363927    185.045366  85.25133 < 2.22e-16 ***
-#   month..서울특별시마포구    20595.798723    185.385332 111.09724 < 2.22e-16 ***
-#   month..서울특별시서대문구   7303.349393    195.439850  37.36878 < 2.22e-16 ***
-#   month..서울특별시서초구    52595.139619    175.827265 299.12960 < 2.22e-16 ***
-#   month..서울특별시성동구    22299.669538    185.716819 120.07351 < 2.22e-16 ***
-#   month..서울특별시성북구     2946.320627    172.463117  17.08377 < 2.22e-16 ***
-#   month..서울특별시송파구    27216.025880    280.283682  97.10171 < 2.22e-16 ***
-#   month..서울특별시양천구    17899.695766    172.554986 103.73329 < 2.22e-16 ***
-#   month..서울특별시영등포구  14385.956311    178.174602  80.74078 < 2.22e-16 ***
-#   month..서울특별시용산구    43667.253458    223.656637 195.24238 < 2.22e-16 ***
-#   month..서울특별시은평구     2020.139947    190.529807  10.60275 < 2.22e-16 ***
-#   month..서울특별시종로구    14289.511716    304.658584  46.90336 < 2.22e-16 ***
-#   month..서울특별시중구      15813.197846    263.366606  60.04253 < 2.22e-16 ***
-#   month..1                   -6317.346257    115.773516 -54.56642 < 2.22e-16 ***
-#   month..2                   -6732.291546    112.637680 -59.76944 < 2.22e-16 ***
-#   month..3                   -8311.958184    105.020519 -79.14604 < 2.22e-16 ***
-#   month..4                   -8151.903832    110.417059 -73.82830 < 2.22e-16 ***
-#   month..5                   -5360.166660    110.174679 -48.65153 < 2.22e-16 ***
-#   month..6                    -556.038739    106.241399  -5.23373 1.6616e-07 ***
-#   month..8                   -1819.941258    109.352983 -16.64281 < 2.22e-16 ***
-#   month..9                   -4275.959629    108.604913 -39.37170 < 2.22e-16 ***
-#   month..10                  -3982.975714    105.797017 -37.64733 < 2.22e-16 ***
-#   month..11                  -1404.807631    112.116698 -12.52987 < 2.22e-16 ***
-#   ---
-#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-# 
-# Residual standard error: 26266.21 on 1048538 degrees of freedom
-# Multiple R-squared:  0.5880779,	Adjusted R-squared:  0.5880637 
-# F-statistic: 41581.62 on 36 and 1048538 DF,  p-value: < 2.2204e-16
-
 #===============================================================================================
 # Routine : Main R program
 #
@@ -30910,3 +30866,232 @@ htmlwidgets::saveWidget(fig, "fig.html", selfcontained = FALSE)
 # html에서 png로 저장
 saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "워드 클라우드")
 webshot::webshot("fig.html", saveImg, vwidth = 800, vheight = 600, delay = 10)
+
+
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+#================================================
+# 요구사항
+#================================================
+# R을 이용한 네이버 기사 제목 크롤링 및 워드클라우드 시각화
+
+#================================================
+# 초기 환경변수 설정
+#================================================
+# env = "local"   # 로컬 : 원도우 환경, 작업환경 (현재 소스 코드 환경 시 .) 설정
+env = "dev"   # 개발 : 원도우 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+# env = "oper"  # 운영 : 리눅스 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+
+prjName = "test"
+serviceName = "LSH0189"
+contextPath = ifelse(env == "local", getwd(), "E:/04. TalentPlatform/Github/TalentPlatform-R")
+
+if (env == "local") {
+  globalVar = list(
+    "inpPath" = contextPath
+    , "figPath" = contextPath
+    , "outPath" = contextPath
+    , "tmpPath" = contextPath
+  )
+} else {
+  source(here::here(file.path(contextPath, "src"), "InitConfig.R"), encoding = "UTF-8")
+}
+
+#================================================
+# 비즈니스 로직 수행
+#================================================
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+library(multidplyr)
+library(parallel)
+library(vroom)
+
+
+
+# [시작] 병렬 처리
+oSocClu = parallel::makePSOCKcluster(parallel::detectCores())
+# oSocClu = parallel::makePSOCKcluster(100)
+doParallel::registerDoParallel(oSocClu)
+
+# 외부 변수 등록
+parallel::clusterExport(oSocClu, "dtDateList")
+parallel::clusterExport(oSocClu, "data")
+parallel::clusterExport(oSocClu, "dataL1")
+parallel::clusterExport(oSocClu, "saveFile")
+parallel::clusterExport(oSocClu, "globalVar")
+parallel::clusterExport(oSocClu, "serviceName")
+parallel::clusterExport(oSocClu, "spData")
+parallel::clusterExport(oSocClu, "spNewData")
+parallel::clusterExport(oSocClu, "stationData")
+parallel::clusterExport(oSocClu, "dataL3")
+
+
+# 외부 라이브러리 등록
+parallel::clusterEvalQ(oSocClu, library(gstat))
+parallel::clusterEvalQ(oSocClu, library(readr))
+parallel::clusterEvalQ(oSocClu, library(tidyverse))
+parallel::clusterEvalQ(oSocClu, library(sp))
+parallel::clusterEvalQ(oSocClu, library(automap))
+
+# x = 1
+tictoc::tic()
+# parallel::parSapply(oSocClu, X = 1:length(dtDateList), function(x) {
+parallel::parSapply(oSocClu, X = 1:12, function(x) {
+  
+  dataL1 = data %>%
+    dplyr::filter(X1 == dtDateList[x]) %>%
+    tidyr::gather(-X1, key = "key", value = "val") %>%
+    tidyr::separate(col = "key", into = c("lat", "lon"), sep = "p") %>%
+    # tidyr::separate(col = "tmpLon", into = c(NA, "lon"), sep = "X") %>%
+    readr::type_convert()
+  
+  spData = dataL1
+  sp::coordinates(spData) = ~ lon + lat
+  gridded(spData) = TRUE
+  
+  if (nrow(dataL1) < 1) { next }
+  
+  # variogram model
+  variogram = automap::autofitVariogram(val ~ 1, spData)
+  # plot(variogram)
+  
+  # 정규 크리킹 및 전처리 수행
+  spDataL1 = gstat::krige(
+    formula = val ~ 1
+    , locations = spData
+    , newdata = spNewData
+    , model = variogram$var_model
+    , nmax = 4
+  ) %>%
+    as.data.frame() %>%
+    dplyr::rename(
+      val = var1.pred
+    ) %>%
+    dplyr::select(-var1.var, -lon, -lat)
+  # dplyr::select(-var1.var)
+  
+  # 데이터 병합
+  dataL3 = data.frame(
+    date = dtDateList[x]
+    , name = stationData$name
+    , spDataL1
+  ) %>% 
+    tidyr::spread(key = "name", value = "val")
+  
+  saveFile = sprintf("%s/%s_%s_%s.csv", globalVar$outPath, serviceName, "obs-to-krige", dtDateList[x])
+  readr::write_csv(x = dataL3, file = saveFile)
+})
+
+tictoc::toc()
+
+# [종료] 병렬 처리
+parallel::stopCluster(oSocClu)
+
+
+
+# cl <- detectCores() -1
+oSocCluCnt = parallel::detectCores() - 1
+oSocClu = multidplyr::new_cluster(oSocCluCnt)
+
+group = rep(1:oSocCluCnt, length.out = nrow(fileList))
+flights1 <- flights %>% group_by(dest) %>% partition(oSocClu)
+
+cluster <- create_cluster(4)
+
+# multidplyr::
+
+# [시작] 병렬 처리
+oSocClu = parallel::makePSOCKcluster(parallel::detectCores())
+# oSocClu = parallel::makePSOCKcluster(100)
+doParallel::registerDoParallel(oSocClu)
+
+## 4.2. 병렬처리 그룹 생성 -------------------------------------------------------
+group <- rep(1:cl, length.out = nrow(kospi_200_df))
+kospi_200_df <- bind_cols(tibble(group), kospi_200_df)
+
+by_group <- kospi_200_df %>%
+  partition(group, cluster = cluster)
+
+# 데이터 조회
+fileList = Sys.glob(paste(globalVar$outPath, "LSH0147_obs-to-krige_*.csv", sep = "/"))
+
+cluster_library(oSocClu, "dplyr")
+cluster_library(oSocClu, "multidplyr")
+cluster_library(oSocClu, "vroom")
+# cluster_call(oSocClu, search())
+
+# cluster_assign_partition(oSocClu, files = fileList)
+
+# file <- vroom_example("mtcars.csv")
+# vroom::vroom(fileList[1])
+
+# df <- vroom::vroom(fileList)
+
+cluster_send(oSocClu, my_data = vroom::vroom(fileList))
+
+my_data <- multidplyr::party_df(oSocClu, "my_data")
+
+# dataL5 = party_df(oSocClu, "dataL4")
+
+# dataL4 = fileList %>%
+  # multidplyr::cluster_assign_partition(oSocClu, files = files)
+  # partition(group, cluster = oSocClu)
+
+dataL4 = fileList %>%
+  partition(oSocClu) %>% 
+  purrr::map(~ read.csv(.x, fileEncoding = "UTF-8")) %>% 
+  purrr::reduce(dplyr::bind_rows)
+
+dataL4 = fileList %>%
+  purrr::map(~ read.csv(.x, fileEncoding = "UTF-8")) %>% 
+  purrr::reduce(dplyr::bind_rows)
+
+saveFile = sprintf("%s/%s_%s.csv", globalVar$outPath, serviceName, "obs-to-krige")
+readr::write_csv(x = dataL4, file = saveFile)
+
+
+
+# 
+# 
+# fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0189_BA11511_14_5_2014_9_26_51-event+report.pdf"))
+# # data = read.csv(fileInfo, fileEncoding = "UCS-2LE")
+# 
+# 
+# data = pdf_ocr_text(fileInfo)
+# data2 = pdf_ocr_data(fileInfo)
+# 
+# dd = pdf_data(fileInfo)
+# 
+# out <- tabulizer::extract_tables(fileInfo)
+# out2 = tabulizer::extract_metadata(fileInfo)
+# 
+# PDF <- pdf_text(fileInfo) %>%
+#   readr::read_lines() #open the PDF inside your project folder
+# 
+# 
+# # extract some pages
+# pdf_subset(fileInfo, pages = 1:1, output = "subset.pdf")
+# 
+# # Should say 3
+# pdf_length("subset.pdf")
+# 
+# 
+# library(officer)
+# fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0189_BA11511_14_5_2014_9_26_51-event+report.docx"))
+# 
+# sample_doc <- read_docx(fileInfo)
+# 
+# content <- docx_summary(sample_doc)
+# 
+# doc = qdapTools::read_docx(fileInfo, skip = 0)
+# txt <- rm_non_ascii(doc)
+
