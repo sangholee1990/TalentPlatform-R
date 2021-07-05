@@ -30996,6 +30996,11 @@ tictoc::toc()
 # [종료] 병렬 처리
 parallel::stopCluster(oSocClu)
 
+library(nycflights13)
+flights1 <- partition (flights, flight)
+
+
+ds <- data.frame(group=c(rep("a",100), rep("b",100),rep("c",100)),sex=rep(sample(c("F","M"),100,replace=T),3),y=rpois(300,10))
 
 
 # cl <- detectCores() -1
@@ -31021,6 +31026,10 @@ kospi_200_df <- bind_cols(tibble(group), kospi_200_df)
 by_group <- kospi_200_df %>%
   partition(group, cluster = cluster)
 
+# partition by group
+# by_group <- gene_names %>%
+  # partition(group, cluster = cluster)
+
 # 데이터 조회
 fileList = Sys.glob(paste(globalVar$outPath, "LSH0147_obs-to-krige_*.csv", sep = "/"))
 
@@ -31036,9 +31045,13 @@ cluster_library(oSocClu, "vroom")
 
 # df <- vroom::vroom(fileList)
 
-cluster_send(oSocClu, my_data = vroom::vroom(fileList))
-
+rep(1:oSocCluCnt, length.out = length(fileList))
+# multidplyr::cluster_assign_each(oSocClu, file_name = fileList[1:11])
+multidplyr::cluster_assign_each(oSocClu, file_name = fileList)
+cluster_send(oSocClu, my_data <- vroom::vroom(file_name))
 my_data <- multidplyr::party_df(oSocClu, "my_data")
+
+
 
 # dataL5 = party_df(oSocClu, "dataL4")
 
