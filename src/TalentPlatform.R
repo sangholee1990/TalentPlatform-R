@@ -30868,6 +30868,199 @@ saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "워드 클라
 webshot::webshot("fig.html", saveImg, vwidth = 800, vheight = 600, delay = 10)
 
 
+
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+#================================================
+# 요구사항
+#================================================
+# LSH0189. R을 이용한 CS 및 H2SO4 상자그림 시각화
+
+#================================================
+# 초기 환경변수 설정
+#================================================
+# env = "local"   # 로컬 : 원도우 환경, 작업환경 (현재 소스 코드 환경 시 .) 설정
+env = "dev"   # 개발 : 원도우 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+# env = "oper"  # 운영 : 리눅스 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+
+prjName = "test"
+serviceName = "LSH0189"
+contextPath = ifelse(env == "local", getwd(), "E:/04. TalentPlatform/Github/TalentPlatform-R")
+
+if (env == "local") {
+  globalVar = list(
+    "inpPath" = contextPath
+    , "figPath" = contextPath
+    , "outPath" = contextPath
+    , "tmpPath" = contextPath
+  )
+} else {
+  source(here::here(file.path(contextPath, "src"), "InitConfig.R"), encoding = "UTF-8")
+}
+
+#================================================
+# 비즈니스 로직 수행
+#================================================
+library(readxl)
+library(tidyverse)
+library(ggplot2)
+library(ggmap)
+library(ggplot2)
+library(lubridate)
+library(MASS)
+library(scales)
+library(forcats)
+
+# fileInfo = Sys.glob(paste(globalVar$inpPath, "LSH0129_ref_median_min_max.xlsx", sep = "/"))
+# refData = openxlsx::read.xlsx(xlsxFile = fileInfo, sheet = "Sheet1")
+
+# fileList = Sys.glob(paste(globalVar$inpPath, "LSH0189/period_1/*.csv", sep = "/"))
+fileList = Sys.glob(paste(globalVar$inpPath, "LSH0189/period_2/*.csv", sep = "/"))
+dataL1 = tibble::tibble()
+
+for (fileInfo in fileList) {
+    fileName = tools::file_path_sans_ext(fs::path_file(fileInfo))
+    
+    data = readr::read_csv(file = fileInfo, locale = locale("ko", encoding = "EUC-KR")) %>%
+      dplyr::select(type, season, CS, H2SO4)
+    
+    dataL1 = dplyr::bind_rows(
+      dataL1
+      , data.frame(
+        fileName = fileName
+        , data
+      )
+    )
+}
+
+# dataL1$fileName %>% unique()
+
+dataL2 = dataL1 %>%
+  dplyr::mutate(
+    makeLabel = dplyr::case_when(
+      stringr::str_detect(fileName, regex("A_")) ~ "Anmyeon"
+      , stringr::str_detect(fileName, regex("J_")) ~ "Jeju"
+      , stringr::str_detect(fileName, regex("B_")) ~ "Beijing"
+      , stringr::str_detect(fileName, regex("G_")) ~ "Gwangju"
+      , TRUE ~ "NA"
+    )
+    , makeLegend = dplyr::case_when(
+      stringr::str_detect(fileName, regex("_NON")) ~ "Non events"
+      , stringr::str_detect(fileName, regex("_TNPF")) ~ "NPF"
+      , TRUE ~ "NA"
+    )
+    , seasonLabel = dplyr::case_when(
+      stringr::str_detect(season, regex("spring")) ~ "Sp."
+      , stringr::str_detect(season, regex("summer")) ~ "Su."
+      , stringr::str_detect(season, regex("winter")) ~ "Wi."
+      , stringr::str_detect(season, regex("fall")) ~ "Au."
+      , TRUE ~ "NA"
+    )
+  )
+
+
+dataL3 = dataL2 %>%
+  dplyr::group_by(makeLabel, seasonLabel, makeLegend) %>%
+  dplyr::summarise(
+    meanCS = mean(CS, na.rm = TRUE)
+    , meanH2SO4 = mean(H2SO4, na.rm = TRUE)
+  )
+
+# dataL2$makeLegend %>% unique()
+# dataL2$makeLabel %>% unique()
+
+dataL2$seasonLabel = forcats::fct_relevel(dataL2$seasonLabel, c("Wi.", "Sp.", "Su.", "Au."))
+dataL2$makeLegend = forcats::fct_relevel(dataL2$makeLegend, c("NPF", "Non events"))
+dataL2$makeLabel = forcats::fct_relevel(dataL2$makeLabel, c("Beijing", "Gwangju", "Anmyeon"))
+
+# CS 시각화
+# saveImg = sprintf("%s/%s_%s_%s.png", globalVar$figPath, serviceName, "CS", "Anmyeon 및 Jeju에 대한 계절별 박스플롯 시각화_6x4")
+saveImg = sprintf("%s/%s_%s_%s.png", globalVar$figPath, serviceName, "CS", "Beijing 및 Gwangju 및 Anmyeon에 대한 계절별 박스플롯 시각화_6x4")
+
+ggplot(dataL2, aes(x=seasonLabel, y=CS, fill=makeLegend)) +
+  geom_boxplot(alpha=1.0, outlier.shape = NA, width = 0.5, position = position_dodge(0.7)) +
+  stat_boxplot(geom ='errorbar', width = 0.5, position = position_dodge(0.7)) +
+  geom_boxplot(alpha=1.0, outlier.shape = NA, width = 0.5, position = position_dodge(0.7)) +
+  # geom_point(dataL3, aes(x=seasonLabel, y=meanVal, fill=makeLegend), shape = 4, size = 4, color = "red") +
+  stat_summary(fun=mean, geom="point", shape=20, size=2, color="black", position = position_dodge(width = 0.7)) +
+  labs(title = NULL, x = "season", y = bquote('CS ('*s^-1*')'), colour = NULL, fill = NULL, subtitle = NULL) +
+  # scale_y_continuous(limits = c(0, 0.035)) +
+  scale_y_continuous(limits = c(0, 0.08)) +
+  # scale_y_continuous(minor_breaks = seq(0, 0.3, 0.1), breaks = seq(0, 0.3, 0.1), limits = c(0, 0.1)) +
+  # scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x), labels = trans_format("log10", math_format(10^.x)), limits = c(1e-3, 1e0)) +
+  # annotation_logticks(sides = "l") +
+  # scale_fill_manual(values = c("spring" = "green", "winter" = "blue"), name = NULL, na.value = NA
+  # , labels = c("spring", "winter")
+  # ) +
+  theme_bw() +
+  theme(
+    text = element_text(size = 18)
+    , panel.grid.major.x = element_blank()
+    , panel.grid.major.y = element_blank()
+    , panel.grid.minor.x = element_blank()
+    , panel.grid.minor.y = element_blank()
+    , panel.border = element_rect(size=1.5)
+    
+    # , legend.position = "none"
+    , legend.spacing.y = unit(0, "mm")
+    , legend.text = element_text(size=10)
+    , legend.position = c(0.98, 0.97)
+    , legend.justification = c("right", "top")
+    , legend.box.just = "right"
+    , legend.box.background = element_rect(fill="transparent", size=0.5, linetype="solid", colour ="black")
+  ) +
+  # facet_wrap(~makeLabel, scale = "free") +
+  facet_wrap(~makeLabel) +
+  ggsave(filename = saveImg, width = 6, height = 4, dpi = 600)
+
+# H2SO4 시각화
+# saveImg = sprintf("%s/%s_%s_%s.png", globalVar$figPath, serviceName, "H2SO4", "Anmyeon 및 Jeju에 대한 계절별 박스플롯 시각화_6x4")
+saveImg = sprintf("%s/%s_%s_%s.png", globalVar$figPath, serviceName, "H2SO4", "Beijing 및 Gwangju 및 Anmyeon에 대한 계절별 박스플롯 시각화_6x4")
+
+ggplot(dataL2, aes(x=seasonLabel, y=H2SO4, fill=makeLegend)) +
+  geom_boxplot(alpha=1.0, outlier.shape = NA, width = 0.5, position = position_dodge(0.7)) +
+  stat_boxplot(geom ='errorbar', width = 0.5, position = position_dodge(0.7)) +
+  geom_boxplot(alpha=1.0, outlier.shape = NA, width = 0.5, position = position_dodge(0.7)) +
+  # geom_point(dataL3, aes(x=seasonLabel, y=meanVal, fill=makeLegend), shape = 4, size = 4, color = "red") +
+  # stat_summary(fun=mean, geom="point", shape=20, size=2, color="black", position = position_dodge(width = 0.5)) +
+  # stat_summary(fun=mean, geom="point", shape=4, size=2, color="red", position = position_dodge(width = 0.7)) +
+  stat_summary(fun=mean, geom="point", shape=20, size=2, color="black", position = position_dodge(width = 0.7)) +
+  labs(title = NULL, x = "season", y = bquote(''*H[2]*SO[4]*' concentration ('*cm^-3*')'), colour = NULL, fill = NULL, subtitle = NULL) +
+  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x), labels = trans_format("log10", math_format(10^.x)), limits = c(1e3, 1e8)) +
+  annotation_logticks(sides = "l") +
+  # scale_fill_manual(values = c("spring" = "green", "winter" = "blue"), name = NULL, na.value = NA
+  # , labels = c("spring", "winter")
+  # ) +
+  theme_bw() +
+  theme(
+    text = element_text(size = 18)
+    , panel.grid.major.x = element_blank()
+    , panel.grid.major.y = element_blank()
+    , panel.grid.minor.x = element_blank()
+    , panel.grid.minor.y = element_blank()
+    , panel.border = element_rect(size=1.5)
+    
+    # , legend.position = "none"
+    , legend.spacing.y = unit(0, "mm")
+    , legend.text = element_text(size=10)
+    , legend.position = c(0.98, 0.97)
+    , legend.justification = c("right", "top")
+    , legend.box.just = "right"
+    , legend.box.background = element_rect(fill="transparent", size=0.5, linetype="solid", colour ="black")
+  ) +
+  # facet_wrap(~makeLabel, scale = "free") +
+  facet_wrap(~makeLabel) +
+  ggsave(filename = saveImg, width = 6, height = 4, dpi = 600)
+  
+
 #===============================================================================================
 # Routine : Main R program
 #
@@ -30996,6 +31189,11 @@ tictoc::toc()
 # [종료] 병렬 처리
 parallel::stopCluster(oSocClu)
 
+library(nycflights13)
+flights1 <- partition (flights, flight)
+
+
+ds <- data.frame(group=c(rep("a",100), rep("b",100),rep("c",100)),sex=rep(sample(c("F","M"),100,replace=T),3),y=rpois(300,10))
 
 
 # cl <- detectCores() -1
@@ -31021,6 +31219,10 @@ kospi_200_df <- bind_cols(tibble(group), kospi_200_df)
 by_group <- kospi_200_df %>%
   partition(group, cluster = cluster)
 
+# partition by group
+# by_group <- gene_names %>%
+  # partition(group, cluster = cluster)
+
 # 데이터 조회
 fileList = Sys.glob(paste(globalVar$outPath, "LSH0147_obs-to-krige_*.csv", sep = "/"))
 
@@ -31036,9 +31238,13 @@ cluster_library(oSocClu, "vroom")
 
 # df <- vroom::vroom(fileList)
 
-cluster_send(oSocClu, my_data = vroom::vroom(fileList))
-
+rep(1:oSocCluCnt, length.out = length(fileList))
+# multidplyr::cluster_assign_each(oSocClu, file_name = fileList[1:11])
+multidplyr::cluster_assign_each(oSocClu, file_name = fileList)
+cluster_send(oSocClu, my_data <- vroom::vroom(file_name))
 my_data <- multidplyr::party_df(oSocClu, "my_data")
+
+
 
 # dataL5 = party_df(oSocClu, "dataL4")
 
