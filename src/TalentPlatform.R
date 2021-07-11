@@ -22849,18 +22849,26 @@ readr::write_csv(dataL3, file = saveFile)
 # 안녕하세요. 박스플롯을 그려야할게 있는데 혹시 오전중으로 가능할까요?
 
 #================================================
-# Set Env
+# 초기 환경변수 설정
 #================================================
-# globalVar = list()
-# globalVar$inpPath = "."
-# globalVar$figPath = "."
-# globalVar$outPath = "."
+# env = "local"   # 로컬 : 원도우 환경, 작업환경 (현재 소스 코드 환경 시 .) 설정
+env = "dev"   # 개발 : 원도우 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+# env = "oper"  # 운영 : 리눅스 환경, 작업환경 (사용자 환경 시 contextPath) 설정
 
-rm(list = ls())
-prjName = "o2job"
-source(here::here("E:/04. TalentPlatform/Github/TalentPlatform-R/src", "InitConfig.R"), encoding = "UTF-8")
-
+prjName = "test"
 serviceName = "LSH0131"
+contextPath = ifelse(env == "local", getwd(), "E:/04. TalentPlatform/Github/TalentPlatform-R")
+
+if (env == "local") {
+  globalVar = list(
+    "inpPath" = contextPath
+    , "figPath" = contextPath
+    , "outPath" = contextPath
+    , "tmpPath" = contextPath
+  )
+} else {
+  source(here::here(file.path(contextPath, "src"), "InitConfig.R"), encoding = "UTF-8")
+}
 
 #================================================
 # Main
@@ -24367,18 +24375,27 @@ hanoiPos4(3, "A", "D", "B", "C")
 # 결과 값 그대로 그래프 그려주시면 되어요~
 
 #================================================
-# Set Env
+# 초기 환경변수 설정
 #================================================
-# globalVar = list()
-# globalVar$inpPath = "."
-# globalVar$figPath = "."
-# globalVar$outPath = "."
+# env = "local"   # 로컬 : 원도우 환경, 작업환경 (현재 소스 코드 환경 시 .) 설정
+env = "dev"   # 개발 : 원도우 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+# env = "oper"  # 운영 : 리눅스 환경, 작업환경 (사용자 환경 시 contextPath) 설정
 
-rm(list = ls())
 prjName = "test"
-source(here::here("E:/04. TalentPlatform/Github/TalentPlatform-R/src", "InitConfig.R"), encoding = "UTF-8")
-
 serviceName = "LSH0145"
+contextPath = ifelse(env == "local", getwd(), "E:/04. TalentPlatform/Github/TalentPlatform-R")
+
+if (env == "local") {
+  globalVar = list(
+    "inpPath" = contextPath
+    , "figPath" = contextPath
+    , "outPath" = contextPath
+    , "tmpPath" = contextPath
+  )
+} else {
+  source(here::here(file.path(contextPath, "src"), "InitConfig.R"), encoding = "UTF-8")
+}
+
 
 #================================================
 # Main
@@ -30882,7 +30899,7 @@ webshot::webshot("fig.html", saveImg, vwidth = 800, vheight = 600, delay = 10)
 #================================================
 # 요구사항
 #================================================
-# LSH0189. R을 이용한 CS 및 H2SO4 상자그림 시각화
+# R을 이용한 CS 및 H2SO4 상자그림 시각화
 
 #================================================
 # 초기 환경변수 설정
@@ -30993,10 +31010,10 @@ ggplot(dataL2, aes(x=seasonLabel, y=CS, fill=makeLegend)) +
   stat_summary(fun=mean, geom="point", shape=20, size=2, color="black", position = position_dodge(width = 0.7)) +
   labs(title = NULL, x = "season", y = bquote('CS ('*s^-1*')'), colour = NULL, fill = NULL, subtitle = NULL) +
   # scale_y_continuous(limits = c(0, 0.035)) +
-  scale_y_continuous(limits = c(0, 0.08)) +
+  # scale_y_continuous(limits = c(0, 0.08)) +
   # scale_y_continuous(minor_breaks = seq(0, 0.3, 0.1), breaks = seq(0, 0.3, 0.1), limits = c(0, 0.1)) +
-  # scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x), labels = trans_format("log10", math_format(10^.x)), limits = c(1e-3, 1e0)) +
-  # annotation_logticks(sides = "l") +
+  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x), labels = trans_format("log10", math_format(10^.x)), limits = c(1e-3, 1e0)) +
+  annotation_logticks(sides = "l") +
   # scale_fill_manual(values = c("spring" = "green", "winter" = "blue"), name = NULL, na.value = NA
   # , labels = c("spring", "winter")
   # ) +
@@ -31022,8 +31039,8 @@ ggplot(dataL2, aes(x=seasonLabel, y=CS, fill=makeLegend)) +
   ggsave(filename = saveImg, width = 6, height = 4, dpi = 600)
 
 # H2SO4 시각화
-# saveImg = sprintf("%s/%s_%s_%s.png", globalVar$figPath, serviceName, "H2SO4", "Anmyeon 및 Jeju에 대한 계절별 박스플롯 시각화_6x4")
-saveImg = sprintf("%s/%s_%s_%s.png", globalVar$figPath, serviceName, "H2SO4", "Beijing 및 Gwangju 및 Anmyeon에 대한 계절별 박스플롯 시각화_6x4")
+saveImg = sprintf("%s/%s_%s_%s.png", globalVar$figPath, serviceName, "H2SO4", "Anmyeon 및 Jeju에 대한 계절별 박스플롯 시각화_6x4")
+# saveImg = sprintf("%s/%s_%s_%s.png", globalVar$figPath, serviceName, "H2SO4", "Beijing 및 Gwangju 및 Anmyeon에 대한 계절별 박스플롯 시각화_6x4")
 
 ggplot(dataL2, aes(x=seasonLabel, y=H2SO4, fill=makeLegend)) +
   geom_boxplot(alpha=1.0, outlier.shape = NA, width = 0.5, position = position_dodge(0.7)) +
@@ -31084,7 +31101,7 @@ env = "dev"   # 개발 : 원도우 환경, 작업환경 (사용자 환경 시 co
 # env = "oper"  # 운영 : 리눅스 환경, 작업환경 (사용자 환경 시 contextPath) 설정
 
 prjName = "test"
-serviceName = "LSH0189"
+serviceName = "LSH0190"
 contextPath = ifelse(env == "local", getwd(), "E:/04. TalentPlatform/Github/TalentPlatform-R")
 
 if (env == "local") {
@@ -31101,19 +31118,52 @@ if (env == "local") {
 #================================================
 # 비즈니스 로직 수행
 #================================================
+library(readxl)
 library(tidyverse)
-library(ggplot2)
-library(dplyr)
+library(lubridate)
+library(data.table)
+library(colorRamps)
+library(lubridate)
+library(extrafont)
+library(ggrepel)
+library(scales)
+library(sf)
+unloadNamespace('raster')
+# install.packages("gstat", dependencies = TRUE)
+library(gstat)
+library(sp)
+library(metR)
+library(akima)
+library(stringr)
+library(automap)
 library(multidplyr)
-library(parallel)
-library(vroom)
 
+fileInfo = Sys.glob(paste(globalVar$inpPath, "LSH0147_관측소+제원.xlsx", sep = "/"))
+stationData = openxlsx::read.xlsx(xlsxFile = fileInfo, sheet = "Sheet1") %>%
+  dplyr::select(Observation, X, Y) %>%
+  dplyr::rename(
+    name = Observation
+    , lon = X
+    , lat = Y
+  )
 
+# 관측소에 대한 공간 격자화
+spNewData = stationData
+coordinates(spNewData) = ~ lon + lat
+# plot(spNewData)
+
+fileInfo2 = Sys.glob(paste(globalVar$inpPath, "LSH0147_Pr ACCESS-ESM1-5_1985-2014.csv", sep = "/"))
+data = readr::read_csv(file = fileInfo2, locale = locale("ko", encoding = "EUC-KR"))
+
+dtDateList = data$X1 %>% unique() %>% sort()
 
 # [시작] 병렬 처리
-oSocClu = parallel::makePSOCKcluster(parallel::detectCores())
+oSocCluCnt = parallel::detectCores() - 1
+oSocClu = parallel::makePSOCKcluster(oSocCluCnt)
 # oSocClu = parallel::makePSOCKcluster(100)
 doParallel::registerDoParallel(oSocClu)
+
+dtDateList = data$X1 %>% unique() %>% sort()
 
 # 외부 변수 등록
 parallel::clusterExport(oSocClu, "dtDateList")
@@ -31126,6 +31176,7 @@ parallel::clusterExport(oSocClu, "spData")
 parallel::clusterExport(oSocClu, "spNewData")
 parallel::clusterExport(oSocClu, "stationData")
 parallel::clusterExport(oSocClu, "dataL3")
+parallel::clusterExport(oSocClu, "oSocCluCnt")
 
 
 # 외부 라이브러리 등록
@@ -31136,9 +31187,14 @@ parallel::clusterEvalQ(oSocClu, library(sp))
 parallel::clusterEvalQ(oSocClu, library(automap))
 
 # x = 1
+
+# 파일 삭제
+saveFile = sprintf("%s/%s_%s_%s.csv", globalVar$outPath, serviceName, "*", "obs-to-krige")
+file.remove(path = Sys.glob(saveFile))
+
 tictoc::tic()
 # parallel::parSapply(oSocClu, X = 1:length(dtDateList), function(x) {
-parallel::parSapply(oSocClu, X = 1:12, function(x) {
+parallel::parSapply(oSocClu, X = 1:20, function(x) {
   
   dataL1 = data %>%
     dplyr::filter(X1 == dtDateList[x]) %>%
@@ -31180,8 +31236,11 @@ parallel::parSapply(oSocClu, X = 1:12, function(x) {
   ) %>% 
     tidyr::spread(key = "name", value = "val")
   
-  saveFile = sprintf("%s/%s_%s_%s.csv", globalVar$outPath, serviceName, "obs-to-krige", dtDateList[x])
-  readr::write_csv(x = dataL3, file = saveFile)
+  selCore = x %% oSocCluCnt
+  
+  saveFile = sprintf("%s/%s_%s_%s.csv", globalVar$outPath, serviceName, selCore, "obs-to-krige")
+  readr::write_csv(x = dataL3, file = saveFile, append = TRUE, col_names = FALSE)
+  # write.csv(x = dataL3, file = saveFile, append = TRUE, row.names = FALSE)
 })
 
 tictoc::toc()
@@ -31189,80 +31248,36 @@ tictoc::toc()
 # [종료] 병렬 처리
 parallel::stopCluster(oSocClu)
 
-library(nycflights13)
-flights1 <- partition (flights, flight)
 
-
-ds <- data.frame(group=c(rep("a",100), rep("b",100),rep("c",100)),sex=rep(sample(c("F","M"),100,replace=T),3),y=rpois(300,10))
-
-
-# cl <- detectCores() -1
-oSocCluCnt = parallel::detectCores() - 1
-oSocClu = multidplyr::new_cluster(oSocCluCnt)
-
-group = rep(1:oSocCluCnt, length.out = nrow(fileList))
-flights1 <- flights %>% group_by(dest) %>% partition(oSocClu)
-
-cluster <- create_cluster(4)
-
-# multidplyr::
-
-# [시작] 병렬 처리
-oSocClu = parallel::makePSOCKcluster(parallel::detectCores())
-# oSocClu = parallel::makePSOCKcluster(100)
-doParallel::registerDoParallel(oSocClu)
-
-## 4.2. 병렬처리 그룹 생성 -------------------------------------------------------
-group <- rep(1:cl, length.out = nrow(kospi_200_df))
-kospi_200_df <- bind_cols(tibble(group), kospi_200_df)
-
-by_group <- kospi_200_df %>%
-  partition(group, cluster = cluster)
-
-# partition by group
-# by_group <- gene_names %>%
-  # partition(group, cluster = cluster)
-
+#===========================================
+# 데이터 합치기 용도
+#===========================================
 # 데이터 조회
-fileList = Sys.glob(paste(globalVar$outPath, "LSH0147_obs-to-krige_*.csv", sep = "/"))
+fileList = Sys.glob(paste(globalVar$outPath, "LSH0190_*_obs-to-krige.csv", sep = "/"))
 
-cluster_library(oSocClu, "dplyr")
-cluster_library(oSocClu, "multidplyr")
-cluster_library(oSocClu, "vroom")
-# cluster_call(oSocClu, search())
+# mSocCluCnt = parallel::detectCores()
+mSocCluCnt = length(fileList)
+mSocClu = multidplyr::new_cluster(mSocCluCnt)
 
-# cluster_assign_partition(oSocClu, files = fileList)
+multidplyr::cluster_library(mSocClu, "dplyr")
+multidplyr::cluster_assign_each(mSocClu, filename = fileList)
+cluster_call(mSocClu, filename)
 
-# file <- vroom_example("mtcars.csv")
-# vroom::vroom(fileList[1])
+multidplyr::cluster_send(mSocClu, resData <- vroom::vroom(filename, col_names = FALSE))
+cluster_call(mSocClu, resData)
 
-# df <- vroom::vroom(fileList)
-
-rep(1:oSocCluCnt, length.out = length(fileList))
-# multidplyr::cluster_assign_each(oSocClu, file_name = fileList[1:11])
-multidplyr::cluster_assign_each(oSocClu, file_name = fileList)
-cluster_send(oSocClu, my_data <- vroom::vroom(file_name))
-my_data <- multidplyr::party_df(oSocClu, "my_data")
-
-
-
-# dataL5 = party_df(oSocClu, "dataL4")
-
-# dataL4 = fileList %>%
-  # multidplyr::cluster_assign_partition(oSocClu, files = files)
-  # partition(group, cluster = oSocClu)
-
-dataL4 = fileList %>%
-  partition(oSocClu) %>% 
-  purrr::map(~ read.csv(.x, fileEncoding = "UTF-8")) %>% 
-  purrr::reduce(dplyr::bind_rows)
-
-dataL4 = fileList %>%
-  purrr::map(~ read.csv(.x, fileEncoding = "UTF-8")) %>% 
-  purrr::reduce(dplyr::bind_rows)
+resData = multidplyr::party_df(mSocClu, "resData") %>% 
+  collect() %>% 
+  magrittr::set_colnames(c("dtDate", stationData$name)) %>% 
+  dplyr::arrange(dtDate)
 
 saveFile = sprintf("%s/%s_%s.csv", globalVar$outPath, serviceName, "obs-to-krige")
-readr::write_csv(x = dataL4, file = saveFile)
+readr::write_csv(x = resData, file = saveFile)
+
+multidplyr::cluster_rm(mSocClu)
+
+
+
 
 
 
