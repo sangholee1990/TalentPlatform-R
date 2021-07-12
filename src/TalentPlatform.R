@@ -22923,7 +22923,8 @@ dataL3 = dataL2 %>%
 # season 정렬
 dataL2$season = forcats::fct_relevel(dataL2$season, c("winter", "spring"))
 
-saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "베이징 및 광주에 대한 계절별 박스플롯 시각화_6x6")
+# saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "베이징 및 광주에 대한 계절별 박스플롯 시각화_6x6")
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "베이징 및 광주에 대한 계절별 박스플롯 시각화_8x8")
 
 ggplot(dataL2, aes(x = season, y = J, fill = season)) +
   geom_boxplot(alpha = 1.0, outlier.shape = NA, width = 0.5) +
@@ -22931,7 +22932,8 @@ ggplot(dataL2, aes(x = season, y = J, fill = season)) +
   geom_boxplot(alpha = 1.0, outlier.shape = NA, width = 0.5) +
   stat_summary(fun.y = mean, geom = "point", shape = 4, size = 4, color = "red") +
   labs(title = NULL, x = "season", y = bquote('' * J[10] * ' (' * cm^-1 * '·' * s^-1 * ')'), colour = NULL, fill = NULL, subtitle = NULL) +
-  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x), labels = trans_format("log10", math_format(10^.x)), limits = c(1e-3, 1e2)) +
+  # scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x), labels = trans_format("log10", math_format(10^.x)), limits = c(1e-3, 1e2)) +
+  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x), labels = trans_format("log10", math_format(10^.x)), limits = c(1e-2, 1e2)) +
   annotation_logticks(sides = "l") +
   scale_fill_manual(values = c("spring" = "green", "winter" = "blue"), name = NULL, na.value = NA
     , labels = c("spring", "winter")
@@ -22948,7 +22950,9 @@ ggplot(dataL2, aes(x = season, y = J, fill = season)) +
   ) +
   # facet_wrap(~makeLabel, scale = "free") +
   facet_wrap(~makeLabel) +
-  ggsave(filename = saveImg, width = 6, height = 4, dpi = 600)
+  # ggsave(filename = saveImg, width = 6, height = 4, dpi = 600)
+  ggsave(filename = saveImg, width = 8, height = 8, dpi = 600)
+
 
 
 #===============================================================================================
@@ -31091,7 +31095,7 @@ ggplot(dataL2, aes(x=seasonLabel, y=H2SO4, fill=makeLegend)) +
 #================================================
 # 요구사항
 #================================================
-# R을 이용한 네이버 기사 제목 크롤링 및 워드클라우드 시각화
+# R을 이용한 다중 코어 기반으로 파일 읽기 (병렬 처리)
 
 #================================================
 # 초기 환경변수 설정
@@ -31128,17 +31132,225 @@ library(extrafont)
 library(ggrepel)
 library(scales)
 library(sf)
-unloadNamespace('raster')
+# unloadNamespace('raster')
+library(raster)
 # install.packages("gstat", dependencies = TRUE)
-library(gstat)
+# library(gstat)
 library(sp)
 library(metR)
 library(akima)
 library(stringr)
 library(automap)
+library(Rcpp)
 library(multidplyr)
+library(vroom)
+library(noncompliance)
 
-fileInfo = Sys.glob(paste(globalVar$inpPath, "LSH0147_관측소+제원.xlsx", sep = "/"))
+fileInfo = Sys.glob(paste(globalVar$inpPath, "LSH0190_pr_day_ACCESS-ESM1-5_ssp245_r1i1p1f1_gn_20150101-20641231.nc", sep = "/"))
+r <- raster::brick(fileInfo, hurrname = "t", level=1, stopIfNotEqualSpaced = FALSE)
+
+latList = seq(from=-14, to=30, by=0.5)
+lonList = seq(from=18, to=30, by=0.5)
+saveFile = NA
+hurls = NA
+MyName = "lA"
+
+data = tibble::tibble(
+  noncompliance::expand.grid.DT(
+    latList
+    , lonList
+    , col.names = c("lon", "lat"))
+)
+
+
+# [??六????굚] ?솻洹ｌ탮?議? 嶺뚳퐣瑗??遊?
+# oSocClu = parallel::makePSOCKcluster(parallel::detectCores() - 1)
+# oSocCluCnt = 100
+oSocCluCnt = parallel::detectCores() - 1
+oSocClu = parallel::makePSOCKcluster(oSocCluCnt)
+
+# oSocClu = parallel::makePSOCKcluster(64)
+doParallel::registerDoParallel(oSocClu)
+
+# warnings()
+
+# ???뇶?寃??沅? ?솻洹섍텢???빢 ?甕곕쵇?뿉?
+
+parallel::clusterExport(oSocClu, "r")
+parallel::clusterExport(oSocClu, "hurls")
+parallel::clusterExport(oSocClu, "data")
+parallel::clusterExport(oSocClu, "saveFile")
+parallel::clusterExport(oSocClu, "globalVar")
+parallel::clusterExport(oSocClu, "MyName")
+parallel::clusterExport(oSocClu, "oSocCluCnt")
+
+# ???뇶?寃??沅? ??逾???逾???눀??뒧??몠?逾?? ?甕곕쵇?뿉?
+
+
+parallel::clusterEvalQ(oSocClu, library(raster))
+parallel::clusterEvalQ(oSocClu, library(readr))
+parallel::clusterEvalQ(oSocClu, library(dplyr))
+tictoc::tic()
+
+# x = 1
+# parallel::parSapply(oSocClu, X = 1:nrow(data), function(x) {
+# parallel::parSapply(oSocClu, X = 1:120, function(x) {
+parallel::parSapply(oSocClu, X = 1:10, function(x) {
+    
+  hurls = data.frame(
+    val = t(raster::extract(r, cbind(data$lat[x], data$lon[x]))) * 86400 %>% as.numeric()
+  ) %>% 
+    tibble::rowid_to_column() # %>%
+    # tibble::rownames_to_column() %>%
+    # dplyr::mutate(
+      # dtDate = readr::parse_date(rowname, "X%Y.%m.%d")
+      # , dtDateDec = lubridate::decimal_date(dtDate)
+      # , dtDateConv = lubridate::date_decimal(dtDateDec)
+    # ) %>%
+    # dplyr::select(-rowname, -dtDate)
+  
+  # head(hurls)
+  
+  # hurls = t(raster::extract(r, cbind(data$lat[x], data$lon[x])))*86400 %>% as.numeric()
+  # colnames(hurls) = c(paste(data$lat[x], data$lon[x], sep="p"))
+  # colnames(hurls) = c("val")
+  
+  
+  hurlsL1 = tibble::tibble(
+    lat = data$lat[x]
+    , lon = data$lon[x]
+    , hurls
+  ) %>% 
+    dplyr::select(rowid, lat, lon, val) %>%
+    # dplyr::select(rowid, lat, lon, val) %>% 
+    readr::type_convert()
+  
+  selCore = x %% oSocCluCnt
+  # saveFile = sprintf("%s/OUTPUTS/%s_%s_%s.csv", globalVar$outPath, MyName, data$lat[x], data$lon[x])
+  # saveFile = sprintf("%s/OUTPUTS/%s_%s.csv", globalVar$outPath, MyName, selCore)
+  # readr::write_csv(x = hurls, file = saveFile)
+  
+  # saveFile = sprintf("%s/OUTPUT2/%s_%s.csv", globalVar$outPath, MyName, selCore)
+  # saveFile = sprintf("%s/OUTPUT3/%s_%s.csv", globalVar$outPath, MyName, selCore)
+  saveFile = sprintf("%s/OUTPUT/%s_%s.csv", globalVar$outPath, MyName, selCore)
+  readr::write_csv(x = hurlsL1, file = saveFile, append = TRUE, col_names = FALSE)
+  
+})
+
+tictoc::toc()
+
+# [??꽞?援앭닶?] ?솻洹ｌ탮?議? 嶺뚳퐣瑗??遊?
+parallel::stopCluster(oSocClu)
+
+
+#fileList = Sys.glob("./OUTPUTS/*.csv")
+
+
+#======================================================
+# 다중 코어 기반으로 파일 읽기 (병렬 처리)
+#======================================================
+
+# 데이터 조회
+
+# fileList = Sys.glob(paste(globalVar$outPath, "./OUTPUTS/lA_*.csv", sep = "/"))
+# fileList = Sys.glob(paste(globalVar$outPath, "./OUTPUT2/lA_*.csv", sep = "/"))
+# fileList = Sys.glob(paste(globalVar$outPath, "./OUTPUT3/lA_*.csv", sep = "/"))
+fileList = Sys.glob(paste(globalVar$outPath, "./OUTPUT4/lA_*.csv", sep = "/"))
+
+
+
+# mSocCluCnt = parallel::detectCores()
+
+mSocCluCnt = length(fileList)
+
+mSocClu = multidplyr::new_cluster(mSocCluCnt)
+
+multidplyr::cluster_library(mSocClu, "dplyr")
+
+multidplyr::cluster_assign_each(mSocClu, filename = fileList)
+# multidplyr::cluster_call(mSocClu, filename)
+
+# multidplyr::cluster_send(mSocClu, resData <- vroom::vroom(filename, delim = "," ,col_names = FALSE))
+multidplyr::cluster_send(mSocClu, resData <- vroom::vroom(filename, col_names = FALSE, col_types = c(.default = "d")))
+# multidplyr::cluster_call(mSocClu, resData)
+
+
+resData = multidplyr::party_df(mSocClu, "resData") %>%
+  dplyr::collect() %>%
+  na.omit() %>% 
+  # magrittr::set_colnames(c("rowid", "lon", "lat", "val")) %>%
+  magrittr::set_colnames(c("dtDateDec", "lon", "lat", "val")) %>%
+  dplyr::mutate(
+    key = paste(lat, lon, sep="p")
+    # , dtDate = lubridate::date_decimal(dtDateDec)
+  ) %>% 
+  dplyr::select(-lon, -lat)
+# dplyr::arrange("key")
+
+# summary(resData)
+d = resData %>% 
+  dplyr::select(-dtDateDec)# %>%
+
+d %>%  
+  tidyr::gather(-key, key = "key", value = "val") %>%
+  tidyr::spread(key = "key", value = "val")
+
+# dplyr::select(-lon, -lat) %>% 
+# dplyr::arrange("key") 
+
+resData %>% 
+  tidyr::spread(key = "key", value = "val")
+
+resData[54983, ]
+
+resData[56685, ]
+
+
+saveFile = sprintf("%s/%s_%s.csv", globalVar$outPath, MyName, "la")
+
+readr::write_csv(x = resData, file = saveFile)
+
+
+# fileList ?釉녘린?뜆肉? ??뵭疫??
+
+dataL1 = fileList %>%
+  purrr::map(read.csv) %>%
+  purrr::reduce(dplyr::bind_rows)
+
+dataL2 = data.frame()
+# fileInfo = "././OUTPUT4/lA_77.csv"
+for (fileInfo in fileList) {
+  tmpData = read.csv(fileInfo, header = FALSE) %>% 
+    readr::type_convert()
+  
+  dataL2 = dplyr::bind_rows(dataL2, tmpData)  
+}
+
+#saveFile = sprintf("%s/%s.csv", globalVar$outPath, MyName)
+
+#readr::write_csv(x = dataL1, file = saveFile)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+fileInfo = Sys.glob(paste(globalVar$inpPath, "LSH0190_관측소+제원.xlsx", sep = "/"))
 stationData = openxlsx::read.xlsx(xlsxFile = fileInfo, sheet = "Sheet1") %>%
   dplyr::select(Observation, X, Y) %>%
   dplyr::rename(
@@ -31152,18 +31364,18 @@ spNewData = stationData
 coordinates(spNewData) = ~ lon + lat
 # plot(spNewData)
 
-fileInfo2 = Sys.glob(paste(globalVar$inpPath, "LSH0147_Pr ACCESS-ESM1-5_1985-2014.csv", sep = "/"))
+fileInfo2 = Sys.glob(paste(globalVar$inpPath, "LSH0190_Pr ACCESS-ESM1-5_1985-2014.csv", sep = "/"))
 data = readr::read_csv(file = fileInfo2, locale = locale("ko", encoding = "EUC-KR"))
 
 dtDateList = data$X1 %>% unique() %>% sort()
 
+#======================================================
+# 다중 코어 기반으로 시/공간 내삽 (병렬 처리)
+#======================================================
 # [시작] 병렬 처리
 oSocCluCnt = parallel::detectCores() - 1
 oSocClu = parallel::makePSOCKcluster(oSocCluCnt)
-# oSocClu = parallel::makePSOCKcluster(100)
 doParallel::registerDoParallel(oSocClu)
-
-dtDateList = data$X1 %>% unique() %>% sort()
 
 # 외부 변수 등록
 parallel::clusterExport(oSocClu, "dtDateList")
@@ -31194,7 +31406,7 @@ file.remove(path = Sys.glob(saveFile))
 
 tictoc::tic()
 # parallel::parSapply(oSocClu, X = 1:length(dtDateList), function(x) {
-parallel::parSapply(oSocClu, X = 1:20, function(x) {
+parallel::parSapply(oSocClu, X = 1:30, function(x) {
   
   dataL1 = data %>%
     dplyr::filter(X1 == dtDateList[x]) %>%
@@ -31249,9 +31461,9 @@ tictoc::toc()
 parallel::stopCluster(oSocClu)
 
 
-#===========================================
-# 데이터 합치기 용도
-#===========================================
+#======================================================
+# 다중 코어 기반으로 파일 읽기 (병렬 처리)
+#======================================================
 # 데이터 조회
 fileList = Sys.glob(paste(globalVar$outPath, "LSH0190_*_obs-to-krige.csv", sep = "/"))
 
@@ -31260,11 +31472,12 @@ mSocCluCnt = length(fileList)
 mSocClu = multidplyr::new_cluster(mSocCluCnt)
 
 multidplyr::cluster_library(mSocClu, "dplyr")
+
 multidplyr::cluster_assign_each(mSocClu, filename = fileList)
-cluster_call(mSocClu, filename)
+# multidplyr::cluster_call(mSocClu, filename)
 
 multidplyr::cluster_send(mSocClu, resData <- vroom::vroom(filename, col_names = FALSE))
-cluster_call(mSocClu, resData)
+# multidplyr::cluster_call(mSocClu, resData)
 
 resData = multidplyr::party_df(mSocClu, "resData") %>% 
   collect() %>% 
@@ -31274,45 +31487,189 @@ resData = multidplyr::party_df(mSocClu, "resData") %>%
 saveFile = sprintf("%s/%s_%s.csv", globalVar$outPath, serviceName, "obs-to-krige")
 readr::write_csv(x = resData, file = saveFile)
 
-multidplyr::cluster_rm(mSocClu)
 
 
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+#================================================
+# 요구사항
+#================================================
+# R을 이용한 우울증 검사 통계 분석 및 시각화
+
+# 우울증 검사 통계 요청드려하고요.
+# 성별, 연령대별(60,70,80,90대), 지역별(7개지역), 지역에 따른 성별에 대한 분석을 점수 컷트라인을 기준으로해서 의뢰 드리려합니다.
+# 검사자 인원은 총724명 입니다!
+
+# 성별, 연령대별(60,70,80,90대), 지역별(7개지역), 지역에 따른 성별에 대한 10점 이상인분들에 대한 비율, 순위 등을 구하고자 하고,
+# 그래프나 도형으로 나타 낼 수 있다면 좋을 것 같습니다ㅠ
+# 통계에 대해 정확히 몰라 자세하게 부탁을 드리지 못하네요..
+# 네네 커트라인에 따른 비율, 순위를 전체, 남여, 지역, 연령별로 해주시면 좋을 것 같아요ㅎㅎ
+
+#================================================
+# 초기 환경변수 설정
+#================================================
+# env = "local"   # 로컬 : 원도우 환경, 작업환경 (현재 소스 코드 환경 시 .) 설정
+env = "dev"   # 개발 : 원도우 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+# env = "oper"  # 운영 : 리눅스 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+
+prjName = "test"
+serviceName = "LSH0191"
+contextPath = ifelse(env == "local", getwd(), "E:/04. TalentPlatform/Github/TalentPlatform-R")
+
+if (env == "local") {
+  globalVar = list(
+    "inpPath" = contextPath
+    , "figPath" = contextPath
+    , "outPath" = contextPath
+    , "tmpPath" = contextPath
+  )
+} else {
+  source(here::here(file.path(contextPath, "src"), "InitConfig.R"), encoding = "UTF-8")
+}
+
+#================================================
+# 비즈니스 로직 수행
+#================================================
+library(openxlsx)
+library(tidyverse)
+library(lubridate)
+library(forcats)
+
+fileInfo = Sys.glob(paste(globalVar$inpPath, "LSH0191_우울검사점수표724-1.xlsx", sep = "/"))
+
+data = openxlsx::read.xlsx(xlsxFile = fileInfo, sheet = 1, startRow = 3) %>% 
+  tibble::as.tibble() %>% 
+  magrittr::set_colnames(c("num", "age", "gender", "score", "area")) %>% 
+  readr::type_convert()
 
 
+dataL1 = data %>% 
+  dplyr::mutate(
+    ageType = dplyr::case_when(
+      60 <= age & age < 70 ~ "60대"
+      , 70 <= age & age < 80 ~ "70대"
+      , 80 <= age & age < 90 ~ "80대"
+      , 90 <= age & age < 100 ~ "90대"
+    )
+    , scoreType = dplyr::case_when(
+      0 <= score & score <= 5 ~ "정상"
+      , 6 <= score & score <= 9 ~ "가벼운 우울증"
+      , 10 <= score & score <= 15 ~ "심한 우울증"
+    )
+  ) %>% 
+  na.omit()
+
+summary(dataL1)
+
+#****************************************
+# 우울증에 따른 성별-연령-지역 비율
+#****************************************
+dataAge = dataL1 %>%
+  dplyr::group_by(scoreType, ageType) %>%
+  dplyr::summarise(cnt = n()) %>%
+  dplyr::mutate(
+    ratio = (cnt / sum(cnt, na.rm = TRUE)) * 100
+  ) %>% 
+  magrittr::set_colnames(c("group", "key", "cnt", "ratio"))
+
+dataGender = dataL1 %>%
+  dplyr::group_by(scoreType, gender) %>%
+  dplyr::summarise(cnt = n()) %>%
+  dplyr::mutate(
+    ratio = (cnt / sum(cnt, na.rm = TRUE)) * 100
+  ) %>% 
+  magrittr::set_colnames(c("group", "key", "cnt", "ratio"))
+
+dataArea = dataL1 %>%
+  dplyr::group_by(scoreType, area) %>%
+  dplyr::summarise(cnt = n()) %>%
+  dplyr::mutate(
+    ratio = (cnt / sum(cnt, na.rm = TRUE)) * 100
+  ) %>% 
+  magrittr::set_colnames(c("group", "key", "cnt", "ratio"))
+
+dataL2 = dplyr::bind_rows(
+  dplyr::bind_cols(dataAge, type = "연령")
+  , dplyr::bind_cols(dataGender, type = "성별")
+  , dplyr::bind_cols(dataArea, type = "지역")
+)
+
+# type 정렬
+dataL2$type = forcats::fct_relevel(dataL2$type, c("성별", "연령", "지역"))
+
+# key 정렬
+dataL2$key = forcats::fct_relevel(dataL2$key, c("남자", "여자", "60대", "70대", "80대", "90대", "중고등", "대학이상", "없음"))
+
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "우울증에 따른 성별-연령-지역 비율")
+
+ggplot(dataL2, aes(x = key, y = ratio, fill = group, label = round(ratio, 0))) +
+  geom_bar(position = "dodge", stat = "identity") +
+  theme(legend.position = "top") +
+  geom_text(aes(group = group), position = position_dodge(width = 0.9), size = 5, vjust = -0.5, hjust = 0.5) +
+  ylim(0, 100) +
+  facet_wrap(~type, scale = "free") +
+  labs(x = "특성", y = "비율", fill = NULL, subtitle = "우울증에 따른 성별/연령/지역 비율") +
+  theme(text = element_text(size = 16)) +
+  ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
+
+#****************************************
+# 우울증에 따른 성별-연령-지역 개수
+#****************************************
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "우울증에 따른 성별-연령-지역 개수")
+
+ggplot(dataL2, aes(x = key, y = cnt, fill = group, label = round(cnt, 0))) +
+  geom_bar(position = "dodge", stat = "identity") +
+  theme(legend.position = "top") +
+  geom_text(aes(group = group), position = position_dodge(width = 0.9), size = 5, vjust = -0.5, hjust = 0.5) +
+  ylim(0, 350) +
+  facet_wrap(~type, scale = "free") +
+  labs(x = "특성", y = "개수", fill = NULL, subtitle = "우울증에 따른 성별/연령/지역 개수") +
+  theme(text = element_text(size = 16)) +
+  ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
 
 
-# 
-# 
-# fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0189_BA11511_14_5_2014_9_26_51-event+report.pdf"))
-# # data = read.csv(fileInfo, fileEncoding = "UCS-2LE")
-# 
-# 
-# data = pdf_ocr_text(fileInfo)
-# data2 = pdf_ocr_data(fileInfo)
-# 
-# dd = pdf_data(fileInfo)
-# 
-# out <- tabulizer::extract_tables(fileInfo)
-# out2 = tabulizer::extract_metadata(fileInfo)
-# 
-# PDF <- pdf_text(fileInfo) %>%
-#   readr::read_lines() #open the PDF inside your project folder
-# 
-# 
-# # extract some pages
-# pdf_subset(fileInfo, pages = 1:1, output = "subset.pdf")
-# 
-# # Should say 3
-# pdf_length("subset.pdf")
-# 
-# 
-# library(officer)
-# fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0189_BA11511_14_5_2014_9_26_51-event+report.docx"))
-# 
-# sample_doc <- read_docx(fileInfo)
-# 
-# content <- docx_summary(sample_doc)
-# 
-# doc = qdapTools::read_docx(fileInfo, skip = 0)
-# txt <- rm_non_ascii(doc)
+#****************************************
+# 우울증에 따른 성별-지역 비율
+#****************************************
+dataGenderAge = dataL1 %>%
+  dplyr::group_by(scoreType, gender, area) %>%
+  dplyr::summarise(cnt = n()) %>%
+  dplyr::mutate(
+    ratio = (cnt / sum(cnt, na.rm = TRUE)) * 100
+  ) %>% 
+  magrittr::set_colnames(c("group", "key", "type", "cnt", "ratio"))
 
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "우울증에 따른 성별-지역 비율")
+
+ggplot(dataGenderAge, aes(x = key, y = ratio, fill = group, label = round(ratio, 0))) +
+  geom_bar(position = "dodge", stat = "identity") +
+  theme(legend.position = "top") +
+  geom_text(aes(group = group), position = position_dodge(width = 0.9), size = 5, vjust = -0.5, hjust = 0.5) +
+  ylim(0, 100) +
+  facet_wrap(~type, scale = "free") +
+  labs(x = "특성", y = "비율", fill = NULL, subtitle = "우울증에 따른 성별/지역 비율") +
+  theme(text = element_text(size = 16)) +
+  ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
+
+#****************************************
+# 우울증에 따른 성별-지역 개수
+#****************************************
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "우울증에 따른 성별-지역 개수")
+
+ggplot(dataGenderAge, aes(x = key, y = ratio, fill = group, label = round(ratio, 0))) +
+  geom_bar(position = "dodge", stat = "identity") +
+  theme(legend.position = "top") +
+  geom_text(aes(group = group), position = position_dodge(width = 0.9), size = 5, vjust = -0.5, hjust = 0.5) +
+  ylim(0, 100) +
+  facet_wrap(~type, scale = "free") +
+  labs(x = "특성", y = "개수", fill = NULL, subtitle = "우울증에 따른 성별/지역 개수") +
+  theme(text = element_text(size = 16)) +
+  ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
