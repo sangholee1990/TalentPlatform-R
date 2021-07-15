@@ -31145,9 +31145,14 @@ library(Rcpp)
 library(multidplyr)
 library(vroom)
 library(noncompliance)
+library(parallel)
+
+#=============================================================
+# NetCDF 파일을 위한 자료 처리 및 파일 읽기 (병렬 처리)
+#=============================================================
 
 fileInfo = Sys.glob(paste(globalVar$inpPath, "LSH0190_pr_day_ACCESS-ESM1-5_ssp245_r1i1p1f1_gn_20150101-20641231.nc", sep = "/"))
-r <- raster::brick(fileInfo, hurrname = "t", level=1, stopIfNotEqualSpaced = FALSE)
+r = raster::brick(fileInfo, hurrname = "t", level=1, stopIfNotEqualSpaced = FALSE)
 
 latList = seq(from=-14, to=30, by=0.5)
 lonList = seq(from=18, to=30, by=0.5)
@@ -31163,18 +31168,15 @@ data = tibble::tibble(
 )
 
 
-# [??六????굚] ?솻洹ｌ탮?議? 嶺뚳퐣瑗??遊?
-# oSocClu = parallel::makePSOCKcluster(parallel::detectCores() - 1)
+#*************************************************************
+# 다중 코어 기반으로 시/공간 내삽 (병렬 처리)
+#*************************************************************
+tictoc::tic()
+
 # oSocCluCnt = 100
 oSocCluCnt = parallel::detectCores() - 1
 oSocClu = parallel::makePSOCKcluster(oSocCluCnt)
-
-# oSocClu = parallel::makePSOCKcluster(64)
 doParallel::registerDoParallel(oSocClu)
-
-# warnings()
-
-# ???뇶?寃??沅? ?솻洹섍텢???빢 ?甕곕쵇?뿉?
 
 parallel::clusterExport(oSocClu, "r")
 parallel::clusterExport(oSocClu, "hurls")
@@ -31184,13 +31186,9 @@ parallel::clusterExport(oSocClu, "globalVar")
 parallel::clusterExport(oSocClu, "MyName")
 parallel::clusterExport(oSocClu, "oSocCluCnt")
 
-# ???뇶?寃??沅? ??逾???逾???눀??뒧??몠?逾?? ?甕곕쵇?뿉?
-
-
 parallel::clusterEvalQ(oSocClu, library(raster))
 parallel::clusterEvalQ(oSocClu, library(readr))
 parallel::clusterEvalQ(oSocClu, library(dplyr))
-tictoc::tic()
 
 # x = 1
 # parallel::parSapply(oSocClu, X = 1:nrow(data), function(x) {
@@ -31200,21 +31198,7 @@ parallel::parSapply(oSocClu, X = 1:10, function(x) {
   hurls = data.frame(
     val = t(raster::extract(r, cbind(data$lat[x], data$lon[x]))) * 86400 %>% as.numeric()
   ) %>% 
-    tibble::rowid_to_column() # %>%
-    # tibble::rownames_to_column() %>%
-    # dplyr::mutate(
-      # dtDate = readr::parse_date(rowname, "X%Y.%m.%d")
-      # , dtDateDec = lubridate::decimal_date(dtDate)
-      # , dtDateConv = lubridate::date_decimal(dtDateDec)
-    # ) %>%
-    # dplyr::select(-rowname, -dtDate)
-  
-  # head(hurls)
-  
-  # hurls = t(raster::extract(r, cbind(data$lat[x], data$lon[x])))*86400 %>% as.numeric()
-  # colnames(hurls) = c(paste(data$lat[x], data$lon[x], sep="p"))
-  # colnames(hurls) = c("val")
-  
+    tibble::rowid_to_column()
   
   hurlsL1 = tibble::tibble(
     lat = data$lat[x]
@@ -31222,134 +31206,54 @@ parallel::parSapply(oSocClu, X = 1:10, function(x) {
     , hurls
   ) %>% 
     dplyr::select(rowid, lat, lon, val) %>%
-    # dplyr::select(rowid, lat, lon, val) %>% 
     readr::type_convert()
   
   selCore = x %% oSocCluCnt
-  # saveFile = sprintf("%s/OUTPUTS/%s_%s_%s.csv", globalVar$outPath, MyName, data$lat[x], data$lon[x])
-  # saveFile = sprintf("%s/OUTPUTS/%s_%s.csv", globalVar$outPath, MyName, selCore)
-  # readr::write_csv(x = hurls, file = saveFile)
-  
-  # saveFile = sprintf("%s/OUTPUT2/%s_%s.csv", globalVar$outPath, MyName, selCore)
-  # saveFile = sprintf("%s/OUTPUT3/%s_%s.csv", globalVar$outPath, MyName, selCore)
-  saveFile = sprintf("%s/OUTPUT/%s_%s.csv", globalVar$outPath, MyName, selCore)
+
+    # saveFile = sprintf("%s/OUTPUT/%s_%s.csv", globalVar$outPath, MyName, selCore)
+  saveFile = sprintf("%s/%s_%s.csv", globalVar$outPath, MyName, selCore)
   readr::write_csv(x = hurlsL1, file = saveFile, append = TRUE, col_names = FALSE)
   
 })
 
+parallel::stopCluster(oSocClu)
 tictoc::toc()
 
-# [??꽞?援앭닶?] ?솻洹ｌ탮?議? 嶺뚳퐣瑗??遊?
-parallel::stopCluster(oSocClu)
-
-
-#fileList = Sys.glob("./OUTPUTS/*.csv")
-
-
-#======================================================
+#*************************************************************
 # 다중 코어 기반으로 파일 읽기 (병렬 처리)
-#======================================================
-
+#*************************************************************
 # 데이터 조회
-
 # fileList = Sys.glob(paste(globalVar$outPath, "./OUTPUTS/lA_*.csv", sep = "/"))
 # fileList = Sys.glob(paste(globalVar$outPath, "./OUTPUT2/lA_*.csv", sep = "/"))
 # fileList = Sys.glob(paste(globalVar$outPath, "./OUTPUT3/lA_*.csv", sep = "/"))
-fileList = Sys.glob(paste(globalVar$outPath, "./OUTPUT4/lA_*.csv", sep = "/"))
-
-
-
-# mSocCluCnt = parallel::detectCores()
+fileList = Sys.glob(paste(globalVar$outPath, "./lA_*.csv", sep = "/"))
 
 mSocCluCnt = length(fileList)
-
 mSocClu = multidplyr::new_cluster(mSocCluCnt)
-
 multidplyr::cluster_library(mSocClu, "dplyr")
-
 multidplyr::cluster_assign_each(mSocClu, filename = fileList)
-# multidplyr::cluster_call(mSocClu, filename)
-
-# multidplyr::cluster_send(mSocClu, resData <- vroom::vroom(filename, delim = "," ,col_names = FALSE))
 multidplyr::cluster_send(mSocClu, resData <- vroom::vroom(filename, col_names = FALSE, col_types = c(.default = "d")))
-# multidplyr::cluster_call(mSocClu, resData)
-
 
 resData = multidplyr::party_df(mSocClu, "resData") %>%
   dplyr::collect() %>%
-  na.omit() %>% 
-  # magrittr::set_colnames(c("rowid", "lon", "lat", "val")) %>%
-  magrittr::set_colnames(c("dtDateDec", "lon", "lat", "val")) %>%
+  magrittr::set_colnames(c("rowid", "lon", "lat", "val")) %>%
   dplyr::mutate(
     key = paste(lat, lon, sep="p")
-    # , dtDate = lubridate::date_decimal(dtDateDec)
   ) %>% 
-  dplyr::select(-lon, -lat)
-# dplyr::arrange("key")
-
-# summary(resData)
-d = resData %>% 
-  dplyr::select(-dtDateDec)# %>%
-
-d %>%  
-  tidyr::gather(-key, key = "key", value = "val") %>%
-  tidyr::spread(key = "key", value = "val")
-
-# dplyr::select(-lon, -lat) %>% 
-# dplyr::arrange("key") 
-
-resData %>% 
-  tidyr::spread(key = "key", value = "val")
-
-resData[54983, ]
-
-resData[56685, ]
+  dplyr::select(-lon, -lat) %>% 
+  tidyr::spread(key = "key", value = "val") %>% 
+  dplyr::select(-rowid)
 
 
 saveFile = sprintf("%s/%s_%s.csv", globalVar$outPath, MyName, "la")
-
 readr::write_csv(x = resData, file = saveFile)
 
 
-# fileList ?釉녘린?뜆肉? ??뵭疫??
-
-dataL1 = fileList %>%
-  purrr::map(read.csv) %>%
-  purrr::reduce(dplyr::bind_rows)
-
-dataL2 = data.frame()
-# fileInfo = "././OUTPUT4/lA_77.csv"
-for (fileInfo in fileList) {
-  tmpData = read.csv(fileInfo, header = FALSE) %>% 
-    readr::type_convert()
-  
-  dataL2 = dplyr::bind_rows(dataL2, tmpData)  
-}
-
-#saveFile = sprintf("%s/%s.csv", globalVar$outPath, MyName)
-
-#readr::write_csv(x = dataL1, file = saveFile)
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+#=============================================================
+# 정규 크리킹을 위한 자료 처리 및 파일 읽기 (병렬 처리)
+#=============================================================
 fileInfo = Sys.glob(paste(globalVar$inpPath, "LSH0190_관측소+제원.xlsx", sep = "/"))
 stationData = openxlsx::read.xlsx(xlsxFile = fileInfo, sheet = "Sheet1") %>%
   dplyr::select(Observation, X, Y) %>%
@@ -31369,9 +31273,9 @@ data = readr::read_csv(file = fileInfo2, locale = locale("ko", encoding = "EUC-K
 
 dtDateList = data$X1 %>% unique() %>% sort()
 
-#======================================================
+#*************************************************************
 # 다중 코어 기반으로 시/공간 내삽 (병렬 처리)
-#======================================================
+#*************************************************************
 # [시작] 병렬 처리
 oSocCluCnt = parallel::detectCores() - 1
 oSocClu = parallel::makePSOCKcluster(oSocCluCnt)
@@ -31461,9 +31365,9 @@ tictoc::toc()
 parallel::stopCluster(oSocClu)
 
 
-#======================================================
+#*************************************************************
 # 다중 코어 기반으로 파일 읽기 (병렬 처리)
-#======================================================
+#*************************************************************
 # 데이터 조회
 fileList = Sys.glob(paste(globalVar$outPath, "LSH0190_*_obs-to-krige.csv", sep = "/"))
 
@@ -31486,7 +31390,6 @@ resData = multidplyr::party_df(mSocClu, "resData") %>%
 
 saveFile = sprintf("%s/%s_%s.csv", globalVar$outPath, serviceName, "obs-to-krige")
 readr::write_csv(x = resData, file = saveFile)
-
 
 
 #===============================================================================================
@@ -31550,6 +31453,8 @@ data = openxlsx::read.xlsx(xlsxFile = fileInfo, sheet = 1, startRow = 3) %>%
   magrittr::set_colnames(c("num", "age", "gender", "score", "area")) %>% 
   readr::type_convert()
 
+# NA 확인
+data[! complete.cases(data), ]
 
 dataL1 = data %>% 
   dplyr::mutate(
@@ -31565,7 +31470,7 @@ dataL1 = data %>%
       , 10 <= score & score <= 15 ~ "심한 우울증"
     )
   ) %>% 
-  na.omit()
+  dplyr::na_if()
 
 summary(dataL1)
 
@@ -31643,9 +31548,12 @@ dataGenderAge = dataL1 %>%
   dplyr::group_by(scoreType, gender, area) %>%
   dplyr::summarise(cnt = n()) %>%
   dplyr::mutate(
-    ratio = (cnt / sum(cnt, na.rm = TRUE)) * 100
+    ratio = (cnt / nrow(dataL1)) * 100
+    , key = paste(gender, area, sep = "-")
+    , type = "성별/지역"
   ) %>% 
-  magrittr::set_colnames(c("group", "key", "type", "cnt", "ratio"))
+  dplyr::rename(group = scoreType) %>% 
+  dplyr::select(c("group", "key", "type", "cnt", "ratio"))
 
 saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "우울증에 따른 성별-지역 비율")
 
@@ -31664,11 +31572,11 @@ ggplot(dataGenderAge, aes(x = key, y = ratio, fill = group, label = round(ratio,
 #****************************************
 saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "우울증에 따른 성별-지역 개수")
 
-ggplot(dataGenderAge, aes(x = key, y = ratio, fill = group, label = round(ratio, 0))) +
+ggplot(dataGenderAge, aes(x = key, y = cnt, fill = group, label = round(cnt, 0))) +
   geom_bar(position = "dodge", stat = "identity") +
   theme(legend.position = "top") +
   geom_text(aes(group = group), position = position_dodge(width = 0.9), size = 5, vjust = -0.5, hjust = 0.5) +
-  ylim(0, 100) +
+  ylim(0, 240) +
   facet_wrap(~type, scale = "free") +
   labs(x = "특성", y = "개수", fill = NULL, subtitle = "우울증에 따른 성별/지역 개수") +
   theme(text = element_text(size = 16)) +

@@ -31,3 +31,4 @@ resources/
 # git rm --cached .idea/ -r
 fig.html
 fig_files
+info_parallel.log
