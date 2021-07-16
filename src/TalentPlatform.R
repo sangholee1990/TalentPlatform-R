@@ -31581,3 +31581,318 @@ ggplot(dataGenderAge, aes(x = key, y = cnt, fill = group, label = round(cnt, 0))
   labs(x = "특성", y = "개수", fill = NULL, subtitle = "우울증에 따른 성별/지역 개수") +
   theme(text = element_text(size = 16)) +
   ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
+
+
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+#================================================
+# 요구사항
+#================================================
+# R을 이용한 머신러닝 및 딥러닝 기반으로 예측 모형 개발
+
+#================================================
+# 초기 환경변수 설정
+#================================================
+# env = "local"   # 로컬 : 원도우 환경, 작업환경 (현재 소스 코드 환경 시 .) 설정
+env = "dev"   # 개발 : 원도우 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+# env = "oper"  # 운영 : 리눅스 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+
+prjName = "test"
+serviceName = "LSH0194"
+contextPath = ifelse(env == "local", getwd(), "E:/04. TalentPlatform/Github/TalentPlatform-R")
+
+if (env == "local") {
+  globalVar = list(
+    "inpPath" = contextPath
+    , "figPath" = contextPath
+    , "outPath" = contextPath
+    , "tmpPath" = contextPath
+  )
+} else {
+  source(here::here(file.path(contextPath, "src"), "InitConfig.R"), encoding = "UTF-8")
+}
+
+#================================================
+# 비즈니스 로직 수행
+#================================================
+library(readxl)
+library(tidyverse)
+library(ggplot2)
+library(ggmap)
+library(lubridate)
+library(MASS)
+library(scales)
+library(dplyr)
+library(hrbrthemes)
+library(data.table)
+library(ggpubr)
+library(forcats)
+library(lubridate)
+library(openxlsx)
+library(vroom)
+
+# 데이터 읽기
+# fileInfo = Sys.glob(paste(globalVar$inpPath, "LSH0146_PAhourlyCHW.csv", sep = "/"))
+# fileInfo = Sys.glob(paste(globalVar$inpPath, "LSH0179_PAhourlyCHW.csv", sep = "/"))
+fileInfo = Sys.glob(paste(globalVar$inpPath, "LSH0194_PAhourlyCHW.csv", sep = "/"))
+
+# PAHourlyCHW <- read.csv(file = fileInfo, stringsAsFactors = TRUE)
+# data2 = data.table::fread(file = fileInfo)
+
+# names(data2)
+# [1] "YMDH"          "Solar"         "Temp"          "Humidity"     
+# [5] "Pressure"      "WindSpeed"     "Year.x"        "Month"        
+# [9] "Day"           "Hour"          "Period"        "<ef>..ID"     
+# [13] "Floor"         "Height"        "People"        "SF_Gross"     
+# [17] "Uvalue_Roof"   "Uvalue_Wall"   "Uvalue_Window" "Equipment"    
+# [21] "Lighting"      "WWR"           "Year.y"        "Renovation"   
+# [25] "type2"         "CHWEUI"        "AgeAfterRenov" "BuildingAge"  
+# [29] "HD"            "CD"            "HDD"           "CDD"    
+
+data = vroom::vroom(
+  file = fileInfo
+  , col_select = c(YMDH, Uvalue_Wall, Uvalue_Window, Uvalue_Roof, WWR, Height, Year.x, AgeAfterRenov, Equipment, Lighting, Solar, HD, CD, Humidity, Pressure, WindSpeed, type2, CHWEUI)
+  , col_names = TRUE
+)
+
+ind = which(stringr::str_detect(data$type2, regex("office")))
+data[ind, "type2"] = "office"
+
+data$type2 %>% unique() %>% sort()
+
+
+library(bizdays)
+
+bizdays::holidays("actual")
+bizdays::weekdays("actual")
+# empty calls return the default calendar attributes
+bizdays::holidays()
+bizdays::weekdays()
+
+dataL1 = data %>% 
+  dplyr::filter(
+    0.01 < WWR & WWR < 0.9
+    , type2 %in% c("Education", "Lab", "Lodge", "office ", "public")
+    ) %>%
+  dplyr::mutate(
+    nMonth = lubridate::month(YMDH)
+    , nDay = lubridate::day(YMDH)
+    , nHour = lubridate::hour(YMDH)
+    , refYmd = lubridate::make_date(year = 2000, month = nMonth, day = nDay)
+    
+    , seasonType = dplyr::case_when(
+      dplyr::between(refYmd, lubridate::date("2000-01-13"), lubridate::date("2000-05-10")) ~ "spring"
+      , dplyr::between(refYmd, lubridate::date("2000-05-11"), lubridate::date("2000-08-25")) ~ "summer"
+      , dplyr::between(refYmd, lubridate::date("2000-08-26"), lubridate::date("2000-12-18")) ~ "fall"
+      , lubridate::date("1970-12-19") <= refYmd | refYmd <= lubridate::date("2000-01-12") ~ "winter"
+    )
+    
+    # , businessDay =  dplyr::case_when(
+    #   dplyr::between(refYmd, lubridate::date("2000-01-13"), lubridate::date("2000-05-10")) ~ "spring"
+    #   , dplyr::between(refYmd, lubridate::date("2000-05-11"), lubridate::date("2000-08-25")) ~ "summer"
+    #   , dplyr::between(refYmd, lubridate::date("2000-08-26"), lubridate::date("2000-12-18")) ~ "fall"
+    #   , lubridate::date("1970-12-19") <= refYmd | refYmd <= lubridate::date("2000-01-12") ~ "winter"
+    # )
+    
+    , hourType = dplyr::case_when(
+      dplyr::between(nHour, 7, 12) ~ "working"
+      , dplyr::between(nHour, 17, 22) ~ "evening"
+      , 22 < nHour | nHour < 7 ~ "night"
+    )
+  ) %>% 
+  dplyr::select(YMDH, nMonth, nDay, nHour, WWR, refYmd, seasonType)
+
+
+summary(dataL1)
+
+  # dplyr::filter(dplyr::between(YMDH, as.Date("2015-06-30"), as.Date("2015-07-01")))
+  # dplyr::mutate(
+  #   season = dplyr::case_when(
+  #     stringr::str_detect(type2, regex("Education")) ~ "Education"
+  #     , stringr::str_detect(type2, regex("Lab")) ~ "Lab"
+  #     , stringr::str_detect(type2, regex("Lodge")) ~ "Lodging"
+  #     , stringr::str_detect(type2, regex("office")) ~ "Office"
+  #     , stringr::str_detect(type2, regex("public")) ~ "Public Assembly"
+  #     , TRUE ~ "NA"
+  #   )
+  # ) %>%
+  
+  
+  # dplyr::mutate(
+  #   backColor = dplyr::case_when(
+  #     stringr::str_detect(sigungu_name, regex("태안군|서산시|당진시")) ~ "1"
+  #     , TRUE ~ "NA"
+  #   )
+  # )
+  
+
+ind = which(stringr::str_detect(data$type2, regex("office")))
+data[ind, "type2"] = "office"
+
+
+summary(data) 
+
+data$weekday<-as.factor(data$weekday)
+PAHourlyCHW$type2<-as.factor(PAHourlyCHW$type2)
+PAHourlyCHW$YMDH2<-ymd_hms(PAHourlyCHW$YMDH)
+summary(PAHourlyCHW) 
+
+trainCHWL1 = PAHourlyCHW %>%
+  dplyr::filter(
+    ! as.numeric(type2) %in%  c(2, 3)
+  ) %>% 
+  dplyr::mutate(
+    makeLegend = dplyr::case_when(
+      stringr::str_detect(type2, regex("Education")) ~ "Education"
+      , stringr::str_detect(type2, regex("Lab")) ~ "Lab"
+      , stringr::str_detect(type2, regex("Lodge")) ~ "Lodging"
+      , stringr::str_detect(type2, regex("office")) ~ "Office"
+      , stringr::str_detect(type2, regex("public")) ~ "Public Assembly"
+      , TRUE ~ "NA"
+    )
+  ) %>% 
+  as.tibble()
+
+dd = trainCHWL1 %>% 
+  dplyr::filter(YMDH2 == lubridate::ymd_hms("2016-06-30 23:30:00"))
+
+
+#-------------------------
+# [ADD] 
+trainCHW <-subset(trainCHWL1, trainCHWL1$YMDH2 < lubridate::ymd_hms("2016-06-30 23:30:00"))
+summary(trainCHW)#2015-07-01 01:00:00 -2016-07-01 01:00:00
+
+# [ADD] 
+testCHW <-subset(trainCHWL1, trainCHWL1$YMDH2 > lubridate::ymd_hms("2016-06-30 23:30:00") & trainCHWL1$YMDH < lubridate::ymd_hms("2016-08-14 23:30:00"))
+summary(testCHW)#2016-07-02 02:00:00 - 2016-08-14 14:00:00
+
+lmCHW82type2 = lm(CHWEUI ~ type2 + poly(Height,2) + poly(Temp,2), data = trainCHW)
+summary(lmCHW82type2)
+
+#****************************************
+# 보조 데이터
+#****************************************
+dataL1 = trainCHW %>% 
+  dplyr::group_by(type2) %>% 
+  dplyr::summarise(
+    Height = mean(Height, na.rm = TRUE)
+  )
+
+fileInfo2 = Sys.glob(paste(globalVar$inpPath, "LSH0179_Future_Temp.xlsx", sep = "/"))
+future = openxlsx::read.xlsx(fileInfo2, sheet = 1) %>% 
+  tibble::as.tibble() %>% 
+  dplyr::mutate(
+    sDate = paste(Year, Month, Day, Hour, sep = "-")
+    , dtDate = lubridate::ymd_h(sDate)
+  ) %>% 
+  dplyr::select(dtDate, Temp) 
+
+
+typeList = dataL1$type2 %>% unique() %>% sort()
+
+dataL2 = tibble::tibble()
+for (type in typeList) {
+  
+  tmpData = future %>% 
+    dplyr::mutate(
+      type2 = type
+    ) %>% 
+    dplyr::left_join(dataL1, by = c("type2" = "type2"))
+  
+  dataL2 = dplyr::bind_rows(dataL2, tmpData)
+}
+
+# [ADD] [Case 1] 테스트셋 전처리
+testCHWL1 = testCHW %>% # [ADD] 
+  tibble::as.tibble() %>%
+  dplyr::rename(
+    dtDate = YMDH2
+  ) %>% 
+  dplyr::select(names(dataL2))
+
+# [ADD] [Case 2] 테스트셋 전처리
+testCHWL1 = testCHW %>% # [ADD] 
+  tibble::as.tibble() %>%
+  dplyr::group_by(YMDH2, type2) %>%
+  dplyr::summarise(
+    meanTemp = mean(Temp, na.rm = TRUE)
+    , meanHeight = mean(Height, na.rm = TRUE)
+  ) %>% 
+  dplyr::rename(
+    dtDate = YMDH2
+    , Temp = meanTemp
+    , Height = meanHeight
+  ) %>% 
+  dplyr::select(names(dataL2))
+
+
+# [ADD] 트레이닝셋
+trainCHWL1 = trainCHW %>%
+  tibble::as.tibble() %>%
+  dplyr::group_by(YMDH2, type2) %>%
+  dplyr::summarise(
+    meanCHWEUI = mean(CHWEUI, na.rm = TRUE)
+  ) %>% 
+  dplyr::rename(
+    dtDate = YMDH2
+    , pred = meanCHWEUI
+  )
+
+# 통합 데이터셋
+dataL3 = dplyr::bind_rows(dataL2, testCHWL1) %>%  # [ADD] 
+  modelr::add_predictions(lmCHW82type2) %>% 
+  dplyr::bind_rows(trainCHWL1) %>% # [ADD] 
+  dplyr::mutate(
+    type3 = dplyr::case_when(
+      dtDate < lubridate::ymd_h("2047-01-01 00") ~ "2015-2016"
+      , lubridate::ymd_h("2047-01-01 00") <= dtDate & dtDate < lubridate::ymd_h("2054-01-01 00") ~ "2047"
+      , lubridate::ymd_h("2054-01-01 00") <= dtDate ~ "2054"
+      , TRUE ~ "NA"
+    )
+  )
+
+# 통합 데이터셋 확인
+dataL3$type3 %>% unique() %>% sort()
+
+dataL3 %>% 
+  dplyr::filter(dtDate == lubridate::ymd_h("2047-01-01 01"))
+
+#****************************************
+# 시각화
+#****************************************
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "Energy consumption prediction by building type in 2047 and 2053")
+
+# [ADD]
+Sys.setlocale("LC_ALL", "English")
+
+ggplot(dataL3, aes(x = dtDate, y = pred, color = type2)) +
+  geom_line() +
+  # geom_smooth(method = 'lm', se = TRUE) +
+  # ggpubr::stat_regline_equation(label.x.npc = 0.0, label.y.npc = 1.0) +
+  # ggpubr::stat_cor(label.x.npc = 0.8, label.y.npc = 1.0) +
+  labs(
+    x = "Date"
+    , y = "Chilled water consumption (kBTU/GSF)"
+    , color = NULL
+    , fill = NULL
+    , subtitle = "Energy consumption prediction by building type in 2047 and 2053"
+  ) +
+  # facet_wrap(~Year, ncol = 3, scale = "free") +
+  # facet_wrap(~type3, nrow = 3, scale = "free_x") +
+  facet_wrap(~type3, ncol = 3, scale = "free_x") +
+  theme(
+    text = element_text(size = 18)
+    , axis.text.x = element_text(angle = 45, hjust = 1)
+    , legend.position = "bottom"
+  ) +
+  ggsave(filename = saveImg, width = 12, height = 8, dpi = 600)
+
+
