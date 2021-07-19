@@ -31638,24 +31638,10 @@ library(forcats)
 library(lubridate)
 library(openxlsx)
 library(vroom)
+library(RQuantLib)
 
 # 데이터 읽기
-# fileInfo = Sys.glob(paste(globalVar$inpPath, "LSH0146_PAhourlyCHW.csv", sep = "/"))
-# fileInfo = Sys.glob(paste(globalVar$inpPath, "LSH0179_PAhourlyCHW.csv", sep = "/"))
 fileInfo = Sys.glob(paste(globalVar$inpPath, "LSH0194_PAhourlyCHW.csv", sep = "/"))
-
-# PAHourlyCHW <- read.csv(file = fileInfo, stringsAsFactors = TRUE)
-# data2 = data.table::fread(file = fileInfo)
-
-# names(data2)
-# [1] "YMDH"          "Solar"         "Temp"          "Humidity"     
-# [5] "Pressure"      "WindSpeed"     "Year.x"        "Month"        
-# [9] "Day"           "Hour"          "Period"        "<ef>..ID"     
-# [13] "Floor"         "Height"        "People"        "SF_Gross"     
-# [17] "Uvalue_Roof"   "Uvalue_Wall"   "Uvalue_Window" "Equipment"    
-# [21] "Lighting"      "WWR"           "Year.y"        "Renovation"   
-# [25] "type2"         "CHWEUI"        "AgeAfterRenov" "BuildingAge"  
-# [29] "HD"            "CD"            "HDD"           "CDD"    
 
 data = vroom::vroom(
   file = fileInfo
@@ -31663,30 +31649,31 @@ data = vroom::vroom(
   , col_names = TRUE
 )
 
-ind = which(stringr::str_detect(data$type2, regex("office")))
-data[ind, "type2"] = "office"
 
-data$type2 %>% unique() %>% sort()
+RQuantLib::load_quantlib_calendars("UnitedStates/NYSE", from='2016-01-01', to='2016-12-31')
 
-
-library(bizdays)
-
-bizdays::holidays("actual")
-bizdays::weekdays("actual")
-# empty calls return the default calendar attributes
-bizdays::holidays()
-bizdays::weekdays()
+bizdays::is.bizday(YMDH, "QuantLib/UnitedStates/NYSE")
 
 dataL1 = data %>% 
   dplyr::filter(
     0.01 < WWR & WWR < 0.9
     , type2 %in% c("Education", "Lab", "Lodge", "office ", "public")
-    ) %>%
+  ) %>%
   dplyr::mutate(
     nMonth = lubridate::month(YMDH)
     , nDay = lubridate::day(YMDH)
     , nHour = lubridate::hour(YMDH)
     , refYmd = lubridate::make_date(year = 2000, month = nMonth, day = nDay)
+    
+    #  교호작용 변수
+    , interTerm1 = Uvalue_Wall * WWR
+    , interTerm2 = Uvalue_Window * WWR
+    , interTerm3 = Year.x * AgeAfterRenov
+    
+    , isTrainValid = dplyr::between(YMDH, lubridate::date("2015-07-01"), lubridate::date("2016-07-01"))
+    
+    # 펜실레니아 근처 뉴욕 기준으로 비즈니스 여부 판단
+    , isBizDay = bizdays::is.bizday(YMDH, "QuantLib/UnitedStates/NYSE")
     
     , seasonType = dplyr::case_when(
       dplyr::between(refYmd, lubridate::date("2000-01-13"), lubridate::date("2000-05-10")) ~ "spring"
@@ -31695,47 +31682,64 @@ dataL1 = data %>%
       , lubridate::date("1970-12-19") <= refYmd | refYmd <= lubridate::date("2000-01-12") ~ "winter"
     )
     
-    # , businessDay =  dplyr::case_when(
-    #   dplyr::between(refYmd, lubridate::date("2000-01-13"), lubridate::date("2000-05-10")) ~ "spring"
-    #   , dplyr::between(refYmd, lubridate::date("2000-05-11"), lubridate::date("2000-08-25")) ~ "summer"
-    #   , dplyr::between(refYmd, lubridate::date("2000-08-26"), lubridate::date("2000-12-18")) ~ "fall"
-    #   , lubridate::date("1970-12-19") <= refYmd | refYmd <= lubridate::date("2000-01-12") ~ "winter"
-    # )
+    , bizDayType =  dplyr::case_when(
+      isBizDay == TRUE ~ "Business day"
+      , isBizDay == FALSE ~ "non-business day"
+    )
     
     , hourType = dplyr::case_when(
-      dplyr::between(nHour, 7, 12) ~ "working"
-      , dplyr::between(nHour, 17, 22) ~ "evening"
+      dplyr::between(nHour, 7, 17) ~ "working"
+      , 7 < nHour & nHour <= 22 ~ "evening"
       , 22 < nHour | nHour < 7 ~ "night"
     )
   ) %>% 
-  dplyr::select(YMDH, nMonth, nDay, nHour, WWR, refYmd, seasonType)
-
+  dplyr::mutate_if(is.character, as.factor)
+# dplyr::select(YMDH, nMonth, nDay, nHour, WWR, refYmd, hourType, businessDay, seasonType)
 
 summary(dataL1)
 
-  # dplyr::filter(dplyr::between(YMDH, as.Date("2015-06-30"), as.Date("2015-07-01")))
-  # dplyr::mutate(
-  #   season = dplyr::case_when(
-  #     stringr::str_detect(type2, regex("Education")) ~ "Education"
-  #     , stringr::str_detect(type2, regex("Lab")) ~ "Lab"
-  #     , stringr::str_detect(type2, regex("Lodge")) ~ "Lodging"
-  #     , stringr::str_detect(type2, regex("office")) ~ "Office"
-  #     , stringr::str_detect(type2, regex("public")) ~ "Public Assembly"
-  #     , TRUE ~ "NA"
-  #   )
-  # ) %>%
-  
-  
-  # dplyr::mutate(
-  #   backColor = dplyr::case_when(
-  #     stringr::str_detect(sigungu_name, regex("태안군|서산시|당진시")) ~ "1"
-  #     , TRUE ~ "NA"
-  #   )
-  # )
-  
 
-ind = which(stringr::str_detect(data$type2, regex("office")))
-data[ind, "type2"] = "office"
+#*******************************************
+# 훈련/검증/테스트 셋 설정
+#*******************************************
+dataL2 = dataL1 %>% 
+  dplyr::filter(isTrainValid == TRUE)
+
+# 훈련 및 데이터 셋을 80:20으로 나누기 위한 인덱스 설정
+ind = sample(1:nrow(dataL1), nrow(dataL1) * 0.8)
+
+# 해당 인덱스에 따라 자료 할당
+trainData = dataL2[ind,]
+validData = dataL2[-ind,]
+
+testData = dataL1 %>% 
+  dplyr::filter(isTrainValid == FALSE)
+
+# 훈련 데이터셋 확인
+dplyr::tbl_df(trainData)
+
+# 검증 데이터셋 확인
+dplyr::tbl_df(validData)
+
+# 테스트 데이터셋 확인
+dplyr::tbl_df(testData)
+
+
+# [ADD] 
+CHWtrainvalidate <-subset(trainCHWL1, trainCHWL1$YMDH2 < lubridate::ymd_hms("2016-06-30 23:30:00")& trainCHWL1$YMDH > lubridate::ymd_hms("2015-06-30 23:30:00"))
+names(CHWtrainvalidate)#2015-07-01 01:00:00 -2016-07-01 01:00:00
+
+# [ADD] 
+testCHW <-subset(trainCHWL1, trainCHWL1$YMDH2 > lubridate::ymd_hms("2016-06-30 23:30:00") & trainCHWL1$YMDH < lubridate::ymd_hms("2016-08-14 23:30:00"))
+summary(testCHW)#2016-07-02 02:00:00 - 2016-08-14 14:00:00
+
+trainCHW_index <- sample(1:nrow(CHWtrainvalidate), 0.8 * nrow(CHWtrainvalidate))
+validateCHW_index <- setdiff(1:nrow(CHWtrainvalidate), trainCHW_index)
+# Build X_train, y_train, X_test, y_test
+trainCHW <- CHWtrainvalidate[trainCHW_index, ]
+validateCHW <- CHWtrainvalidate[validateCHW_index, ]
+
+
 
 
 summary(data) 
