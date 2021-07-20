@@ -21899,7 +21899,7 @@ for (i in 1:1) {
 
   # =====================================================================
   # 서포트벡터 (SVM)
-  #=====================================================================
+  #======================================================================
   #***********************************
   # 학습
   #***********************************
@@ -31154,18 +31154,11 @@ library(parallel)
 fileInfo = Sys.glob(paste(globalVar$inpPath, "LSH0190_pr_day_ACCESS-ESM1-5_ssp245_r1i1p1f1_gn_20150101-20641231.nc", sep = "/"))
 r = raster::brick(fileInfo, hurrname = "t", level=1, stopIfNotEqualSpaced = FALSE)
 
-latList = seq(from=-14, to=30, by=0.5)
-lonList = seq(from=18, to=30, by=0.5)
+latList = seq(from=-12, to=18, by=0.5)
+lonList = seq(from=18, to=56, by=0.5)
 saveFile = NA
 hurls = NA
 MyName = "lA"
-
-data = tibble::tibble(
-  noncompliance::expand.grid.DT(
-    latList
-    , lonList
-    , col.names = c("lon", "lat"))
-)
 
 
 #*************************************************************
@@ -31173,8 +31166,9 @@ data = tibble::tibble(
 #*************************************************************
 tictoc::tic()
 
-# oSocCluCnt = 100
-oSocCluCnt = parallel::detectCores() - 1
+# oSocCluCnt = 50
+oSocCluCnt = 100
+#oSocCluCnt = parallel::detectCores() - 1
 oSocClu = parallel::makePSOCKcluster(oSocCluCnt)
 doParallel::registerDoParallel(oSocClu)
 
@@ -31190,15 +31184,32 @@ parallel::clusterEvalQ(oSocClu, library(raster))
 parallel::clusterEvalQ(oSocClu, library(readr))
 parallel::clusterEvalQ(oSocClu, library(dplyr))
 
+data = tibble::tibble(
+  noncompliance::expand.grid.DT(
+    lonList
+    , latList
+    , col.names = c("lon", "lat"))
+) %>%
+  tibble::rowid_to_column() %>% 
+  dplyr::mutate(
+    dtaCnt = rowid %/% oSocCluCnt
+    , sortKey = paste(lon, lat, sep="p")
+  )
+
+# summary(data)
+
 # x = 1
-# parallel::parSapply(oSocClu, X = 1:nrow(data), function(x) {
-# parallel::parSapply(oSocClu, X = 1:120, function(x) {
-parallel::parSapply(oSocClu, X = 1:10, function(x) {
-    
-  hurls = data.frame(
-    val = t(raster::extract(r, cbind(data$lat[x], data$lon[x]))) * 86400 %>% as.numeric()
-  ) %>% 
-    tibble::rowid_to_column()
+# parallel::parSapply(oSocClu, X = 1:oSocCluCnt, function(x) {  
+parallel::parSapply(oSocClu, X = 1:nrow(data), function(x) {
+  
+  hurls = raster::extract(r, cbind(data$lat[x], data$lon[x]), df = TRUE, na.rm = TRUE) %>%
+    tidyr::gather(key = "key", value = "val") %>%
+    dplyr::filter(key != "ID") %>%
+    dplyr::select(-key) %>%
+    dplyr::mutate(val = val * 86400) %>%
+    tibble::rowid_to_column() %>%
+    dplyr::select(rowid, val)
+  
   
   hurlsL1 = tibble::tibble(
     lat = data$lat[x]
@@ -31208,47 +31219,72 @@ parallel::parSapply(oSocClu, X = 1:10, function(x) {
     dplyr::select(rowid, lat, lon, val) %>%
     readr::type_convert()
   
+  selDtaCnt = data$dtaCnt[x]
   selCore = x %% oSocCluCnt
-
-    # saveFile = sprintf("%s/OUTPUT/%s_%s.csv", globalVar$outPath, MyName, selCore)
-  saveFile = sprintf("%s/%s_%s.csv", globalVar$outPath, MyName, selCore)
-  readr::write_csv(x = hurlsL1, file = saveFile, append = TRUE, col_names = FALSE)
   
+  saveFile = sprintf("%s/OUTPUTS8/%s_%s_%s.csv", globalVar$outPath, MyName, selDtaCnt, selCore)
+  readr::write_csv(x = hurlsL1, file = saveFile, append = FALSE, col_names = FALSE)
 })
 
 parallel::stopCluster(oSocClu)
 tictoc::toc()
 
-#*************************************************************
+#======================================================
 # 다중 코어 기반으로 파일 읽기 (병렬 처리)
-#*************************************************************
-# 데이터 조회
-# fileList = Sys.glob(paste(globalVar$outPath, "./OUTPUTS/lA_*.csv", sep = "/"))
-# fileList = Sys.glob(paste(globalVar$outPath, "./OUTPUT2/lA_*.csv", sep = "/"))
-# fileList = Sys.glob(paste(globalVar$outPath, "./OUTPUT3/lA_*.csv", sep = "/"))
-fileList = Sys.glob(paste(globalVar$outPath, "./lA_*.csv", sep = "/"))
+#======================================================
+# 15 > 9999
+trace(multidplyr::new_cluster, edit=TRUE) 
 
-mSocCluCnt = length(fileList)
-mSocClu = multidplyr::new_cluster(mSocCluCnt)
-multidplyr::cluster_library(mSocClu, "dplyr")
-multidplyr::cluster_assign_each(mSocClu, filename = fileList)
-multidplyr::cluster_send(mSocClu, resData <- vroom::vroom(filename, col_names = FALSE, col_types = c(.default = "d")))
+dtaCntList = data$dtaCnt %>% unique() %>% sort()
+# dtaCntList = 1:10
+resDataL1 = tibble()
 
-resData = multidplyr::party_df(mSocClu, "resData") %>%
-  dplyr::collect() %>%
-  magrittr::set_colnames(c("rowid", "lon", "lat", "val")) %>%
-  dplyr::mutate(
-    key = paste(lat, lon, sep="p")
-  ) %>% 
-  dplyr::select(-lon, -lat) %>% 
-  tidyr::spread(key = "key", value = "val") %>% 
-  dplyr::select(-rowid)
+# dtaCntInfo = 1
+for (dtaCntInfo in dtaCntList) {
+  
+  # 데이터 조회
+  inFile = sprintf("%s/OUTPUTS8/lA_%s_*.csv", globalVar$outPath, dtaCntInfo)
+  fileList = Sys.glob(inFile)
+  
+  # 이 부분의 경우 동적으로 생성되기 때문에 다소 오랜 시간 소요
+  # 따라서 추후 100, 100, 100, 20으로 설정하시고 20의 경우 동적으로 코어 할당
+  mSocCluCnt = length(fileList)
+  mSocClu = multidplyr::new_cluster(mSocCluCnt)
+  
+  
+  multidplyr::cluster_library(mSocClu, "dplyr")
+  multidplyr::cluster_library(mSocClu, "vroom")
+  multidplyr::cluster_library(mSocClu, "readr")
+  
+  multidplyr::cluster_assign_each(mSocClu, filename = fileList)
+  multidplyr::cluster_send(mSocClu, resData <- vroom::vroom(filename, col_names = FALSE, col_types = c(.default = "d")))
+  
+  resData = multidplyr::party_df(mSocClu, "resData") %>%
+    dplyr::collect() %>%
+    magrittr::set_colnames(c("rowid", "lon", "lat", "val")) %>%
+    dplyr::mutate(
+      key = paste(lat, lon, sep="p")
+    ) %>%
+    dplyr::select(-lon, -lat) %>%
+    tidyr::spread(key = "key", value = "val") %>%
+    dplyr::select(-rowid)
+  
+  if (nrow(resDataL1) == 0) {
+    resDataL1 = resData
+  } else {
+    resDataL1 = dplyr::bind_cols(resDataL1, resData)
+  }
+  
+}
 
+saveFile = sprintf("%s/OUTPUTS8/%s_%s.csv", globalVar$outPath, MyName, "la")
+readr::write_csv(x = resDataL1, file = saveFile)
 
-saveFile = sprintf("%s/%s_%s.csv", globalVar$outPath, MyName, "la")
-readr::write_csv(x = resData, file = saveFile)
+resDataL2 = resDataL1 %>% 
+  dplyr::select(data$sortKey)
 
-
+saveFile = sprintf("%s/OUTPUTS8/%s_%s_sort.csv", globalVar$outPath, MyName, "la")
+readr::write_csv(x = resDataL2, file = saveFile)
 
 
 #=============================================================
@@ -31615,14 +31651,77 @@ if (env == "local") {
     , "figPath" = contextPath
     , "outPath" = contextPath
     , "tmpPath" = contextPath
+    , "logPath" = contextPath
   )
 } else {
   source(here::here(file.path(contextPath, "src"), "InitConfig.R"), encoding = "UTF-8")
 }
 
 #================================================
+# 함수 정의
+#================================================
+perfEval = function(x, y) {
+  
+  if (length(x) < 1) { return(sprintf("%s", "x 값 없음")) }
+  if (length(y) < 1) { return(sprintf("%s", "y 값 없음")) }
+  
+  slope = coef(lm(y ~ x))[2]
+  interp = coef(lm(y ~ x))[1]
+  xMean = mean(x, na.rm = TRUE)
+  yMean = mean(y, na.rm = TRUE)
+  xSd = sd(x, na.rm = TRUE)
+  ySd = sd(y, na.rm = TRUE)
+  cnt = length(x)
+  bias = mean(x - y, na.rm = TRUE)
+  rBias = (bias / yMean) * 100.0
+  rmse = sqrt(mean((x - y)^2, na.rm = TRUE))
+  rRmse = (rmse / yMean) * 100.0
+  r = cor.test(x, y)$estimate
+  p = cor.test(x, y)$p.value
+  diffMean = mean(x - y, na.rm = TRUE)
+  diffSd = sd(x - y, na.rm = TRUE)
+  # perDiffMean = mean((x - y) / y, na.rm = TRUE) * 100.0
+  
+  return(c(slope, interp, xMean, yMean, xSd, ySd, cnt, bias, rBias, rmse, rRmse, r, p, diffMean, diffSd))
+}
+
+biasCorr = function(actu, pred, minVal, maxVal, interVal, isPlot = FALSE) {
+  
+  factorVal = seq(minVal, maxVal, by = interVal)
+  
+  # RMSE Fitting
+  liResult = lapply(1:length(factorVal), function(i) Metrics::rmse(actu, pred * factorVal[i])) %>%
+    unlist()
+  
+  ind = which(liResult == min(liResult, na.rm = TRUE))
+  
+  if (isPlot == TRUE) {
+    plot(liResult)
+  }
+  
+  # Best Factor Index
+  ind = which(liResult == min(liResult, na.rm = TRUE))
+  
+  calibFactor = factorVal[[ind]]
+  calPred = calibFactor * pred
+  
+  meanDiff = mean(actu, na.rm = TRUE) - mean(calPred, na.rm = TRUE)
+  newPred = (calPred) + meanDiff
+  
+  cat(
+    sprintf("%s : %.2f", "[보정 X] RMSE", Metrics::rmse(actu, pred))
+    , sprintf("%s : %.2f", "[보정 O] RMSE", Metrics::rmse(actu, newPred))
+    , "\n"
+  )
+  
+  return(c(newPred))
+}
+
+
+#================================================
 # 비즈니스 로직 수행
 #================================================
+# 라이브러리 읽기
 library(readxl)
 library(tidyverse)
 library(ggplot2)
@@ -31639,6 +31738,28 @@ library(lubridate)
 library(openxlsx)
 library(vroom)
 library(RQuantLib)
+library(caret)
+library(tictoc)
+
+
+# 로그 설정
+saveLogFile = sprintf("%s/%s_%s_%s_%s.log", globalVar$logPath, Sys.info()["sysname"], Sys.info()["nodename"], prjName, format(Sys.time(), "%Y%m%d"))
+
+log = log4r::create.logger()
+log4r::logfile(log) = saveLogFile
+log4r::level(log) = "INFO"
+
+
+# 검증 지수 테이블 생성
+rowNum = 1
+colNum = 6
+perfTable = data.frame(matrix(0, nrow = rowNum * colNum, ncol = 15))
+rownames(perfTable) = c(
+  paste0("MLR-", 1:rowNum), paste0("RF-", 1:rowNum), paste0("GAM-", 1:rowNum)
+  , paste0("SARIMA-", 1:rowNum), paste0("SVR-", 1:rowNum), paste0("DNN-", 1:rowNum)
+  )
+colnames(perfTable) = c("slope", "interp", "xMean", "yMean", "xSd", "ySd", "cnt", "bias", "rBias", "rmse", "rRmse", "r", "pVal", "diffMean", "diffSd")
+
 
 # 데이터 읽기
 fileInfo = Sys.glob(paste(globalVar$inpPath, "LSH0194_PAhourlyCHW.csv", sep = "/"))
@@ -31695,6 +31816,7 @@ dataL1 = data %>%
 
 # dplyr::select(YMDH, nMonth, nDay, nHour, WWR, refYmd, hourType, businessDay, seasonType)
 
+summary(data)
 summary(dataL1)
 
 
@@ -31702,15 +31824,21 @@ summary(dataL1)
 # 모형 구성
 #*******************************************
 dataL2 = dataL1 %>% 
-  dplyr::select(-c(nMonth, nDay, nHour, refYmd, isTrainValid, isBizDay))
+  dplyr::select(-c(YMDH, nMonth, nDay, nHour, refYmd, isTrainValid, isBizDay))
 
 # 선형회귀분석
-lmFit = lm(val ~ ., data = dataL3)
+lmFit = lm(CHWEUI ~ ., data = dataL2)
 summary(lmFit)
+
+plot(lmFit)
 
 # 단계별 소거법
 lmFitStep = MASS::stepAIC(lmFit, direction = "both")
 summary(lmFitStep)
+
+# 독립변수 및 종속변수 선정
+# modelForm = as.formula(lmFit$call$formula)
+modelForm = as.formula(lmFitStep$call$formula)
 
 #*******************************************
 # 훈련/검증/테스트 셋 설정
@@ -31720,11 +31848,11 @@ dataL3 = dataL1 %>%
   dplyr::select(-c(nMonth, nDay, nHour, refYmd, isTrainValid, isBizDay))
 
 # 훈련 및 데이터 셋을 80:20으로 나누기 위한 인덱스 설정
-ind = sample(1:nrow(dataL3), nrow(dataL3) * 0.8)
+idx = caret::createDataPartition(y = dataL3$CHWEUI, p = 0.8, list = FALSE)   
 
 # 해당 인덱스에 따라 자료 할당
-trainData = dataL3[ind,]
-validData = dataL3[-ind,]
+trainData = dataL3[idx, ]
+validData = dataL3[-idx, ]
 
 testData = dataL1 %>% 
   dplyr::filter(isTrainValid == FALSE) %>% 
@@ -31739,9 +31867,229 @@ dplyr::tbl_df(validData)
 # 테스트 데이터셋 확인
 dplyr::tbl_df(testData)
 
-#*******************************************
-# 훈련/검증/테스트 셋 설정
-#*******************************************
+#**********************************************************
+# 모형 선정
+#**********************************************************
+#++++++++++++++++++++++++++++++++++++++++++++++++++
+# 머신러닝
+#++++++++++++++++++++++++++++++++++++++++++++++++++
+set.seed(1)
+
+# 3. Multiple Linear Regression (MLR) model
+mlrModel = lm(modelForm, data = trainData)
+
+# 5. Random Forest (RF)
+rfModel = randomForest::randomForest(formula = modelForm, data = trainData)
+hyperparams <- expand.grid(degree = 4, scale = 1, C = 1, tuneGrid = hyperparams)
+
+fitControl <- trainControl(method = "repeatedcv", number = 3, repeats = 5)
+rf_model <- train(form, data = trainData, method = "rf", trControl = fitControl, verbose = FALSE)
+rf_model
+
+# 6. Generalized addictive model (GAM)
+gamModel = gam(cumDeath ~ s(dtDate), data = trainData)
+
+# 7. Seasonal autoregressive integrated moving average (SARIMA)
+
+
+# 8. Support Vector Regression (SVR)
+# 학습
+tryCatch(
+  expr = {
+    
+    log4r::info(log, sprintf("%s", "[START] SVM"))
+    
+    tictoc::tic()
+    
+    fitControl <- trainControl(## 10-fold CV
+      method = "repeatedcv",
+      number = 10,
+      ## repeated ten times
+      repeats = 10)
+    
+    svmModel = caret::train(
+      modelForm
+      , data = trainData
+      , method = "svmLinear"
+      , tuneGrid = expand.grid(.C = 2^(seq(-5, 5, 2)))
+      # , preProcess = c("center", "scale")
+      , trControl = caret::trainControl(method = "repeatedcv", number = 7, repeats = 1, search = "grid") # 10분할 교차 검증 및 1번 반복
+    )
+    
+    tictoc::toc()
+    
+    #***********************************
+    # 검증
+    #***********************************
+    # yObs = testData$obs
+    yHat = predict(svmModel, newdata = testData)
+    
+    tmpData = data.frame(yHat) %>%
+      magrittr::set_colnames(paste0("SVM-", colList[i]))
+    
+    if (ncol(svmPredData) == 0) {
+      svmPredData = tmpData
+    } else {
+      svmPredData = dplyr::bind_cols(svmPredData, tmpData)
+      
+    }
+    
+    # perfTable[i,] = round(perfEval(yHat, yObs), 2)
+    # perfTable
+  }
+  
+  , warning = function(warning) {
+    perfTable[i,] = "WARN"
+    
+    log4r::warn(log, warning)
+  }
+  
+  , error = function(error) {
+    perfTable[i,] = "ERROR"
+    
+    log4r::error(log, error)
+  }
+  
+  , finally = {
+    
+    log4r::info(log, sprintf("%s", "[END] SVM"))
+  }
+)
+
+
+Linear = lm(cumDeath ~ dtDate, data = dataL2)
+Quadratic = lm(cumDeath ~ poly(dtDate, 2), data = dataL2)
+Cubic = lm(cumDeath ~ poly(dtDate, 3), data = dataL2)
+Gam = gam(cumDeath ~ s(dtDate), data = dataL2)
+
+
+dataModel = dataL2 %>%
+  modelr::data_grid(dtDate = modelr::seq_range(dtDate, nrow(dataL2))) %>%
+  modelr::gather_predictions(Linear, Quadratic, Cubic, Gam)
+
+dplyr::tbl_df(dataL2)
+
+dataModelL2 = dataModel %>%
+  dplyr::left_join(dataL2, c("dtDate" = "dtDate")) %>%
+  dplyr::group_by(model) %>%
+  dplyr::summarise(
+    r = cor(pred, cumDeath)
+    , rmse = Metrics::rmse(pred, cumDeath)
+  ) %>%
+  dplyr::arrange(rmse, r)
+
+dplyr::tbl_df(dataModelL2)
+
+# 회귀모형 학습 시계열 시각화
+minDate = as.Date(min(dataL2$dtDate, na.rm = TRUE) - 1)
+maxDate = as.Date(max(dataL2$dtDate, na.rm = TRUE) + 2)
+
+
+
+#+++++++++++++++++++++++++++++++++++++++++++
+# 딥러닝
+#+++++++++++++++++++++++++++++++++++++++++++
+# 11. Deep Neural Network (DNN)
+# 
+# 초기화
+h2o.init()
+
+# activation : 활성화 함수로서 Rectifier 정규화 선형 함수 (즉 Keras의 ReLU 동일)
+# hidden : 숨겨진 레이어의 수와 뉴런 수 (일반적으로 입력 차원의 1/10 or 1/100 단위)
+# epochs : 반복 횟수 (기본 10-40)
+# nfolds : 훈련 반복 수
+
+layerNum = as.integer(nrow(trainData) / 10)
+# layerNum = as.integer(nrow(trainData) / 100)
+
+dlModel = h2o::h2o.deeplearning(
+  x = c("obs")
+  , y = c("model")
+  , training_frame = as.h2o(trainData)
+  , activation = "Rectifier"
+  , hidden = rep(layerNum, layerInfo)
+  , nfolds = 10
+  , epochs = epochsInfo
+  , seed = 1
+)
+
+tryCatch(
+  
+  expr = {
+    log4r::info(log, sprintf("%s", "[START] Make Image"))
+    
+    saveImg = sprintf("%s/%s_%s_%s.png", globalVar$figPath, serviceName, colList[i], "Training-Scoring-History")
+    png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
+    
+    plot(dlModel, timestep = "epochs", metric = "rmse")
+  }
+  
+  , warning = function(warning) {
+    log4r::warn(log, warning)
+  }
+  
+  , error = function(error) {
+    log4r::error(log, error)
+  }
+  
+  , finally = {
+    dev.off()
+    
+    log4r::info(log, sprintf("%s", "[END] Make Image"))
+  }
+)
+
+tmpLastLayer = h2o::h2o.deepfeatures(dlModel, as.h2o(trainData), layer = layerInfo) %>%
+  as.tibble() %>%
+  dplyr::mutate(colInfo = colList[i])
+
+dlLastLayerData = dplyr::bind_rows(dlLastLayerData, tmpLastLayer)
+
+#***********************************
+# 검증
+#***********************************
+yObs = testData$obs
+yHat = as.data.frame(h2o::h2o.predict(object = dlModel, newdata = as.h2o(testData)))$predict
+
+if (isCorr == TRUE) {
+  yHat = biasCorr(yObs, yHat, -100, 100, 0.001, FALSE)
+}
+
+tmpData = data.frame(yHat) %>%
+  magrittr::set_colnames(paste0("DL-", colList[i]))
+
+if (ncol(dlPredData) == 0) {
+  dlPredData = tmpData
+} else {
+  dlPredData = dplyr::bind_cols(dlPredData, tmpData)
+}
+
+perfTable[i + 22,] = round(perfEval(yHat, yObs), 2)
+
+}
+
+, warning = function(warning) {
+  perfTable[i + 22,] = 0
+  
+  log4r::warn(log, warning)
+}
+
+, error = function(error) {
+  perfTable[i + 22,] = 0
+  
+  log4r::error(log, error)
+}
+
+, finally = {
+  
+  log4r::info(log, sprintf("%s", "[END] h2o.deeplearning"))
+}
+
+
+
+
+
+
 
 
 # 
