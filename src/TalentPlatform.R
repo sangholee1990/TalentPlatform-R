@@ -31740,7 +31740,10 @@ library(vroom)
 library(RQuantLib)
 library(caret)
 library(tictoc)
-
+library(caret)
+library(glmnet)
+library(Metrics)
+library(randomForest)
 
 # 로그 설정
 saveLogFile = sprintf("%s/%s_%s_%s_%s.log", globalVar$logPath, Sys.info()["sysname"], Sys.info()["nodename"], prjName, format(Sys.time(), "%Y%m%d"))
@@ -31748,7 +31751,6 @@ saveLogFile = sprintf("%s/%s_%s_%s_%s.log", globalVar$logPath, Sys.info()["sysna
 log = log4r::create.logger()
 log4r::logfile(log) = saveLogFile
 log4r::level(log) = "INFO"
-
 
 # 검증 지수 테이블 생성
 rowNum = 1
@@ -31770,6 +31772,10 @@ data = vroom::vroom(
   , col_names = TRUE
 )
 
+# PAHourlyCHW = data.table::fread(file = fileInfo)
+# summary(data)
+# summary(PAHourlyCHW)
+
 RQuantLib::isBusinessDay("UnitedStates/NYSE", seq(from=lubridate::as_date(min(data$YMDH, na.rm = TRUE)), to=lubridate::as_date(max(data$YMDH, na.rm = TRUE)), by=1))
 
 dataL1 = data %>% 
@@ -31788,7 +31794,7 @@ dataL1 = data %>%
     , interTerm2 = Uvalue_Window * WWR
     , interTerm3 = Year.x * AgeAfterRenov
     
-    , isTrainValid = dplyr::between(YMDH, lubridate::date("2015-07-01"), lubridate::date("2016-07-01"))
+    , isTrainValid = dplyr::between(lubridate::as_date(YMDH), lubridate::date("2015-07-01"), lubridate::date("2016-07-01"))
     
     # 펜실레니아 근처 뉴욕 기준으로 비즈니스 여부 판단
     # , isBizDay = bizdays::is.bizday(YMDH, "QuantLib/UnitedStates/NYSE")
@@ -31816,7 +31822,9 @@ dataL1 = data %>%
 
 # dplyr::select(YMDH, nMonth, nDay, nHour, WWR, refYmd, hourType, businessDay, seasonType)
 
-summary(data)
+# dplyr::tbl_df(dataL1)
+
+# summary(data)
 summary(dataL1)
 
 
@@ -31830,7 +31838,7 @@ dataL2 = dataL1 %>%
 lmFit = lm(CHWEUI ~ ., data = dataL2)
 summary(lmFit)
 
-plot(lmFit)
+# plot(lmFit)
 
 # 단계별 소거법
 lmFitStep = MASS::stepAIC(lmFit, direction = "both")
@@ -31843,26 +31851,26 @@ modelForm = as.formula(lmFitStep$call$formula)
 #*******************************************
 # 훈련/검증/테스트 셋 설정
 #*******************************************
-dataL3 = dataL1 %>% 
+trainData = dataL1 %>% 
   dplyr::filter(isTrainValid == TRUE) %>% 
-  dplyr::select(-c(nMonth, nDay, nHour, refYmd, isTrainValid, isBizDay))
-
-# 훈련 및 데이터 셋을 80:20으로 나누기 위한 인덱스 설정
-idx = caret::createDataPartition(y = dataL3$CHWEUI, p = 0.8, list = FALSE)   
-
-# 해당 인덱스에 따라 자료 할당
-trainData = dataL3[idx, ]
-validData = dataL3[-idx, ]
-
-testData = dataL1 %>% 
-  dplyr::filter(isTrainValid == FALSE) %>% 
   dplyr::select(-c(nMonth, nDay, nHour, refYmd, isTrainValid, isBizDay))
 
 # 훈련 데이터셋 확인
 dplyr::tbl_df(trainData)
 
+# 훈련 및 데이터 셋을 80:20으로 나누기 위한 인덱스 설정
+# idx = caret::createDataPartition(y = dataL3$CHWEUI, p = 0.8, list = FALSE)   
+
+# 해당 인덱스에 따라 자료 할당
+# trainData = dataL3[idx, ]
+# validData = dataL3[-idx, ]
+
+testData = dataL1 %>% 
+  dplyr::filter(isTrainValid == FALSE) %>% 
+  dplyr::select(-c(nMonth, nDay, nHour, refYmd, isTrainValid, isBizDay))
+
 # 검증 데이터셋 확인
-dplyr::tbl_df(validData)
+# dplyr::tbl_df(validData)
 
 # 테스트 데이터셋 확인
 dplyr::tbl_df(testData)
@@ -31870,6 +31878,49 @@ dplyr::tbl_df(testData)
 #**********************************************************
 # 모형 선정
 #**********************************************************
+
+# Training Control
+# method : 데이터 샘플링 기법로서  boot(부트스트래핑), boot632(부트스트래핑의 개선된 버전), cv(교차 검증), repeatedcv(교차 검증의 반복), LOOCV(Leave One Out Cross Validation) 
+# repeats : 데이터 샘플링 반복 횟수
+# number : 분할 횟수
+controlInfo = caret::trainControl(
+  method = 'repeatedcv'
+  , repeats = 1
+  , number = 3
+  , p = 0.8
+  )
+
+# 하이퍼 파라미터 설정
+paramGrid = expand.grid(
+  intercept = c(TRUE, FALSE)
+  )
+
+# form : 모델 형식
+# data : 모델 적용 데이터
+# preProc : 데이터 전처리로서 center (평균이 0이 되게 함), scale (분산이 1이 되게 함), pca(주성분 분석) 설정 가능
+# metric : 분류 문제의 경우 정확도(accuracy), 회귀 문제일 경우 RMSE로 자동 지정
+# trControl : 하이퍼 파라미터 설정
+lmModel = caret::train(
+  form = modelForm
+  , data = trainData
+  , method = 'lm'
+  , preProc = c('center', 'scale')
+  , metric = 'RMSE'
+  , tuneGrid = paramGrid
+  , trControl = controlInfo
+  )
+
+ggplot(lmModel)
+
+# 최적 모형의 회귀계수
+lmModel$finalModel 
+
+
+yObs = testData$CHWEUI
+yHat = predict(lmModel, newdata = testData)
+
+perfTable[1, ] = perfEval(yHat, yObs) %>% round(2)
+
 #++++++++++++++++++++++++++++++++++++++++++++++++++
 # 머신러닝
 #++++++++++++++++++++++++++++++++++++++++++++++++++
