@@ -31744,6 +31744,8 @@ library(caret)
 library(glmnet)
 library(Metrics)
 library(randomForest)
+library(mgcv)
+library(nima)
 
 # 로그 설정
 saveLogFile = sprintf("%s/%s_%s_%s_%s.log", globalVar$logPath, Sys.info()["sysname"], Sys.info()["nodename"], prjName, format(Sys.time(), "%Y%m%d"))
@@ -31756,10 +31758,11 @@ log4r::level(log) = "INFO"
 rowNum = 1
 colNum = 6
 perfTable = data.frame(matrix(0, nrow = rowNum * colNum, ncol = 15))
-rownames(perfTable) = c(
-  paste0("MLR-", 1:rowNum), paste0("RF-", 1:rowNum), paste0("GAM-", 1:rowNum)
-  , paste0("SARIMA-", 1:rowNum), paste0("SVR-", 1:rowNum), paste0("DNN-", 1:rowNum)
-  )
+rownames(perfTable) = c("MLR", "RF", "GAM", "SARIMA", "SVR", "DNN")
+# rownames(perfTable) = c(
+#   paste0("MLR-", 1:rowNum), paste0("RF-", 1:rowNum), paste0("GAM-", 1:rowNum)
+#   , paste0("SARIMA-", 1:rowNum), paste0("SVR-", 1:rowNum), paste0("DNN-", 1:rowNum)
+# )
 colnames(perfTable) = c("slope", "interp", "xMean", "yMean", "xSd", "ySd", "cnt", "bias", "rBias", "rmse", "rRmse", "r", "pVal", "diffMean", "diffSd")
 
 
@@ -31848,12 +31851,27 @@ summary(lmFitStep)
 # modelForm = as.formula(lmFit$call$formula)
 modelForm = as.formula(lmFitStep$call$formula)
 
+# 오래 시간 소요
+# nima::lm_plot(lmFit)
+
+# Residuals vs Fitted : 선형 회귀분석에서 오차는 평균이 0이고 분산이 일정한 정규분 분포를 가정하였으므로 잔차가 특별한 경향을 보이지 않는 것이 이상적이다.
+# Gaussian Q-Q : 잔차가 정규분포를 따르는지 확인. 기울기 1인 직선이 되는 것이 이상적이다.
+# Scale-Location : 또한 표준화 잔차가 특별한 경향을 보이지 않는 것이 이상적이다.
+# Cook’s distance, Residuals vs Leverage,  Cook’s distance vs Leverage : 영향점의 유무를 검사하는데 유용하다. (중회귀분석 시간에 다시)
+
 #*******************************************
 # 훈련/검증/테스트 셋 설정
 #*******************************************
+set.seed(1)
+
 trainData = dataL1 %>% 
   dplyr::filter(isTrainValid == TRUE) %>% 
   dplyr::select(-c(nMonth, nDay, nHour, refYmd, isTrainValid, isBizDay))
+
+
+# 테스트용
+trainData = trainData %>% 
+  dplyr::sample_n(10000)
 
 # 훈련 데이터셋 확인
 dplyr::tbl_df(trainData)
@@ -31876,172 +31894,149 @@ testData = dataL1 %>%
 dplyr::tbl_df(testData)
 
 #**********************************************************
-# 모형 선정
+# 학습 파라미터 설정
 #**********************************************************
-
-# Training Control
 # method : 데이터 샘플링 기법로서  boot(부트스트래핑), boot632(부트스트래핑의 개선된 버전), cv(교차 검증), repeatedcv(교차 검증의 반복), LOOCV(Leave One Out Cross Validation) 
 # repeats : 데이터 샘플링 반복 횟수
 # number : 분할 횟수
+# controlInfo = caret::trainControl(
+#   method = 'cv'
+#   , number = 1
+#   , p = 0.8
+# )
+
 controlInfo = caret::trainControl(
   method = 'repeatedcv'
   , repeats = 1
-  , number = 3
+  , number = 1
   , p = 0.8
-  )
+)
 
-# 하이퍼 파라미터 설정
-paramGrid = expand.grid(
-  intercept = c(TRUE, FALSE)
-  )
 
+#**********************************************************
+# 머신러닝 (MLR, RF, GAM, SARIMA, SVR)
+#**********************************************************
+
+#++++++++++++++++++++++++++++++++++++++++++++++++++
+# 3. Multiple Linear Regression (MLR) model
+#++++++++++++++++++++++++++++++++++++++++++++++++++
 # form : 모델 형식
 # data : 모델 적용 데이터
 # preProc : 데이터 전처리로서 center (평균이 0이 되게 함), scale (분산이 1이 되게 함), pca(주성분 분석) 설정 가능
 # metric : 분류 문제의 경우 정확도(accuracy), 회귀 문제일 경우 RMSE로 자동 지정
-# trControl : 하이퍼 파라미터 설정
-lmModel = caret::train(
+# tuneGrid : 하이퍼 파라미터 설정
+# trControl : 학습 파라미터 설정
+mlrModel = caret::train(
   form = modelForm
   , data = trainData
-  , method = 'lm'
-  , preProc = c('center', 'scale')
-  , metric = 'RMSE'
-  , tuneGrid = paramGrid
-  , trControl = controlInfo
+  , method = "lm"
+  , preProc = c("center", "scale")
+  , metric = "RMSE"
+  , tuneGrid = expand.grid(
+    intercept = c(TRUE, FALSE)
   )
-
-ggplot(lmModel)
-
-# 최적 모형의 회귀계수
-lmModel$finalModel 
-
-
-yObs = testData$CHWEUI
-yHat = predict(lmModel, newdata = testData)
-
-perfTable[1, ] = perfEval(yHat, yObs) %>% round(2)
-
-#++++++++++++++++++++++++++++++++++++++++++++++++++
-# 머신러닝
-#++++++++++++++++++++++++++++++++++++++++++++++++++
-set.seed(1)
-
-# 3. Multiple Linear Regression (MLR) model
-mlrModel = lm(modelForm, data = trainData)
-
-# 5. Random Forest (RF)
-rfModel = randomForest::randomForest(formula = modelForm, data = trainData)
-hyperparams <- expand.grid(degree = 4, scale = 1, C = 1, tuneGrid = hyperparams)
-
-fitControl <- trainControl(method = "repeatedcv", number = 3, repeats = 5)
-rf_model <- train(form, data = trainData, method = "rf", trControl = fitControl, verbose = FALSE)
-rf_model
-
-# 6. Generalized addictive model (GAM)
-gamModel = gam(cumDeath ~ s(dtDate), data = trainData)
-
-# 7. Seasonal autoregressive integrated moving average (SARIMA)
-
-
-# 8. Support Vector Regression (SVR)
-# 학습
-tryCatch(
-  expr = {
-    
-    log4r::info(log, sprintf("%s", "[START] SVM"))
-    
-    tictoc::tic()
-    
-    fitControl <- trainControl(## 10-fold CV
-      method = "repeatedcv",
-      number = 10,
-      ## repeated ten times
-      repeats = 10)
-    
-    svmModel = caret::train(
-      modelForm
-      , data = trainData
-      , method = "svmLinear"
-      , tuneGrid = expand.grid(.C = 2^(seq(-5, 5, 2)))
-      # , preProcess = c("center", "scale")
-      , trControl = caret::trainControl(method = "repeatedcv", number = 7, repeats = 1, search = "grid") # 10분할 교차 검증 및 1번 반복
-    )
-    
-    tictoc::toc()
-    
-    #***********************************
-    # 검증
-    #***********************************
-    # yObs = testData$obs
-    yHat = predict(svmModel, newdata = testData)
-    
-    tmpData = data.frame(yHat) %>%
-      magrittr::set_colnames(paste0("SVM-", colList[i]))
-    
-    if (ncol(svmPredData) == 0) {
-      svmPredData = tmpData
-    } else {
-      svmPredData = dplyr::bind_cols(svmPredData, tmpData)
-      
-    }
-    
-    # perfTable[i,] = round(perfEval(yHat, yObs), 2)
-    # perfTable
-  }
-  
-  , warning = function(warning) {
-    perfTable[i,] = "WARN"
-    
-    log4r::warn(log, warning)
-  }
-  
-  , error = function(error) {
-    perfTable[i,] = "ERROR"
-    
-    log4r::error(log, error)
-  }
-  
-  , finally = {
-    
-    log4r::info(log, sprintf("%s", "[END] SVM"))
-  }
+  , trControl = controlInfo
 )
 
+# ggplot(mlrModel)
 
-Linear = lm(cumDeath ~ dtDate, data = dataL2)
-Quadratic = lm(cumDeath ~ poly(dtDate, 2), data = dataL2)
-Cubic = lm(cumDeath ~ poly(dtDate, 3), data = dataL2)
-Gam = gam(cumDeath ~ s(dtDate), data = dataL2)
+# 최적 모형의 회귀계수
+mlrModel$finalModel 
 
+yObs = testData$CHWEUI
+yHat = predict(mlrModel, newdata = testData)
 
-dataModel = dataL2 %>%
-  modelr::data_grid(dtDate = modelr::seq_range(dtDate, nrow(dataL2))) %>%
-  modelr::gather_predictions(Linear, Quadratic, Cubic, Gam)
-
-dplyr::tbl_df(dataL2)
-
-dataModelL2 = dataModel %>%
-  dplyr::left_join(dataL2, c("dtDate" = "dtDate")) %>%
-  dplyr::group_by(model) %>%
-  dplyr::summarise(
-    r = cor(pred, cumDeath)
-    , rmse = Metrics::rmse(pred, cumDeath)
-  ) %>%
-  dplyr::arrange(rmse, r)
-
-dplyr::tbl_df(dataModelL2)
-
-# 회귀모형 학습 시계열 시각화
-minDate = as.Date(min(dataL2$dtDate, na.rm = TRUE) - 1)
-maxDate = as.Date(max(dataL2$dtDate, na.rm = TRUE) + 2)
-
+perfTable["MLR", ] = perfEval(yHat, yObs) %>% round(2)
 
 
 #+++++++++++++++++++++++++++++++++++++++++++
+# 5. Random Forest (RF)
+#+++++++++++++++++++++++++++++++++++++++++++
+rfModel = caret::train(
+  form = modelForm
+  , data = trainData
+  , method = "rf"
+  , preProc = c("center", "scale")
+  , metric = "RMSE"
+  , tuneGrid = expand.grid(
+    mtry = 1:2
+  )
+  , trControl = controlInfo
+)
+
+# ggplot(rfModel)
+
+# 최적 모형의 회귀계수
+rfModel$finalModel 
+
+yObs = testData$CHWEUI
+yHat = predict(rfModel, newdata = testData)
+
+perfTable["RF", ] = perfEval(yHat, yObs) %>% round(2)
+
+#+++++++++++++++++++++++++++++++++++++++++++
+# 6. Generalized addictive model (GAM)
+#+++++++++++++++++++++++++++++++++++++++++++
+gamModel = caret::train(
+  form = modelForm
+  , data = trainData
+  , method = "gam"
+  , preProc = c("center", "scale")
+  , metric = "RMSE"
+  , tuneGrid = expand.grid(
+    select = c(TRUE)
+    # , method = "GCV.Cp"
+  )
+  , trControl = controlInfo
+)
+
+# ggplot(gamModel)
+
+# 최적 모형의 회귀계수
+gamModel$finalModel 
+
+yObs = testData$CHWEUI
+yHat = predict(gamModel, newdata = testData)
+
+perfTable["GAM", ] = perfEval(yHat, yObs) %>% round(2)
+
+
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# 7. Seasonal autoregressive integrated moving average (SARIMA)
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+#+++++++++++++++++++++++++++++++++++++++++++
+# 8. Support Vector Regression (SVR)
+#+++++++++++++++++++++++++++++++++++++++++++
+svmModel = caret::train(
+  form = modelForm
+  , data = trainData
+  , method = "svmLinear"
+  , preProc = c("center", "scale")
+  , metric = "RMSE"
+  , tuneGrid = expand.grid(
+    C = 2^(seq(-5, 5, 2))
+  )
+  , trControl = trainControl("cv", number = 10)
+)
+
+# ggplot(svmModel)
+
+# 최적 모형의 회귀계수
+svmModel$finalModel 
+
+yObs = testData$CHWEUI
+yHat = predict(svmModel, newdata = testData)
+
+perfTable["SVM", ] = perfEval(yHat, yObs) %>% round(2)
+
+#**********************************************************
 # 딥러닝
+#**********************************************************
+
 #+++++++++++++++++++++++++++++++++++++++++++
 # 11. Deep Neural Network (DNN)
-# 
+#+++++++++++++++++++++++++++++++++++++++++++ 
 # 초기화
 h2o.init()
 
@@ -32051,7 +32046,8 @@ h2o.init()
 # nfolds : 훈련 반복 수
 
 layerNum = as.integer(nrow(trainData) / 10)
-# layerNum = as.integer(nrow(trainData) / 100)
+layerInfo = 3
+epochsInfo = 1000
 
 dlModel = h2o::h2o.deeplearning(
   x = c("obs")
@@ -32102,43 +32098,22 @@ dlLastLayerData = dplyr::bind_rows(dlLastLayerData, tmpLastLayer)
 yObs = testData$obs
 yHat = as.data.frame(h2o::h2o.predict(object = dlModel, newdata = as.h2o(testData)))$predict
 
-if (isCorr == TRUE) {
-  yHat = biasCorr(yObs, yHat, -100, 100, 0.001, FALSE)
-}
+perfTable["DL", ] = round(perfEval(yHat, yObs), 2)
 
-tmpData = data.frame(yHat) %>%
-  magrittr::set_colnames(paste0("DL-", colList[i]))
+# if (isCorr == TRUE) {
+#   yHat = biasCorr(yObs, yHat, -100, 100, 0.001, FALSE)
+# }
 
-if (ncol(dlPredData) == 0) {
-  dlPredData = tmpData
-} else {
-  dlPredData = dplyr::bind_cols(dlPredData, tmpData)
-}
+# tmpData = data.frame(yHat) %>%
+#   magrittr::set_colnames(paste0("DL-", colList[i]))
+# 
+# if (ncol(dlPredData) == 0) {
+#   dlPredData = tmpData
+# } else {
+#   dlPredData = dplyr::bind_cols(dlPredData, tmpData)
+# }
 
-perfTable[i + 22,] = round(perfEval(yHat, yObs), 2)
-
-}
-
-, warning = function(warning) {
-  perfTable[i + 22,] = 0
-  
-  log4r::warn(log, warning)
-}
-
-, error = function(error) {
-  perfTable[i + 22,] = 0
-  
-  log4r::error(log, error)
-}
-
-, finally = {
-  
-  log4r::info(log, sprintf("%s", "[END] h2o.deeplearning"))
-}
-
-
-
-
+# }
 
 
 
