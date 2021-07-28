@@ -31992,15 +31992,28 @@ perfTable["RF", ] = perfEval(yHat, yObs) %>% round(2)
 gamModel = caret::train(
   form = modelForm
   , data = trainData
-  , method = "gamboost"
+  , method = "gbm"
   , preProc = c("center", "scale")
   , metric = "RMSE"
-  , tuneGrid = expand.grid(
-    select = c(TRUE)
-    , method = "GCV.Cp"
-  # )
   , trControl = controlInfo
 )
+
+
+b = train( form = modelForm,
+          data = trainData,
+          method = "gam",
+          trControl = trainControl(method = "LOOCV", number = 1, repeats = 1), # use leave one out cross validation
+          tuneGrid = data.frame(method = "GCV.Cp", select = FALSE))
+
+# Gradient Boosting Machine
+# gbmModel = caret::train(
+#   form = modelForm
+#   , data = trainData
+#   , method = "gbm"
+#   , preProc = c("center", "scale")
+#   , metric = "RMSE"
+#   , trControl = controlInfo
+# )
 
 saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "GAM RMSE Results Across Tuning Parameters")
 
@@ -32008,6 +32021,7 @@ ggplot(gamModel) +
   theme(text = element_text(size = 18)) +
   ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
 
+show(fit.treebag)
 
 # 최적 모형의 회귀계수
 gamModel$finalModel 
