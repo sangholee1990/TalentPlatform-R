@@ -31746,6 +31746,8 @@ library(Metrics)
 library(randomForest)
 library(mgcv)
 library(nima)
+library(h2o)
+library(stringr)
 
 # 로그 설정
 saveLogFile = sprintf("%s/%s_%s_%s_%s.log", globalVar$logPath, Sys.info()["sysname"], Sys.info()["nodename"], prjName, format(Sys.time(), "%Y%m%d"))
@@ -31758,10 +31760,10 @@ log4r::level(log) = "INFO"
 rowNum = 1
 colNum = 6
 perfTable = data.frame(matrix(0, nrow = rowNum * colNum, ncol = 15))
-rownames(perfTable) = c("MLR", "RF", "GAM", "SARIMA", "SVR", "DNN")
+rownames(perfTable) = c("MLR", "RF", "GAM", "SARIMA", "SVM", "DNN")
 # rownames(perfTable) = c(
 #   paste0("MLR-", 1:rowNum), paste0("RF-", 1:rowNum), paste0("GAM-", 1:rowNum)
-#   , paste0("SARIMA-", 1:rowNum), paste0("SVR-", 1:rowNum), paste0("DNN-", 1:rowNum)
+#   , paste0("SARIMA-", 1:rowNum), paste0("SVM-", 1:rowNum), paste0("DNN-", 1:rowNum)
 # )
 colnames(perfTable) = c("slope", "interp", "xMean", "yMean", "xSd", "ySd", "cnt", "bias", "rBias", "rmse", "rRmse", "r", "pVal", "diffMean", "diffSd")
 
@@ -31851,6 +31853,10 @@ summary(lmFitStep)
 # modelForm = as.formula(lmFit$call$formula)
 modelForm = as.formula(lmFitStep$call$formula)
 
+modelFormSep = modelForm %>% paste(sep = " ~ ") 
+modelFormY = modelFormSep[2]
+modelFormX = modelFormSep[3] %>% stringr::str_split(" \\+ ") %>% unlist()
+
 # 오래 시간 소요
 # nima::lm_plot(lmFit)
 
@@ -31866,12 +31872,11 @@ set.seed(1)
 
 trainData = dataL1 %>% 
   dplyr::filter(isTrainValid == TRUE) %>% 
-  dplyr::select(-c(nMonth, nDay, nHour, refYmd, isTrainValid, isBizDay))
-
+  dplyr::select(-c(YMDH, nMonth, nDay, nHour, refYmd, isTrainValid, isBizDay))
 
 # 테스트용
 trainData = trainData %>% 
-  dplyr::sample_n(10000)
+  dplyr::sample_n(1000)
 
 # 훈련 데이터셋 확인
 dplyr::tbl_df(trainData)
@@ -31885,7 +31890,7 @@ dplyr::tbl_df(trainData)
 
 testData = dataL1 %>% 
   dplyr::filter(isTrainValid == FALSE) %>% 
-  dplyr::select(-c(nMonth, nDay, nHour, refYmd, isTrainValid, isBizDay))
+  dplyr::select(-c(YMDH, nMonth, nDay, nHour, refYmd, isTrainValid, isBizDay))
 
 # 검증 데이터셋 확인
 # dplyr::tbl_df(validData)
@@ -31898,17 +31903,11 @@ dplyr::tbl_df(testData)
 #**********************************************************
 # method : 데이터 샘플링 기법로서  boot(부트스트래핑), boot632(부트스트래핑의 개선된 버전), cv(교차 검증), repeatedcv(교차 검증의 반복), LOOCV(Leave One Out Cross Validation) 
 # repeats : 데이터 샘플링 반복 횟수
-# number : 분할 횟수
-# controlInfo = caret::trainControl(
-#   method = 'cv'
-#   , number = 1
-#   , p = 0.8
-# )
-
+# number : 분할 횟수 
 controlInfo = caret::trainControl(
   method = 'repeatedcv'
-  , repeats = 1
-  , number = 1
+  , repeats = 10
+  , number = 10
   , p = 0.8
 )
 
@@ -31926,6 +31925,8 @@ controlInfo = caret::trainControl(
 # metric : 분류 문제의 경우 정확도(accuracy), 회귀 문제일 경우 RMSE로 자동 지정
 # tuneGrid : 하이퍼 파라미터 설정
 # trControl : 학습 파라미터 설정
+
+# 모델 학습
 mlrModel = caret::train(
   form = modelForm
   , data = trainData
@@ -31934,15 +31935,20 @@ mlrModel = caret::train(
   , metric = "RMSE"
   , tuneGrid = expand.grid(
     intercept = c(TRUE, FALSE)
-  )
+    )
   , trControl = controlInfo
 )
 
-# ggplot(mlrModel)
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "MLR RMSE Results Across Tuning Parameters")
+
+ggplot(mlrModel) +
+  theme(text = element_text(size = 18)) +
+  ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
 
 # 최적 모형의 회귀계수
 mlrModel$finalModel 
 
+# 모델 검증
 yObs = testData$CHWEUI
 yHat = predict(mlrModel, newdata = testData)
 
@@ -31952,6 +31958,7 @@ perfTable["MLR", ] = perfEval(yHat, yObs) %>% round(2)
 #+++++++++++++++++++++++++++++++++++++++++++
 # 5. Random Forest (RF)
 #+++++++++++++++++++++++++++++++++++++++++++
+# 모델 학습
 rfModel = caret::train(
   form = modelForm
   , data = trainData
@@ -31964,11 +31971,16 @@ rfModel = caret::train(
   , trControl = controlInfo
 )
 
-# ggplot(rfModel)
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "RF RMSE Results Across Tuning Parameters")
+
+ggplot(rfModel) +
+  theme(text = element_text(size = 18)) +
+  ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
 
 # 최적 모형의 회귀계수
 rfModel$finalModel 
 
+# 모델 검증
 yObs = testData$CHWEUI
 yHat = predict(rfModel, newdata = testData)
 
@@ -31980,51 +31992,105 @@ perfTable["RF", ] = perfEval(yHat, yObs) %>% round(2)
 gamModel = caret::train(
   form = modelForm
   , data = trainData
-  , method = "gam"
+  , method = "gamboost"
   , preProc = c("center", "scale")
   , metric = "RMSE"
   , tuneGrid = expand.grid(
     select = c(TRUE)
-    # , method = "GCV.Cp"
-  )
+    , method = "GCV.Cp"
+  # )
   , trControl = controlInfo
 )
 
-# ggplot(gamModel)
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "GAM RMSE Results Across Tuning Parameters")
+
+ggplot(gamModel) +
+  theme(text = element_text(size = 18)) +
+  ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
+
 
 # 최적 모형의 회귀계수
 gamModel$finalModel 
 
+# 모델 검증
 yObs = testData$CHWEUI
 yHat = predict(gamModel, newdata = testData)
 
 perfTable["GAM", ] = perfEval(yHat, yObs) %>% round(2)
 
 
+
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # 7. Seasonal autoregressive integrated moving average (SARIMA)
+# 
+# 우선적으로 날짜 데이터를 시계열 데이터 변환
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
+# 날짜 데이터를 시계열 데이터 변환
+# tsData = ts(data$val, start = c(1999, 1), frequency = 12)
+
+# 시계열 안정성 진단 및 검정
+# P값이 0.01로서 귀무가설 기각 (정상 시계열)
+# adf.test(tsData, alternative = c("stationary"), k = 0)
+# Dickey-Fuller = -5.0135178, Lag order = 0, p-value = 0.01
+
+# 시계열로부터 최종선택한 ARIMA 모형 (입력변수 : 시계열)
+# bestModel = auto.arima(tsData, trace = TRUE)
+# ARIMA(0,1,4)(1,1,2)[12]
+# 비계절 : AR(0), 1차 차분, MA(4)
+# 계절 : AR(1), 2차 차분 (24개월), MA(2)
+
+# 시계열로부터 최종선택한 ARIMA 모형 (입력변수 : 시계열 + 입력 변수)
+# xreg <- data.frame(MaxTemp = elecdaily[, "Temperature"],
+#                    MaxTempSq = elecdaily[, "Temperature"]^2,
+#                    Workday = elecdaily[, "WorkDay"])
+# bestModel = forecast::auto.arima(elecdaily[, "Demand"], xreg = xreg)
+
+# 모형의 통계적 유의성 검정
+# X-squared = 0.071471882, df = 1, p-value = 0.7892057
+# Box.test(bestModel$residuals, lag = 1, type = "Ljung")
+
+# 잔차 그림 확인
+# checkresiduals(bestModel)
+
+# 최종선택한 모형을 사용하여 구한 예측값(월별자료는 향후 12개월)을 나타내는 그래프
+# akimaData = forecast::forecast(bestModel, h = 12)
+
+# 필요한 입력 변수에 따른 결과 
+# akimaData = forecast::forecast(bestModel, xreg = cbind(rep(26,14), rep(26^2,14),  c(0,1,0,0,1,1,1,1,1,0,0,1,1,1))))
+
+# 성능 비교
+# accuracy(akimaData)
+
+
 #+++++++++++++++++++++++++++++++++++++++++++
-# 8. Support Vector Regression (SVR)
+# 8. Support Vector Regression (SVM)
 #+++++++++++++++++++++++++++++++++++++++++++
+# 모델 학습
 svmModel = caret::train(
   form = modelForm
   , data = trainData
+  # , method = "svmRadial"
   , method = "svmLinear"
   , preProc = c("center", "scale")
   , metric = "RMSE"
   , tuneGrid = expand.grid(
     C = 2^(seq(-5, 5, 2))
   )
-  , trControl = trainControl("cv", number = 10)
+  , trControl = controlInfo
 )
 
-# ggplot(svmModel)
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "SVM RMSE Results Across Tuning Parameters")
+
+ggplot(svmModel) +
+  theme(text = element_text(size = 18)) +
+  ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
+
 
 # 최적 모형의 회귀계수
 svmModel$finalModel 
 
+# 모델 검증
 yObs = testData$CHWEUI
 yHat = predict(svmModel, newdata = testData)
 
@@ -32038,7 +32104,7 @@ perfTable["SVM", ] = perfEval(yHat, yObs) %>% round(2)
 # 11. Deep Neural Network (DNN)
 #+++++++++++++++++++++++++++++++++++++++++++ 
 # 초기화
-h2o.init()
+h2o::h2o.init()
 
 # activation : 활성화 함수로서 Rectifier 정규화 선형 함수 (즉 Keras의 ReLU 동일)
 # hidden : 숨겨진 레이어의 수와 뉴런 수 (일반적으로 입력 차원의 1/10 or 1/100 단위)
@@ -32049,9 +32115,10 @@ layerNum = as.integer(nrow(trainData) / 10)
 layerInfo = 3
 epochsInfo = 1000
 
-dlModel = h2o::h2o.deeplearning(
-  x = c("obs")
-  , y = c("model")
+# 모델 학습
+dnnModel = h2o::h2o.deeplearning(
+  x = modelFormX
+  , y = modelFormY
   , training_frame = as.h2o(trainData)
   , activation = "Rectifier"
   , hidden = rep(layerNum, layerInfo)
@@ -32060,45 +32127,20 @@ dlModel = h2o::h2o.deeplearning(
   , seed = 1
 )
 
-tryCatch(
-  
-  expr = {
-    log4r::info(log, sprintf("%s", "[START] Make Image"))
-    
-    saveImg = sprintf("%s/%s_%s_%s.png", globalVar$figPath, serviceName, colList[i], "Training-Scoring-History")
-    png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
-    
-    plot(dlModel, timestep = "epochs", metric = "rmse")
-  }
-  
-  , warning = function(warning) {
-    log4r::warn(log, warning)
-  }
-  
-  , error = function(error) {
-    log4r::error(log, error)
-  }
-  
-  , finally = {
-    dev.off()
-    
-    log4r::info(log, sprintf("%s", "[END] Make Image"))
-  }
-)
 
-tmpLastLayer = h2o::h2o.deepfeatures(dlModel, as.h2o(trainData), layer = layerInfo) %>%
-  as.tibble() %>%
-  dplyr::mutate(colInfo = colList[i])
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "Training-Scoring-History")
+png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
+plot(dnnModel, timestep = "epochs", metric = "rmse")
+dev.off()
 
-dlLastLayerData = dplyr::bind_rows(dlLastLayerData, tmpLastLayer)
+# 모델 검증
+yObs = testData$CHWEUI
+yHat = as.data.frame(h2o::h2o.predict(object = dnnModel, newdata = as.h2o(testData)))$predict
 
-#***********************************
-# 검증
-#***********************************
-yObs = testData$obs
-yHat = as.data.frame(h2o::h2o.predict(object = dlModel, newdata = as.h2o(testData)))$predict
+perfTable["DNN", ] = perfEval(yHat, yObs) %>% round(2)
 
-perfTable["DL", ] = round(perfEval(yHat, yObs), 2)
+
+
 
 # if (isCorr == TRUE) {
 #   yHat = biasCorr(yObs, yHat, -100, 100, 0.001, FALSE)
