@@ -31989,21 +31989,19 @@ perfTable["RF", ] = perfEval(yHat, yObs) %>% round(2)
 #+++++++++++++++++++++++++++++++++++++++++++
 # 6. Generalized addictive model (GAM)
 #+++++++++++++++++++++++++++++++++++++++++++
+# 현재 학습 과정에서 에러 발생
 gamModel = caret::train(
   form = modelForm
   , data = trainData
-  , method = "gbm"
+  , method = "gam"
   , preProc = c("center", "scale")
   , metric = "RMSE"
+  , tuneGrid = expand.grid(
+    method = "GCV.Cp"
+    , select = FALSE
+  )
   , trControl = controlInfo
 )
-
-
-b = train( form = modelForm,
-          data = trainData,
-          method = "gam",
-          trControl = trainControl(method = "LOOCV", number = 1, repeats = 1), # use leave one out cross validation
-          tuneGrid = data.frame(method = "GCV.Cp", select = FALSE))
 
 # Gradient Boosting Machine
 # gbmModel = caret::train(
@@ -32030,8 +32028,7 @@ gamModel$finalModel
 yObs = testData$CHWEUI
 yHat = predict(gamModel, newdata = testData)
 
-perfTable["GAM", ] = perfEval(yHat, yObs) %>% round(2)
-
+# perfTable["GAM", ] = perfEval(yHat, yObs) %>% round(2)
 
 
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -32152,201 +32149,3 @@ yObs = testData$CHWEUI
 yHat = as.data.frame(h2o::h2o.predict(object = dnnModel, newdata = as.h2o(testData)))$predict
 
 perfTable["DNN", ] = perfEval(yHat, yObs) %>% round(2)
-
-
-
-
-# if (isCorr == TRUE) {
-#   yHat = biasCorr(yObs, yHat, -100, 100, 0.001, FALSE)
-# }
-
-# tmpData = data.frame(yHat) %>%
-#   magrittr::set_colnames(paste0("DL-", colList[i]))
-# 
-# if (ncol(dlPredData) == 0) {
-#   dlPredData = tmpData
-# } else {
-#   dlPredData = dplyr::bind_cols(dlPredData, tmpData)
-# }
-
-# }
-
-
-
-
-# 
-# # [ADD] 
-# CHWtrainvalidate <-subset(trainCHWL1, trainCHWL1$YMDH2 < lubridate::ymd_hms("2016-06-30 23:30:00")& trainCHWL1$YMDH > lubridate::ymd_hms("2015-06-30 23:30:00"))
-# names(CHWtrainvalidate)#2015-07-01 01:00:00 -2016-07-01 01:00:00
-# 
-# # [ADD] 
-# testCHW <-subset(trainCHWL1, trainCHWL1$YMDH2 > lubridate::ymd_hms("2016-06-30 23:30:00") & trainCHWL1$YMDH < lubridate::ymd_hms("2016-08-14 23:30:00"))
-# summary(testCHW)#2016-07-02 02:00:00 - 2016-08-14 14:00:00
-# 
-# trainCHW_index <- sample(1:nrow(CHWtrainvalidate), 0.8 * nrow(CHWtrainvalidate))
-# validateCHW_index <- setdiff(1:nrow(CHWtrainvalidate), trainCHW_index)
-# # Build X_train, y_train, X_test, y_test
-# trainCHW <- CHWtrainvalidate[trainCHW_index, ]
-# validateCHW <- CHWtrainvalidate[validateCHW_index, ]
-# 
-# 
-# 
-# 
-# summary(data) 
-# 
-# data$weekday<-as.factor(data$weekday)
-# PAHourlyCHW$type2<-as.factor(PAHourlyCHW$type2)
-# PAHourlyCHW$YMDH2<-ymd_hms(PAHourlyCHW$YMDH)
-# summary(PAHourlyCHW) 
-# 
-# trainCHWL1 = PAHourlyCHW %>%
-#   dplyr::filter(
-#     ! as.numeric(type2) %in%  c(2, 3)
-#   ) %>% 
-#   dplyr::mutate(
-#     makeLegend = dplyr::case_when(
-#       stringr::str_detect(type2, regex("Education")) ~ "Education"
-#       , stringr::str_detect(type2, regex("Lab")) ~ "Lab"
-#       , stringr::str_detect(type2, regex("Lodge")) ~ "Lodging"
-#       , stringr::str_detect(type2, regex("office")) ~ "Office"
-#       , stringr::str_detect(type2, regex("public")) ~ "Public Assembly"
-#       , TRUE ~ "NA"
-#     )
-#   ) %>% 
-#   as.tibble()
-# 
-# dd = trainCHWL1 %>% 
-#   dplyr::filter(YMDH2 == lubridate::ymd_hms("2016-06-30 23:30:00"))
-# 
-# 
-# #-------------------------
-# # [ADD] 
-# trainCHW <-subset(trainCHWL1, trainCHWL1$YMDH2 < lubridate::ymd_hms("2016-06-30 23:30:00"))
-# summary(trainCHW)#2015-07-01 01:00:00 -2016-07-01 01:00:00
-# 
-# # [ADD] 
-# testCHW <-subset(trainCHWL1, trainCHWL1$YMDH2 > lubridate::ymd_hms("2016-06-30 23:30:00") & trainCHWL1$YMDH < lubridate::ymd_hms("2016-08-14 23:30:00"))
-# summary(testCHW)#2016-07-02 02:00:00 - 2016-08-14 14:00:00
-# 
-# lmCHW82type2 = lm(CHWEUI ~ type2 + poly(Height,2) + poly(Temp,2), data = trainCHW)
-# summary(lmCHW82type2)
-# 
-# #****************************************
-# # 보조 데이터
-# #****************************************
-# dataL1 = trainCHW %>% 
-#   dplyr::group_by(type2) %>% 
-#   dplyr::summarise(
-#     Height = mean(Height, na.rm = TRUE)
-#   )
-# 
-# fileInfo2 = Sys.glob(paste(globalVar$inpPath, "LSH0179_Future_Temp.xlsx", sep = "/"))
-# future = openxlsx::read.xlsx(fileInfo2, sheet = 1) %>% 
-#   tibble::as.tibble() %>% 
-#   dplyr::mutate(
-#     sDate = paste(Year, Month, Day, Hour, sep = "-")
-#     , dtDate = lubridate::ymd_h(sDate)
-#   ) %>% 
-#   dplyr::select(dtDate, Temp) 
-# 
-# 
-# typeList = dataL1$type2 %>% unique() %>% sort()
-# 
-# dataL2 = tibble::tibble()
-# for (type in typeList) {
-#   
-#   tmpData = future %>% 
-#     dplyr::mutate(
-#       type2 = type
-#     ) %>% 
-#     dplyr::left_join(dataL1, by = c("type2" = "type2"))
-#   
-#   dataL2 = dplyr::bind_rows(dataL2, tmpData)
-# }
-# 
-# # [ADD] [Case 1] 테스트셋 전처리
-# testCHWL1 = testCHW %>% # [ADD] 
-#   tibble::as.tibble() %>%
-#   dplyr::rename(
-#     dtDate = YMDH2
-#   ) %>% 
-#   dplyr::select(names(dataL2))
-# 
-# # [ADD] [Case 2] 테스트셋 전처리
-# testCHWL1 = testCHW %>% # [ADD] 
-#   tibble::as.tibble() %>%
-#   dplyr::group_by(YMDH2, type2) %>%
-#   dplyr::summarise(
-#     meanTemp = mean(Temp, na.rm = TRUE)
-#     , meanHeight = mean(Height, na.rm = TRUE)
-#   ) %>% 
-#   dplyr::rename(
-#     dtDate = YMDH2
-#     , Temp = meanTemp
-#     , Height = meanHeight
-#   ) %>% 
-#   dplyr::select(names(dataL2))
-# 
-# 
-# # [ADD] 트레이닝셋
-# trainCHWL1 = trainCHW %>%
-#   tibble::as.tibble() %>%
-#   dplyr::group_by(YMDH2, type2) %>%
-#   dplyr::summarise(
-#     meanCHWEUI = mean(CHWEUI, na.rm = TRUE)
-#   ) %>% 
-#   dplyr::rename(
-#     dtDate = YMDH2
-#     , pred = meanCHWEUI
-#   )
-# 
-# # 통합 데이터셋
-# dataL3 = dplyr::bind_rows(dataL2, testCHWL1) %>%  # [ADD] 
-#   modelr::add_predictions(lmCHW82type2) %>% 
-#   dplyr::bind_rows(trainCHWL1) %>% # [ADD] 
-#   dplyr::mutate(
-#     type3 = dplyr::case_when(
-#       dtDate < lubridate::ymd_h("2047-01-01 00") ~ "2015-2016"
-#       , lubridate::ymd_h("2047-01-01 00") <= dtDate & dtDate < lubridate::ymd_h("2054-01-01 00") ~ "2047"
-#       , lubridate::ymd_h("2054-01-01 00") <= dtDate ~ "2054"
-#       , TRUE ~ "NA"
-#     )
-#   )
-# 
-# # 통합 데이터셋 확인
-# dataL3$type3 %>% unique() %>% sort()
-# 
-# dataL3 %>% 
-#   dplyr::filter(dtDate == lubridate::ymd_h("2047-01-01 01"))
-# 
-# #****************************************
-# # 시각화
-# #****************************************
-# saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "Energy consumption prediction by building type in 2047 and 2053")
-# 
-# # [ADD]
-# Sys.setlocale("LC_ALL", "English")
-# 
-# ggplot(dataL3, aes(x = dtDate, y = pred, color = type2)) +
-#   geom_line() +
-#   # geom_smooth(method = 'lm', se = TRUE) +
-#   # ggpubr::stat_regline_equation(label.x.npc = 0.0, label.y.npc = 1.0) +
-#   # ggpubr::stat_cor(label.x.npc = 0.8, label.y.npc = 1.0) +
-#   labs(
-#     x = "Date"
-#     , y = "Chilled water consumption (kBTU/GSF)"
-#     , color = NULL
-#     , fill = NULL
-#     , subtitle = "Energy consumption prediction by building type in 2047 and 2053"
-#   ) +
-#   # facet_wrap(~Year, ncol = 3, scale = "free") +
-#   # facet_wrap(~type3, nrow = 3, scale = "free_x") +
-#   facet_wrap(~type3, ncol = 3, scale = "free_x") +
-#   theme(
-#     text = element_text(size = 18)
-#     , axis.text.x = element_text(angle = 45, hjust = 1)
-#     , legend.position = "bottom"
-#   ) +
-#   ggsave(filename = saveImg, width = 12, height = 8, dpi = 600)
-# 
-# 
