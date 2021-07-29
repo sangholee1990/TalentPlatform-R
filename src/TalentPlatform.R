@@ -31758,9 +31758,9 @@ log4r::level(log) = "INFO"
 
 # 검증 지수 테이블 생성
 rowNum = 1
-colNum = 6
+colNum = 7
 perfTable = data.frame(matrix(0, nrow = rowNum * colNum, ncol = 15))
-rownames(perfTable) = c("MLR", "RF", "GAM", "SARIMA", "SVM", "DNN")
+rownames(perfTable) = c("MLR", "RF", "GAM", "SARIMA", "SVM", "GBM", "DNN")
 # rownames(perfTable) = c(
 #   paste0("MLR-", 1:rowNum), paste0("RF-", 1:rowNum), paste0("GAM-", 1:rowNum)
 #   , paste0("SARIMA-", 1:rowNum), paste0("SVM-", 1:rowNum), paste0("DNN-", 1:rowNum)
@@ -31832,6 +31832,13 @@ dataL1 = data %>%
 # summary(data)
 summary(dataL1)
 
+
+# saveFile = sprintf("%s/%s_%s.csv", globalVar$outPath, serviceName, "PAhourlyCHW_FNL")
+# readr::write_csv(x = dataL1, file = saveFile)
+# 
+# dataL2 = vroom::vroom(
+#   file = saveFile
+# )
 
 #*******************************************
 # 모형 구성
@@ -31913,7 +31920,7 @@ controlInfo = caret::trainControl(
 
 
 #**********************************************************
-# 머신러닝 (MLR, RF, GAM, SARIMA, SVR)
+# 머신러닝 (MLR, RF, GAM, SARIMA, SVR, GBM)
 #**********************************************************
 
 #++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -31933,9 +31940,9 @@ mlrModel = caret::train(
   , method = "lm"
   , preProc = c("center", "scale")
   , metric = "RMSE"
-  , tuneGrid = expand.grid(
-    intercept = c(TRUE, FALSE)
-    )
+  # , tuneGrid = expand.grid(
+  #   intercept = c(TRUE, FALSE)
+  #   )
   , trControl = controlInfo
 )
 
@@ -31949,10 +31956,11 @@ ggplot(mlrModel) +
 mlrModel$finalModel 
 
 # 모델 검증
-yObs = testData$CHWEUI
-yHat = predict(mlrModel, newdata = testData)
-
-perfTable["MLR", ] = perfEval(yHat, yObs) %>% round(2)
+perfTable["MLR", ] = perfEval(
+  predict(mlrModel, newdata = testData)
+  , testData$CHWEUI
+  ) %>% 
+  round(2)
 
 
 #+++++++++++++++++++++++++++++++++++++++++++
@@ -31965,9 +31973,9 @@ rfModel = caret::train(
   , method = "rf"
   , preProc = c("center", "scale")
   , metric = "RMSE"
-  , tuneGrid = expand.grid(
-    mtry = 1:2
-  )
+  # , tuneGrid = expand.grid(
+  #   mtry = 1:2
+  # )
   , trControl = controlInfo
 )
 
@@ -31981,37 +31989,32 @@ ggplot(rfModel) +
 rfModel$finalModel 
 
 # 모델 검증
-yObs = testData$CHWEUI
-yHat = predict(rfModel, newdata = testData)
-
-perfTable["RF", ] = perfEval(yHat, yObs) %>% round(2)
+perfTable["RF", ] = perfEval(
+  predict(rfModel, newdata = testData)
+  , testData$CHWEUI
+  ) %>% 
+  round(2)
 
 #+++++++++++++++++++++++++++++++++++++++++++
 # 6. Generalized addictive model (GAM)
 #+++++++++++++++++++++++++++++++++++++++++++
-# 현재 학습 과정에서 에러 발생
+
+# Factor 자료형 제외하여 모델 구성
+modelFormExceptFactor = as.formula("CHWEUI ~ Uvalue_Wall + Uvalue_Window + Uvalue_Roof + WWR + Height + Year.x + AgeAfterRenov + Equipment + Lighting + Solar + HD + CD + Humidity + Pressure + WindSpeed + interTerm1 + interTerm2")
+
+# 현재 학습 과정에서 에러 발생 (Factor 자료형 포함 시 에러 발생)
 gamModel = caret::train(
-  form = modelForm
+  form = modelFormExceptFactor
   , data = trainData
   , method = "gam"
   , preProc = c("center", "scale")
   , metric = "RMSE"
-  , tuneGrid = expand.grid(
-    method = "GCV.Cp"
-    , select = FALSE
-  )
+  # , tuneGrid = expand.grid(
+  #   method = "GCV.Cp"
+  #   , select = c(TRUE, FALSE)
+  # )
   , trControl = controlInfo
 )
-
-# Gradient Boosting Machine
-# gbmModel = caret::train(
-#   form = modelForm
-#   , data = trainData
-#   , method = "gbm"
-#   , preProc = c("center", "scale")
-#   , metric = "RMSE"
-#   , trControl = controlInfo
-# )
 
 saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "GAM RMSE Results Across Tuning Parameters")
 
@@ -32019,23 +32022,28 @@ ggplot(gamModel) +
   theme(text = element_text(size = 18)) +
   ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
 
-show(fit.treebag)
-
 # 최적 모형의 회귀계수
 gamModel$finalModel 
 
 # 모델 검증
-yObs = testData$CHWEUI
-yHat = predict(gamModel, newdata = testData)
-
-# perfTable["GAM", ] = perfEval(yHat, yObs) %>% round(2)
-
+perfTable["GAM", ] = perfEval(
+  predict(gamModel, newdata = testData)
+  , testData$CHWEUI
+  ) %>% 
+  round(2)
 
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # 7. Seasonal autoregressive integrated moving average (SARIMA)
 # 
 # 우선적으로 날짜 데이터를 시계열 데이터 변환
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+library(ForecastTB)
+
+library(predtoolsTS)
+
+#‘AirPassengers‘ is a sample dataset in CRAN
+prediction_errors(data = AirPassengers)
 
 # 날짜 데이터를 시계열 데이터 변환
 # tsData = ts(data$val, start = c(1999, 1), frequency = 12)
@@ -32081,13 +32089,12 @@ yHat = predict(gamModel, newdata = testData)
 svmModel = caret::train(
   form = modelForm
   , data = trainData
-  # , method = "svmRadial"
   , method = "svmLinear"
   , preProc = c("center", "scale")
   , metric = "RMSE"
-  , tuneGrid = expand.grid(
-    C = 2^(seq(-5, 5, 2))
-  )
+  # , tuneGrid = expand.grid(
+  #   C = 2^(seq(-5, 5, 2))
+  # )
   , trControl = controlInfo
 )
 
@@ -32102,10 +32109,91 @@ ggplot(svmModel) +
 svmModel$finalModel 
 
 # 모델 검증
-yObs = testData$CHWEUI
-yHat = predict(svmModel, newdata = testData)
+perfTable["SVM", ] = perfEval(
+  predict(svmModel, newdata = testData)
+  , testData$CHWEUI
+  ) %>% 
+  round(2)
 
-perfTable["SVM", ] = perfEval(yHat, yObs) %>% round(2)
+#+++++++++++++++++++++++++++++++++++++++++++
+# 12.	Gradient boosting machine (GBM)
+#+++++++++++++++++++++++++++++++++++++++++++
+# 모델 학습
+gbmModel = caret::train(
+  form = modelForm
+  , data = trainData
+  , method = "gbm"
+  , preProc = c("center", "scale")
+  , metric = "RMSE"
+  # , tuneGrid = expand.grid(
+  #   interaction.depth = 1:5
+  #   , n.trees = (1:6) * 500
+  #   , shrinkage = c(0.001, 0.01, 0.1)
+  #   , n.minobsinnode = 10
+  # )
+  , trControl = controlInfo
+  )
+
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "GBM RMSE Results Across Tuning Parameters")
+
+ggplot(gbmModel) +
+  theme(text = element_text(size = 18)) +
+  ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
+
+# 최적 모형의 회귀계수
+gbmModel$finalModel 
+
+# 모델 검증
+perfTable["GBM", ] = perfEval(
+  predict(gbmModel, newdata = testData)
+  , testData$CHWEUI
+  ) %>% 
+  round(2)
+
+#+++++++++++++++++++++++++++++++++++++++++++
+# Heterogeneous Ensemble Learning
+#+++++++++++++++++++++++++++++++++++++++++++
+# 상위 3개 조합
+
+# 배깅
+bagging_results = resamples(
+  list(
+    gam = gamModel
+    , rf = rfModel
+    , gbm = gbmModel
+    )
+  )
+
+summary(bagging_results)
+dotplot(bagging_results)
+
+
+models <- caretList(Class~., data=dataset, trControl=control, methodList=algorithmList)
+results <- resamples(models)
+summary(results)
+dotplot(results)
+
+library(caretEnsemble)
+
+# 스택 
+model_list <- caretEnsemble::caretList(
+  modelForm,
+  data = trainData,
+  trControl = controlInfo,
+  methodList = c("gam", "rf", "gbm")
+)
+
+output = resamples(model_list)
+summary(model_list)
+
+dotplot(output)
+
+
+
+glm_ensemble <- caretStack(
+  model_list,
+  method = "glm",
+)
 
 #**********************************************************
 # 딥러닝
@@ -32145,7 +32233,8 @@ plot(dnnModel, timestep = "epochs", metric = "rmse")
 dev.off()
 
 # 모델 검증
-yObs = testData$CHWEUI
-yHat = as.data.frame(h2o::h2o.predict(object = dnnModel, newdata = as.h2o(testData)))$predict
-
-perfTable["DNN", ] = perfEval(yHat, yObs) %>% round(2)
+perfTable["DNN", ] = perfEval(
+  as.data.frame(h2o::h2o.predict(object = dnnModel, newdata = as.h2o(testData)))$predict
+  , testData$CHWEUI
+  ) %>% 
+  round(2)
