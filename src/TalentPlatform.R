@@ -32039,11 +32039,36 @@ perfTable["GAM", ] = perfEval(
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 library(ForecastTB)
-
 library(predtoolsTS)
 
+a <- prediction_errors(data = nottem)
+
+modl.tsToDataFrame(AirPassengers,formula=c(1,3,4,5,6,7))
+modl.tsToDataFrame(AirPassengers,formula=c(1:20))
+
+Lines <- "Dates   Bajaj_close Hero_close
+3/14/2013   1854.8  1669.1
+3/15/2013   1850.3  1684.45
+3/18/2013   1812.1  1690.5
+3/19/2013   1835.9  1645.6
+3/20/2013   1840    1651.15
+3/21/2013   1755.3  1623.3
+3/22/2013   1820.65 1659.6
+3/25/2013   1802.5  1617.7
+3/26/2013   1801.25 1571.85
+3/28/2013   1799.55 1542"
+
+library(zoo)
+z <- read.zoo(text = Lines, header = TRUE, format = "%m/%d/%Y")
+
+as.ts(read.zoo(df, FUN = as.yearmon))
+
+DF <- read.table(text = Lines, header = TRUE)
+z <- read.zoo(DF, format = "%m/%d/%Y")
+
+
 #‘AirPassengers‘ is a sample dataset in CRAN
-prediction_errors(data = AirPassengers)
+# prediction_errors(data = AirPassengers)
 
 # 날짜 데이터를 시계열 데이터 변환
 # tsData = ts(data$val, start = c(1999, 1), frequency = 12)
@@ -32155,45 +32180,47 @@ perfTable["GBM", ] = perfEval(
 #+++++++++++++++++++++++++++++++++++++++++++
 # 상위 3개 조합
 
+# 테스트 중 
+
 # 배깅
-bagging_results = resamples(
-  list(
-    gam = gamModel
-    , rf = rfModel
-    , gbm = gbmModel
-    )
-  )
-
-summary(bagging_results)
-dotplot(bagging_results)
-
-
-models <- caretList(Class~., data=dataset, trControl=control, methodList=algorithmList)
-results <- resamples(models)
-summary(results)
-dotplot(results)
-
-library(caretEnsemble)
-
-# 스택 
-model_list <- caretEnsemble::caretList(
-  modelForm,
-  data = trainData,
-  trControl = controlInfo,
-  methodList = c("gam", "rf", "gbm")
-)
-
-output = resamples(model_list)
-summary(model_list)
-
-dotplot(output)
-
-
-
-glm_ensemble <- caretStack(
-  model_list,
-  method = "glm",
-)
+# bagging_results = resamples(
+#   list(
+#     gam = gamModel
+#     , rf = rfModel
+#     , gbm = gbmModel
+#     )
+#   )
+# 
+# summary(bagging_results)
+# dotplot(bagging_results)
+# 
+# 
+# models <- caretList(Class~., data=dataset, trControl=control, methodList=algorithmList)
+# results <- resamples(models)
+# summary(results)
+# dotplot(results)
+# 
+# library(caretEnsemble)
+# 
+# # 스택 
+# model_list <- caretEnsemble::caretList(
+#   modelForm,
+#   data = trainData,
+#   # trControl = controlInfo,
+#   methodList = c("rf", "gbm")
+# )
+# 
+# output = caretEnsemble::resamples(model_list)
+# summary(model_list)
+# 
+# dotplot(output)
+# 
+# 
+# 
+# glm_ensemble <- caretStack(
+#   model_list,
+#   method = "glm",
+# )
 
 #**********************************************************
 # 딥러닝
