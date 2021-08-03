@@ -32038,33 +32038,70 @@ perfTable["GAM", ] = perfEval(
 # 우선적으로 날짜 데이터를 시계열 데이터 변환
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-library(ForecastTB)
-library(predtoolsTS)
-
-a <- prediction_errors(data = nottem)
-
-modl.tsToDataFrame(AirPassengers,formula=c(1,3,4,5,6,7))
-modl.tsToDataFrame(AirPassengers,formula=c(1:20))
-
-Lines <- "Dates   Bajaj_close Hero_close
-3/14/2013   1854.8  1669.1
-3/15/2013   1850.3  1684.45
-3/18/2013   1812.1  1690.5
-3/19/2013   1835.9  1645.6
-3/20/2013   1840    1651.15
-3/21/2013   1755.3  1623.3
-3/22/2013   1820.65 1659.6
-3/25/2013   1802.5  1617.7
-3/26/2013   1801.25 1571.85
-3/28/2013   1799.55 1542"
-
-library(zoo)
-z <- read.zoo(text = Lines, header = TRUE, format = "%m/%d/%Y")
-
-as.ts(read.zoo(df, FUN = as.yearmon))
-
-DF <- read.table(text = Lines, header = TRUE)
-z <- read.zoo(DF, format = "%m/%d/%Y")
+# library(ForecastTB)
+# library(predtoolsTS)
+# 
+# a <- prediction_errors(data = nottem)
+# 
+# modl.tsToDataFrame(AirPassengers,formula=c(1,3,4,5,6,7))
+# modl.tsToDataFrame(AirPassengers,formula=c(1:20))
+# 
+# Lines <- "Dates   Bajaj_close Hero_close
+# 3/14/2013   1854.8  1669.1
+# 3/15/2013   1850.3  1684.45
+# 3/18/2013   1812.1  1690.5
+# 3/19/2013   1835.9  1645.6
+# 3/20/2013   1840    1651.15
+# 3/21/2013   1755.3  1623.3
+# 3/22/2013   1820.65 1659.6
+# 3/25/2013   1802.5  1617.7
+# 3/26/2013   1801.25 1571.85
+# 3/28/2013   1799.55 1542"
+# 
+# library(zoo)
+# z <- read.zoo(text = Lines, header = TRUE, format = "%m/%d/%Y")
+# 
+# as.ts(read.zoo(Lines, FUN = as.yearmon))
+# 
+# DF <- read.table(text = Lines, header = TRUE)
+# z <- read.zoo(DF, format = "%m/%d/%Y")
+# 
+# zz <- z
+# time(zz) <- seq_along(time(zz))
+# 
+# 
+# as.ts(z)
+# as.ts(zz)
+# 
+# z.m <- as.zooreg(aggregate(z, as.yearmon, mean), freq = 12)
+# as.ts(z.m)
+# 
+# 
+# dta <- data.frame(
+#   Dates = c("3/14/2013", "3/15/2013", "3/18/2013", "3/19/2013"),
+#   Bajaj_close = c(1854.8, 1850.3, 1812.1, 1835.9),
+#   Hero_close = c(1669.1, 1684.45, 1690.5, 1645.6)
+# )
+# 
+# dta
+# 
+# 
+# library(tsbox)
+# b = ts_ts(ts_long(dta))
+# 
+# plot(b)
+# 
+# 
+# library(dplyr)
+# library(nycflights13)
+# dta <- weather %>%
+#   select(origin, time = time_hour, temp, humid, precip) %>%
+#   ts_long()
+# 
+# dta %>%
+#   filter(id == "temp") %>%
+#   ts_trend() %>%
+#   ts_plot()
 
 
 #‘AirPassengers‘ is a sample dataset in CRAN
