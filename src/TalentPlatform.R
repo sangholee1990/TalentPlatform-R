@@ -19245,12 +19245,6 @@ cat(sprintf(
 # Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
 #===============================================================================================
 
-rm(list = ls())
-
-prjName = "o2job"
-
-source(here::here("E:/04. TalentPlatform/Github/TalentPlatform-R/src", "InitConfig.R"), encoding = "UTF-8")
-
 #================================================
 # 요구사항
 #================================================
@@ -19259,11 +19253,44 @@ source(here::here("E:/04. TalentPlatform/Github/TalentPlatform-R/src", "InitConf
 # AD 16.08.21 / AD 124.10.25 / AD 127.08.25 / AD 141.11.16 / AD 166.02.18 / AD 186.07.04
 # AD 193.02.19 / AD 194.08.04 / AD 200.09.26 / AD 201.03.22
 
+# 선에 따른 값 부여
+# 청색 : 0.0
+# 흑색 : 0.3, 0.5, 0.7, 0.9
+
+# 선에 따른 세부값 부여
+# O : 
+# X :
+
+
+#================================================
+# 초기 환경변수 설정
+#================================================
+# env = "local"   # 로컬 : 원도우 환경, 작업환경 (현재 소스 코드 환경 시 .) 설정
+env = "dev"   # 개발 : 원도우 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+# env = "oper"  # 운영 : 리눅스 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+
+prjName = "test"
+
 # serviceName = "LSH0093"
 # serviceName = "LSH0097"
 # serviceName = "LSH0098"
 # serviceName = "LSH0101"
-serviceName = "LSH0105"
+# serviceName = "LSH0105"
+serviceName = "LSH0195"
+
+contextPath = ifelse(env == "local", getwd(), "E:/04. TalentPlatform/Github/TalentPlatform-R")
+
+if (env == "local") {
+  globalVar = list(
+    "inpPath" = contextPath
+    , "figPath" = contextPath
+    , "outPath" = contextPath
+    , "tmpPath" = contextPath
+    , "logPath" = contextPath
+  )
+} else {
+  source(here::here(file.path(contextPath, "src"), "InitConfig.R"), encoding = "UTF-8")
+}
 
 library(tidyverse)
 library(ggplot2)
@@ -19278,15 +19305,7 @@ library(colorRamps)
 library(sf)
 
 #================================================
-# Set Env
-#================================================
-# globalVar = new.env()
-# globalVar$inpPath = "."
-# globalVar$figPath = "."
-# globalVar$outPath = "."
-
-#================================================
-# Main Source Code
+# 비즈니스 로직 수행
 #================================================
 cbMatlab = colorRamps::matlab.like(11)
 mapGlobal = sf::st_read(paste(globalVar$mapPath, "gshhg-shp-2.3.6/GSHHS_shp/i/GSHHS_i_L1.shp", sep = "/"))
@@ -19309,54 +19328,32 @@ fileInfo = Sys.glob(paste(globalVar$inpPath, "mapImageToData.xlsx", sep = "/"))
 #**************************************************
 # 샘플 내삽
 #**************************************************
-sampleData = openxlsx::read.xlsx(fileInfo, sheet = 1) %>%
+# 시트 1 : 테스트
+sheetNum = 1
+
+# 시트 2 : 초기신라
+sheetNum = 2
+
+# 시트 3 : 후기신라
+sheetNum = 3
+
+# 시트 4 : 전한
+sheetNum = 4
+
+# 시트 5 : 당나라
+sheetNum = 5
+
+# 시트 6 : 8개(최종)
+sheetNum = 6
+
+# 시트 7 : 청온리(18)
+sheetNum = 7
+
+# 시트 8 : 청-조선공통(92)
+sheetNum = 8
+
+data = openxlsx::read.xlsx(fileInfo, sheet = sheetNum) %>%
   as.tibble()
-
-# saveImg = sprintf("%s/%s_%s_%s.png", globalVar$figPath, serviceName, "Image", "Sample")
-#
-# sampleData %>%
-#   ggplot(aes(x = lon, y = lat, colour = factor(val))) +
-#   geom_point() +
-#   theme(text = element_text(size = 18)) +
-#   ggsave(filename = saveImg, width = 12, height = 10, dpi = 600)
-
-sampleDataL1 = MBA::mba.points(sampleData, gridData)
-# dataL1 = MBA::mba.points(tmpData, gridData, extend = FALSE)
-
-sampleDataL2 = sampleDataL1 %>%
-  as.data.frame() %>%
-  as.tibble() %>%
-  dplyr::rename(
-    xAxis = xyz.est.x
-    , yAxis = xyz.est.y
-    , zAxis = xyz.est.z
-  )
-
-saveImg = sprintf("%s/%s_%s_%s.png", globalVar$figPath, serviceName, "MakeImageToMapData", "Sample")
-
-ggplot(data = sampleDataL2, aes(x = xAxis, y = yAxis, fill = zAxis, z = zAxis)) +
-  geom_tile() +
-  scale_fill_gradientn(colours = cbMatlab, limits = c(0, 1.0), breaks = seq(0.3, 0.9, 0.2), na.value = NA) +
-  # metR::geom_contour2(color = "black", alpha = 1.0, breaks = seq(0.3, 0.9, 0.2), show.legend = FALSE) +
-  metR::geom_contour2(color = "black", alpha = 1.0, breaks = 0.3, show.legend = FALSE, size = 0.5) +
-  metR::geom_contour2(color = "black", alpha = 1.0, breaks = 0.5, show.legend = FALSE, size = 1) +
-  metR::geom_contour2(color = "black", alpha = 1.0, breaks = 0.7, show.legend = FALSE, size = 2) +
-  metR::geom_contour2(color = "black", alpha = 1.0, breaks = 0.9, show.legend = FALSE, size = 4) +
-  metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, skip = 0, breaks = seq(0.3, 0.9, 0.2), rotate = TRUE, na.rm = TRUE) +
-  geom_sf(data = mapGlobal, aes(x = NULL, y = NULL, fill = NULL, z = NULL), color = "black", fill = NA) +
-  metR::scale_x_longitude(breaks = seq(90, 150, 10), limits = c(90, 150), expand = c(0, 0)) +
-  metR::scale_y_latitude(breaks = seq(10, 60, 10), limits = c(10, 60), expand = c(0, 0)) +
-  labs(
-    subtitle = NULL
-    , x = NULL
-    , y = NULL
-    , fill = NULL
-    , colour = NULL
-    , title = NULL
-  ) +
-  theme(text = element_text(size = 18)) +
-  ggsave(filename = saveImg, width = 10, height = 10, dpi = 600)
-
 
 #**************************************************
 # 이미지 별로 내삽
@@ -19364,9 +19361,9 @@ ggplot(data = sampleDataL2, aes(x = xAxis, y = yAxis, fill = zAxis, z = zAxis)) 
 # data = openxlsx::read.xlsx(fileInfo, sheet = 2) %>%
 #   as.tibble()
 
-fileInfo = Sys.glob(paste(globalVar$inpPath, "mapImageToData.xlsx", sep = "/"))
-data = openxlsx::read.xlsx(fileInfo, sheet = 6) %>%
-  as.tibble()
+# fileInfo = Sys.glob(paste(globalVar$inpPath, "mapImageToData.xlsx", sep = "/"))
+# data = openxlsx::read.xlsx(fileInfo, sheet = 6) %>%
+#   as.tibble()
 
 # data = openxlsx::read.xlsx(fileInfo, sheet = 2) %>%
 #   as.tibble()
@@ -19378,11 +19375,12 @@ data = openxlsx::read.xlsx(fileInfo, sheet = 6) %>%
 #   as.tibble() %>%
 #   dplyr::filter(!type %in% c(42, 43))
 
-typeList = sort(unique(data$type))
+typeList = data$type %>% unique %>% sort
 # typeList = max(data$type, na.rm = TRUE)
 
 dataL3 = tibble()
 
+# typeInfo = typeList[1]
 for (typeInfo in typeList) {
 
   tmpData = data %>%
@@ -19418,34 +19416,33 @@ for (typeInfo in typeList) {
 
   dataL3 = dplyr::bind_rows(dataL3, dataL2)
 
-  # saveImg = sprintf("%s/%s_%s_%s.png", globalVar$figPath, serviceName, "MakeImageToMapData", typeInfo)
-  # 
-  # ggplot(data = dataL2, aes(x = xAxis, y = yAxis, fill = zAxis, z = zAxis)) +
-  #   # geom_tile() +
-  #   geom_raster(interpolate = TRUE, na.rm = TRUE) +
-  #   scale_fill_gradientn(colours = cbMatlab, limits = c(0.0, 1.0), breaks = c(0, 0.3, 0.5, 0.7, 0.9), na.value = NA) +
-  #   # metR::geom_contour2(color = "black", alpha = 1.0, breaks = seq(0.3, 0.9, 0.2), show.legend = FALSE) +
-  #   metR::geom_contour2(color = "black", alpha = 1.0, breaks = 0, show.legend = FALSE, size = 0.1) +
-  #   metR::geom_contour2(color = "black", alpha = 1.0, breaks = 0.3, show.legend = FALSE, size = 0.5) +
-  #   metR::geom_contour2(color = "black", alpha = 1.0, breaks = 0.5, show.legend = FALSE, size = 1) +
-  #   metR::geom_contour2(color = "black", alpha = 1.0, breaks = 0.7, show.legend = FALSE, size = 2) +
-  #   metR::geom_contour2(color = "black", alpha = 1.0, breaks = 0.9, show.legend = FALSE, size = 4) +
-  #   geom_point(data = tmpData, aes(x = lon, y = lat, colour = factor(val), fill = NULL, z = NULL)) +
-  #   metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, skip = 0, breaks = c(0, 0.3, 0.5, 0.7, 0.9), rotate = TRUE, na.rm = TRUE, size = 5) +
-  # 
-  #   geom_sf(data = mapGlobal, aes(x = NULL, y = NULL, fill = NULL, z = NULL), color = "black", fill = NA) +
-  #   metR::scale_x_longitude(breaks = seq(90, 150, 10), limits = c(90, 150), expand = c(0, 0)) +
-  #   metR::scale_y_latitude(breaks = seq(10, 60, 10), limits = c(10, 60), expand = c(0, 0)) +
-  #   labs(
-  #     subtitle = NULL
-  #     , x = NULL
-  #     , y = NULL
-  #     , fill = NULL
-  #     , colour = NULL
-  #     , title = NULL
-  #   ) +
-  #   theme(text = element_text(size = 18)) +
-  #   ggsave(filename = saveImg, width = 10, height = 10, dpi = 600)
+  saveImg = sprintf("%s/%s_%s_%s.png", globalVar$figPath, serviceName, "MakeImageToMapData", typeInfo)
+
+  ggplot(data = dataL2, aes(x = xAxis, y = yAxis, fill = zAxis, z = zAxis)) +
+    # geom_tile() +
+    scale_fill_gradientn(colours = cbMatlab, limits = c(0.0, 1.0), breaks = c(0, 0.3, 0.5, 0.7, 0.9), na.value = NA) +
+    # metR::geom_contour2(color = "black", alpha = 1.0, breaks = seq(0.3, 0.9, 0.2), show.legend = FALSE) +
+    metR::geom_contour2(color = "black", alpha = 1.0, breaks = 0, show.legend = FALSE, size = 0.1) +
+    metR::geom_contour2(color = "black", alpha = 1.0, breaks = 0.3, show.legend = FALSE, size = 0.5) +
+    metR::geom_contour2(color = "black", alpha = 1.0, breaks = 0.5, show.legend = FALSE, size = 1) +
+    metR::geom_contour2(color = "black", alpha = 1.0, breaks = 0.7, show.legend = FALSE, size = 2) +
+    metR::geom_contour2(color = "black", alpha = 1.0, breaks = 0.9, show.legend = FALSE, size = 4) +
+    geom_point(data = tmpData, aes(x = lon, y = lat, colour = factor(val), fill = NULL, z = NULL)) +
+    metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, skip = 0, breaks = c(0, 0.3, 0.5, 0.7, 0.9), rotate = TRUE, na.rm = TRUE, size = 5) +
+
+    geom_sf(data = mapGlobal, aes(x = NULL, y = NULL, fill = NULL, z = NULL), color = "black", fill = NA) +
+    metR::scale_x_longitude(breaks = seq(90, 150, 10), limits = c(90, 150), expand = c(0, 0)) +
+    metR::scale_y_latitude(breaks = seq(10, 60, 10), limits = c(10, 60), expand = c(0, 0)) +
+    labs(
+      subtitle = NULL
+      , x = NULL
+      , y = NULL
+      , fill = NULL
+      , colour = NULL
+      , title = NULL
+    ) +
+    theme(text = element_text(size = 18)) +
+    ggsave(filename = saveImg, width = 10, height = 10, dpi = 600)
 
   # file.show(saveImg)
 }
@@ -19486,8 +19483,8 @@ summary(dataL4)
 ind = which(dataL4$meanVal == max(dataL4$meanVal, na.rm = TRUE))
 maxData = dataL4[ind,]
 
-saveImg = sprintf("%s/%s_%s_%s.png", globalVar$figPath, serviceName, "MakeImageToMapData", "1-16_Mean_Color")
-saveImg = sprintf("%s/%s_%s_%s.png", globalVar$figPath, serviceName, "MakeImageToMapData", "1-16_Mean")
+# saveImg = sprintf("%s/%s_%s_%s.png", globalVar$figPath, serviceName, "MakeImageToMapData", "1-16_Mean_Color")
+# saveImg = sprintf("%s/%s_%s_%s.png", globalVar$figPath, serviceName, "MakeImageToMapData", "1-16_Mean")
 
 ggplot(data = dataL4, aes(x = xAxis, y = yAxis, fill = meanVal, z = meanVal)) +
   # metR::geom_contour_fill(na.fill = TRUE, kriging = TRUE)
@@ -31758,9 +31755,9 @@ log4r::level(log) = "INFO"
 
 # 검증 지수 테이블 생성
 rowNum = 1
-colNum = 7
+colNum = 9
 perfTable = data.frame(matrix(0, nrow = rowNum * colNum, ncol = 15))
-rownames(perfTable) = c("MLR", "RF", "GAM", "SARIMA", "SVM", "GBM", "DNN")
+rownames(perfTable) = c("MLR", "RF", "GAM", "SARIMA", "SVM", "GBM", "EL", "DNN", "AML")
 # rownames(perfTable) = c(
 #   paste0("MLR-", 1:rowNum), paste0("RF-", 1:rowNum), paste0("GAM-", 1:rowNum)
 #   , paste0("SARIMA-", 1:rowNum), paste0("SVM-", 1:rowNum), paste0("DNN-", 1:rowNum)
@@ -31883,7 +31880,7 @@ trainData = dataL1 %>%
 
 # 테스트용
 trainData = trainData %>% 
-  dplyr::sample_n(1000)
+  dplyr::sample_n(100)
 
 # 훈련 데이터셋 확인
 dplyr::tbl_df(trainData)
@@ -31911,9 +31908,16 @@ dplyr::tbl_df(testData)
 # method : 데이터 샘플링 기법로서  boot(부트스트래핑), boot632(부트스트래핑의 개선된 버전), cv(교차 검증), repeatedcv(교차 검증의 반복), LOOCV(Leave One Out Cross Validation) 
 # repeats : 데이터 샘플링 반복 횟수
 # number : 분할 횟수 
+# controlInfo = caret::trainControl(
+#   method = 'repeatedcv'
+#   , repeats = 10
+#   , number = 10
+#   , p = 0.8
+# )
+
 controlInfo = caret::trainControl(
   method = 'repeatedcv'
-  , repeats = 10
+  , repeats = 1
   , number = 10
   , p = 0.8
 )
@@ -32213,51 +32217,40 @@ perfTable["GBM", ] = perfEval(
   round(2)
 
 #+++++++++++++++++++++++++++++++++++++++++++
-# Heterogeneous Ensemble Learning
+# Heterogeneous Ensemble Learning (EL)
 #+++++++++++++++++++++++++++++++++++++++++++
 # 상위 3개 조합
+elModelList = caretEnsemble::caretList(
+  modelForm
+  , data = trainData
+  , trControl = controlInfo
+  , methodList = c("svmLinear", "rf", "gbm")
+)
 
-# 테스트 중 
+# 앙상블 모델 결합
+elModel = caretEnsemble::caretEnsemble(
+  elModelList
+  , trControl = controlInfo
+  , metric = "RMSE"
+  )
 
-# 배깅
-# bagging_results = resamples(
-#   list(
-#     gam = gamModel
-#     , rf = rfModel
-#     , gbm = gbmModel
-#     )
-#   )
+
+# saveImg = sprintf("%s/%s_%s.png",
+#   globalVar$figPath, serviceName, "EL RMSE Results Across Tuning Parameters")
 # 
-# summary(bagging_results)
-# dotplot(bagging_results)
-# 
-# 
-# models <- caretList(Class~., data=dataset, trControl=control, methodList=algorithmList)
-# results <- resamples(models)
-# summary(results)
-# dotplot(results)
-# 
-# library(caretEnsemble)
-# 
-# # 스택 
-# model_list <- caretEnsemble::caretList(
-#   modelForm,
-#   data = trainData,
-#   # trControl = controlInfo,
-#   methodList = c("rf", "gbm")
-# )
-# 
-# output = caretEnsemble::resamples(model_list)
-# summary(model_list)
-# 
-# dotplot(output)
-# 
-# 
-# 
-# glm_ensemble <- caretStack(
-#   model_list,
-#   method = "glm",
-# )
+# ggplot(elModel) +
+#   theme(text = element_text(size = 18)) +
+#   ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
+
+# 최적 모형의 회귀계수
+elModel$finalModel 
+
+# 모델 검증
+perfTable["EL", ] = perfEval(
+  predict(elModel, newdata = testData)
+  , testData$CHWEUI
+  ) %>% 
+  round(2)
 
 #**********************************************************
 # 딥러닝
@@ -32301,4 +32294,34 @@ perfTable["DNN", ] = perfEval(
   as.data.frame(h2o::h2o.predict(object = dnnModel, newdata = as.h2o(testData)))$predict
   , testData$CHWEUI
   ) %>% 
+  round(2)
+
+
+#+++++++++++++++++++++++++++++++++++++++++++
+# 99. Automated Machine Learning (AML)
+#+++++++++++++++++++++++++++++++++++++++++++
+# 초기화
+h2o::h2o.init()
+
+# 모델 학습
+amlModel = h2o::h2o.automl(
+  x = modelFormX
+  , y = modelFormY
+  , training_frame = as.h2o(trainData)
+  , nfolds = 5
+  , max_runtime_secs = 60 * 120
+  , max_models = 50
+  , keep_cross_validation_predictions = TRUE
+  , sort_metric = "RMSE"
+  , stopping_rounds = 50
+  , stopping_metric = "RMSE"
+  , stopping_tolerance = 0
+  , seed = 1
+)
+
+# 모델 검증
+perfTable["AML", ] = perfEval(
+  as.data.frame(h2o::h2o.predict(object = amlModel, newdata = as.h2o(testData)))$predict
+  , testData$CHWEUI
+) %>% 
   round(2)
