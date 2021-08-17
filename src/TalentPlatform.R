@@ -1,3 +1,5 @@
+#-*- coding: utf-8 -*
+
 #=====================================
 # Init Confiure
 #=====================================
@@ -31634,13 +31636,13 @@ ggplot(dataGenderAge, aes(x = key, y = cnt, fill = group, label = round(cnt, 0))
 #================================================
 # 초기 환경변수 설정
 #================================================
-# env = "local"   # 로컬 : 원도우 환경, 작업환경 (현재 소스 코드 환경 시 .) 설정
-env = "dev"   # 개발 : 원도우 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+env = "local"   # 로컬 : 원도우 환경, 작업환경 (현재 소스 코드 환경 시 .) 설정
+# env = "dev"   # 개발 : 원도우 환경, 작업환경 (사용자 환경 시 contextPath) 설정
 # env = "oper"  # 운영 : 리눅스 환경, 작업환경 (사용자 환경 시 contextPath) 설정
 
 prjName = "test"
 serviceName = "LSH0194"
-contextPath = ifelse(env == "local", getwd(), "E:/04. TalentPlatform/Github/TalentPlatform-R")
+contextPath = ifelse(env == "local", ".", "E:/04. TalentPlatform/Github/TalentPlatform-R")
 
 if (env == "local") {
   globalVar = list(
@@ -31745,6 +31747,7 @@ library(mgcv)
 library(nima)
 library(h2o)
 library(stringr)
+library(RQuantLib)
 
 # 로그 설정
 saveLogFile = sprintf("%s/%s_%s_%s_%s.log", globalVar$logPath, Sys.info()["sysname"], Sys.info()["nodename"], prjName, format(Sys.time(), "%Y%m%d"))
@@ -31778,7 +31781,7 @@ data = vroom::vroom(
 # summary(data)
 # summary(PAHourlyCHW)
 
-RQuantLib::isBusinessDay("UnitedStates/NYSE", seq(from=lubridate::as_date(min(data$YMDH, na.rm = TRUE)), to=lubridate::as_date(max(data$YMDH, na.rm = TRUE)), by=1))
+# RQuantLib::isBusinessDay("UnitedStates/NYSE", seq(from=lubridate::as_date(min(data$YMDH, na.rm = TRUE)), to=lubridate::as_date(max(data$YMDH, na.rm = TRUE)), by=1))
 
 dataL1 = data %>% 
   dplyr::filter(
@@ -31823,7 +31826,6 @@ dataL1 = data %>%
   dplyr::mutate_if(is.character, as.factor)
 
 # dplyr::select(YMDH, nMonth, nDay, nHour, WWR, refYmd, hourType, businessDay, seasonType)
-
 # dplyr::tbl_df(dataL1)
 
 # summary(data)
@@ -31963,7 +31965,7 @@ mlrModel$finalModel
 perfTable["MLR", ] = perfEval(
   predict(mlrModel, newdata = testData)
   , testData$CHWEUI
-  ) %>% 
+) %>% 
   round(2)
 
 
@@ -31996,7 +31998,7 @@ rfModel$finalModel
 perfTable["RF", ] = perfEval(
   predict(rfModel, newdata = testData)
   , testData$CHWEUI
-  ) %>% 
+) %>% 
   round(2)
 
 #+++++++++++++++++++++++++++++++++++++++++++
@@ -32033,15 +32035,13 @@ gamModel$finalModel
 perfTable["GAM", ] = perfEval(
   predict(gamModel, newdata = testData)
   , testData$CHWEUI
-  ) %>% 
+) %>% 
   round(2)
 
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # 7. Seasonal autoregressive integrated moving average (SARIMA)
-# 
-# 우선적으로 날짜 데이터를 시계열 데이터 변환
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
+# 우선적으로 날짜 데이터를 시계열 데이터 변환
 # library(ForecastTB)
 # library(predtoolsTS)
 # 
@@ -32178,7 +32178,7 @@ svmModel$finalModel
 perfTable["SVM", ] = perfEval(
   predict(svmModel, newdata = testData)
   , testData$CHWEUI
-  ) %>% 
+) %>% 
   round(2)
 
 #+++++++++++++++++++++++++++++++++++++++++++
@@ -32198,7 +32198,7 @@ gbmModel = caret::train(
   #   , n.minobsinnode = 10
   # )
   , trControl = controlInfo
-  )
+)
 
 saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "GBM RMSE Results Across Tuning Parameters")
 
@@ -32213,7 +32213,7 @@ gbmModel$finalModel
 perfTable["GBM", ] = perfEval(
   predict(gbmModel, newdata = testData)
   , testData$CHWEUI
-  ) %>% 
+) %>% 
   round(2)
 
 #+++++++++++++++++++++++++++++++++++++++++++
@@ -32232,24 +32232,24 @@ elModel = caretEnsemble::caretEnsemble(
   elModelList
   , trControl = controlInfo
   , metric = "RMSE"
-  )
+)
 
+# 모델 결과
+summary(elModel)
 
-# saveImg = sprintf("%s/%s_%s.png",
-#   globalVar$figPath, serviceName, "EL RMSE Results Across Tuning Parameters")
-# 
-# ggplot(elModel) +
-#   theme(text = element_text(size = 18)) +
-#   ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "EL RMSE Results Across Tuning Parameters")
+png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
+plot(elModel)
+dev.off()
 
 # 최적 모형의 회귀계수
-elModel$finalModel 
+elModel$ens_model$finalModel
 
 # 모델 검증
 perfTable["EL", ] = perfEval(
   predict(elModel, newdata = testData)
   , testData$CHWEUI
-  ) %>% 
+) %>% 
   round(2)
 
 #**********************************************************
@@ -32293,13 +32293,16 @@ dev.off()
 perfTable["DNN", ] = perfEval(
   as.data.frame(h2o::h2o.predict(object = dnnModel, newdata = as.h2o(testData)))$predict
   , testData$CHWEUI
-  ) %>% 
+) %>% 
   round(2)
 
 
 #+++++++++++++++++++++++++++++++++++++++++++
 # 99. Automated Machine Learning (AML)
 #+++++++++++++++++++++++++++++++++++++++++++
+# 앞선 설정된 모델뿐만 아니라 자동화 모델로 학습 수행
+# 오랜 시간이 소요됨
+
 # 초기화
 h2o::h2o.init()
 
@@ -32308,16 +32311,30 @@ amlModel = h2o::h2o.automl(
   x = modelFormX
   , y = modelFormY
   , training_frame = as.h2o(trainData)
-  , nfolds = 5
-  , max_runtime_secs = 60 * 120
-  , max_models = 50
-  , keep_cross_validation_predictions = TRUE
+  , nfolds = 10
   , sort_metric = "RMSE"
-  , stopping_rounds = 50
   , stopping_metric = "RMSE"
-  , stopping_tolerance = 0
   , seed = 1
+  # , max_runtime_secs = 60 * 120
+  # , max_models = 50
+  # , keep_cross_validation_predictions = TRUE
+  # , stopping_rounds = 50
+  # , stopping_tolerance = 0
 )
+
+# 모델 성능 
+amlModel@leaderboard %>% 
+  as.data.frame() %>% 
+  DT::datatable()
+
+# 기여도 평가
+modelId = as.data.frame(amlModel@leaderboard$model_id)[,1]
+stackEnsembleModel = h2o::h2o.getModel(grep("StackedEnsemble_AllModels", modelId, value = TRUE)[1])
+metaRes = h2o.getModel(stackEnsembleModel@model$metalearner$name)
+
+h2o.varimp(metaRes) %>% 
+  DT::datatable()
+
 
 # 모델 검증
 perfTable["AML", ] = perfEval(
