@@ -296,6 +296,30 @@ fnWetBulbGolbalTempIndex = function(temp, rh, ws, sr) {
 
   return(wetBulbGolbalTempIndex)
 }
+# C:\Users\saima\Documents
+# C:/Users/saima/OneDrive/Documents/R/win-library/4.1
+# 라이브러리 경로
+# .libPaths()
+
+# .libPaths(c("C:/Users/saima/OneDrive/Documents/R/win-library/4.1", .libPaths()))
+# 
+# .libPaths("C:/R/R-4.0.2/library/")
+# .libPaths()
+
+## [1] "C:/Users/yoonani/Documents/R/win-library/3.2"
+## [2] "C:/Program Files/R/R-3.2.2/library"
+
+# install_load_package = function(packages_v){
+#   #
+#   new.packages <- packages_v[!(packages_v %in% installed.packages()[,"Package"])]
+#   if(length(new.packages) > 0) { install.packages(new.packages) } 
+#   lapply(packages_v, require, character.only = TRUE)
+#   invisible(capture.output())
+#   cat("--------------- \n")
+#   lapply(packages_v, function(x) {cat(x, "are loaded! \n")})
+#   cat("--------------- \n")
+#   #
+# }
 
 #=====================================
 # Set Data
@@ -335,12 +359,13 @@ ggmap::register_google(key = globalVar$googleKey)
 # font.add.google("Gochi Hand", "gochi")
 
 # 오프라인 환경에서 특정 경로에서 국/영문 폰트 추가
+
 # 영문 폰트
-sysfonts::font.add(family = "New Century Schoolbook", regular = paste(globalVar$fontPath, "NewCenturySchoolbook.ttf", sep = "/"))
-sysfonts::font.add(family = "Palatino Linotype", regular = paste(globalVar$fontPath, "pala.ttf", sep = "/"))
+sysfonts::font.add(family = "New Century Schoolbook", regular = file.path(globalVar$fontPath, "NewCenturySchoolbook.ttf"))
+sysfonts::font.add(family = "Palatino Linotype", regular = file.path(globalVar$fontPath, "pala.ttf"))
 
 # 국문 폰트
-sysfonts::font.add(family = "KoPubWorld Dotum Medium", regular = paste(globalVar$fontPath, "KoPubWorld Dotum Medium.ttf", sep = "/"))
+sysfonts::font.add(family = "KoPubWorld Dotum Medium", regular = file.path(globalVar$fontPath, "KoPubWorld Dotum Medium.ttf"))
 
 # 폰트 읽기
 showtext::showtext_opts(dpi = 600)
