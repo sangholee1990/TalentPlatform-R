@@ -19440,6 +19440,50 @@ for (typeInfo in typeList[40]) {
 }
 
 # 마리오 알람 소리
+# beepr::beep(sound = 8)
+
+#**************************************************
+# 시트에 따른 데이터 병합
+#**************************************************
+
+dataL3 = tibble()
+sheetList = c(7, 8)
+
+for (sheetInfo in sheetList) {
+  
+  data = openxlsx::read.xlsx(fileInfo, sheet = sheetInfo) %>%
+    as.tibble()
+  
+  typeList = data$type %>% unique %>% sort
+  
+  for (typeInfo in typeList) {
+    
+    tmpData = data %>%
+      dplyr::filter(
+        type == typeInfo
+        , !is.na(val)
+      ) %>%
+      dplyr::select(-type)
+    
+    dataL1 = MBA::mba.points(tmpData, gridData)
+    
+    dataL2 = dataL1 %>%
+      as.data.frame() %>%
+      as.tibble() %>%
+      dplyr::rename(
+        xAxis = xyz.est.x
+        , yAxis = xyz.est.y
+        , zAxis = xyz.est.z
+      ) %>%
+      dplyr::mutate(
+        type = typeInfo
+      )
+    
+    dataL3 = dplyr::bind_rows(dataL3, dataL2)
+  }
+}
+
+# 마리오 알람 소리
 beepr::beep(sound = 8)
 
 #**************************************************
