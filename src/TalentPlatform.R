@@ -19266,6 +19266,7 @@ cat(sprintf(
 # O : 점선 여러개 (중앙 1.0 - 상/하 0.98), 점선 1개 (중앙 1.0), 이전과 동일
 # X : 없음 (중앙 0.97)
 
+
 #================================================
 # 초기 환경변수 설정
 #================================================
@@ -19328,8 +19329,7 @@ gridData = noncompliance::expand.grid.DT(
   , col.names = c("lon", "lat")
 )
 
-# fileInfo = Sys.glob(file.path(globalVar$inpPath, "mapImageToData.xlsx"))
-fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0195_일식 식분도 이미지 데이터 추출.xlsx"))
+fileInfo = Sys.glob(file.path(globalVar$inpPath, "mapImageToData.xlsx"))
 
 #**************************************************
 # 시트 선택
@@ -19379,7 +19379,7 @@ data = openxlsx::read.xlsx(fileInfo, sheet = sheetInfo) %>%
 
 typeList = data$type %>% unique %>% sort
 
-for (typeInfo in typeList[40]) {
+for (typeInfo in typeList[11]) {
 
   tmpData = data %>%
     dplyr::filter(
@@ -19483,106 +19483,84 @@ for (sheetInfo in sheetList) {
   }
 }
 
-# 마리오 알람 소리
-beepr::beep(sound = 8)
-
-#**************************************************
-# 시트에 따른 데이터 병합
-#**************************************************
-dataL3 = tibble()
-# sheetList = c(7, 8)
-sheetList = c(4)
-
-for (sheetInfo in sheetList) {
-  
-  data = openxlsx::read.xlsx(fileInfo, sheet = sheetInfo) %>%
-    as.tibble()
-  
-  typeList = data$type %>% unique %>% sort
-  
-  for (typeInfo in typeList) {
-    
-    tmpData = data %>%
-      dplyr::filter(
-        type == typeInfo
-        , !is.na(val)
-      ) %>%
-      dplyr::select(-type)
-    
-    dataL1 = MBA::mba.points(tmpData, gridData)
-    
-    dataL2 = dataL1 %>%
-      as.data.frame() %>%
-      as.tibble() %>%
-      dplyr::rename(
-        xAxis = xyz.est.x
-        , yAxis = xyz.est.y
-        , zAxis = xyz.est.z
-      ) %>%
-      dplyr::mutate(
-        type = typeInfo
-      )
-    
-    dataL3 = dplyr::bind_rows(dataL3, dataL2)
-  }
-}
-
 
 #**************************************************
 # 공간 평균
 #**************************************************
+# dataL4 %>%
+#   dplyr::filter(
+#     xAxis == 125.0
+#     , yAxis == 30.0
+#   )
+#
+# dataL3 %>%
+#   dplyr::filter(
+#     zAxis > 0
+#   ) %>%
+#   dplyr::filter(
+#     xAxis == 130.0
+#     , yAxis == 10.0
+#   )
+#
+# dataL4 %>%
+#   dplyr::filter(
+#     xAxis == 130.0
+#     , yAxis == 10.0
+#   )
+
 dataL4 = dataL3 %>%
   dplyr::group_by(xAxis, yAxis) %>%
   dplyr::summarise(
     meanVal = mean(zAxis, na.rm = TRUE)
   )
 
+summary(dataL4)
+
 ind = which(dataL4$meanVal == max(dataL4$meanVal, na.rm = TRUE))
 maxData = dataL4[ind,]
 
-summary(dataL4)
 
-# 등고선 간격 설정
-# setBreak = c(seq(0.42, 0, -0.02), 0.41)
-setBreak = c(seq(0.63, 0, -0.02))
-
-imgName = dplyr::case_when(
-  serviceName == "LSH0195" ~ "청온리(18)+청-조선공통(92)"
-  , serviceName == "LSH0197" ~ "전한(수정)"
-  , TRUE ~ NA_character_
-)
-
-saveImg = sprintf("%s/%s_%s_%s.png", globalVar$figPath, serviceName, imgName, "Mean_Color")
+saveImg = sprintf("%s/%s_%s_%s.png", globalVar$figPath, serviceName, "청온리(18)+청-조선공통(92)", "Mean_Color")
+saveImg = sprintf("%s/%s_%s_%s.png", globalVar$figPath, serviceName, "청온리(18)+청-조선공통(92)", "Mean_Black")
 
 ggplot(data = dataL4, aes(x = xAxis, y = yAxis, fill = meanVal, z = meanVal)) +
   geom_raster(interpolate = TRUE, na.rm = TRUE) +
   scale_fill_gradientn(colours = cbMatlab, limits = c(0, 1.0), breaks = seq(0, 1.0, 0.2), na.value = NA) +
   # metR::geom_contour_fill(na.fill = TRUE, kriging = TRUE)
   # geom_tile() +
-  metR::geom_contour2(color = "black", alpha = 1.0, breaks = setBreak, show.legend = FALSE, size = 0.5) +
-  metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, skip = 0, breaks = setBreak, rotate = TRUE, na.rm = TRUE, size = 5) +
-  geom_point(data = maxData, aes(x = xAxis, y = yAxis, colour = meanVal, fill = NULL, z = NULL), color = "red") +
+  # metR::geom_contour2(color = "black", alpha = 1.0, breaks = c(seq(0.42, 0, -0.02), 0.41), show.legend = FALSE, size = 0.5) +
+  # metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, skip = 0, breaks = c(seq(0.42, 0, -0.02), 0.41), rotate = TRUE, na.rm = TRUE, size = 5) +
+  # metR::geom_contour2(color = "black", alpha = 1.0, breaks = c(seq(0.69, 0, -0.04), 0.7), show.legend = FALSE, size = 0.5) +
+  # metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, skip = 0, breaks = c(seq(0.69, 0, -0.04), 0.7), rotate = TRUE, na.rm = TRUE, size = 5) +
+  # metR::geom_contour2(color = "black", alpha = 1.0, breaks = c(seq(0, 1.0, 0.04), 0.62), show.legend = FALSE, size = 0.5) +
+  # metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, skip = 0, breaks = c(seq(0, 1.0, 0.04), 0.62), rotate = TRUE, na.rm = TRUE, size = 5) +
+  # metR::geom_contour2(color = "black", alpha = 1.0, breaks = c(seq(0, 0.5, 0.05), 0.502, 0.504), show.legend = FALSE, size = 0.5) +
+  # metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, skip = 0, breaks = c(seq(0, 0.5, 0.05), 0.502, 0.504), rotate = TRUE, na.rm = TRUE, size = 5) +
+  # metR::geom_contour2(color = "black", alpha = 1.0, breaks = c(seq(0, 0.62, 0.02), 0.625, 0.629), show.legend = FALSE, size = 0.5) +
+  # metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, skip = 1, breaks =  c(seq(0, 0.62, 0.02), 0.625, 0.629), rotate = TRUE, na.rm = TRUE, size = 5) +
+  # metR::geom_contour2(color = "black", alpha = 1.0, breaks = c(0.40, 0.48, 0.53, 0.55), show.legend = FALSE, size = 0.5) +
+  # metR::geom_contour2(color = "black", alpha = 1.0, breaks = c(0.4, 0.5, 0.6, 0.7), show.legend = FALSE, size = 0.5) +
+  # metR::geom_contour2(color = "black", alpha = 1.0, breaks = 0.4, show.legend = FALSE, size = 0.5) +
+  # metR::geom_contour2(color = "black", alpha = 1.0, breaks = 0.5, show.legend = FALSE, size = 1) +
+  # metR::geom_contour2(color = "black", alpha = 1.0, breaks = 0.6, show.legend = FALSE, size = 2) +
+  # metR::geom_contour2(color = "black", alpha = 1.0, breaks = 0.7, show.legend = FALSE, size = 4) +
+  #
+  # metR::geom_contour2(color = "black", alpha = 1.0, breaks = 0.40, show.legend = FALSE, size = 0.5) +
+  # metR::geom_contour2(color = "black", alpha = 1.0, breaks = 0.48, show.legend = FALSE, size = 1) +
+  # metR::geom_contour2(color = "black", alpha = 1.0, breaks = 0.53, show.legend = FALSE, size = 2) +
+  # metR::geom_contour2(color = "black", alpha = 1.0, breaks = 0.55, show.legend = FALSE, size = 4) +
+  # metR::geom_contour2(color = "black", alpha = 1.0, breaks = seq(0, 1.0, 0.02), show.legend = FALSE, size = 0.5) +
+  # metR::geom_contour2(color = "black", alpha = 1.0, breaks = 0.3, show.legend = FALSE, size = 0.5) +
+  # metR::geom_contour2(color = "black", alpha = 1.0, breaks = 0.5, show.legend = FALSE, size = 1) +
+  # metR::geom_contour2(color = "black", alpha = 1.0, breaks = 0.7, show.legend = FALSE, size = 2) +
+  # metR::geom_contour2(color = "black", alpha = 1.0, breaks = 0.9, show.legend = FALSE, size = 4) +
+  # metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, skip = 0, breaks = seq(0, 1.0, 0.02), rotate = TRUE, na.rm = TRUE, size = 5) +
+  # metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, skip = 0, breaks = seq(0, 1.0, 0.05), rotate = TRUE, na.rm = TRUE, size = 5) +
+  # metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, skip = 0, breaks = c(0.40, 0.48, 0.53, 0.55), rotate = TRUE, na.rm = TRUE, size = 5) +
+  # metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, skip = 0, breaks = c(0.4, 0.5, 0.6, 0.7), rotate = TRUE, na.rm = TRUE, size = 5) +
+  # geom_point(data = sampleData, aes(x = lon, y = lat, colour = factor(val), fill = NULL, z = NULL)) +
   geom_sf(data = mapGlobal, aes(x = NULL, y = NULL, fill = NULL, z = NULL), color = "black", fill = NA) +
-  metR::scale_x_longitude(breaks = seq(90, 150, 10), limits = c(90, 150), expand = c(0, 0)) +
-  metR::scale_y_latitude(breaks = seq(10, 60, 10), limits = c(10, 60), expand = c(0, 0)) +
-  labs(
-    subtitle = NULL
-    , x = NULL
-    , y = NULL
-    , fill = NULL
-    , colour = NULL
-    , title = NULL
-  ) +
-  theme(text = element_text(size = 18)) +
-  ggsave(filename = saveImg, width = 10, height = 10, dpi = 600)
-
-saveImg = sprintf("%s/%s_%s_%s.png", globalVar$figPath, serviceName, imgName, "Mean_Black")
-
-ggplot(data = dataL4, aes(x = xAxis, y = yAxis, fill = meanVal, z = meanVal)) +
-  metR::geom_contour2(color = "black", alpha = 1.0, breaks = setBreak, show.legend = FALSE, size = 0.5) +
-  metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, skip = 0, breaks = setBreak, rotate = TRUE, na.rm = TRUE, size = 5) +
   geom_point(data = maxData, aes(x = xAxis, y = yAxis, colour = meanVal, fill = NULL, z = NULL), color = "red") +
-  geom_sf(data = mapGlobal, aes(x = NULL, y = NULL, fill = NULL, z = NULL), color = "black", fill = NA) +
   metR::scale_x_longitude(breaks = seq(90, 150, 10), limits = c(90, 150), expand = c(0, 0)) +
   metR::scale_y_latitude(breaks = seq(10, 60, 10), limits = c(10, 60), expand = c(0, 0)) +
   labs(
@@ -32415,10 +32393,3 @@ perfTable["AML", ] = perfEval(
   , testData$CHWEUI
 ) %>% 
   round(2)
-
-
-
-
-
-
-
