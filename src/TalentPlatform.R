@@ -19266,6 +19266,7 @@ cat(sprintf(
 # O : 점선 여러개 (중앙 1.0 - 상/하 0.98), 점선 1개 (중앙 1.0), 이전과 동일
 # X : 없음 (중앙 0.97)
 
+
 #================================================
 # 초기 환경변수 설정
 #================================================
@@ -19344,7 +19345,7 @@ fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0195_일식 식분도 이�
 # sheetInfo = 3
 
 # 시트 4 : 전한
-sheetInfo = 4
+# sheetInfo = 4
 
 # 시트 5 : 당나라
 # sheetInfo = 5
@@ -19358,16 +19359,28 @@ sheetInfo = 4
 # 시트 8 : 청-조선공통(92)
 # sheetInfo = 8
 
+# 시트 8 : 조선온리(20)
+# sheetInfo = 9
+
+# 시트 8 : 북명+조선공통(74)
+sheetInfo = 10
+
+# 시트 8 : 남명+조선공통(6)
+# sheetInfo = 11
+
 sheetName = dplyr::case_when(
   sheetInfo == 1 ~ "테스트"
   , sheetInfo == 2 ~ "초기신라"
   , sheetInfo == 3 ~ "후기신라"
-  # , sheetInfo == 4 ~ "전한"
+  , sheetInfo == 4 ~ "전한"
   , sheetInfo == 4 ~ "전한(수정)"
   , sheetInfo == 5 ~ "당나라"
   , sheetInfo == 6 ~ "8개(최종)"
   , sheetInfo == 7 ~ "청온리(18)"
   , sheetInfo == 8 ~ "청-조선공통(92)"
+  , sheetInfo == 9 ~ "조선온리(20)"
+  , sheetInfo == 10 ~ "북명+조선공통(74)"
+  , sheetInfo == 11 ~ "남명+조선공통(6)"
   , TRUE ~ NA_character_
 )
 
@@ -19379,7 +19392,7 @@ data = openxlsx::read.xlsx(fileInfo, sheet = sheetInfo) %>%
 
 typeList = data$type %>% unique %>% sort
 
-for (typeInfo in typeList[40]) {
+for (typeInfo in typeList[11]) {
 
   tmpData = data %>%
     dplyr::filter(
@@ -19483,106 +19496,84 @@ for (sheetInfo in sheetList) {
   }
 }
 
-# 마리오 알람 소리
-beepr::beep(sound = 8)
-
-#**************************************************
-# 시트에 따른 데이터 병합
-#**************************************************
-dataL3 = tibble()
-# sheetList = c(7, 8)
-sheetList = c(4)
-
-for (sheetInfo in sheetList) {
-  
-  data = openxlsx::read.xlsx(fileInfo, sheet = sheetInfo) %>%
-    as.tibble()
-  
-  typeList = data$type %>% unique %>% sort
-  
-  for (typeInfo in typeList) {
-    
-    tmpData = data %>%
-      dplyr::filter(
-        type == typeInfo
-        , !is.na(val)
-      ) %>%
-      dplyr::select(-type)
-    
-    dataL1 = MBA::mba.points(tmpData, gridData)
-    
-    dataL2 = dataL1 %>%
-      as.data.frame() %>%
-      as.tibble() %>%
-      dplyr::rename(
-        xAxis = xyz.est.x
-        , yAxis = xyz.est.y
-        , zAxis = xyz.est.z
-      ) %>%
-      dplyr::mutate(
-        type = typeInfo
-      )
-    
-    dataL3 = dplyr::bind_rows(dataL3, dataL2)
-  }
-}
-
 
 #**************************************************
 # 공간 평균
 #**************************************************
+# dataL4 %>%
+#   dplyr::filter(
+#     xAxis == 125.0
+#     , yAxis == 30.0
+#   )
+#
+# dataL3 %>%
+#   dplyr::filter(
+#     zAxis > 0
+#   ) %>%
+#   dplyr::filter(
+#     xAxis == 130.0
+#     , yAxis == 10.0
+#   )
+#
+# dataL4 %>%
+#   dplyr::filter(
+#     xAxis == 130.0
+#     , yAxis == 10.0
+#   )
+
 dataL4 = dataL3 %>%
   dplyr::group_by(xAxis, yAxis) %>%
   dplyr::summarise(
     meanVal = mean(zAxis, na.rm = TRUE)
   )
 
+summary(dataL4)
+
 ind = which(dataL4$meanVal == max(dataL4$meanVal, na.rm = TRUE))
 maxData = dataL4[ind,]
 
-summary(dataL4)
 
-# 등고선 간격 설정
-# setBreak = c(seq(0.42, 0, -0.02), 0.41)
-setBreak = c(seq(0.63, 0, -0.02))
-
-imgName = dplyr::case_when(
-  serviceName == "LSH0195" ~ "청온리(18)+청-조선공통(92)"
-  , serviceName == "LSH0197" ~ "전한(수정)"
-  , TRUE ~ NA_character_
-)
-
-saveImg = sprintf("%s/%s_%s_%s.png", globalVar$figPath, serviceName, imgName, "Mean_Color")
+saveImg = sprintf("%s/%s_%s_%s.png", globalVar$figPath, serviceName, "청온리(18)+청-조선공통(92)", "Mean_Color")
+saveImg = sprintf("%s/%s_%s_%s.png", globalVar$figPath, serviceName, "청온리(18)+청-조선공통(92)", "Mean_Black")
 
 ggplot(data = dataL4, aes(x = xAxis, y = yAxis, fill = meanVal, z = meanVal)) +
   geom_raster(interpolate = TRUE, na.rm = TRUE) +
   scale_fill_gradientn(colours = cbMatlab, limits = c(0, 1.0), breaks = seq(0, 1.0, 0.2), na.value = NA) +
   # metR::geom_contour_fill(na.fill = TRUE, kriging = TRUE)
   # geom_tile() +
-  metR::geom_contour2(color = "black", alpha = 1.0, breaks = setBreak, show.legend = FALSE, size = 0.5) +
-  metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, skip = 0, breaks = setBreak, rotate = TRUE, na.rm = TRUE, size = 5) +
-  geom_point(data = maxData, aes(x = xAxis, y = yAxis, colour = meanVal, fill = NULL, z = NULL), color = "red") +
+  # metR::geom_contour2(color = "black", alpha = 1.0, breaks = c(seq(0.42, 0, -0.02), 0.41), show.legend = FALSE, size = 0.5) +
+  # metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, skip = 0, breaks = c(seq(0.42, 0, -0.02), 0.41), rotate = TRUE, na.rm = TRUE, size = 5) +
+  # metR::geom_contour2(color = "black", alpha = 1.0, breaks = c(seq(0.69, 0, -0.04), 0.7), show.legend = FALSE, size = 0.5) +
+  # metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, skip = 0, breaks = c(seq(0.69, 0, -0.04), 0.7), rotate = TRUE, na.rm = TRUE, size = 5) +
+  # metR::geom_contour2(color = "black", alpha = 1.0, breaks = c(seq(0, 1.0, 0.04), 0.62), show.legend = FALSE, size = 0.5) +
+  # metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, skip = 0, breaks = c(seq(0, 1.0, 0.04), 0.62), rotate = TRUE, na.rm = TRUE, size = 5) +
+  # metR::geom_contour2(color = "black", alpha = 1.0, breaks = c(seq(0, 0.5, 0.05), 0.502, 0.504), show.legend = FALSE, size = 0.5) +
+  # metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, skip = 0, breaks = c(seq(0, 0.5, 0.05), 0.502, 0.504), rotate = TRUE, na.rm = TRUE, size = 5) +
+  # metR::geom_contour2(color = "black", alpha = 1.0, breaks = c(seq(0, 0.62, 0.02), 0.625, 0.629), show.legend = FALSE, size = 0.5) +
+  # metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, skip = 1, breaks =  c(seq(0, 0.62, 0.02), 0.625, 0.629), rotate = TRUE, na.rm = TRUE, size = 5) +
+  # metR::geom_contour2(color = "black", alpha = 1.0, breaks = c(0.40, 0.48, 0.53, 0.55), show.legend = FALSE, size = 0.5) +
+  # metR::geom_contour2(color = "black", alpha = 1.0, breaks = c(0.4, 0.5, 0.6, 0.7), show.legend = FALSE, size = 0.5) +
+  # metR::geom_contour2(color = "black", alpha = 1.0, breaks = 0.4, show.legend = FALSE, size = 0.5) +
+  # metR::geom_contour2(color = "black", alpha = 1.0, breaks = 0.5, show.legend = FALSE, size = 1) +
+  # metR::geom_contour2(color = "black", alpha = 1.0, breaks = 0.6, show.legend = FALSE, size = 2) +
+  # metR::geom_contour2(color = "black", alpha = 1.0, breaks = 0.7, show.legend = FALSE, size = 4) +
+  #
+  # metR::geom_contour2(color = "black", alpha = 1.0, breaks = 0.40, show.legend = FALSE, size = 0.5) +
+  # metR::geom_contour2(color = "black", alpha = 1.0, breaks = 0.48, show.legend = FALSE, size = 1) +
+  # metR::geom_contour2(color = "black", alpha = 1.0, breaks = 0.53, show.legend = FALSE, size = 2) +
+  # metR::geom_contour2(color = "black", alpha = 1.0, breaks = 0.55, show.legend = FALSE, size = 4) +
+  # metR::geom_contour2(color = "black", alpha = 1.0, breaks = seq(0, 1.0, 0.02), show.legend = FALSE, size = 0.5) +
+  # metR::geom_contour2(color = "black", alpha = 1.0, breaks = 0.3, show.legend = FALSE, size = 0.5) +
+  # metR::geom_contour2(color = "black", alpha = 1.0, breaks = 0.5, show.legend = FALSE, size = 1) +
+  # metR::geom_contour2(color = "black", alpha = 1.0, breaks = 0.7, show.legend = FALSE, size = 2) +
+  # metR::geom_contour2(color = "black", alpha = 1.0, breaks = 0.9, show.legend = FALSE, size = 4) +
+  # metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, skip = 0, breaks = seq(0, 1.0, 0.02), rotate = TRUE, na.rm = TRUE, size = 5) +
+  # metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, skip = 0, breaks = seq(0, 1.0, 0.05), rotate = TRUE, na.rm = TRUE, size = 5) +
+  # metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, skip = 0, breaks = c(0.40, 0.48, 0.53, 0.55), rotate = TRUE, na.rm = TRUE, size = 5) +
+  # metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, skip = 0, breaks = c(0.4, 0.5, 0.6, 0.7), rotate = TRUE, na.rm = TRUE, size = 5) +
+  # geom_point(data = sampleData, aes(x = lon, y = lat, colour = factor(val), fill = NULL, z = NULL)) +
   geom_sf(data = mapGlobal, aes(x = NULL, y = NULL, fill = NULL, z = NULL), color = "black", fill = NA) +
-  metR::scale_x_longitude(breaks = seq(90, 150, 10), limits = c(90, 150), expand = c(0, 0)) +
-  metR::scale_y_latitude(breaks = seq(10, 60, 10), limits = c(10, 60), expand = c(0, 0)) +
-  labs(
-    subtitle = NULL
-    , x = NULL
-    , y = NULL
-    , fill = NULL
-    , colour = NULL
-    , title = NULL
-  ) +
-  theme(text = element_text(size = 18)) +
-  ggsave(filename = saveImg, width = 10, height = 10, dpi = 600)
-
-saveImg = sprintf("%s/%s_%s_%s.png", globalVar$figPath, serviceName, imgName, "Mean_Black")
-
-ggplot(data = dataL4, aes(x = xAxis, y = yAxis, fill = meanVal, z = meanVal)) +
-  metR::geom_contour2(color = "black", alpha = 1.0, breaks = setBreak, show.legend = FALSE, size = 0.5) +
-  metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, skip = 0, breaks = setBreak, rotate = TRUE, na.rm = TRUE, size = 5) +
   geom_point(data = maxData, aes(x = xAxis, y = yAxis, colour = meanVal, fill = NULL, z = NULL), color = "red") +
-  geom_sf(data = mapGlobal, aes(x = NULL, y = NULL, fill = NULL, z = NULL), color = "black", fill = NA) +
   metR::scale_x_longitude(breaks = seq(90, 150, 10), limits = c(90, 150), expand = c(0, 0)) +
   metR::scale_y_latitude(breaks = seq(10, 60, 10), limits = c(10, 60), expand = c(0, 0)) +
   labs(
@@ -31816,6 +31807,8 @@ log = log4r::create.logger()
 log4r::logfile(log) = saveLogFile
 log4r::level(log) = "INFO"
 
+log4r::info(log, sprintf("%s", "[START] Main R"))
+
 # 검증 지수 테이블 생성
 rowNum = 1
 colNum = 9
@@ -31842,11 +31835,7 @@ data = vroom::vroom(
 # summary(PAHourlyCHW)
 
 # RQuantLib::isBusinessDay("UnitedStates/NYSE", seq(from=lubridate::as_date(min(data$YMDH, na.rm = TRUE)), to=lubridate::as_date(max(data$YMDH, na.rm = TRUE)), by=1))
-
-
 # data$type2 %>% unique() %>% sort()
-
-
 # dataL1$type2 %>% unique() %>% sort()
 
 dataL1 = data %>%
@@ -31983,19 +31972,19 @@ dplyr::tbl_df(testData)
 # method : 데이터 샘플링 기법로서  boot(부트스트래핑), boot632(부트스트래핑의 개선된 버전), cv(교차 검증), repeatedcv(교차 검증의 반복), LOOCV(Leave One Out Cross Validation) 
 # repeats : 데이터 샘플링 반복 횟수
 # number : 분할 횟수 
-controlInfo = caret::trainControl(
-  method = 'repeatedcv'
-  , repeats = 10
-  , number = 10
-  , p = 0.8
-)
-
 # controlInfo = caret::trainControl(
 #   method = 'repeatedcv'
-#   , repeats = 1
+#   , repeats = 10
 #   , number = 10
 #   , p = 0.8
 # )
+
+controlInfo = caret::trainControl(
+  method = 'repeatedcv'
+  , repeats = 1
+  , number = 10
+  , p = 0.8
+)
 
 
 #**********************************************************
@@ -32019,9 +32008,9 @@ mlrModel = caret::train(
   , method = "lm"
   , preProc = c("center", "scale")
   , metric = "RMSE"
-  # , tuneGrid = expand.grid(
-  #   intercept = c(TRUE, FALSE)
-  #   )
+  , tuneGrid = expand.grid(
+    intercept = c(TRUE, FALSE)
+    )
   , trControl = controlInfo
 )
 
@@ -32052,9 +32041,9 @@ rfModel = caret::train(
   , method = "rf"
   , preProc = c("center", "scale")
   , metric = "RMSE"
-  # , tuneGrid = expand.grid(
-  #   mtry = 1:2
-  # )
+  , tuneGrid = expand.grid(
+    mtry = 1:2
+  )
   , trControl = controlInfo
 )
 
@@ -32088,12 +32077,19 @@ gamModel = caret::train(
   , method = "gam"
   , preProc = c("center", "scale")
   , metric = "RMSE"
-  # , tuneGrid = expand.grid(
-  #   method = "GCV.Cp"
-  #   , select = c(TRUE, FALSE)
-  # )
+  , tuneGrid = expand.grid(
+    method = "GCV.Cp"
+    , select = c(TRUE, FALSE)
+  )
   , trControl = controlInfo
 )
+
+gamModel = mgcv::gam(CHWEUI ~ s(Uvalue_Wall) + s(Uvalue_Window) + s(Uvalue_Roof), data = trainData)
+summary(gamModel)
+par(mfrow=c(1,3)) #to partition the Plotting Window
+plot(gamModel, se = TRUE) 
+
+
 
 saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "GAM RMSE Results Across Tuning Parameters")
 
@@ -32110,6 +32106,8 @@ perfTable["GAM", ] = perfEval(
   , testData$CHWEUI
 ) %>% 
   round(2)
+
+
 
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # 7. Seasonal autoregressive integrated moving average (SARIMA)
@@ -32369,6 +32367,8 @@ perfTable["DNN", ] = perfEval(
 ) %>% 
   round(2)
 
+log4r::info(log, sprintf("%s", "[END] Main R"))
+
 
 #+++++++++++++++++++++++++++++++++++++++++++
 # 99. Automated Machine Learning (AML)
@@ -32376,49 +32376,42 @@ perfTable["DNN", ] = perfEval(
 # 앞선 설정된 모델뿐만 아니라 자동화 모델로 학습 수행
 # 오랜 시간이 소요됨
 
-# 초기화
-h2o::h2o.init()
-
-# 모델 학습
-amlModel = h2o::h2o.automl(
-  x = modelFormX
-  , y = modelFormY
-  , training_frame = as.h2o(trainData)
-  , nfolds = 10
-  , sort_metric = "RMSE"
-  , stopping_metric = "RMSE"
-  , seed = 1
-  # , max_runtime_secs = 60 * 120
-  # , max_models = 50
-  # , keep_cross_validation_predictions = TRUE
-  # , stopping_rounds = 50
-  # , stopping_tolerance = 0
-)
-
-# 모델 성능 
-amlModel@leaderboard %>% 
-  as.data.frame() %>% 
-  DT::datatable()
-
-# 기여도 평가
-modelId = as.data.frame(amlModel@leaderboard$model_id)[,1]
-stackEnsembleModel = h2o::h2o.getModel(grep("StackedEnsemble_AllModels", modelId, value = TRUE)[1])
-metaRes = h2o.getModel(stackEnsembleModel@model$metalearner$name)
-
-h2o.varimp(metaRes) %>% 
-  DT::datatable()
-
-
-# 모델 검증
-perfTable["AML", ] = perfEval(
-  as.data.frame(h2o::h2o.predict(object = amlModel, newdata = as.h2o(testData)))$predict
-  , testData$CHWEUI
-) %>% 
-  round(2)
-
-
-
-
-
-
-
+# # 초기화
+# h2o::h2o.init()
+# 
+# # 모델 학습
+# amlModel = h2o::h2o.automl(
+#   x = modelFormX
+#   , y = modelFormY
+#   , training_frame = as.h2o(trainData)
+#   , nfolds = 10
+#   , sort_metric = "RMSE"
+#   , stopping_metric = "RMSE"
+#   , seed = 1
+#   # , max_runtime_secs = 60 * 120
+#   # , max_models = 50
+#   # , keep_cross_validation_predictions = TRUE
+#   # , stopping_rounds = 50
+#   # , stopping_tolerance = 0
+# )
+# 
+# # 모델 성능 
+# amlModel@leaderboard %>% 
+#   as.data.frame() %>% 
+#   DT::datatable()
+# 
+# # 기여도 평가
+# modelId = as.data.frame(amlModel@leaderboard$model_id)[,1]
+# stackEnsembleModel = h2o::h2o.getModel(grep("StackedEnsemble_AllModels", modelId, value = TRUE)[1])
+# metaRes = h2o.getModel(stackEnsembleModel@model$metalearner$name)
+# 
+# h2o.varimp(metaRes) %>% 
+#   DT::datatable()
+# 
+# 
+# # 모델 검증
+# perfTable["AML", ] = perfEval(
+#   as.data.frame(h2o::h2o.predict(object = amlModel, newdata = as.h2o(testData)))$predict
+#   , testData$CHWEUI
+# ) %>% 
+#   round(2)

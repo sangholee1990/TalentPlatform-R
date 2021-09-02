@@ -296,6 +296,14 @@ fnWetBulbGolbalTempIndex = function(temp, rh, ws, sr) {
 
   return(wetBulbGolbalTempIndex)
 }
+
+getUrlTagHref = function(url, tag) {
+  xml2::read_html(url) %>%
+    rvest::html_nodes(tag) %>%
+    rvest::html_attr("href")
+}
+
+
 # C:\Users\saima\Documents
 # C:/Users/saima/OneDrive/Documents/R/win-library/4.1
 # 라이브러리 경로
