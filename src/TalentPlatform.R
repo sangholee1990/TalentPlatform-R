@@ -19257,6 +19257,10 @@ cat(sprintf(
 # AD 16.08.21 / AD 124.10.25 / AD 127.08.25 / AD 141.11.16 / AD 166.02.18 / AD 186.07.04
 # AD 193.02.19 / AD 194.08.04 / AD 200.09.26 / AD 201.03.22
 
+# 영역 설정
+# 경도 : 90-150
+# 위도 : 10-60
+
 # 선에 따른 값 부여
 # 청색 : 0.0
 # 적색 : 0.2
@@ -19282,7 +19286,8 @@ prjName = "test"
 # serviceName = "LSH0101"
 # serviceName = "LSH0105"
 # serviceName = "LSH0195"
-serviceName = "LSH0197"
+# serviceName = "LSH0197"
+serviceName = "LSH0201"
 
 contextPath = ifelse(env == "local", ".", getwd())
 
@@ -19359,14 +19364,20 @@ fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0195_일식 식분도 이�
 # 시트 8 : 청-조선공통(92)
 # sheetInfo = 8
 
-# 시트 8 : 조선온리(20)
+# 시트 9 : 조선온리(20)
 # sheetInfo = 9
 
-# 시트 8 : 북명+조선공통(74)
-sheetInfo = 10
+# 시트 10 : 북명+조선공통(74)
+# sheetInfo = 10
 
-# 시트 8 : 남명+조선공통(6)
+# 시트 11 : 남명+조선공통(6)
 # sheetInfo = 11
+
+# 시트 12 : 개경조선온리(1)
+# sheetInfo = 12
+
+# 시트 13 : 남명+개경조선(2)
+sheetInfo = 13
 
 sheetName = dplyr::case_when(
   sheetInfo == 1 ~ "테스트"
@@ -19381,6 +19392,8 @@ sheetName = dplyr::case_when(
   , sheetInfo == 9 ~ "조선온리(20)"
   , sheetInfo == 10 ~ "북명+조선공통(74)"
   , sheetInfo == 11 ~ "남명+조선공통(6)"
+  , sheetInfo == 12 ~ "개경조선온리(1)"
+  , sheetInfo == 13 ~ "남명+개경조선(2)"
   , TRUE ~ NA_character_
 )
 
@@ -19392,7 +19405,7 @@ data = openxlsx::read.xlsx(fileInfo, sheet = sheetInfo) %>%
 
 typeList = data$type %>% unique %>% sort
 
-for (typeInfo in typeList[11]) {
+for (typeInfo in typeList[2]) {
 
   tmpData = data %>%
     dplyr::filter(
@@ -19453,15 +19466,20 @@ for (typeInfo in typeList[11]) {
 }
 
 # 마리오 알람 소리
-# beepr::beep(sound = 8)
+beepr::beep(sound = 8)
 
 #**************************************************
 # 시트에 따른 데이터 병합
 #**************************************************
+# sheetList = c(7, 8)
+sheetList = c(8, 9, 10, 11)
+# sheetList = c(12, 13)
+
+# sheetName = "청온리(18)+청-조선공통(92)"
+sheetName = "청-조선공통(92)+조선온리(20)+북명-조선공통(74)+남명-조선공통(6)"
+# sheetName = "개경조선온리(1)+남명-개경조선(2)"
 
 dataL3 = tibble()
-sheetList = c(7, 8)
-
 for (sheetInfo in sheetList) {
   
   data = openxlsx::read.xlsx(fileInfo, sheet = sheetInfo) %>%
@@ -19500,27 +19518,6 @@ for (sheetInfo in sheetList) {
 #**************************************************
 # 공간 평균
 #**************************************************
-# dataL4 %>%
-#   dplyr::filter(
-#     xAxis == 125.0
-#     , yAxis == 30.0
-#   )
-#
-# dataL3 %>%
-#   dplyr::filter(
-#     zAxis > 0
-#   ) %>%
-#   dplyr::filter(
-#     xAxis == 130.0
-#     , yAxis == 10.0
-#   )
-#
-# dataL4 %>%
-#   dplyr::filter(
-#     xAxis == 130.0
-#     , yAxis == 10.0
-#   )
-
 dataL4 = dataL3 %>%
   dplyr::group_by(xAxis, yAxis) %>%
   dplyr::summarise(
@@ -19532,46 +19529,17 @@ summary(dataL4)
 ind = which(dataL4$meanVal == max(dataL4$meanVal, na.rm = TRUE))
 maxData = dataL4[ind,]
 
+setBreak = c(seq(0.42, 0, -0.02), 0.41, seq(0.42, 0.43, 0.001))
+# setBreak = c(seq(0.55, 0, -0.02), 0.555)
 
-saveImg = sprintf("%s/%s_%s_%s.png", globalVar$figPath, serviceName, "청온리(18)+청-조선공통(92)", "Mean_Color")
-saveImg = sprintf("%s/%s_%s_%s.png", globalVar$figPath, serviceName, "청온리(18)+청-조선공통(92)", "Mean_Black")
+saveImg = sprintf("%s/%s_%s_%s.png", globalVar$figPath, serviceName, sheetName, "Mean_Color")
 
 ggplot(data = dataL4, aes(x = xAxis, y = yAxis, fill = meanVal, z = meanVal)) +
   geom_raster(interpolate = TRUE, na.rm = TRUE) +
   scale_fill_gradientn(colours = cbMatlab, limits = c(0, 1.0), breaks = seq(0, 1.0, 0.2), na.value = NA) +
   # metR::geom_contour_fill(na.fill = TRUE, kriging = TRUE)
-  # geom_tile() +
-  # metR::geom_contour2(color = "black", alpha = 1.0, breaks = c(seq(0.42, 0, -0.02), 0.41), show.legend = FALSE, size = 0.5) +
-  # metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, skip = 0, breaks = c(seq(0.42, 0, -0.02), 0.41), rotate = TRUE, na.rm = TRUE, size = 5) +
-  # metR::geom_contour2(color = "black", alpha = 1.0, breaks = c(seq(0.69, 0, -0.04), 0.7), show.legend = FALSE, size = 0.5) +
-  # metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, skip = 0, breaks = c(seq(0.69, 0, -0.04), 0.7), rotate = TRUE, na.rm = TRUE, size = 5) +
-  # metR::geom_contour2(color = "black", alpha = 1.0, breaks = c(seq(0, 1.0, 0.04), 0.62), show.legend = FALSE, size = 0.5) +
-  # metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, skip = 0, breaks = c(seq(0, 1.0, 0.04), 0.62), rotate = TRUE, na.rm = TRUE, size = 5) +
-  # metR::geom_contour2(color = "black", alpha = 1.0, breaks = c(seq(0, 0.5, 0.05), 0.502, 0.504), show.legend = FALSE, size = 0.5) +
-  # metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, skip = 0, breaks = c(seq(0, 0.5, 0.05), 0.502, 0.504), rotate = TRUE, na.rm = TRUE, size = 5) +
-  # metR::geom_contour2(color = "black", alpha = 1.0, breaks = c(seq(0, 0.62, 0.02), 0.625, 0.629), show.legend = FALSE, size = 0.5) +
-  # metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, skip = 1, breaks =  c(seq(0, 0.62, 0.02), 0.625, 0.629), rotate = TRUE, na.rm = TRUE, size = 5) +
-  # metR::geom_contour2(color = "black", alpha = 1.0, breaks = c(0.40, 0.48, 0.53, 0.55), show.legend = FALSE, size = 0.5) +
-  # metR::geom_contour2(color = "black", alpha = 1.0, breaks = c(0.4, 0.5, 0.6, 0.7), show.legend = FALSE, size = 0.5) +
-  # metR::geom_contour2(color = "black", alpha = 1.0, breaks = 0.4, show.legend = FALSE, size = 0.5) +
-  # metR::geom_contour2(color = "black", alpha = 1.0, breaks = 0.5, show.legend = FALSE, size = 1) +
-  # metR::geom_contour2(color = "black", alpha = 1.0, breaks = 0.6, show.legend = FALSE, size = 2) +
-  # metR::geom_contour2(color = "black", alpha = 1.0, breaks = 0.7, show.legend = FALSE, size = 4) +
-  #
-  # metR::geom_contour2(color = "black", alpha = 1.0, breaks = 0.40, show.legend = FALSE, size = 0.5) +
-  # metR::geom_contour2(color = "black", alpha = 1.0, breaks = 0.48, show.legend = FALSE, size = 1) +
-  # metR::geom_contour2(color = "black", alpha = 1.0, breaks = 0.53, show.legend = FALSE, size = 2) +
-  # metR::geom_contour2(color = "black", alpha = 1.0, breaks = 0.55, show.legend = FALSE, size = 4) +
-  # metR::geom_contour2(color = "black", alpha = 1.0, breaks = seq(0, 1.0, 0.02), show.legend = FALSE, size = 0.5) +
-  # metR::geom_contour2(color = "black", alpha = 1.0, breaks = 0.3, show.legend = FALSE, size = 0.5) +
-  # metR::geom_contour2(color = "black", alpha = 1.0, breaks = 0.5, show.legend = FALSE, size = 1) +
-  # metR::geom_contour2(color = "black", alpha = 1.0, breaks = 0.7, show.legend = FALSE, size = 2) +
-  # metR::geom_contour2(color = "black", alpha = 1.0, breaks = 0.9, show.legend = FALSE, size = 4) +
-  # metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, skip = 0, breaks = seq(0, 1.0, 0.02), rotate = TRUE, na.rm = TRUE, size = 5) +
-  # metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, skip = 0, breaks = seq(0, 1.0, 0.05), rotate = TRUE, na.rm = TRUE, size = 5) +
-  # metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, skip = 0, breaks = c(0.40, 0.48, 0.53, 0.55), rotate = TRUE, na.rm = TRUE, size = 5) +
-  # metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, skip = 0, breaks = c(0.4, 0.5, 0.6, 0.7), rotate = TRUE, na.rm = TRUE, size = 5) +
-  # geom_point(data = sampleData, aes(x = lon, y = lat, colour = factor(val), fill = NULL, z = NULL)) +
+  metR::geom_contour2(color = "black", alpha = 1.0, breaks = setBreak, show.legend = FALSE, size = 0.5) +
+  metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, skip = 0, breaks = setBreak, rotate = TRUE, na.rm = TRUE, size = 5) +
   geom_sf(data = mapGlobal, aes(x = NULL, y = NULL, fill = NULL, z = NULL), color = "black", fill = NA) +
   geom_point(data = maxData, aes(x = xAxis, y = yAxis, colour = meanVal, fill = NULL, z = NULL), color = "red") +
   metR::scale_x_longitude(breaks = seq(90, 150, 10), limits = c(90, 150), expand = c(0, 0)) +
@@ -19587,7 +19555,28 @@ ggplot(data = dataL4, aes(x = xAxis, y = yAxis, fill = meanVal, z = meanVal)) +
   theme(text = element_text(size = 18)) +
   ggsave(filename = saveImg, width = 10, height = 10, dpi = 600)
 
-# file.show(saveImg)
+saveImg = sprintf("%s/%s_%s_%s.png", globalVar$figPath, serviceName, sheetName, "Mean_Black")
+
+ggplot(data = dataL4, aes(x = xAxis, y = yAxis, fill = meanVal, z = meanVal)) +
+  # geom_raster(interpolate = TRUE, na.rm = TRUE) +
+  # scale_fill_gradientn(colours = cbMatlab, limits = c(0, 1.0), breaks = seq(0, 1.0, 0.2), na.value = NA) +
+  # metR::geom_contour_fill(na.fill = TRUE, kriging = TRUE)
+  metR::geom_contour2(color = "black", alpha = 1.0, breaks = setBreak, show.legend = FALSE, size = 0.5) +
+  metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, skip = 0, breaks = setBreak, rotate = TRUE, na.rm = TRUE, size = 5) +
+  geom_sf(data = mapGlobal, aes(x = NULL, y = NULL, fill = NULL, z = NULL), color = "black", fill = NA) +
+  geom_point(data = maxData, aes(x = xAxis, y = yAxis, colour = meanVal, fill = NULL, z = NULL), color = "red") +
+  metR::scale_x_longitude(breaks = seq(90, 150, 10), limits = c(90, 150), expand = c(0, 0)) +
+  metR::scale_y_latitude(breaks = seq(10, 60, 10), limits = c(10, 60), expand = c(0, 0)) +
+  labs(
+    subtitle = NULL
+    , x = NULL
+    , y = NULL
+    , fill = NULL
+    , colour = NULL
+    , title = NULL
+  ) +
+  theme(text = element_text(size = 18)) +
+  ggsave(filename = saveImg, width = 10, height = 10, dpi = 600)
 
 
 #===============================================================================================
@@ -19600,7 +19589,7 @@ ggplot(data = dataL4, aes(x = xAxis, y = yAxis, fill = meanVal, z = meanVal)) +
 # Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
 #===============================================================================================
 
-rm(list = ls())
+# rm(list = ls())
 
 prjName = "o2job"
 
@@ -31799,6 +31788,7 @@ library(h2o)
 library(stringr)
 library(vroom)
 library(RQuantLib)
+library(mgcViz)
 
 # 로그 설정
 saveLogFile = sprintf("%s/%s_%s_%s_%s.log", globalVar$logPath, Sys.info()["sysname"], Sys.info()["nodename"], prjName, format(Sys.time(), "%Y%m%d"))
@@ -31943,8 +31933,8 @@ trainData = dataL1 %>%
   dplyr::select(-c(YMDH, nMonth, nDay, nHour, refYmd, isTrainValid, isBizDay, isType2))
 
 # 테스트용
-# trainData = trainData %>% 
-#   dplyr::sample_n(1000)
+trainData = trainData %>%
+  dplyr::sample_n(1000)
 
 # 훈련 데이터셋 확인
 dplyr::tbl_df(trainData)
@@ -31986,7 +31976,6 @@ controlInfo = caret::trainControl(
   , p = 0.8
 )
 
-
 #**********************************************************
 # 머신러닝 (MLR, RF, GAM, SARIMA, SVR, GBM)
 #**********************************************************
@@ -32020,8 +32009,22 @@ ggplot(mlrModel) +
   theme(text = element_text(size = 18)) +
   ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
 
+# 요약
+summary(mlrModel)
+
 # 최적 모형의 회귀계수
-mlrModel$finalModel 
+mlrModel$finalModel
+
+# 변수 중요도
+# 서로 다른 모델의 변수 중요도는 다르기 때문에 전체적인 관점에서 중요 변수를 파악할 수 있음
+# 즉 앞서 단계별 소거법 (lmFitStep)의 결과와 비교하여 분석 필요
+# 즉 대부분 50% 이상 변수는 주로 파악 (CD, Height, WWR, type2Lab, HD, interTerm2)
+mlrVarImp = varImp(mlrModel)
+
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "MLR Variable Importance")
+png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
+plot(mlrVarImp)
+dev.off()
 
 # 모델 검증
 perfTable["MLR", ] = perfEval(
@@ -32053,8 +32056,22 @@ ggplot(rfModel) +
   theme(text = element_text(size = 18)) +
   ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
 
+# 요약
+summary(rfModel)
+
 # 최적 모형의 회귀계수
-rfModel$finalModel 
+rfModel$finalModel
+
+# 변수 중요도
+# 서로 다른 모델의 변수 중요도는 다르기 때문에 전체적인 관점에서 중요 변수를 파악할 수 있음
+# 즉 앞서 단계별 소거법 (lmFitStep)의 결과와 비교하여 분석 필요
+# 즉 대부분 50% 이상 변수는 주로 파악 (HD, CD, Height, Year.y)
+rfVarImp = varImp(rfModel)
+
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "RF Variable Importance")
+png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
+plot(rfVarImp)
+dev.off()
 
 # 모델 검증
 perfTable["RF", ] = perfEval(
@@ -32067,161 +32084,87 @@ perfTable["RF", ] = perfEval(
 # 6. Generalized addictive model (GAM)
 #+++++++++++++++++++++++++++++++++++++++++++
 
-# Factor 자료형 제외하여 모델 구성
-modelFormExceptFactor = as.formula("CHWEUI ~ Uvalue_Wall + Uvalue_Window + Uvalue_Roof + WWR + Height + Year.y + AgeAfterRenov + Equipment + Lighting + Solar + HD + CD + Humidity + Pressure + WindSpeed + interTerm1 + interTerm2")
+# # Factor 자료형 제외하여 모델 구성
+# modelFormExceptFactor = as.formula("CHWEUI ~ Uvalue_Wall + Uvalue_Window + Uvalue_Roof + WWR + Height + Year.y + AgeAfterRenov + Equipment + Lighting + Solar + HD + CD + Humidity + Pressure + WindSpeed + interTerm1 + interTerm2")
+# 
+# # 현재 학습 과정에서 에러 발생 (Factor 자료형 포함 시 에러 발생)
+# gamModel = caret::train(
+#   form = modelFormExceptFactor
+#   , data = trainData
+#   , method = "gam"
+#   , preProc = c("center", "scale")
+#   , metric = "RMSE"
+#   , tuneGrid = expand.grid(
+#     method = "GCV.Cp"
+#     , select = c(TRUE, FALSE)
+#   )
+#   , trControl = controlInfo
+# )
 
-# 현재 학습 과정에서 에러 발생 (Factor 자료형 포함 시 에러 발생)
-gamModel = caret::train(
-  form = modelFormExceptFactor
+# saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "GAM RMSE Results Across Tuning Parameters")
+# 
+# ggplot(gamModel) +
+#   theme(text = element_text(size = 18)) +
+#   ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
+# 
+# # 최적 모형의 회귀계수
+# gamModel$finalModel 
+# 
+# # 모델 검증
+# perfTable["GAM", ] = perfEval(
+#   predict(gamModel, newdata = testData)
+#   , testData$CHWEUI
+# ) %>% 
+#   round(2)
+
+gamModel = mgcv::gam(
+  CHWEUI ~ s(Uvalue_Window) + s(Uvalue_Roof) + s(Uvalue_Wall) 
+  + s(WWR) + s(Year.y) + s(Lighting) + s(Height) + s(interTerm2)
+  + s(Equipment) + s(interTerm1) + s(AgeAfterRenov) + s(WindSpeed)
+  + s(CD) + s(HD) + s(Solar) + s(Pressure) + s(Humidity)
+  + seasonType + bizDayType + hourType
   , data = trainData
-  , method = "gam"
-  , preProc = c("center", "scale")
-  , metric = "RMSE"
-  , tuneGrid = expand.grid(
-    method = "GCV.Cp"
-    , select = c(TRUE, FALSE)
   )
-  , trControl = controlInfo
-)
 
-gamModel = mgcv::gam(CHWEUI ~ s(Uvalue_Wall) + s(Uvalue_Window) + s(Uvalue_Roof), data = trainData)
+# 요약
 summary(gamModel)
-par(mfrow=c(1,3)) #to partition the Plotting Window
-plot(gamModel, se = TRUE) 
 
-
-
-saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "GAM RMSE Results Across Tuning Parameters")
-
-ggplot(gamModel) +
-  theme(text = element_text(size = 18)) +
-  ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
-
-# 최적 모형의 회귀계수
-gamModel$finalModel 
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "GAM Results Across Tuning Parameters")
+png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
+print(plot(mgcViz::getViz(gamModel), allTerms = TRUE), pages = 1)
+dev.off()
 
 # 모델 검증
 perfTable["GAM", ] = perfEval(
   predict(gamModel, newdata = testData)
   , testData$CHWEUI
-) %>% 
+) %>%
   round(2)
 
-
-
-#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-# 7. Seasonal autoregressive integrated moving average (SARIMA)
-#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-# 우선적으로 날짜 데이터를 시계열 데이터 변환
-# library(ForecastTB)
-# library(predtoolsTS)
-# 
-# a <- prediction_errors(data = nottem)
-# 
-# modl.tsToDataFrame(AirPassengers,formula=c(1,3,4,5,6,7))
-# modl.tsToDataFrame(AirPassengers,formula=c(1:20))
-# 
-# Lines <- "Dates   Bajaj_close Hero_close
-# 3/14/2013   1854.8  1669.1
-# 3/15/2013   1850.3  1684.45
-# 3/18/2013   1812.1  1690.5
-# 3/19/2013   1835.9  1645.6
-# 3/20/2013   1840    1651.15
-# 3/21/2013   1755.3  1623.3
-# 3/22/2013   1820.65 1659.6
-# 3/25/2013   1802.5  1617.7
-# 3/26/2013   1801.25 1571.85
-# 3/28/2013   1799.55 1542"
-# 
-# library(zoo)
-# z <- read.zoo(text = Lines, header = TRUE, format = "%m/%d/%Y")
-# 
-# as.ts(read.zoo(Lines, FUN = as.yearmon))
-# 
-# DF <- read.table(text = Lines, header = TRUE)
-# z <- read.zoo(DF, format = "%m/%d/%Y")
-# 
-# zz <- z
-# time(zz) <- seq_along(time(zz))
-# 
-# 
-# as.ts(z)
-# as.ts(zz)
-# 
-# z.m <- as.zooreg(aggregate(z, as.yearmon, mean), freq = 12)
-# as.ts(z.m)
-# 
-# 
-# dta <- data.frame(
-#   Dates = c("3/14/2013", "3/15/2013", "3/18/2013", "3/19/2013"),
-#   Bajaj_close = c(1854.8, 1850.3, 1812.1, 1835.9),
-#   Hero_close = c(1669.1, 1684.45, 1690.5, 1645.6)
-# )
-# 
-# dta
-# 
-# 
-# library(tsbox)
-# b = ts_ts(ts_long(dta))
-# 
-# plot(b)
-# 
-# 
-# library(dplyr)
-# library(nycflights13)
-# dta <- weather %>%
-#   select(origin, time = time_hour, temp, humid, precip) %>%
-#   ts_long()
-# 
-# dta %>%
-#   filter(id == "temp") %>%
-#   ts_trend() %>%
-#   ts_plot()
-
-
-#‘AirPassengers‘ is a sample dataset in CRAN
-# prediction_errors(data = AirPassengers)
-
-# 날짜 데이터를 시계열 데이터 변환
-# tsData = ts(data$val, start = c(1999, 1), frequency = 12)
-
-# 시계열 안정성 진단 및 검정
-# P값이 0.01로서 귀무가설 기각 (정상 시계열)
-# adf.test(tsData, alternative = c("stationary"), k = 0)
-# Dickey-Fuller = -5.0135178, Lag order = 0, p-value = 0.01
-
-# 시계열로부터 최종선택한 ARIMA 모형 (입력변수 : 시계열)
-# bestModel = auto.arima(tsData, trace = TRUE)
-# ARIMA(0,1,4)(1,1,2)[12]
-# 비계절 : AR(0), 1차 차분, MA(4)
-# 계절 : AR(1), 2차 차분 (24개월), MA(2)
-
-# 시계열로부터 최종선택한 ARIMA 모형 (입력변수 : 시계열 + 입력 변수)
-# xreg <- data.frame(MaxTemp = elecdaily[, "Temperature"],
-#                    MaxTempSq = elecdaily[, "Temperature"]^2,
-#                    Workday = elecdaily[, "WorkDay"])
-# bestModel = forecast::auto.arima(elecdaily[, "Demand"], xreg = xreg)
-
-# 모형의 통계적 유의성 검정
-# X-squared = 0.071471882, df = 1, p-value = 0.7892057
-# Box.test(bestModel$residuals, lag = 1, type = "Ljung")
-
-# 잔차 그림 확인
-# checkresiduals(bestModel)
-
-# 최종선택한 모형을 사용하여 구한 예측값(월별자료는 향후 12개월)을 나타내는 그래프
-# akimaData = forecast::forecast(bestModel, h = 12)
-
-# 필요한 입력 변수에 따른 결과 
-# akimaData = forecast::forecast(bestModel, xreg = cbind(rep(26,14), rep(26^2,14),  c(0,1,0,0,1,1,1,1,1,0,0,1,1,1))))
-
-# 성능 비교
-# accuracy(akimaData)
 
 
 #+++++++++++++++++++++++++++++++++++++++++++
 # 8. Support Vector Regression (SVM)
 #+++++++++++++++++++++++++++++++++++++++++++
+# library(doSNOW)
+# library(parallel)
+# 
+# oSocClu = makeCluster(parallel::detectCores() - 1, type = "SOCK")
+# doSNOW::registerDoSNOW(oSocClu)
+# 
+# trainData = trainData %>%
+#   dplyr::sample_n(10000)
+
+# parallel::stopCluster(oSocClu)
+
+# controlInfo = caret::trainControl(
+#   method = 'repeatedcv'
+#   , repeats = 1
+#   , number = 10
+#   , p = 0.8
+#   , search = "random"
+# )
+
 # 모델 학습
 svmModel = caret::train(
   form = modelForm
@@ -32229,9 +32172,9 @@ svmModel = caret::train(
   , method = "svmLinear"
   , preProc = c("center", "scale")
   , metric = "RMSE"
-  # , tuneGrid = expand.grid(
-  #   C = 2^(seq(-5, 5, 2))
-  # )
+  , tuneGrid = expand.grid(
+    C = 2^(seq(-5, 5, 2))
+  )
   , trControl = controlInfo
 )
 
@@ -32241,9 +32184,11 @@ ggplot(svmModel) +
   theme(text = element_text(size = 18)) +
   ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
 
+# 요약
+summary(svmModel)
 
 # 최적 모형의 회귀계수
-svmModel$finalModel 
+svmModel$finalModel
 
 # 모델 검증
 perfTable["SVM", ] = perfEval(
@@ -32262,12 +32207,12 @@ gbmModel = caret::train(
   , method = "gbm"
   , preProc = c("center", "scale")
   , metric = "RMSE"
-  # , tuneGrid = expand.grid(
-  #   interaction.depth = 1:5
-  #   , n.trees = (1:6) * 500
-  #   , shrinkage = c(0.001, 0.01, 0.1)
-  #   , n.minobsinnode = 10
-  # )
+  , tuneGrid = expand.grid(
+    interaction.depth = 1:5
+    , n.trees = (1:6) * 500
+    , shrinkage = c(0.001, 0.01, 0.1)
+    , n.minobsinnode = 10
+  )
   , trControl = controlInfo
 )
 
@@ -32276,6 +32221,9 @@ saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "GBM RMSE Resu
 ggplot(gbmModel) +
   theme(text = element_text(size = 18)) +
   ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
+
+# 요약
+summary(gbmModel)
 
 # 최적 모형의 회귀계수
 gbmModel$finalModel 
@@ -32305,7 +32253,7 @@ elModel = caretEnsemble::caretEnsemble(
   , metric = "RMSE"
 )
 
-# 모델 결과
+# 요약
 summary(elModel)
 
 saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "EL RMSE Results Across Tuning Parameters")
@@ -32323,6 +32271,7 @@ perfTable["EL", ] = perfEval(
 ) %>% 
   round(2)
 
+
 #**********************************************************
 # 딥러닝
 #**********************************************************
@@ -32339,8 +32288,10 @@ h2o::h2o.init()
 # nfolds : 훈련 반복 수
 
 layerNum = as.integer(nrow(trainData) / 10)
-layerInfo = 3
-epochsInfo = 1000
+# layerNum = 1000
+# layerNum = 100
+layerInfo = 10
+epochsInfo = 10
 
 # 모델 학습
 dnnModel = h2o::h2o.deeplearning(
@@ -32350,10 +32301,13 @@ dnnModel = h2o::h2o.deeplearning(
   , activation = "Rectifier"
   , hidden = rep(layerNum, layerInfo)
   , nfolds = 10
+  # , nfolds = 2
   , epochs = epochsInfo
   , seed = 1
 )
 
+# 요약
+summary(dnnModel)
 
 saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "Training-Scoring-History")
 png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
@@ -32369,49 +32323,85 @@ perfTable["DNN", ] = perfEval(
 
 log4r::info(log, sprintf("%s", "[END] Main R"))
 
-
 #+++++++++++++++++++++++++++++++++++++++++++
 # 99. Automated Machine Learning (AML)
 #+++++++++++++++++++++++++++++++++++++++++++
 # 앞선 설정된 모델뿐만 아니라 자동화 모델로 학습 수행
 # 오랜 시간이 소요됨
 
-# # 초기화
-# h2o::h2o.init()
-# 
-# # 모델 학습
-# amlModel = h2o::h2o.automl(
-#   x = modelFormX
-#   , y = modelFormY
-#   , training_frame = as.h2o(trainData)
-#   , nfolds = 10
-#   , sort_metric = "RMSE"
-#   , stopping_metric = "RMSE"
-#   , seed = 1
-#   # , max_runtime_secs = 60 * 120
-#   # , max_models = 50
-#   # , keep_cross_validation_predictions = TRUE
-#   # , stopping_rounds = 50
-#   # , stopping_tolerance = 0
-# )
-# 
-# # 모델 성능 
-# amlModel@leaderboard %>% 
-#   as.data.frame() %>% 
-#   DT::datatable()
-# 
-# # 기여도 평가
-# modelId = as.data.frame(amlModel@leaderboard$model_id)[,1]
-# stackEnsembleModel = h2o::h2o.getModel(grep("StackedEnsemble_AllModels", modelId, value = TRUE)[1])
-# metaRes = h2o.getModel(stackEnsembleModel@model$metalearner$name)
-# 
-# h2o.varimp(metaRes) %>% 
-#   DT::datatable()
-# 
-# 
-# # 모델 검증
-# perfTable["AML", ] = perfEval(
-#   as.data.frame(h2o::h2o.predict(object = amlModel, newdata = as.h2o(testData)))$predict
-#   , testData$CHWEUI
-# ) %>% 
-#   round(2)
+# 초기화
+h2o::h2o.init()
+
+# 모델 학습
+amlModel = h2o::h2o.automl(
+  x = modelFormX
+  , y = modelFormY
+  , training_frame = as.h2o(trainData)
+  , nfolds = 5
+  , sort_metric = "RMSE"
+  , stopping_metric = "RMSE"
+  , seed = 1
+)
+
+# 요약
+summary(amlModel)
+
+# 모델 성능
+amlModel@leaderboard %>%
+  as.data.frame() %>%
+  DT::datatable()
+
+# 기여도 평가
+modelId = as.data.frame(amlModel@leaderboard$model_id)[,1]
+stackEnsembleModel = h2o::h2o.getModel(grep("StackedEnsemble_AllModels", modelId, value = TRUE)[1])
+metaRes = h2o.getModel(stackEnsembleModel@model$metalearner$name)
+
+h2o.varimp(metaRes) %>%
+  DT::datatable()
+
+
+# 모델 검증
+perfTable["AML", ] = perfEval(
+  as.data.frame(h2o::h2o.predict(object = amlModel, newdata = as.h2o(testData)))$predict
+  , testData$CHWEUI
+) %>%
+  round(2)
+
+
+
+#+++++++++++++++++++++++++++++++++++++++++++
+# 결과 요약
+#+++++++++++++++++++++++++++++++++++++++++++
+# 성능 평가 결과
+# perfTable
+# slope interp xMean yMean   xSd   ySd   cnt  bias  rBias  rmse rRmse    r pVal diffMean diffSd
+# MLR     1.95 -17.07 20.70 23.37  7.34 19.12 26400 -2.68 -11.45 14.71 62.92 0.75    0    -2.68  14.46
+# RF      1.68  -6.09 17.51 23.37 10.48 19.12 26400 -5.87 -25.11 11.84 50.66 0.92    0    -5.87  10.29
+# GAM     2.05 -18.88 20.56 23.37  7.94 19.12 26400 -2.81 -12.03 13.32 56.97 0.85    0    -2.81  13.02
+# SVM     2.42 -17.57 16.90 23.37  5.51 19.12 26400 -6.47 -27.70 17.06 72.97 0.70    0    -6.47  15.78
+# GBM     1.19  -1.97 21.29 23.37 14.83 19.12 26400 -2.08  -8.92  8.15 34.87 0.92    0    -2.08   7.88
+# EL      1.21  -1.54 20.52 23.37 14.43 19.12 26400 -2.86 -12.23  8.74 37.37 0.92    0    -2.86   8.25
+# DNN     1.16  -2.56 22.42 23.37 14.76 19.12 26400 -0.96  -4.10  8.95 38.28 0.89    0    -0.96   8.90
+# AML     1.03  -0.30 22.98 23.37 17.06 19.12 26400 -0.40  -1.71  7.54 32.26 0.92    0    -0.40   7.53
+
+# 성능 평가에서는 기울기, 절편, x축 평균, y축 평균, x 표준편차, y 표준편차, 개수, 편이, 
+# 상대적인 편이, 평균제곱근오차, 상대적인 평균제곱근오차, 상관계수, 유의수준, 평균 차이, 
+# 표준편차 차이로 나타냄
+# 주요 검증 스코어인 상관계수 (r) 및 평균제곱근오차 (rmse)를 토대로  시 SVM, MLR, GAM, RF, DNN, EL, GBM, AML 순으로 좋음
+
+# 일반적으로 머신러닝/딥러닝의 역사에 따라 성능이 예상된다.
+# 즉 머신러닝 : MLR, GAM (1983), SVM (1992), RF (1995), GBM (2001), EL (2003)
+# 딥러닝 : DNN (1943-2019) 
+# 머신러닝 + 딥러닝 : AML (2013-2021)
+
+# 일반적으로 SVM의 경우 일반적인 MLR, GAM보다 우수한 사례를 확인할 수 있으나 이 연구에서는 다소 성능 저하가 보임
+# 이는 SVM의 성능에 매개변수로 인한 오차로 판단됨. 즉 최적화된 매개변수를 조절하여 최적화 과정이 요구됨 
+# (기계학습 응용 및 학습 알고리즘 성능 개선방안 사례연구, https://www.koreascience.or.kr/article/JAKO201609562998505.pdf)
+
+# 또한 EL의 경우 일반적으로 GBM보다 우수한 사례를 확인할 수 있으나 이 연구에서는 약간 좋지 못한 결과를 보임
+# 이는 앙상블에서 사용된 모형 (SVM, RF, GBM) 중에서 상당한 성능 오차를 보인 SVM 때문으로 판된됨
+
+# 결과적으로 머신러닝보단 딥러닝이 좋은 결과를 보이고 단일 모델보다 앙상블 모델이 높은 성능을 유지하기 때문에
+# 최근에 AML을 활용하여 자동 머신러닝/딥러닝뿐만 아니라 앙상블로 최적의 모형을 보여줌
+# 다소 시간을 오래걸릴지라도 사용자 측면에서는 고려할 수 있는 경우에서 최적의 결과 도출
+# 이는 작업스케쥴링 (srun), 병렬처리 또는 리눅스 기반을 수행 필연
