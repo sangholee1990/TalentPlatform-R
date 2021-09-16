@@ -49,16 +49,16 @@ xAxisMax = 1
 
 for (i in 1:n) {
   xPos = -1 + ((2 * i) / (n + 1))
-
-
+  
+  
   data = data.frame(
     x = c(xAxisMin, xPos, xPos, xAxisMax)
     , y = c(x[i], x[i], y[i], y[i])
   )
-
+  
   # 선 그리기
   lines(data$x, data$y, col = color[i])
-
+  
   # 점 그리기
   points(data[c(1, 4),], col = color[i], pch = 19)
 }
@@ -101,13 +101,13 @@ text(0, 1, "N"); text(1, 0, "E"); text(0, -1, "S"); text(-1, 0, "W")
 number = k
 
 for (i in 1:number) {
-
+  
   sector = s[histogram$breaks[i] + 1]
   sectorArea = seq(sector, sector + (2 * pi) / number, length = 1000)
-
+  
   xx = c(0, radius[i] * cos(sectorArea))
   yy = c(0, radius[i] * sin(sectorArea))
-
+  
   polygon(xx, yy)
 }
 
@@ -389,22 +389,22 @@ count = 0
 
 for (k in 1:n.repeat) {
   sampleList = base::sample(1:nrow(diabetes), replace = TRUE)
-
+  
   # sample(X, N, replace=F)
   r.data = diabetes[sampleList,]
-
+  
   r.ind = which(r.data$age > 10)
-
+  
   r.groupA = r.data[r.ind,]
   # r.groupB = diabetes[-r.ind, ]
   r.meanGroupA = mean(r.groupA$logCpeptide, na.rm = TRUE)
-
+  
   r.star = r.meanGroupA - meanGroupB
-
+  
   r.random[k] = r.star
-
+  
   if (r.star <= r) count = count + 1
-
+  
 }
 
 hist(r.random, nclass = 20)
@@ -425,16 +425,16 @@ count = 0
 
 for (k in 1:n.repeat) {
   sampleList = base::sample(1:nrow(diabetes), replace = FALSE)
-
+  
   r.ind = which(diabetes[sampleList,]$age > 10)
-
+  
   r.groupA = diabetes[r.ind,]
   r.groupB = diabetes[-r.ind,]
   r.meanGroupA = mean(r.groupA$logCpeptide, na.rm = TRUE)
   r.meanGroupB = mean(r.groupB$logCpeptide, na.rm = TRUE)
-
+  
   r.star = r.meanGroupA - r.meanGroupB
-
+  
   r.boot[k] = r.star
 }
 
@@ -548,69 +548,69 @@ dataL1 = data.frame()
 
 # for (i in 1:nrow(data)) {
 foreach::foreach(i = 1:nrow(data), .combine = c) %do% {
-
+  
   Sys.sleep(2)
-
+  
   getRowData = data %>%
     tibble::rowid_to_column() %>%
     dplyr::filter(rowid == i) %>%
     dplyr::select(시군구:도로명)
-
+  
   searchVal = paste(stringr::str_split(getRowData$시군구, pattern = " ")[[1]][3], getRowData$단지명)
-
+  
   Sys.sleep(2)
-
+  
   remDr$executeScript("unifiedSearchShow();")
-
+  
   Sys.sleep(2)
-
+  
   remDr$executeScript(paste0("$('#unifiedSearchKeyword').val('", searchVal, "')"))
-
+  
   Sys.sleep(2)
-
+  
   remDr$executeScript("unifiedSearchKeyword();")
-
+  
   Sys.sleep(5)
-
+  
   remDr$findElement(using = "xpath", value = '//*[@id="unifiedSearchResult"]/div[2]/ul/li')$clickElement()
-
+  
   Sys.sleep(2)
-
+  
   getHandle = remDr$getWindowHandles()
   setWindowTab(remDr, getHandle[[2]])
-
+  
   Sys.sleep(2)
-
+  
   # 총 세대수
   totalNumberHouseholds = getXpathText('//*[@id="ccChangeArea"]/div[*]/table/tbody/tr[1]/td[2]')[1]
   # //*[@id="ccChangeArea"]/div[3]/table/tbody/tr[1]/td[2]
   # //*[@id="ccChangeArea"]/div[5]/table/tbody/tr[1]/td[2]
-
+  
   # 총 주차대수
   totalNumberParkingSpaces = getXpathText('//*[@id="ccChangeArea"]/div[*]/table/tbody/tr[2]/td[1]')[1]
   # //*[@id="ccChangeArea"]/div[3]/table/tbody/tr[2]/td[1]
   # //*[@id="ccChangeArea"]/div[5]/table/tbody/tr[2]/td[1]
-
-
+  
+  
   # 난방방식
   heatingSystem = getXpathText('//*[@id="ccChangeArea"]/div[*]/table/tbody/tr[4]/td[1]')
   # //*[@id="ccChangeArea"]/div[3]/table/tbody/tr[4]/td[1]
-
+  
   Sys.sleep(2)
-
+  
   remDr$findElement(using = "xpath", value = '//*[@id="siseTabBtn"]/a')$clickElement()
-
+  
   Sys.sleep(2)
-
+  
   # 현관구조
   structureFrontDoor = getXpathText('//*[@id="b062071"]/div[9]/table/tbody/tr[2]/td')
-
-
+  
+  
   if (length(totalNumberHouseholds) == 0) totalNumberHouseholds = NA
   if (length(totalNumberParkingSpaces) == 0) totalNumberParkingSpaces = NA
   if (length(heatingSystem) == 0) heatingSystem = NA
   if (length(structureFrontDoor) == 0) structureFrontDoor = NA
-
+  
   setRowDataL1 = getRowData %>%
     dplyr::mutate(
       "현관구조" = structureFrontDoor
@@ -618,10 +618,10 @@ foreach::foreach(i = 1:nrow(data), .combine = c) %do% {
       , "총세대수" = totalNumberHouseholds
       , "난방연료" = heatingSystem
     )
-
-
+  
+  
   dataL1 = dplyr::bind_rows(dataL1, setRowDataL1)
-
+  
   # }, error = function(error) {
   #     message("Caught an error : " + error)
   # }, warning = function(warning) {
@@ -633,16 +633,16 @@ foreach::foreach(i = 1:nrow(data), .combine = c) %do% {
   #     cat(percentVal , "\n")
   #     }
   # )
-
+  
   percentVal = paste0(round((i / nrow(data)) * 100, 2), " %")
   cat(percentVal, "\n")
-
+  
   Sys.sleep(5)
-
+  
   remDr$closeWindow()
-
+  
   Sys.sleep(2)
-
+  
   setWindowTab(remDr, getHandle[[1]])
 }
 
@@ -814,17 +814,17 @@ i = 2
 
 dataL1 = data.frame()
 for (i in 1:length(fileList)) {
-
-
+  
+  
   sYearMonth = stringr::str_sub(fileList[i], 23, 29)
   dtDate = readr::parse_datetime(sYearMonth, "%Y_%m")
   year = lubridate::year(dtDate)
   dtDate = lubridate::month(dtDate)
-
+  
   data = data.table::fread(file = fileList[i])
-
+  
   dataL1 = dplyr::bind_rows(dataL1
-    , data.frame(data, "date" = sYearMonth)
+                            , data.frame(data, "date" = sYearMonth)
   )
 }
 
@@ -897,7 +897,7 @@ xml2::read_html(url) %>%
   rvest::html_tag("td")
 
 rvest::html_nodes("img") %>%
-
+  
   rvest::html_nodes(xpath = '//*[@id="tblControl"]') %>%
   rvest::html_tag("src")
 
@@ -950,23 +950,23 @@ url = sprintf("https://news.naver.com/main/list.nhn?mode=LSD&mid=sec&sid1=001&da
 
 
 for (d in sDate) {
-
+  
   print(d)
   url = sprintf("https://news.naver.com/main/list.nhn?mode=LSD&mid=sec&sid1=001&date=%s&page=%d", d, seq(1:1500))
-
+  
   data = url %>%
     purrr::map(~getUrlText(.x, '//*[@id="main_content"]/div[2]/ul[*]/li[*]/dl/dt[2]/a')) %>%
     unlist() %>%
     as.data.frame()
-
+  
   dataL1 <- data %>%
     magrittr::set_colnames("title") %>%
     dplyr::distinct(title) %>%
     dplyr::mutate(date = d)
-
-
+  
+  
   write.csv(dataL1, paste0("./TITLE/2019/title_", d, ".csv"), fileEncoding = "CP949")
-
+  
 }
 
 
@@ -1029,69 +1029,69 @@ dataL1 = data.frame()
 
 # for (i in 1:nrow(data)) {
 foreach::foreach(i = 1:nrow(data), .combine = c) %do% {
-
+  
   Sys.sleep(2)
-
+  
   getRowData = data %>%
     tibble::rowid_to_column() %>%
     dplyr::filter(rowid == i) %>%
     dplyr::select(시군구:도로명)
-
+  
   searchVal = paste(stringr::str_split(getRowData$시군구, pattern = " ")[[1]][3], getRowData$단지명)
-
+  
   Sys.sleep(2)
-
+  
   remDr$executeScript("unifiedSearchShow();")
-
+  
   Sys.sleep(2)
-
+  
   remDr$executeScript(paste0("$('#unifiedSearchKeyword').val('", searchVal, "')"))
-
+  
   Sys.sleep(2)
-
+  
   remDr$executeScript("unifiedSearchKeyword();")
-
+  
   Sys.sleep(5)
-
+  
   remDr$findElement(using = "xpath", value = '//*[@id="unifiedSearchResult"]/div[2]/ul/li')$clickElement()
-
+  
   Sys.sleep(2)
-
+  
   getHandle = remDr$getWindowHandles()
   setWindowTab(remDr, getHandle[[2]])
-
+  
   Sys.sleep(2)
-
+  
   # 총 세대수
   totalNumberHouseholds = getXpathText('//*[@id="ccChangeArea"]/div[*]/table/tbody/tr[1]/td[2]')[1]
   # //*[@id="ccChangeArea"]/div[3]/table/tbody/tr[1]/td[2]
   # //*[@id="ccChangeArea"]/div[5]/table/tbody/tr[1]/td[2]
-
+  
   # 총 주차대수
   totalNumberParkingSpaces = getXpathText('//*[@id="ccChangeArea"]/div[*]/table/tbody/tr[2]/td[1]')[1]
   # //*[@id="ccChangeArea"]/div[3]/table/tbody/tr[2]/td[1]
   # //*[@id="ccChangeArea"]/div[5]/table/tbody/tr[2]/td[1]
-
-
+  
+  
   # 난방방식
   heatingSystem = getXpathText('//*[@id="ccChangeArea"]/div[*]/table/tbody/tr[4]/td[1]')
   # //*[@id="ccChangeArea"]/div[3]/table/tbody/tr[4]/td[1]
-
+  
   Sys.sleep(2)
-
+  
   remDr$findElement(using = "xpath", value = '//*[@id="siseTabBtn"]/a')$clickElement()
-
+  
   Sys.sleep(2)
-
+  
   # 현관구조
   structureFrontDoor = getXpathText('//*[@id="b062071"]/div[9]/table/tbody/tr[2]/td')
-
-
+  
+  
   if (length(totalNumberHouseholds) == 0) totalNumberHouseholds = NA
   if (length(totalNumberParkingSpaces) == 0) totalNumberParkingSpaces = NA
   if (length(heatingSystem) == 0) heatingSystem = NA
   if (length(structureFrontDoor) == 0) structureFrontDoor = NA
-
+  
   setRowDataL1 = getRowData %>%
     dplyr::mutate(
       "현관구조" = structureFrontDoor
@@ -1099,10 +1099,10 @@ foreach::foreach(i = 1:nrow(data), .combine = c) %do% {
       , "총세대수" = totalNumberHouseholds
       , "난방연료" = heatingSystem
     )
-
-
+  
+  
   dataL1 = dplyr::bind_rows(dataL1, setRowDataL1)
-
+  
   # }, error = function(error) {
   #     message("Caught an error : " + error)
   # }, warning = function(warning) {
@@ -1114,16 +1114,16 @@ foreach::foreach(i = 1:nrow(data), .combine = c) %do% {
   #     cat(percentVal , "\n")
   #     }
   # )
-
+  
   percentVal = paste0(round((i / nrow(data)) * 100, 2), " %")
   cat(percentVal, "\n")
-
+  
   Sys.sleep(5)
-
+  
   remDr$closeWindow()
-
+  
   Sys.sleep(2)
-
+  
   setWindowTab(remDr, getHandle[[1]])
 }
 
@@ -1422,21 +1422,21 @@ dataL1 = data.frame()
 foreach::foreach(i = 1:length(getPaper), .combine = c) %do% {
   getDetailPage = paste0("http://www.riss.kr/", getHref[i])
   remDr$navigate(getDetailPage)
-
+  
   Sys.sleep(2)
-
+  
   getWriter = getXpathText('//*[@id="soptionview"]/div/div[1]/div[2]/div[1]/ul/li[1]/div/p/a')[1]
   # 키워드 검색
   getTagInst = getCssText('div p .instituteInfo')
-
+  
   getKeyword = data.frame(주제어 = getTagInst) %>%
     dplyr::filter(주제어 != getWriter)
-
+  
   if (nrow(getKeyword) == 1) {
     getKeyword = stringr::str_split(getKeyword, ",") %>%
       unlist()
   }
-
+  
   data = data.frame(
     "번호" = i
     , "논문" = getPaper[i]
@@ -1444,7 +1444,7 @@ foreach::foreach(i = 1:length(getPaper), .combine = c) %do% {
     , "저자" = getWriter
     , "주제어" = getKeyword
   )
-
+  
   dataL1 = dplyr::bind_rows(dataL1, data)
 }
 
@@ -1535,20 +1535,20 @@ windows
 # this function or just 'outcome_col' and then set the argument as 'outcome_col = 1' in train_model().
 
 model_function <- function(data) {
-
+  
   # The 'law' feature is constant during some of our outer-loop validation datasets so we'll
   # simply drop it so that glmnet converges.
   constant_features <- which(unlist(lapply(data[, -1], function(x) { !(length(unique(x)) > 1) })))
-
+  
   if (length(constant_features) > 1) {
     data <- data[, -c(constant_features + 1)]  # +1 because we're skipping over the outcome column.
   }
-
+  
   x <- data[, -(1), drop = FALSE]
   y <- data[, 1, drop = FALSE]
   x <- as.matrix(x, ncol = ncol(x))
   y <- as.matrix(y, ncol = ncol(y))
-
+  
   model <- glmnet::cv.glmnet(x, y, nfolds = 3)
   return(list("model" = model, "constant_features" = constant_features))
 }
@@ -1557,10 +1557,10 @@ model_function <- function(data) {
 # Alternatively, we could define an outcome column identifier argument, say, 'outcome_col = 1' in
 # this function or just 'outcome_col' and then set the argument as 'outcome_col = 1' in train_model().
 model_function_2 <- function(data) {
-
+  
   outcome_names <- names(data)[1]
   model_formula <- formula(paste0(outcome_names, "~ ."))
-
+  
   model <- randomForest::randomForest(formula = model_formula, data = data, ntree = 200)
   return(model)
 }
@@ -1573,41 +1573,41 @@ library(ipred)
 
 # SVM
 model_function_3 <- function(data) {
-
+  
   outcome_names <- names(data)[1]
   model_formula <- formula(paste0(outcome_names, "~ ."))
-
+  
   model <- e1071::svm(formula = model_formula, data = data, method = "C-classification", kernal = "radial", gamma = 0.1, cost = 10)
-
-
+  
+  
   return(model)
 }
 
 # Bagging
 model_function_4 <- function(data) {
-
+  
   outcome_names <- names(data)[1]
   model_formula <- formula(paste0(outcome_names, "~ ."))
-
-
+  
+  
   # model <- e1071::svm(formula = model_formula, data = data, method="C-classification", kernal="radial", gamma=0.1, cost=10)
   model = ipred::bagging(formula = model_formula, data = data, coob = TRUE)
-
-
+  
+  
   return(model)
 }
 
 # Boosting
 model_function_5 <- function(data) {
-
+  
   library(gbm)
-
+  
   outcome_names <- names(data)[1]
   model_formula <- formula(paste0(outcome_names, "~ ."))
-
+  
   model <- gbm::gbm(formula = model_formula, data = data, distribution = "multinomial")
   # model <- adabag::boosting(formula = model_formula, data = data, boos = FALSE, mfinal = 100, coeflearn = 'Zhu')
-
+  
   return(model)
 }
 
@@ -1638,20 +1638,20 @@ model_results_4 <- forecastML::train_model(data_list, windows, model_name = "BAG
 
 # Example 1 - LASSO.
 prediction_function <- function(model, data_features) {
-
+  
   if (length(model$constant_features) > 1) {  # 'model' was passed as a list.
     data_features <- data_features[, -c(model$constant_features)]
   }
-
+  
   x <- as.matrix(data_features, ncol = ncol(data_features))
-
+  
   data_pred <- data.frame("y_pred" = predict(model$model, x, s = "lambda.min"))
   return(data_pred)
 }
 
 
 prediction_function_2 <- function(model, data_features) {
-
+  
   data_pred <- data.frame("y_pred" = predict(model, data_features))
   return(data_pred)
 }
@@ -1659,21 +1659,21 @@ prediction_function_2 <- function(model, data_features) {
 #=================================================================
 # SVM
 prediction_function_3 <- function(model, data_features) {
-
+  
   data_pred <- data.frame("y_pred" = predict(model, data_features))
   return(data_pred)
 }
 
 # Bagging
 prediction_function_4 <- function(model, data_features) {
-
+  
   data_pred <- data.frame("y_pred" = predict(model, data_features))
   return(data_pred)
 }
 
 # Boosting
 prediction_function_5 <- function(model, data_features) {
-
+  
   data_pred <- data.frame("y_pred" = predict(model, data_features))
   return(data_pred)
 }
@@ -1711,10 +1711,10 @@ plot(data_error, type = "global", facet = ~horizon)
 
 # hyperparameters를 살펴보기 위해 model의 hyperparameter를 return 하는 함수 정의
 hyper_function <- function(model) {
-
+  
   lambda_min <- model$model$lambda.min
   lambda_1se <- model$model$lambda.1se
-
+  
   data_hyper <- data.frame("lambda_min" = lambda_min, "lambda_1se" = lambda_1se)
   return(data_hyper)
 }
@@ -1883,20 +1883,20 @@ plot(windows, data_list, show_labels = TRUE)
 # 데이터를 LASSO에 적합하여 model로 return하는 함수 정의
 # 이후에 train_model() 에 쓰기 위함
 model_function <- function(data) {
-
+  
   # The 'law' feature is constant during some of our outer-loop validation datasets so we'll
   # simply drop it so that glmnet converges.
   constant_features <- which(unlist(lapply(data[, -1], function(x) { !(length(unique(x)) > 1) })))
-
+  
   if (length(constant_features) > 1) {
     data <- data[, -c(constant_features + 1)]  # +1 because we're skipping over the outcome column.
   }
-
+  
   x <- data[, -(1), drop = FALSE]
   y <- data[, 1, drop = FALSE]
   x <- as.matrix(x, ncol = ncol(x))
   y <- as.matrix(y, ncol = ncol(y))
-
+  
   model <- glmnet::cv.glmnet(x, y, nfolds = 3)
   return(list("model" = model, "constant_features" = constant_features))
 }
@@ -1905,30 +1905,30 @@ model_function <- function(data) {
 # 데이터를 RandomForest에 적합하여 model로 return하는 함수 정의
 # 이후에 train_model() 에 쓰기 위함
 model_function_2 <- function(data) {
-
+  
   outcome_names <- names(data)[1]
   model_formula <- formula(paste0(outcome_names, "~ ."))
-
+  
   model <- randomForest::randomForest(formula = model_formula, data = data, ntree = 200)
   return(model)
 }
 
 # Example 3 - SVM
 model_function_3 <- function(data) {
-
+  
   outcome_names <- names(data)[1]
   model_formula <- formula(paste0(outcome_names, "~ ."))
-
+  
   model <- e1071::svm(formula = model_formula, data = data, method = "C-classification", kernal = "radial")
   return(model)
 }
 
 # Example 4 - Bagging
 model_function_4 <- function(data) {
-
+  
   outcome_names <- names(data)[1]
   model_formula <- formula(paste0(outcome_names, "~ ."))
-
+  
   model = ipred::bagging(formula = model_formula, data = data, coob = TRUE)
   return(model)
 }
@@ -1936,16 +1936,16 @@ model_function_4 <- function(data) {
 # Example 5 - Ridge
 model_function_5 <- function(data) {
   constant_features <- which(unlist(lapply(data[, -1], function(x) { !(length(unique(x)) > 1) })))
-
+  
   if (length(constant_features) > 1) {
     data <- data[, -c(constant_features + 1)]  # +1 because we're skipping over the outcome column.
   }
-
+  
   x <- data[, -(1), drop = FALSE]
   y <- data[, 1, drop = FALSE]
   x <- as.matrix(x, ncol = ncol(x))
   y <- as.matrix(y, ncol = ncol(y))
-
+  
   model <- glmnet::cv.glmnet(x, y, nfolds = 3, alpha = 0)
   return(list("model" = model, "constant_features" = constant_features))
 }
@@ -1972,13 +1972,13 @@ model_results_5 <- forecastML::train_model(data_list, windows, model_name = "Rid
 
 # 훈련된 LASSO 모델을 이용해 predict하여 data.frame으로 return 하는 함수 정의
 prediction_function <- function(model, data_features) {
-
+  
   if (length(model$constant_features) > 1) {  # 'model' was passed as a list.
     data <- data[, -c(model$constant_features)]
   }
-
+  
   x <- as.matrix(data_features, ncol = ncol(data_features))
-
+  
   data_pred <- data.frame("y_pred" = predict(model$model, x, s = "lambda.min"))
   return(data_pred)
 }
@@ -1986,34 +1986,34 @@ prediction_function <- function(model, data_features) {
 # Example 2 - Random Forest
 # 훈련된 RF 모델을 이용해 predict하여 data.frame으로 return 하는 함수 정의
 prediction_function_2 <- function(model, data_features) {
-
+  
   data_pred <- data.frame("y_pred" = predict(model, data_features))
   return(data_pred)
 }
 
 # Example 3 - SVM
 prediction_function_3 <- function(model, data_features) {
-
+  
   data_pred <- data.frame("y_pred" = predict(model, data_features))
   return(data_pred)
 }
 
 # Example 4 - Bagging
 prediction_function_4 <- function(model, data_features) {
-
+  
   data_pred <- data.frame("y_pred" = predict(model, data_features))
   return(data_pred)
 }
 
 # Example 5 - Ridge
 prediction_function_5 <- function(model, data_features) {
-
+  
   if (length(model$constant_features) > 1) {  # 'model' was passed as a list.
     data <- data[, -c(model$constant_features)]
   }
-
+  
   x <- as.matrix(data_features, ncol = ncol(data_features))
-
+  
   data_pred <- data.frame("y_pred" = predict(model$model, x, s = "lambda.min"))
   return(data_pred)
 }
@@ -2254,44 +2254,44 @@ setRootData = data.frame(
 dataL2 = data.frame()
 i = 1
 for (i in 1:nrow(setRootData)) {
-
+  
   tryCatch(
     expr = {
       getGoodCode = setRootData$getRootGoodCode[i]
       getUrl = setRootData$url[i]
       remDr$navigate(getUrl)
-
+      
       Sys.setlocale("LC_ALL", "English")
       options(encoding = "UTF-8")
       Sys.setenv(LANG = "en_US.UTF-8")
-
+      
       getTot = getXpathText('//*[@id="total_feedback_cnt"]')
-
+      
       dataL1 = data.frame()
-
+      
       if (length(getTot) > 0) {
-
+        
         getIndex = ceiling(as.integer(stringr::str_remove_all(getTot, ",")) / 10)
-
-
+        
+        
         for (j in 1:getIndex) {
-
+          
           log4r::info(log, paste0("진행률 : ", round((i / nrow(setRootData)) * 100, 2), " %"))
-
+          
           remDr$executeScript(paste0('javascript:opinionList(', j, ');'))
-
+          
           getTableData = remDr$getPageSource()[[1]] %>%
             read_html() %>%
             rvest::html_node("#tb_opinion") %>%
             rvest::html_table()
-
+          
           dataL1 = dplyr::bind_rows(dataL1, getTableData) %>%
             dplyr::mutate(goodCode = setRootData[i, 1])
         }
       } else {
         dataL1 = data.frame(goodCode = setRootData[i, 1])
       }
-
+      
       dataL2 = dplyr::bind_rows(dataL2, dataL1)
     }
     , warning = function(warning) { log4r::warn(log, warning) }
@@ -2364,11 +2364,11 @@ mean(weather[ind,]$val, na.rm = TRUE)
 
 # 5) 7~12월 최저기온의 합을 출력하시오
 ind = which(!(weather$key == "Jan" |
-  weather$key == "Feb" |
-  weather$key == "Mar" |
-  weather$key == "Apr" |
-  weather$key == "May" |
-  weather$key == "Jun"))
+                weather$key == "Feb" |
+                weather$key == "Mar" |
+                weather$key == "Apr" |
+                weather$key == "May" |
+                weather$key == "Jun"))
 
 sum(weather[ind,]$val, na.rm = TRUE)
 
@@ -2403,9 +2403,9 @@ names(score_student) = c("Kim", "Lee", "Park", "Choi", "Jung", "Kang", "Cho", "Y
 
 score_grade = c()
 for (i in 1:length(score_student)) {
-
+  
   score = score_student[i]
-
+  
   if (score >= 95) {
     result = "A+"
   } else if (score >= 90) {
@@ -2417,7 +2417,7 @@ for (i in 1:length(score_student)) {
   } else {
     result = "C+"
   }
-
+  
   score_grade = append(score_grade, result)
 }
 
@@ -2482,9 +2482,9 @@ age
 getVal(5, 0)
 
 getVal = function(val, hour) {
-
+  
   result = val * (4^hour)
-
+  
   return(result)
 }
 
@@ -2688,12 +2688,12 @@ plot(S_T, Y)
 # 노벨상을 수상한 블랙-숄즈-머턴은 이와 같은 콜옵션의 프리미엄 C 가 특정가정들을 만족한 경우 다음과 같은 식에 의해서 결정되어야 한다고 증명하였다.
 
 fnBSM = function(S = S, K = K, T1 = T1, sigma = sigma, rf = rf) {
-
+  
   d1 <- (log(S / K) + ((rf + (0.5 * (sigma**2))) * T1)) / (sigma * sqrt(T1))
   d2 <- d1 - (sigma * sqrt(T1))
-
+  
   C = (S * pnorm(d1)) - ((K * exp(-rf * T1)) * pnorm(d2))
-
+  
   return(C)
 }
 
@@ -2724,26 +2724,26 @@ Vi = c()
 Ci = c()
 
 for (i in 1:N) {
-
+  
   # 초기 가격
   S_index = c(S)
-
+  
   # 이전 가격
   S_c = S_index[length(S_index)]
-
+  
   for (t in seq(dt, T1, by = dt)) {
     S_part = S_c * exp((rf - (sigma**2 / 2.0)) * dt + (sigma * sqrt(dt) * rnorm(1, 0, 1)))
     S_index = append(S_index, S_part)
   }
-
+  
   if (i <= 5) {
     result_part = data.frame(s_index = S_index, del = seq(0, T1, by = dt), N = i)
     data = rbind(data, result_part)
   }
-
+  
   # 만기 시점의 옵션의 가치 계산
   Vi = append(Vi, max(S_index - K, 0))
-
+  
   # 최종옵션 가치 산출을 위한 계산 수행
   Ci = append(Ci, max(S_index - K, 0) / N)
 }
@@ -2849,51 +2849,51 @@ dataL1 = data %>%
 
 while (TRUE) {
   foreach::foreach(i = 1:nrow(dataL1), .combine = c) %do% {
-
+    
     Sys.setlocale("LC_ALL")
     options(encoding = "UTF-8")
     Sys.setenv(LANG = "en_US.UTF-8")
-
+    
     tryCatch(
       expr = {
         getRowData = dataL1[i,]
-
+        
         # Url 정보 가져오기
         getUrl = getRowData$url
         getName = getRowData$name
         getTag = getRowData$targetTag
-
+        
         remDr$navigate(getUrl)
-
+        
         # 키워드 가져오기
         getText = getCssText(getTag)
-
+        
         getTextReplace = stringr::str_replace_all(getText, " ", "")
-
+        
         # 품절 키워드 여부
         isKeywordList = stringr::str_detect(getTextReplace, "|품절|입고|재입고|종료|불가능|OUT")
-
+        
         isKeyword = FALSE
-
+        
         if (length(isKeywordList) < 1) { isKeyword = TRUE }
-
+        
         for (j in 1:length(isKeywordList)) {
           if (isKeywordList[j] == TRUE) { isKeyword = TRUE }
         }
-
+        
         # 테스트용
         # if (i == 15)  { isKeyword = FALSE }
-
+        
         log4r::info(log, paste0("[", i, "] ", getName, " | ", "품절 키워드 여부  : ", isKeyword, " | ", "getText : ", getText))
-
+        
         # 품절 키워드가 없는 경우
         if (isKeyword == FALSE) {
-
+          
           remDr$executeScript('alert("구매해주세요.");')
-
+          
           # 마리오 알람 소리
           beepr::beep(sound = 8)
-
+          
           break
         }
       }
@@ -2902,7 +2902,7 @@ while (TRUE) {
       , finally = {
         getText = NULL
         getHandle = remDr$getWindowHandles()
-
+        
         if (length(getHandle) > 1) {
           for (k in 1:length(getHandle)) {
             if (getRootHandle != getHandle[[k]]) {
@@ -2910,7 +2910,7 @@ while (TRUE) {
               remDr$closeWindow()
             }
           }
-
+          
           setWindowTab(remDr, getRootHandle[[1]])
         }
       }
@@ -3224,30 +3224,30 @@ cat(mean(X), var(X), sd(X), "\n")  # 모집단의 평균/분산/표준편차
 for (i in c(10, 100, 1000, 10000)) {
   DO = 100000    # Number of repetition
   N = i          # Number of sample
-
+  
   # FALSE : 비복원 추출(무작위 정렬) : 한번 뽑은 것을 다시 뽑을 수 없는 추출
   sampleList = lapply(1:DO, function(i) sample(roulette, N, replace = TRUE, prob = prob)) # 복원 추출
   meanSampleList = mapply(mean, sampleList)
-
+  
   meanVal = mean(meanSampleList, na.rm = TRUE)
   sdVal = sd(meanSampleList, na.rm = TRUE)
   maxVal = max(meanSampleList, na.rm = TRUE)
   minVal = min(meanSampleList, na.rm = TRUE)
-
+  
   cat(N, meanVal, "\n")
-
+  
   # FIG
   png(file = paste0("FIG/o2job/Img_004_", N, "_.png"), 1000, 600)
   hist(meanSampleList, breaks = 50, xlab = "Sample Distribution Mean", xlim = c(minVal - sdVal, maxVal + sdVal), col = "light grey", border = "grey", xaxs = "i", yaxs = "i",
        main = paste0("Central Limit Theorem : number of sample = ", N, ", number of repetition = ", sprintf("%d", DO)))
-
+  
   XX1 = meanVal + sdVal
   XX2 = meanVal - sdVal
   XX3 = meanVal + 2 * sdVal
   XX4 = meanVal - 2 * sdVal
   XX5 = meanVal + 3 * sdVal
   XX6 = meanVal - 3 * sdVal
-
+  
   YY = max(hist(meanSampleList, breaks = 50, plot = F)$counts)
   lines(c(meanVal, meanVal), c(0, YY), lty = 1, col = 4); text(meanVal, YY / 2, "Mean")
   lines(c(XX1, XX1), c(0, YY), lty = 1, col = 2); text(XX1, YY / 2, "+1σ")
@@ -3535,52 +3535,52 @@ if (length(number) == 0) number = 0
 
 if (number > 0) {
   data = data.frame()
-
+  
   for (i in 1:number) {
-
+    
     if (i > 15) break
-
+    
     # i = 9
     # i = 1
-
+    
     contextUrl = sprintf('//*[@id="searchPage_entry"]/div[1]/div[%s]', i)
-
+    
     word = getXpathText(paste0(contextUrl, '/div[*]/a'))
-
+    
     typeList = getCssText(".row .word_class")
     infoList = getXpathText(paste0(contextUrl, '/ul/li[*]/p'))
-
+    
     # j = 1
     for (j in 1:length(infoList)) {
-
+      
       isFlag = FALSE
-
+      
       for (k in 1:length(typeList)) {
-
+        
         if (stringr::str_detect(infoList[j], typeList[k]) == TRUE) {
           isFlag = TRUE
-
+          
           break
         }
       }
-
+      
       if (isFlag) {
         infoSplit = stringr::str_split_fixed(infoList[j], " ", n = 2)
-
+        
         type = infoSplit[, 1]
         if (length(type) == 0) type = ""
-
+        
         intrp = infoSplit[, 2]
       } else {
         intrp = infoList[j]
         type = ""
       }
-
+      
       tmpData = data.frame(word, type, intrp)
       data = dplyr::bind_rows(data, tmpData)
     }
-
-
+    
+    
   }
 }
 
@@ -3927,19 +3927,19 @@ webElem = remDr$findElement("css", "body")
 
 while (TRUE) {
   webElem$sendKeysToElement(list(key = "end"))
-
+  
   webElemButton = remDr$findElements(using = 'css selector', value = '.ZFr60d.CeoRYc')
-
+  
   if (length(webElemButton) == 1) {
     # webElem$sendKeysToElement(list(key = "home"))
     webElemButton = remDr$findElements(using = 'css selector', value = '.ZFr60d.CeoRYc')
     remDr$mouseMoveToLocation(webElement = webElemButton[[1]])
     remDr$click()
-
+    
     # webElemButton = remDr$findElements('xpath', '//*[@id="fcxH9b"]/div[4]/c-wiz/div/div[2]/div/div/main/div/div[1]/div[2]/div[2]/div/span/span')
     # remDr$mouseMoveToLocation(webElement = webElemButton[[1]])
     # remDr$click()
-
+    
     webElem$sendKeysToElement(list(key = "end"))
   }
 }
@@ -4003,11 +4003,11 @@ dataL2 = data.frame()
 i = 1
 for (i in 1:length(data$comment)) {
   cat(i, "\n")
-
+  
   dataL1 = RcppMeCab::pos(as_utf8(data$comment[i]), format = "data.frame") %>%
     dplyr::filter(pos == "NNG") %>%
     dplyr::select(token)
-
+  
   dataL2 = dplyr::bind_rows(dataL2, dataL1)
 }
 
@@ -4349,11 +4349,11 @@ colnames(data) = c("title")
 
 dataL2 = data.frame()
 foreach::foreach(i = 1:nrow(data), .combine = c) %do% {
-
+  
   dataL1 = RcppMeCab::pos(as_utf8(data$title[i]), format = "data.frame") %>%
     dplyr::filter(pos == "NNG") %>%
     dplyr::select(token)
-
+  
   dataL2 = dplyr::bind_rows(dataL2, dataL1)
   log4r::info(log, paste0("진행률 : ", round((i / nrow(data)) * 100, 2), " %"))
 }
@@ -4424,30 +4424,30 @@ dataL2 = data.frame()
 jCount = 0
 
 while (isFlag) {
-
+  
   preCnt = length(unique(getTagText('.tit_feed')))
-
+  
   webElem$sendKeysToElement(list(key = "end"))
-
+  
   Sys.sleep(0.5)
-
+  
   webElemButton = remDr$findElements(using = 'xpath', value = '//*[@id="more_btn"]/button')
-
+  
   if (length(webElemButton) == 1) {
     remDr$mouseMoveToLocation(webElement = webElemButton[[1]])
     remDr$click()
     webElem$sendKeysToElement(list(key = "end"))
   }
-
+  
   jCount = jCount + 1
-
+  
   if (jCount > 120) {
     Sys.sleep(0.5)
     dateListCnt = length(unique(getTagText('.tit_feed')))
-
+    
     if (preCnt == dateListCnt) {
       title = unique(getTagText('.tit_feed'))
-
+      
       data.table::fwrite(
         data.frame(title)
         , sep = ","
@@ -4458,15 +4458,15 @@ while (isFlag) {
         , dateTimeAs = "write.csv"
         , na = NA
       )
-
+      
       jCount = 0
       iCount = iCount + 1
-
+      
       urlInfo = paste0("https://post.naver.com/search/post.nhn?keyword=%EC%97%AC%EB%A6%84%20%EC%9A%94%EB%A6%AC&sortType=createDate.dsc&range=20000409000000:", dtEndDate[iCount], "235959")
-
+      
       remDr$navigate(urlInfo)
       webElem = remDr$findElement("css", "body")
-
+      
       Sys.sleep(2)
     }
   }
@@ -4477,11 +4477,11 @@ data = readr::read_csv(file = paste0("OUTPUT/o2job/Naver_Post.csv"))
 
 dataL2 = data.frame()
 foreach::foreach(i = 1:nrow(data), .combine = c) %do% {
-
+  
   dataL1 = RcppMeCab::pos(as_utf8(data$title[i]), format = "data.frame") %>%
     dplyr::filter(pos == "NNG") %>%
     dplyr::select(token)
-
+  
   dataL2 = dplyr::bind_rows(dataL2, dataL1)
   log4r::info(log, paste0("진행률 : ", round((i / nrow(data)) * 100, 2), " %"))
 }
@@ -4644,105 +4644,105 @@ cntList = c(2978, 33675, 159814, 512403, 1545, 5089)
 # seq(1, 121, 10)
 
 for (i in 1:length(keywordList)) {
-
+  
   # 기간 1년, 언론사 선정
   contextPath = paste0("https://search.naver.com/search.naver?where=news&query=", utils::URLencode(iconv(keywordList[i], to = "UTF-8")), "&sm=tab_opt&sort=0&photo=0&field=0&reporter_article=&pd=5&ds=2019.08.09&de=2020.08.08&docid=&nso=so%3Ar%2Cp%3A1y%2Ca%3Aall&mynews=1&")
-
+  
   urlInfo = paste0(contextPath, sprintf("start=%d&refresh_start=0", seq(1, cntList[i], 10)))
-
+  
   log4r::info(log, paste0("키워드 : ", keywordList[i]))
-
+  
   urlDtlInfo = urlInfo %>%
     purrr::map(~getUrlTagHref(.x, 'ul > li > dl > dd > a')) %>%
     unlist()
-
+  
   log4r::info(log, paste0("urlDtlInfo : ", length(urlDtlInfo)))
-
+  
   data = data.frame()
   for (urlInfo in urlDtlInfo) {
-
+    
     html = read_html(urlInfo)
-
+    
     #=================================================
     # 제목
     #=================================================
     title = html %>%
       html_nodes('#articleTitle') %>%
       html_text()
-
+    
     if (length(title) == 0) {
       title = html %>%
         html_nodes('.end_tit') %>%
         html_text()
     }
-
+    
     if (length(title) == 0) {
       title = html %>%
         html_nodes(xpath = '//*[@id="content"]/div/div[1]/div/div[1]/h4') %>%
         html_text()
     }
-
+    
     titleInfo = title %>%
       str_replace_all(pattern = "\n", replacement = " ") %>%
       str_replace_all(pattern = "[\\^]", replacement = " ") %>%
       str_replace_all(pattern = "\"", replacement = " ") %>%
       str_replace_all(pattern = "\\s+", replacement = " ") %>%
       str_trim(side = "both")
-
+    
     #======================================================
     # 본문
     #=====================================================
     content = html %>%
       html_nodes('._article_body_contents') %>%
       html_text()
-
+    
     if (length(content) == 0) {
       content = html %>%
         html_nodes(xpath = '//*[@id="articeBody"]') %>%
         html_text()
     }
-
+    
     if (length(content) == 0) {
       content = html %>%
         html_nodes('#newsEndContents') %>%
         html_text()
     }
-
+    
     contentInfo = content %>%
       str_replace_all(pattern = "\n", replacement = " ") %>%
       str_replace_all(pattern = "[\\^]", replacement = " ") %>%
       str_replace_all(pattern = "\"", replacement = " ") %>%
       str_replace_all(pattern = "\\s+", replacement = " ") %>%
       str_trim(side = "both")
-
+    
     #=================================================
     # 종류
     #=================================================
     type = html %>%
       rvest::html_nodes(xpath = '//*[@id="main_content"]/div[1]/div[1]/a/img') %>%
       rvest::html_attr("alt")
-
+    
     if (length(type) == 0) {
       type = html %>%
         rvest::html_nodes(xpath = '//*[@id="content"]/div[1]/div/div[1]/a/img') %>%
         rvest::html_attr("alt")
     }
-
+    
     if (length(type) == 0) {
       type = html %>%
         rvest::html_nodes(xpath = '//*[@id="pressLogo"]/a/img') %>%
         rvest::html_attr("alt")
     }
-
+    
     if (length(titleInfo) == 0 ||
-      length(contentInfo) == 0 ||
-      length(type) == 0) {
+        length(contentInfo) == 0 ||
+        length(type) == 0) {
       log4r::info(log, paste0("속성 정보가 없습니다. : ", url))
     } else {
       data = dplyr::bind_rows(data, data.frame(urlInfo, type, titleInfo, contentInfo))
     }
   }
-
+  
   data.table::fwrite(
     data
     , sep = ","
@@ -4753,9 +4753,9 @@ for (i in 1:length(keywordList)) {
     , dateTimeAs = "write.csv"
     , na = NA
   )
-
+  
   log4r::info(log, paste0("엑셀 저장 : ", nrow(data)))
-
+  
 }
 
 
@@ -4774,7 +4774,7 @@ rawData = data.frame()
 for (i in 1:length(fileList)) {
   tmpData = readr::read_csv(file = fileList[i])
   tmpDataL1 = data.frame(keyword = keywordList[i], tmpData)
-
+  
   rawData = dplyr::bind_rows(rawData, tmpDataL1)
 }
 
@@ -4785,16 +4785,16 @@ dplyr::glimpse(data)
 
 dataL2 = data.frame()
 foreach::foreach(i = 1:nrow(data), .combine = c) %do% {
-
+  
   dataL1 = RcppMeCab::pos(as_utf8(data$contentInfo[i]), format = "data.frame") %>%
     dplyr::filter(pos == "NNG") %>%
     dplyr::select(token)
-
+  
   tmpData = data.frame(did = i, keyword = data$keyword[i], dataL1)
-
+  
   # dataL2 = dplyr::bind_rows(dataL2, data.frame(type = data$type[i], dataL1))
   # log4r::info(log, paste0("진행률 : ", round((i / nrow(data)) * 100, 2), " %"))
-
+  
   readr::write_csv(x = tmpData, path = paste0("OUTPUT/o2job/Naver_News_Keyword4.csv"), append = TRUE)
 }
 
@@ -4872,7 +4872,7 @@ dataL5 = dataL4 %>%
 xlsx::write.xlsx2(dataL5, file = "OUTPUT/o2job/Naver_News_Keyword_Result.xlsx", sheetName = "TF_IDF", append = TRUE, row.names = FALSE, col.names = TRUE)
 
 fig = wordcloud2::wordcloud2(data = dataL5 %>%
-  dplyr::select(token, freq))
+                               dplyr::select(token, freq))
 
 # html로 내보내기
 htmlwidgets::saveWidget(fig, "fig.html", selfcontained = FALSE)
@@ -4994,13 +4994,13 @@ data = data_bankis
 #==================================================
 dataL2 = data.frame()
 foreach::foreach(i = 1:nrow(data_namuh), .combine = c) %do% {
-
+  
   dataL1 = RcppMeCab::pos(as_utf8(data$내용[i]), format = "data.frame") %>%
     dplyr::filter(pos == "NNG") %>%
     dplyr::select(token)
-
+  
   dataL2 = dplyr::bind_rows(dataL2, dataL1)
-
+  
   # log4r::info(log, paste0("진행률 : ", round((i / nrow(data)) * 100, 2), " %"))
 }
 
@@ -5019,7 +5019,7 @@ xlsx::write.xlsx2(keywordData, file = "OUTPUT/o2job/App.xlsx", sheetName = "bank
 
 # 상위 50개
 fig = wordcloud2::wordcloud2(data = keywordData %>%
-  dplyr::top_n(n = 50)
+                               dplyr::top_n(n = 50)
 )
 
 # html로 내보내기
@@ -5183,45 +5183,45 @@ Replace2 = data.frame(
 Keyword_V = c()
 
 for (i in 1:length(Keyword2_2)) {
-
+  
   if (i %% 100 == 0) {
-
+    
     print(i)
-
+    
   }
-
+  
   STR = ""
-
+  
   for (k in unlist(strsplit(Keyword2_2[i], " "))) {  # 키워드 띄어쓰기를 기준으로 분리
-
+    
     #### 분리된 키워드를 다시 이어붙이는 작업 진행
-
+    
     if (k != "") { # 분리된 키워드가 ""(공백)이 아닐때
-
+      
       if (nchar(k) > 1) { # 분리된 키워드의 글자수가 2개 이상일 때
-
+        
         for (s in 1:length(R)) {
-
+          
           Index = grep(RR[s], k)
-
+          
           if (length(Index) > 0) {
-
+            
             k = RR2[s]
-
+            
           }
-
+          
         }
-
+        
       }
-
+      
     }
-
+    
     STR = paste(STR, k) ## 분리된 텍스트 다시 이어 붙이기
-
+    
   }
-
+  
   Keyword_V[i] = STR
-
+  
 }
 
 Keyword2_2[1] # Before
@@ -5352,53 +5352,53 @@ term.frequency = as.integer(term.table)  # frequencies of terms in the corpus [8
 ### Topic의 갯수를 3 ~ 10개까지 각각 설정하면서 Topic Modeling 진행
 
 for (k in c(3, 4, 5, 6, 7, 8, 9, 10)) {
-
+  
   print(k)
-
+  
   K = k  # Topic 갯수
   G = 5000 # 연산 횟수
   alpha = 0.02 # Topic Modeling Parameter
   eta = 0.02 # Topic Modeling Parameter
-
+  
   ### Topic Modeling
   fit = lda.collapsed.gibbs.sampler(documents = documents, K = K, vocab = vocab,
                                     num.iterations = G, alpha = alpha,
                                     eta = eta, initial = NULL, burnin = 0,
                                     compute.log.likelihood = TRUE)
-
+  
   theta = t(apply(fit$document_sums + alpha, 2, function(x) x / sum(x)))
   phi = t(apply(t(fit$topics) + eta, 2, function(x) x / sum(x)))
-
+  
   Parameters = list(phi = phi,
                     theta = theta,
                     doc.length = doc.length,
                     vocab = vocab,
                     term.frequency = term.frequency)
-
+  
   options(encoding = 'UTF-8')
-
-
+  
+  
   # create the JSON object to feed the visualization:
-
+  
   json <- createJSON(phi = Parameters$phi,
                      theta = Parameters$theta,
                      doc.length = Parameters$doc.length,
                      vocab = Parameters$vocab,
                      term.frequency = Parameters$term.frequency,
                      encoding = 'UTF-8')
-
+  
   serVis(json, out.dir = 'vis2',
          open.browser = TRUE)
-
-
+  
+  
   Topic_Words = as.data.frame(top.topic.words(fit$topics))
-
+  
   ### 토픽 결과 저장
-
+  
   write.csv(Topic_Words,
             paste0("OUTPUT/o2job/report/Topic_Words_", k, "topis.csv"),
             row.names = FALSE, fileEncoding = "CP949")
-
+  
 }
 
 
@@ -5497,7 +5497,7 @@ for (x in xList) {
     mutate(trope = trope %>% as.character %>% factor(., levels = x)) %>%
     filter(era > 1920)
   data = na.omit(tmp)
-
+  
   ggplot(data, aes(x = era, y = perc)) +
     facet_wrap(~trope, ncol = 1) +
     geom_line(color = "#00a5ff") +
@@ -5552,9 +5552,9 @@ i = 1
 
 dataL2 = data.frame()
 foreach::foreach(i = 1:nrow(data), .combine = c) %do% {
-
+  
   dataL1 = RcppMeCab::pos(as_utf8(data$X1[i]), format = "data.frame")
-
+  
   dataL2 = dplyr::bind_rows(dataL2, dataL1)
 }
 
@@ -6009,44 +6009,44 @@ dataL1 = data.frame()
 
 # foreach::foreach(i = 15:length(urlDtlInfoList), .combine=c) %do% {
 for (i in 1:length(urlDtlInfoList)) {
-
+  
   Sys.sleep(2)
   urlDtlInfo = urlDtlInfoList[i]
   remDr$navigate(urlDtlInfo)
-
+  
   Sys.sleep(2)
-
+  
   # 상품
   title = getXpathText('//*[@id="gp-default-main"]/section/div/ul[1]/li[2]/section[1]/h1/span')
-
+  
   # 브랜드
   brand = getXpathText('//*[@id="gp-default-main"]/section/div/ul[1]/li[2]/section[1]/div[3]/span')
-
+  
   # 세트 및 가격
   tmpInfo = getXpathText('//*[@id="gp-default-main"]/section/div/ul[1]/li[2]/section[1]/div[2]/div[1]') %>%
     stringr::str_split("/") %>%
     unlist() %>%
     stringr::str_trim(side = "both")
-
+  
   volume = tmpInfo[1]
   price = tmpInfo[2]
-
+  
   # 설명
   des = getXpathText('//*[@id="gp-default-main"]/section/div/ul[1]/li[2]/section[3]/table/tbody/tr[2]/td/div')
-
+  
   if (length(des) == 0) {
     des = getXpathText('//*[@id="gp-default-main"]/section/div/ul[1]/li[2]/section[4]/table/tbody/tr[3]/td/div')
   }
-
+  
   if (length(des) == 0) {
     des = getXpathText('//*[@id="gp-default-main"]/section/div/ul[1]/li[2]/section[4]/table/tbody/tr[2]/td/div')
   }
-
+  
   if (length(des) == 0) {
     des = getXpathText('//*[@id="gp-default-main"]/section/div/ul[1]/li[2]/section[3]/table/tbody/tr[3]/td/div')
   }
-
-
+  
+  
   #=====================
   # 성분정보
   #=====================
@@ -6054,9 +6054,9 @@ for (i in 1:length(urlDtlInfoList)) {
   # 팝업 열기
   for (k in 1:10) {
     xpathTag = paste0('//*[@id="gp-default-main"]/section/div/ul[1]/li[2]/section[', k, ']/div/span[2]/button/span[1]')
-
+    
     popText = getXpathText(xpathTag)
-
+    
     if (length(popText) > 0) {
       if (popText == "성분정보") {
         isItem = TRUE
@@ -6064,92 +6064,92 @@ for (i in 1:length(urlDtlInfoList)) {
       }
     }
   }
-
+  
   itemEwgLevel = NA
   itemKor = NA
   itemEng = NA
   itemPurpose = NA
-
+  
   if (isItem == TRUE) {
     remDr$findElement(using = "xpath", value = selXpathTag)$clickElement()
-
+    
     # EWG 안정도 등급
     itemEwgLevel = getXpathText('//*[@id="gp-popup"]/div/section[2]/div[2]/ul/li[*]/div[1]/span[2]')
-
+    
     # 국문명
     itemKor = getXpathText('//*[@id="gp-popup"]/div/section[2]/div[2]/ul/li[*]/div[2]/p[1]')
-
+    
     # 영문명
     itemEng = getXpathText('//*[@id="gp-popup"]/div/section[2]/div[2]/ul/li[*]/div[2]/p[2]')
-
+    
     # 목적
     itemPurpose = getXpathText('//*[@id="gp-popup"]/div/section[2]/div[2]/ul/li[*]/div[2]/p[3]')
-
+    
     # 팝업 닫기
     remDr$findElement(using = "xpath", value = '//*[@id="gp-popup-bg"]/div/button')$clickElement()
   }
-
+  
   #========================
   # 평점
   #========================
   # 총 평점
   totalScore = getXpathText('//*[@id="gp-default-main"]/section/div/ul[2]/li[2]/section/div/div/div[1]/div[1]')
-
+  
   # 총 개수
   totalCnt = getXpathText('//*[@id="gp-default-main"]/section/div/ul[2]/li[2]/section/div/div/div[1]/div[3]')
-
+  
   # 5단계 세부 점수
   stepScore = getXpathText('//*[@id="gp-default-main"]/section/div/ul[2]/li[2]/section/div/div/div[2]/ul/li[*]/div/p')
-
+  
   #===============================
   # 리뷰
   #===============================
   Sys.sleep(1)
-
+  
   # "좋아요 많은순"으로 선택
   remDr$findElement(using = "xpath", value = '//*[@id="gp-default-main"]/section/div/ul[2]/li[3]/section/div/div/button')$clickElement()
   remDr$findElement(using = "xpath", value = '//*[@id="gp-default-main"]/section/div/ul[2]/li[3]/section/div/div/div[2]/ul/li[3]')$clickElement()
-
+  
   Sys.sleep(1)
-
+  
   webElem = remDr$findElement("css", "body")
   remDr$findElement(using = "xpath", value = '//*[@id="gp-footer"]/div/div[1]/div[3]/figure/img')$clickElement()
-
+  
   Sys.sleep(1)
-
+  
   remDr$findElement(using = "xpath", value = '//*[@id="gp-footer"]/div/div[1]/div[3]/figure/img')$clickElement()
-
-
+  
+  
   # 10회 스크롤
   # foreach::foreach(j = 1:10, .combine=c) %do% {
   for (j in 1:10) {
     Sys.sleep(0.2)
-
+    
     # webElem$sendKeysToElement(list(key = "down_arrow"))
     webElem$sendKeysToElement(list(key = "home"))
     webElem$sendKeysToElement(list(key = "end"))
   }
-
-
+  
+  
   review = getXpathText('//*[@id="gp-default-main"]/section/div/ul[2]/li[5]/section/ul/li[*]/div/p')
-
-
+  
+  
   itemData = data.frame(itemEwgLevel, itemKor, itemEng, itemPurpose)
-
+  
   # JSON 변환
   itemJson = rjson::toJSON(itemData)
-
+  
   # JSON에서 DF 변환
   # itemJsonToDf = rjson::fromJSON(data$itemJson) %>%
   #     as.data.frame()
-
+  
   data = data.frame(
     cnt = i
     , title, brand, volume, price, des
     , itemJson
     , totalScore, totalCnt, stepScore[1], stepScore[2], stepScore[3], stepScore[4], stepScore[5], review
   )
-
+  
   dataL1 = dplyr::bind_rows(dataL1, data)
 }
 
@@ -6173,9 +6173,9 @@ for (i in 1:nrow(dataL2)) {
   cnt = dataL2$cnt[i]
   title = dataL2$title[i]
   itemJsonToDf = rjson::fromJSON(dataL2$itemJson[i])
-
+  
   tmpData = data.frame(cnt, title, itemJsonToDf)
-
+  
   dataL3 = dplyr::bind_rows(dataL3, tmpData)
 }
 
@@ -6379,12 +6379,12 @@ library(tidyverse)
 data = readr::read_csv(file = paste0(globalVar$inpPath, "/", "mort_table_2_2014_2018.csv"))
 
 filterCol = c("Major Cities of Australia"
-  , "Inner Regional Australia"
-  , "Outer Regional Australia"
-  , "Remote Australia"
-  , "Very Remote Australia"
-  , "Unknown/missing"
-  , "Australia (total)"
+              , "Inner Regional Australia"
+              , "Outer Regional Australia"
+              , "Remote Australia"
+              , "Very Remote Australia"
+              , "Unknown/missing"
+              , "Australia (total)"
 )
 
 dataL1 = data %>%
@@ -6559,12 +6559,12 @@ fileList = Sys.glob(paste0(globalVar$inpPath, "/", "literacy_*.csv"))
 data = data.frame()
 for (fileInfo in fileList) {
   fileName = tools::file_path_sans_ext(fs::path_file(fileInfo))
-
+  
   tmpData = readr::read_csv(file = fileInfo) %>%
     tidyr::gather(-country, key = "year", value = "val") %>%
     dplyr::mutate(fileName = fileName) %>%
     na.omit()
-
+  
   data = dplyr::bind_rows(data, tmpData)
 }
 
@@ -6694,12 +6694,12 @@ head(data)
 i = 3
 dataL2 = data.frame()
 foreach::foreach(i = 1:length(data), .combine = c) %do% {
-
+  
   if (data[i] != "") {
     dataL1 = RcppMeCab::pos(as_utf8(data[i]), format = "data.frame") %>%
       dplyr::filter(pos == "NNG") %>%
       dplyr::select(token)
-
+    
     dataL2 = dplyr::bind_rows(dataL2, dataL1)
   }
 }
@@ -6744,7 +6744,7 @@ webshot::webshot("fig.html", paste0("FIG/review_utf8_", format(Sys.time(), "%Y%m
 library(schoolmath)
 
 primeFactor = function(n) {
-
+  
   data(primlist)
   dummy <- 2
   end <- 0
@@ -6783,13 +6783,13 @@ primeFactor = function(n) {
 
 findPrimeFactorCnt = function(num) {
   total = 1
-
+  
   for (i in 1:num) {
     total = total * i
   }
-
+  
   ind = which(primeFactor(total) == 2)
-
+  
   return(length(ind))
 }
 
@@ -6829,9 +6829,9 @@ table(dataL1$rowType, dataL1$colType)
 
 printSample = function(n, m) {
   data = runif(n)
-
+  
   # cat("data : ", data, "\n")
-
+  
   for (i in 1:2) {
     ind = ceiling(runif(5, min = 1, max = 10))
     dataL1 = data[ind]
@@ -6945,33 +6945,33 @@ for (fileInfo in fileList) {
     as.tibble() %>%
     dplyr::filter(!stringr::str_length(value) == 0) %>%
     as.tibble()
-
+  
   dataL1 = tibble()
   for (i in 1:nrow(data)) {
     result = pykospacing$spacing(stringr::str_remove_all(data[i,]$value, " ")) %>%
       as.tibble()
-
+    
     dataL1 = dplyr::bind_rows(dataL1, result)
   }
-
+  
   #===============================
   # 워드 생산
   #===============================
   # "D:/02. 블로그/지식iN/OUTPUT/o2job/1986년.docx"
   outFile = paste(globalVar$outPath, stringr::str_replace_all(fs::path_file(fileInfo), ".txt", "_1.docx"), sep = "/")
-
+  
   doc = officer::read_docx() %>%
     officer::body_add_par(value = paste(dataL1[1:20000,]$value, "(LineBreak)(LineBreak)", collapse = ""))
   print(doc, target = outFile)
-
+  
   outFile = paste(globalVar$outPath, stringr::str_replace_all(fs::path_file(fileInfo), ".txt", "_2.docx"), sep = "/")
-
+  
   doc = officer::read_docx() %>%
     officer::body_add_par(value = paste(dataL1[20000:nrow(dataL1),]$value, "(LineBreak)(LineBreak)", collapse = ""))
-
+  
   print(doc, target = outFile)
-
-
+  
+  
   # 워드에서 변경
   # Ctrl + H
   # "(LineBreak)(LineBreak)" to "^p" 치환
@@ -7023,12 +7023,12 @@ for (fileInfo in fileList) {
     as.tibble() %>%
     dplyr::filter(!stringr::str_length(value) == 0) %>%
     as.tibble()
-
+  
   foreach::foreach(i = 1:nrow(data), .combine = c) %do% {
     dataL1 = RcppMeCab::pos(as_utf8(data[i,]$value), format = "data.frame") %>%
       dplyr::filter(pos == "NNG") %>%
       dplyr::select(token)
-
+    
     dataL2 = dplyr::bind_rows(dataL2, dataL1)
   }
 }
@@ -8020,11 +8020,11 @@ dataL4 = data.frame()
 
 for (i in 1:length(typeList)) {
   for (j in 1:length(colList)) {
-
+    
     rsAov = aov(get(colList[j], dataL2) ~ get(typeList[i], dataL2), data = dataL2) %>%
       summary %>%
       unlist()
-
+    
     tmpData = tibble(
       # typeName = typeNameList[i]
       type = typeList[i]
@@ -8034,10 +8034,10 @@ for (i in 1:length(typeList)) {
       , pVal = rsAov[9] %>% round(2)
     ) %>%
       dplyr::mutate(label = paste0(fVal, " (", pVal, ")"))
-
+    
     dataL3 = dplyr::bind_rows(dataL3, tmpData)
   }
-
+  
   tmpData2 = dataL2 %>%
     dplyr::group_by(type = get(typeList[i], dataL2)) %>%
     dplyr::select(!dplyr::contains("type")) %>%
@@ -8048,7 +8048,7 @@ for (i in 1:length(typeList)) {
       , sd(., na.rm = TRUE) %>% round(2) # 표준편차
       # , n() # 자료 개수
     ))
-
+  
   dataL4 = dplyr::bind_rows(dataL4, tmpData2)
 }
 
@@ -8075,7 +8075,7 @@ dataL5 = data.frame()
 for (j in 1:length(colList2)) {
   for (i in 1:length(colList)) {
     corTest = cor.test(get(colList[i], dataL2), get(colList2[j], dataL2))
-
+    
     tmpData = tibble(
       colI = colList[i]
       , colJ = colList2[j]
@@ -8087,7 +8087,7 @@ for (j in 1:length(colList2)) {
       dplyr::mutate(
         label = paste0(corVal, " (", pVal, ")")
       )
-
+    
     dataL5 = dplyr::bind_rows(dataL5, tmpData)
   }
 }
@@ -8127,8 +8127,8 @@ j = 1
 
 for (j in 1:length(colList)) {
   for (i in 1:length(typeList)) {
-
-
+    
+    
     tmpData = dataL2 %>%
       dplyr::select(typeList[i], colList[j]) %>%
       dplyr::group_by(get(typeList[i]), get(colList[j])) %>%
@@ -8137,21 +8137,21 @@ for (j in 1:length(colList)) {
         ratio = round((cnt / sum(cnt, na.rm = TRUE)) * 100, 2)
         , label = paste0(cnt, "(", ratio, ")")
       )
-
+    
     resData = data.frame(
       type = typeList[i]
       , col = colList[j]
       , tmpData
     )
-
+    
     dataL3 = dplyr::bind_rows(dataL3, resData)
-
-
+    
+    
     tableData = table(get(typeList[i], dataL2), get(colList[j], dataL2))
-
+    
     # Perform the Chi-Square test
     chisqTest = chisq.test(tableData)
-
+    
     resData2 = data.frame(
       type = typeList[i]
       , col = colList[j]
@@ -8161,7 +8161,7 @@ for (j in 1:length(colList)) {
       dplyr::mutate(
         label = paste0(xSqu, "(", pVal, ")")
       )
-
+    
     dataL4 = dplyr::bind_rows(dataL4, resData2)
   }
 }
@@ -8197,33 +8197,33 @@ colList = dataL2 %>%
 dataL5 = data.frame()
 
 for (i in 1:length(colList)) {
-
+  
   glmFitVarAll = glm(as.factor(get(colList[i], dataL2)) ~ typeHH02_01_A +
-    typeAge +
-    typeEF1 +
-    typeEF11 +
-    typeQ60 +
-    typeQ69 +
-    0, data = dataL2, family = binomial)
-
+                       typeAge +
+                       typeEF1 +
+                       typeEF11 +
+                       typeQ60 +
+                       typeQ69 +
+                       0, data = dataL2, family = binomial)
+  
   # glmFitVarAll = nnet::multinom(Q34_1 ~ typeHH02_01_A + typeAge + typeEF1 + typeEF11 + typeQ60 + typeQ69 + 0, data = dataL2)
   # summary(glmFitVarAll)
-
+  
   # glmFitVarAll = MASS::polr(Q34_1 ~ typeHH02_01_A + typeAge + typeEF1 + typeEF11 + typeQ60 + typeQ69 + 0, data = dataL2)
   # summary(glmFitVarAll)
-
-
+  
+  
   # 1) AIC 기준으로 변수 선택
   stepAic = MASS::stepAIC(glmFitVarAll, direction = "both")
-
+  
   # 결과에 대한 요약
   summary(stepAic)
-
+  
   # 신뢰구간
   confData = confint(stepAic, level = 0.95) %>%
     as.data.frame() %>%
     dplyr::filter(!is.na(`97.5 %`))
-
+  
   # 회귀계수, 신뢰구간, 오즈비, p-value
   resData = data.frame(
     col = colList[i]
@@ -8233,7 +8233,7 @@ for (i in 1:length(colList)) {
     , conf = confData %>% round(2)
     , pVal = summary(stepAic)$coefficients[, 4] %>% round(2)
   )
-
+  
   dataL5 = dplyr::bind_rows(dataL5, resData)
 }
 
@@ -8378,8 +8378,8 @@ lm(gdpNor ~ scaleVar3, data = dataL2) %>% summary()
 
 
 lmFit = lm(gdpNor ~ scaleVar1 * scaleVar2 +
-  scaleVar1 * scaleVar3 +
-  scaleVar2 * scaleVar3, data = dataL2)
+             scaleVar1 * scaleVar3 +
+             scaleVar2 * scaleVar3, data = dataL2)
 # lmFit = lm(gdpNor ~ scaleVar1 + scaleVar2 + scaleVar3 + scaleVar1*scaleVar2 + scaleVar1*scaleVar3 + scaleVar2*scaleVar3, data = dataL2)
 summary(lmFit)
 MASS::stepAIC(lmFit, direction = "both") %>% summary()
@@ -8405,8 +8405,8 @@ lm(gdpRatNor ~ scaleVar3, data = dataL2) %>% summary()
 
 # lmFit = lm(gdpRatNor ~ scaleVar1 + scaleVar2 + scaleVar3 + scaleVar1*scaleVar2 + scaleVar1*scaleVar3 + scaleVar2*scaleVar3, data = dataL2)
 lmFit = lm(gdpRatNor ~ scaleVar1 * scaleVar2 +
-  scaleVar1 * scaleVar3 +
-  scaleVar2 * scaleVar3, data = dataL2)
+             scaleVar1 * scaleVar3 +
+             scaleVar2 * scaleVar3, data = dataL2)
 summary(lmFit)
 MASS::stepAIC(lmFit, direction = "both") %>% summary()
 stepFitGdpRat = MASS::stepAIC(lmFit, direction = "both")
@@ -9056,7 +9056,7 @@ for (i in c(1:thta.length)) {
   N.train = sum(y.train == 0) # total negatives in the data
   FPR.train[i] = FP.train / N.train # false positive rate = type 1 error = 1 - specificity
   TPR.train[i] = TP.train / P.train # true positive rate = 1 - type 2 error = sensitivity
-
+  
   # calculate the FPR and TPR for test data
   y.hat.test = ifelse(prob.test > thta[i], 1, 0)
   FP.test = sum(y.test[y.hat.test == 1] == 0) # false positives = negatives in the data that were predicted as positive
@@ -9398,11 +9398,11 @@ summary(lmFit)
 predictions = predict(lmFit, newdata = testData)
 
 resultData = dplyr::bind_rows(resultData
-  , data.frame(
-    type = "MLR"
-    , pred = predictions
-    , real = testData$dtReqJul
-  )
+                              , data.frame(
+                                type = "MLR"
+                                , pred = predictions
+                                , real = testData$dtReqJul
+                              )
 )
 
 #===============================================
@@ -9428,11 +9428,11 @@ rsPredictions = neuralnet::compute(neuralModel, testData)
 predictions = rsPredictions$net.result
 
 resultData = dplyr::bind_rows(resultData
-  , data.frame(
-    type = "ANN"
-    , pred = predictions
-    , real = testData$dtReqJul
-  )
+                              , data.frame(
+                                type = "ANN"
+                                , pred = predictions
+                                , real = testData$dtReqJul
+                              )
 )
 
 
@@ -9473,11 +9473,11 @@ rsPredictions = as.data.frame(predict(model, as.h2o(testData)))
 predictions = rsPredictions$predict
 
 resultData = dplyr::bind_rows(resultData
-  , data.frame(
-    type = "DL"
-    , pred = predictions
-    , real = testData$dtReqJul
-  )
+                              , data.frame(
+                                type = "DL"
+                                , pred = predictions
+                                , real = testData$dtReqJul
+                              )
 )
 
 #=====================================
@@ -9668,7 +9668,7 @@ library(png)
 # hue_pal()(2)
 
 BWS_SCORE <- function(data = data) {
-
+  
   result_data <- data %>%
     dplyr::mutate(
       B_W01 = b1 - w1
@@ -9711,9 +9711,9 @@ BWS_SCORE <- function(data = data) {
       , BWSQRT12 = sqrt(b12 / w12)
       , BWSQRT13 = sqrt(b13 / w13)
     )
-
+  
   return(result_data)
-
+  
 }
 
 
@@ -9767,138 +9767,138 @@ colnames(out_data_L1) <- xindex
 fwrite(out_data_L1, paste(globalVar$outPath, "BWS/all.csv", sep = "/"), row.names = TRUE)
 
 for (i in sex_full) {
-
+  
   ## 전체 데이터 탐색 ##
   full_data_PARTR_ALL <- full_data_L1 %>%
     dplyr::filter(sex == i) %>%
     dplyr::group_by(sex) %>%
     dplyr::summarise_all(funs(mean(., na.rm = TRUE))) %>%
     dplyr::select(B_W01:BWSQRT13)
-
+  
   Sys.sleep(3)
-
+  
   out_data <- matrix(data = full_data_PARTR_ALL, nrow = 13, ncol = 3)
   out_data_L1 <- as.data.frame(out_data, row.names = yindex)
   colnames(out_data_L1) <- xindex
-
+  
   fwrite(out_data_L1, paste(globalVar$outPath, paste0("BWS/sex_", i, ".csv"), sep = "/"), row.names = TRUE)
 }
 
 
 for (i in age_full) {
-
+  
   ## 전체 데이터 탐색 ##
   full_data_PARTR_ALL <- full_data_L1 %>%
     dplyr::filter(age == i) %>%
     dplyr::group_by(age) %>%
     dplyr::summarise_all(funs(mean(., na.rm = TRUE))) %>%
     dplyr::select(B_W01:BWSQRT13)
-
+  
   Sys.sleep(2)
-
+  
   out_data <- matrix(data = full_data_PARTR_ALL, nrow = 13, ncol = 3)
   out_data_L1 <- as.data.frame(out_data, row.names = yindex)
   colnames(out_data_L1) <- xindex
-
+  
   fwrite(out_data_L1, paste(globalVar$outPath, paste0("BWS/age_", i, ".csv"), sep = "/"), row.names = TRUE)
-
-
+  
+  
 }
 
 
 for (i in nfam_full) {
-
+  
   ## 전체 데이터 탐색 ##
   full_data_PARTR_ALL <- full_data_L1 %>%
     dplyr::filter(nfam == i) %>%
     dplyr::group_by(nfam) %>%
     dplyr::summarise_all(funs(mean(., na.rm = TRUE))) %>%
     dplyr::select(B_W01:BWSQRT13)
-
+  
   Sys.sleep(2)
-
+  
   out_data <- matrix(data = full_data_PARTR_ALL, nrow = 13, ncol = 3)
   out_data_L1 <- as.data.frame(out_data, row.names = yindex)
   colnames(out_data_L1) <- xindex
-
+  
   fwrite(out_data_L1, paste(globalVar$outPath, paste0("BWS/nfam_", i, ".csv"), sep = "/"), row.names = TRUE)
-
+  
 }
 
 
 for (i in edu_full) {
-
+  
   ## 전체 데이터 탐색 ##
   full_data_PARTR_ALL <- full_data_L1 %>%
     dplyr::filter(edu == i) %>%
     dplyr::group_by(edu) %>%
     dplyr::summarise_all(funs(mean(., na.rm = TRUE))) %>%
     dplyr::select(B_W01:BWSQRT13)
-
+  
   Sys.sleep(2)
-
+  
   out_data <- matrix(data = full_data_PARTR_ALL, nrow = 13, ncol = 3)
   out_data_L1 <- as.data.frame(out_data, row.names = yindex)
   colnames(out_data_L1) <- xindex
-
+  
   fwrite(out_data_L1, paste(globalVar$outPath, paste0("BWS/edu_", i, ".csv"), sep = "/"), row.names = TRUE)
 }
 
 for (i in income_full) {
-
+  
   ## 전체 데이터 탐색 ##
   full_data_PARTR_ALL <- full_data_L1 %>%
     dplyr::filter(income == i) %>%
     dplyr::group_by(income) %>%
     dplyr::summarise_all(funs(mean(., na.rm = TRUE))) %>%
     dplyr::select(B_W01:BWSQRT13)
-
+  
   Sys.sleep(2)
-
+  
   out_data <- matrix(data = full_data_PARTR_ALL, nrow = 13, ncol = 3)
   out_data_L1 <- as.data.frame(out_data, row.names = yindex)
   colnames(out_data_L1) <- xindex
-
+  
   fwrite(out_data_L1, paste(globalVar$outPath, paste0("BWS/income_", i, ".csv"), sep = "/"), row.names = TRUE)
-
-
+  
+  
 }
 
 
 for (i in job_full) {
-
+  
   ## 전체 데이터 탐색 ##
   full_data_PARTR_ALL <- full_data_L1 %>%
     dplyr::filter(job == i) %>%
     dplyr::group_by(job) %>%
     dplyr::summarise_all(funs(mean(., na.rm = TRUE))) %>%
     dplyr::select(B_W01:BWSQRT13)
-
+  
   Sys.sleep(2)
-
+  
   out_data <- matrix(data = full_data_PARTR_ALL, nrow = 13, ncol = 3)
   out_data_L1 <- as.data.frame(out_data, row.names = yindex)
   colnames(out_data_L1) <- xindex
-
+  
   fwrite(out_data_L1, paste(globalVar$outPath, paste0("BWS/job_", i, ".csv"), sep = "/"), row.names = TRUE)
 }
 
 
 for (i in marr_full) {
-
+  
   ## 전체 데이터 탐색 ##
   full_data_PARTR_ALL <- full_data_L1 %>%
     dplyr::filter(marr == i) %>%
     dplyr::group_by(marr) %>%
     dplyr::summarise_all(funs(mean(., na.rm = TRUE))) %>%
     dplyr::select(B_W01:BWSQRT13)
-
+  
   Sys.sleep(2)
-
+  
   out_data <- matrix(data = full_data_PARTR_ALL, nrow = 13, ncol = 3)
   out_data_L1 <- as.data.frame(out_data, row.names = yindex)
   colnames(out_data_L1) <- xindex
-
+  
   fwrite(out_data_L1, paste(globalVar$outPath, paste0("BWS/marr_", i, ".csv"), sep = "/"), row.names = TRUE)
 }
 
@@ -10234,9 +10234,9 @@ fileList = Sys.glob(paste(globalVar$inpPath, "KYUNG/*.csv", sep = "/"))
 # 연관규칙 생성
 #********************************************************
 for (fileInfo in fileList) {
-
+  
   fileName = tools::file_path_sans_ext(fs::path_file(fileInfo))
-
+  
   data = readr::read_csv(fileInfo) %>%
     dplyr::select(-salad, -sandwich) %>%
     dplyr::rename(
@@ -10255,45 +10255,45 @@ for (fileInfo in fileList) {
       , "일식" = "japanesefood"
       , "기타" = "theothers"
     )
-
+  
   if (nrow(data) < 0) { next }
-
+  
   # 연관 규칙
   foodlist = c()
   # i = 1
   for (i in unique(data$id)) {
-
+    
     data_part = data %>%
       dplyr::filter(id == i) %>%
       dplyr::select(-id) %>%
       t() %>%
       dplyr::as_data_frame(rownames = "foodname") %>%
       dplyr::filter(V1 == 1)
-
+    
     foodlist_part = as.vector(list(data_part$foodname))
     foodlist_part2 = as.factor(data_part$foodname)
-
-
+    
+    
     if (length(foodlist_part2) == 1) {
       next
     }
-
+    
     foodlist = append(foodlist, foodlist_part)
   }
-
+  
   if (length(foodlist) < 0) { next }
-
+  
   # 바이너리 코드를 transactions으로 변환하세요.
   trans = as(foodlist, "transactions")
-
+  
   # 최소규칙 지지도 = 0.01, 최소규칙 신뢰도 = 0.01로 규칙
   rules = arules::apriori(trans, parameter = list(supp = 0.001, conf = 0.5))
   # rulesPlot = head(sort(rules, by = "lift"), 30)
   rulesPlot = head(sort(rules, by = "lift"), 10)
-
+  
   # 시각화
   saveImg = sprintf("%s/Img_%s_%s.png", globalVar$figPath, serviceName, fileName)
-
+  
   png(file = saveImg, width = 8, height = 5, units = "in", res = 600)
   plot(rulesPlot, method = "graph", control = list(type = "items"))
   dev.off()
@@ -10308,289 +10308,289 @@ fileList = Sys.glob(paste(globalVar$inpPath, "KYUNG/*.csv", sep = "/"))
 # fileInfo = "E:/04. TalentPlatform/Github/TalentPlatform-R/INPUT/o2job/KYUNG/kyung1234.csv"
 
 for (fileInfo in fileList) {
-
+  
   fileName = tools::file_path_sans_ext(fs::path_file(fileInfo))
   data = read.csv(fileInfo, header = TRUE, sep = ",", stringsAsFactors = FALSE)
-
+  
   log4r::info(log, paste0("fileInfo : ", fileName))
-
+  
   fileInfo2 = Sys.glob(paste(globalVar$inpPath, "와인음용별.xlsx", sep = "/"))
   data2 = xlsx::read.xlsx2(file = fileInfo2, sheetName = "Sheet1")
-
+  
   dataL1 = data2 %>%
     readr::type_convert() %>%
     # dplyr::left_join(data, by = c("id" = "id")) %>%
     dplyr::left_join(data, by = c("id" = "X")) %>%
     na.omit()
-
-
+  
+  
   levelList = sort(unique(dataL1$level))
   freList = sort(unique(dataL1$fre))
   dayList = sort(unique(dataL1$day))
   drinkpList = sort(unique(dataL1$drinkp))
-
-
+  
+  
   # levelInfo = 1
-
+  
   #=======================================
   # 지식수준 (levelList)
   #=======================================
   for (levelInfo in levelList) {
-
+    
     log4r::info(log, paste0("levelInfo : ", levelInfo))
-
+    
     saveFile = paste0("WineType/WindType_", fileName, "_levelInfo_", levelInfo, ".csv")
     saveImg = paste0("WineType/WindType_", fileName, "_levelInfo_", levelInfo, ".png")
-
+    
     dataL2 = dataL1 %>%
       dplyr::filter(level == levelInfo) %>%
       dplyr::select(-c("level", "fre", "day", "drinkp"))
-
-
+    
+    
     # 연관 규칙
     foodlist = c()
     for (i in unique(dataL2$id)) {
-
+      
       data_part = dataL2 %>%
         dplyr::filter(id == i) %>%
         dplyr::select(-id) %>%
         t() %>%
         dplyr::as_data_frame(rownames = "foodname") %>%
         dplyr::filter(V1 == 1)
-
+      
       foodlist_part = as.vector(list(data_part$foodname))
       foodlist_part2 = as.factor(data_part$foodname)
-
-
+      
+      
       if (length(foodlist_part2) == 1) {
         next
       }
-
+      
       foodlist = append(foodlist, foodlist_part)
     }
-
+    
     transactions = as(foodlist, "transactions")
-
-
+    
+    
     # rules = apriori(transactions, parameter = list(supp=0.01, conf=0.5, minlen=2, maxlen=3))
-
+    
     # Implementing Apriori Algorithm
     # rules = apriori(transactions, parameter = list(supp=0.01, conf=0.5, minlen=2, maxlen=3))
     rules = apriori(transactions, parameter = list(supp = 0.1, conf = 0.5))
-
+    
     if (length(rules) == 0) { next }
-
+    
     rules_dt = data.table(
       lhs = labels(lhs(rules))
       , rhs = labels(rhs(rules))
       , quality(rules)
     )[order(-lift),]
-
-
+    
+    
     write.csv(rules_dt, paste(globalVar$outPath, saveFile, sep = "/"))
-
+    
     subrules2 = head(sort(rules, by = "confidence"), length(rules))
     ig = plot(subrules2, method = "graph", control = list(type = "items"))
     ig_df = get.data.frame(ig, what = "both")
-
+    
     png(file = paste(globalVar$figPath, saveImg, sep = '/'), width = 8, height = 5, units = "in", res = 600)
     plot(subrules2, method = "graph", control = list(type = "items"))
     dev.off()
   }
-
-
+  
+  
   #=======================================
   # 음용횟수 (freList)
   #=======================================
   for (freInfo in freList) {
-
+    
     log4r::info(log, paste0("freInfo : ", freInfo))
-
+    
     saveFile = paste0("WineType/WindType_", fileName, "_freInfo_", freInfo, ".csv")
     saveImg = paste0("WineType/WindType_", fileName, "_freInfo_", freInfo, ".png")
-
+    
     dataL2 = dataL1 %>%
       dplyr::filter(fre == freInfo) %>%
       dplyr::select(-c("level", "fre", "day", "drinkp"))
-
+    
     # 연관 규칙
     foodlist = c()
     for (i in unique(dataL2$id)) {
-
+      
       data_part = dataL2 %>%
         dplyr::filter(id == i) %>%
         dplyr::select(-id) %>%
         t() %>%
         dplyr::as_data_frame(rownames = "foodname") %>%
         dplyr::filter(V1 == 1)
-
+      
       foodlist_part = as.vector(list(data_part$foodname))
       foodlist_part2 = as.factor(data_part$foodname)
-
-
+      
+      
       if (length(foodlist_part2) == 1) {
         next
       }
-
+      
       foodlist = append(foodlist, foodlist_part)
     }
-
+    
     transactions = as(foodlist, "transactions")
-
+    
     # Implementing Apriori Algorithm
     # rules = apriori(transactions, parameter = list(supp=0.01, conf=0.5, minlen=2, maxlen=3))
     rules = apriori(transactions, parameter = list(supp = 0.1, conf = 0.5))
-
+    
     if (length(rules) == 0) { next }
-
+    
     rules_dt = data.table(
       lhs = labels(lhs(rules))
       , rhs = labels(rhs(rules))
       , quality(rules)
     )[order(-lift),]
-
-
+    
+    
     write.csv(rules_dt, paste(globalVar$outPath, saveFile, sep = "/"))
-
+    
     subrules2 = head(sort(rules, by = "confidence"), length(rules))
     ig = plot(subrules2, method = "graph", control = list(type = "items"))
     ig_df = get.data.frame(ig, what = "both")
-
+    
     png(file = paste(globalVar$figPath, saveImg, sep = '/'), width = 8, height = 5, units = "in", res = 600)
     plot(subrules2, method = "graph", control = list(type = "items"))
     dev.off()
-
+    
   }
-
-
+  
+  
   #=======================================
   # 음용기간 (dayList)
   #=======================================
   for (dayInfo in dayList) {
-
+    
     log4r::info(log, paste0("dayInfo : ", dayInfo))
-
+    
     saveFile = paste0("WineType/WindType_", fileName, "_dayInfo_", dayInfo, ".csv")
     saveImg = paste0("WineType/WindType_", fileName, "_dayInfo_", dayInfo, ".png")
-
+    
     dataL2 = dataL1 %>%
       dplyr::filter(day == dayInfo) %>%
       dplyr::select(-c("level", "fre", "day", "drinkp"))
-
-
+    
+    
     # 연관 규칙
     foodlist = c()
     for (i in unique(dataL2$id)) {
-
+      
       data_part = dataL2 %>%
         dplyr::filter(id == i) %>%
         dplyr::select(-id) %>%
         t() %>%
         dplyr::as_data_frame(rownames = "foodname") %>%
         dplyr::filter(V1 == 1)
-
+      
       foodlist_part = as.vector(list(data_part$foodname))
       foodlist_part2 = as.factor(data_part$foodname)
-
-
+      
+      
       if (length(foodlist_part2) == 1) {
         next
       }
-
+      
       foodlist = append(foodlist, foodlist_part)
     }
-
+    
     transactions = as(foodlist, "transactions")
-
+    
     # Implementing Apriori Algorithm
     # rules = apriori(transactions, parameter = list(supp=0.01, conf=0.5, minlen=2, maxlen=3))
     rules = apriori(transactions, parameter = list(supp = 0.1, conf = 0.5))
-
+    
     if (length(rules) == 0) { next }
-
+    
     rules_dt = data.table(
       lhs = labels(lhs(rules))
       , rhs = labels(rhs(rules))
       , quality(rules)
     )[order(-lift),]
-
-
+    
+    
     write.csv(rules_dt, paste(globalVar$outPath, saveFile, sep = "/"))
-
+    
     subrules2 = head(sort(rules, by = "confidence"), length(rules))
     ig = plot(subrules2, method = "graph", control = list(type = "items"))
     ig_df = get.data.frame(ig, what = "both")
-
+    
     png(file = paste(globalVar$figPath, saveImg, sep = '/'), width = 8, height = 5, units = "in", res = 600)
     plot(subrules2, method = "graph", control = list(type = "items"))
     dev.off()
-
+    
   }
-
+  
   #=======================================
   # 음용장소 (drinkpList)
   #=======================================
   for (drinkpInfo in drinkpList) {
-
+    
     log4r::info(log, paste0("drinkpInfo : ", drinkpInfo))
-
+    
     saveFile = paste0("WineType/WindType_", fileName, "_drinkpInfo_", drinkpInfo, ".csv")
     saveImg = paste0("WineType/WindType_", fileName, "_drinkpInfo_", drinkpInfo, ".png")
-
+    
     dataL2 = dataL1 %>%
       dplyr::filter(drinkp == drinkpInfo) %>%
       dplyr::select(-c("level", "fre", "day", "drinkp"))
-
-
+    
+    
     # 연관 규칙
     foodlist = c()
     for (i in unique(dataL2$id)) {
-
+      
       data_part = dataL2 %>%
         dplyr::filter(id == i) %>%
         dplyr::select(-id) %>%
         t() %>%
         dplyr::as_data_frame(rownames = "foodname") %>%
         dplyr::filter(V1 == 1)
-
+      
       foodlist_part = as.vector(list(data_part$foodname))
       foodlist_part2 = as.factor(data_part$foodname)
-
-
+      
+      
       if (length(foodlist_part2) == 1) {
         next
       }
-
+      
       foodlist = append(foodlist, foodlist_part)
     }
-
+    
     transactions = as(foodlist, "transactions")
-
+    
     # Implementing Apriori Algorithm
     # rules = apriori(transactions, parameter = list(supp=0.01, conf=0.5, minlen=2, maxlen=3))
     rules = apriori(transactions, parameter = list(supp = 0.1, conf = 0.5))
-
+    
     if (length(rules) == 0) { next }
-
+    
     rules_dt = data.table(
       lhs = labels(lhs(rules))
       , rhs = labels(rhs(rules))
       , quality(rules)
     )[order(-lift),]
-
-
+    
+    
     write.csv(rules_dt, paste(globalVar$outPath, saveFile, sep = "/"))
-
+    
     subrules2 = head(sort(rules, by = "confidence"), length(rules))
     ig = plot(subrules2, method = "graph", control = list(type = "items"))
     ig_df = get.data.frame(ig, what = "both")
-
+    
     png(file = paste(globalVar$figPath, saveImg, sep = '/'), width = 8, height = 5, units = "in", res = 600)
     plot(subrules2, method = "graph", control = list(type = "items"))
     dev.off()
-
+    
   }
-
+  
 }
 
 
@@ -10702,7 +10702,7 @@ key6List = unique(data$key6)
 
 for (key5Info in key5List) {
   for (key6Info in key6List) {
-
+    
     # 전체 수행
     tmpData = data %>%
       dplyr::group_by(key5, key6) %>%
@@ -10711,11 +10711,11 @@ for (key5Info in key5List) {
         key5 == key5Info
         , key6 == key6Info
       )
-
+    
     if (nrow(tmpData) <= 0) {
       next
     }
-
+    
     dataL1 = data %>%
       dplyr::group_by(addr1, key5, key6) %>%
       dplyr::summarise(n = n()) %>%
@@ -10724,11 +10724,11 @@ for (key5Info in key5List) {
         , key6 == key6Info
       ) %>%
       dplyr::mutate(cnt = (n / tmpData$sumVal) * 100)
-
+    
     if (nrow(dataL1) <= 0) {
       next
     }
-
+    
     dataL2 = geoData_L1 %>%
       dplyr::left_join(dataL1, by = c("si_do" = "addr1")) %>%
       dplyr::mutate(
@@ -10749,12 +10749,12 @@ for (key5Info in key5List) {
           TRUE ~ 0
         )
       )
-
+    
     # 시각화
     saveImg = paste0("TMP2/Img_076_", "2015-2019", "_", key6Info, "_", key5Info, ".png")
     plotSubTitle = paste0("[", key6Info, "] ", key5Info, " 의료이용률 시도별 현황(", "2015-2019", ")")
-
-
+    
+    
     ggplot() +
       theme_bw() +
       coord_fixed(ratio = 1) +
@@ -10781,10 +10781,10 @@ for (key5Info in key5List) {
         # , legend.position = "none"
       ) +
       ggsave(filename = paste(globalVar$figPath, saveImg, sep = "/"), width = 10, height = 5, dpi = 600)
-
+    
     # 각 연도별 수행
     for (yearInfo in yearList) {
-
+      
       dataL1 = data %>%
         dplyr::group_by(dtYear, addr1, key5, key6) %>%
         dplyr::summarise(n = n()) %>%
@@ -10794,11 +10794,11 @@ for (key5Info in key5List) {
           , key6 == key6Info
         ) %>%
         dplyr::mutate(cnt = (n / tmpData$sumVal) * 100)
-
+      
       if (nrow(dataL1) <= 0) {
         next
       }
-
+      
       dataL2 = geoData_L1 %>%
         dplyr::left_join(dataL1, by = c("si_do" = "addr1")) %>%
         dplyr::mutate(
@@ -10819,11 +10819,11 @@ for (key5Info in key5List) {
             TRUE ~ 0
           )
         )
-
+      
       # 시각화
       saveImg = paste0("TMP2/Img_076_", yearInfo, "_", key6Info, "_", key5Info, ".png")
       plotSubTitle = paste0("[", key6Info, "] ", key5Info, " 의료이용률 시도별 현황(", yearInfo, ")")
-
+      
       ggplot() +
         theme_bw() +
         coord_fixed(ratio = 1) +
@@ -10883,22 +10883,22 @@ for (key2Info in key2List) {
   for (key3Info in key3List) {
     plotSubTitle = paste0("[", key2Info, "] ", key3Info, " 의료이용률 시도별 연도별 추이")
     saveImg = paste0("TMP2/Img_070_", key2Info, "_", key3Info, ".png")
-
+    
     dataL2 = dataL1 %>%
       dplyr::filter(
         key2 == key2Info
         , key3 == key3Info
       )
-
+    
     ind = which(dataL2$key == "전체")
-
+    
     dataL3 = dataL2 %>%
       dplyr::mutate(
         perVal = (val / sum(dataL2[ind,]$val, na.rm = TRUE)) * 100
       )
-
+    
     dataL3$key = forcats::fct_relevel(dataL3$key, refKey)
-
+    
     ggplot(dataL3, aes(x = year, y = perVal, colour = key)) +
       geom_line(size = 1.5) +
       # xlim(80, 100) +
@@ -10943,22 +10943,22 @@ for (key2Info in key2List) {
   for (key3Info in key3List) {
     plotSubTitle = paste0("[", key2Info, "] ", key3Info, " 의료이용률 성별 연도별 추이")
     saveImg = paste0("TMP2/Img_071_", key2Info, "_", key3Info, ".png")
-
+    
     dataL2 = dataL1 %>%
       dplyr::filter(
         key2 == key2Info
         , key3 == key3Info
       )
-
+    
     ind = which(dataL2$key == "전체")
-
+    
     dataL3 = dataL2 %>%
       dplyr::mutate(
         perVal = (val / sum(dataL2[ind,]$val, na.rm = TRUE)) * 100
       )
-
+    
     dataL3$key = forcats::fct_relevel(dataL3$key, refKey)
-
+    
     ggplot(dataL3, aes(x = year, y = perVal, colour = key)) +
       geom_line(size = 1.5) +
       # xlim(80, 100) +
@@ -11007,24 +11007,24 @@ key3Info = "뇌졸중"
 for (yearInfo in yearList) {
   for (key2Info in key2List) {
     for (key3Info in key3List) {
-
+      
       plotSubTitle = paste0("[", key2Info, "] ", key3Info, " 의료이용률 연령별?성별 현황(", yearInfo, ")")
       saveImg = paste0("TMP2/Img_072_", yearInfo, "_", key2Info, "_", key3Info, ".png")
-
+      
       dataL2 = dataL1 %>%
         dplyr::filter(
           year == yearInfo
           , key2 == key2Info
           , key3 == key3Info
         )
-
+      
       sumData = tmpData %>%
         dplyr::filter(
           year == yearInfo
           , key2 == key2Info
           , key3 == key3Info
         )
-
+      
       dataL3 = dataL2 %>%
         dplyr::mutate(
           perVal = dplyr::case_when(
@@ -11042,8 +11042,8 @@ for (yearInfo in yearList) {
             , TRUE ~ NA_real_
           )
         )
-
-
+      
+      
       ggplot(dataL3, aes_string(x = "key4", y = "perVal", fill = "key")) +
         geom_bar(stat = "identity") +
         theme_bw() +
@@ -11061,7 +11061,7 @@ for (yearInfo in yearList) {
         ggpol::facet_share(~key, dir = "h", scales = "free_x", reverse_num = TRUE) +
         scale_y_continuous(breaks = seq(-100, 100, 10), minor_breaks = NULL) +
         ggsave(filename = paste(globalVar$figPath, saveImg, sep = "/"), width = 10, height = 6, dpi = 600)
-
+      
     }
   }
 }
@@ -11128,7 +11128,7 @@ key6List = unique(data$key6)
 
 for (key5Info in key5List) {
   for (key6Info in key6List) {
-
+    
     # 전체
     tmpData = data %>%
       dplyr::group_by(key5, key6, addr1) %>%
@@ -11138,11 +11138,11 @@ for (key5Info in key5List) {
         , key6 == key6Info
         , addr1 == addr1Info
       )
-
+    
     if (nrow(tmpData) <= 0) {
       next
     }
-
+    
     dataL1 = data %>%
       dplyr::group_by(addr1, addr2, key5, key6) %>%
       dplyr::summarise(n = n()) %>%
@@ -11151,15 +11151,15 @@ for (key5Info in key5List) {
         , key6 == key6Info
       ) %>%
       dplyr::mutate(cnt = (n / tmpData$sumVal) * 100)
-
+    
     if (nrow(dataL1) <= 0) {
       next
     }
-
-
+    
+    
     # unique(geoData_L1$si_do)
     # unique(geoData_L1$sigungu_name)
-
+    
     dataL2 = geoData_L1 %>%
       dplyr::left_join(dataL1, by = c("si_do" = "addr1", "sigungu_name" = "addr2")) %>%
       dplyr::mutate(
@@ -11184,12 +11184,12 @@ for (key5Info in key5List) {
           , TRUE ~ 0
         )
       )
-
+    
     # 시각화
     # saveImg = paste0("TMP2/Img_077.png")
     saveImg = paste0("TMP2/Img_077_", "2015-2019", "_", key6Info, "_", key5Info, ".png")
     plotSubTitle = paste0("[", key6Info, "] ", key5Info, " 의료이용률 시군구별 현황(", yearInfo, ")")
-
+    
     ggplot() +
       theme_bw() +
       coord_fixed(ratio = 1) +
@@ -11215,11 +11215,11 @@ for (key5Info in key5List) {
         # , legend.position = "none"
       ) +
       ggsave(filename = paste(globalVar$figPath, saveImg, sep = "/"), width = 10, height = 5, dpi = 600)
-
-
+    
+    
     # 연도별
     for (yearInfo in yearList) {
-
+      
       dataL1 = data %>%
         dplyr::group_by(dtYear, addr1, addr2, key5, key6) %>%
         dplyr::summarise(n = n()) %>%
@@ -11229,15 +11229,15 @@ for (key5Info in key5List) {
           , key6 == key6Info
         ) %>%
         dplyr::mutate(cnt = (n / tmpData$sumVal) * 100)
-
+      
       if (nrow(dataL1) <= 0) {
         next
       }
-
-
+      
+      
       # unique(geoData_L1$si_do)
       # unique(geoData_L1$sigungu_name)
-
+      
       dataL2 = geoData_L1 %>%
         dplyr::left_join(dataL1, by = c("si_do" = "addr1", "sigungu_name" = "addr2")) %>%
         dplyr::mutate(
@@ -11262,12 +11262,12 @@ for (key5Info in key5List) {
             , TRUE ~ 0
           )
         )
-
+      
       # 시각화
       # saveImg = paste0("TMP2/Img_077.png")
       saveImg = paste0("TMP2/Img_077_", yearInfo, "_", key6Info, "_", key5Info, ".png")
       plotSubTitle = paste0("[", key6Info, "] ", key5Info, " 의료이용률 시군구별 현황(", yearInfo, ")")
-
+      
       ggplot() +
         theme_bw() +
         coord_fixed(ratio = 1) +
@@ -11293,7 +11293,7 @@ for (key5Info in key5List) {
           # , legend.position = "none"
         ) +
         ggsave(filename = paste(globalVar$figPath, saveImg, sep = "/"), width = 10, height = 5, dpi = 600)
-
+      
     }
   }
 }
@@ -11323,10 +11323,10 @@ addr1List = unique(dataL1$addr1)
 # 전국
 for (key6Info in key6List) {
   for (key5Info in key5List) {
-
+    
     plotSubTitle = paste0("[", key6Info, "] ", key5Info, " 의료이용률 시도별 추세(2015~2019)")
     saveImg = paste0("TMP2/Img_073_", key6Info, "_", key5Info, "_", "전국", ".png")
-
+    
     tmpData = dataL1 %>%
       dplyr::filter(
         key5 == key5Info
@@ -11335,16 +11335,16 @@ for (key6Info in key6List) {
       dplyr::group_by(dtYear, key5, key6) %>%
       dplyr::summarise(cnt = n()) %>%
       dplyr::mutate(facetLabel = "전국")
-
+    
     if (nrow(tmpData) < 4) {
       next
     }
-
+    
     sumVal = sum(tmpData$cnt, na.rm = TRUE)
-
+    
     tmpDataL1 = tmpData %>%
       dplyr::mutate(val = (cnt / sumVal) * 100)
-
+    
     ggpubr::ggscatter(tmpDataL1, x = "dtYear", y = "val", color = "black", add = "reg.line", conf.int = TRUE, cor.coef = FALSE, add.params = list(color = "blue", fill = "lightblue")) +
       ggpubr::stat_cor(method = "pearson", label.x = 2015, label.y = 50, size = 5) +
       ggpubr::stat_regline_equation(label.x = 2015, label.y = 45, size = 5) +
@@ -11369,12 +11369,12 @@ for (key6Info in key6List) {
 for (key6Info in key6List) {
   for (key5Info in key5List) {
     for (addr1Info in addr1List) {
-
+      
       plotSubTitle = paste0("[", key6Info, "] ", key5Info, " 의료이용률 시도별 추세(2015~2019)")
       saveImg = paste0("TMP2/Img_073_", key6Info, "_", key5Info, "_", addr1Info, ".png")
-
+      
       cat(key5Info, " ", key6Info, " ", addr1Info)
-
+      
       dataL2 = dataL1 %>%
         dplyr::filter(
           addr1 == addr1Info
@@ -11388,16 +11388,16 @@ for (key6Info in key6List) {
         dplyr::mutate(
           facetLabel = stringr::str_c(addr1)
         )
-
+      
       if (nrow(dataL2) < 4) {
         next
       }
-
+      
       sumVal = sum(dataL2$cnt, na.rm = TRUE)
-
+      
       dataL3 = dataL2 %>%
         dplyr::mutate(val = (cnt / sumVal) * 100)
-
+      
       ggpubr::ggscatter(dataL3, x = "dtYear", y = "val", color = "black", add = "reg.line", conf.int = TRUE, cor.coef = FALSE, add.params = list(color = "blue", fill = "lightblue")) +
         ggpubr::stat_cor(method = "pearson", label.x = 2015, label.y = 50, size = 5) +
         ggpubr::stat_regline_equation(label.x = 2015, label.y = 45, size = 5) +
@@ -11437,12 +11437,12 @@ for (key6Info in key6List) {
   for (key5Info in key5List) {
     for (addr1Info in addr1List) {
       for (addr2Info in addr2List) {
-
+        
         plotSubTitle = paste0("[", key6Info, "] ", key5Info, " 의료이용률 시군구별 추세(2015~2019)")
         saveImg = paste0("TMP2/Img_074_", key6Info, "_", key5Info, "_", addr1Info, "_", addr2Info, ".png")
-
+        
         cat(key5Info, " ", key6Info, " ", addr1Info, " ", addr2Info)
-
+        
         dataL2 = dataL1 %>%
           dplyr::filter(
             addr1 == addr1Info
@@ -11457,23 +11457,23 @@ for (key6Info in key6List) {
           dplyr::mutate(
             facetLabel = stringr::str_c(addr1, " ", addr2)
           )
-
-
+        
+        
         if (nrow(dataL2) < 0) {
           next
         }
-
-
+        
+        
         sumVal = sum(dataL2$cnt, na.rm = TRUE)
-
+        
         dataL3 = dataL2 %>%
           dplyr::mutate(val = (cnt / sumVal) * 100)
-
+        
         if (nrow(dataL3) < 3) {
           next
         }
-
-
+        
+        
         ggpubr::ggscatter(dataL3, x = "dtYear", y = "val", color = "black", add = "reg.line", conf.int = TRUE, cor.coef = FALSE, add.params = list(color = "blue", fill = "lightblue")) +
           ggpubr::stat_cor(method = "pearson", label.x = 2015, label.y = 50, size = 5) +
           ggpubr::stat_regline_equation(label.x = 2015, label.y = 45, size = 5) +
@@ -11564,7 +11564,7 @@ key6List = unique(data$key6)
 
 for (key5Info in key5List) {
   for (key6Info in key6List) {
-
+    
     # 전체
     tmpData = data %>%
       dplyr::group_by(key5, key6, addr1) %>%
@@ -11574,11 +11574,11 @@ for (key5Info in key5List) {
         , key6 == key6Info
         , addr1 == "충청남도"
       )
-
+    
     if (nrow(tmpData) <= 0) {
       next
     }
-
+    
     dataL1 = data %>%
       dplyr::group_by(addr1, addr2, addr3, key5, key6) %>%
       dplyr::summarise(n = n()) %>%
@@ -11587,11 +11587,11 @@ for (key5Info in key5List) {
         , key6 == key6Info
       ) %>%
       dplyr::mutate(cnt = (n / tmpData$sumVal) * 100)
-
+    
     if (nrow(dataL1) <= 0) {
       next
     }
-
+    
     dataL2 = geoData_L1 %>%
       dplyr::left_join(dataL1, by = c("si_do_name" = "addr1", "sigungu_name" = "addr2", "emd_name" = "addr3")) %>%
       dplyr::mutate(
@@ -11639,14 +11639,14 @@ for (key5Info in key5List) {
           , TRUE ~ 0
         )
       )
-
+    
     # 시각화
     # saveImg = paste0("TMP2/Img_078.png")
     # saveImg = paste0("TMP2/Img_078_", "2015-2019", "_", key6Info, "_", key5Info, ".png")
-
+    
     saveImg = sprintf("%s/%s_%s_%s_%s_%s.png", globalVar$figPath, serviceName, "078", "2015-2019", key6Info, key5Info)
     plotSubTitle = paste0("[", key6Info, "] ", key5Info, " 의료이용률 읍면동별 현황(", "2015-2019", ")")
-
+    
     ggplot() +
       theme_bw() +
       coord_fixed(ratio = 1) +
@@ -11680,7 +11680,7 @@ for (key5Info in key5List) {
   for (key6Info in key6List) {
     # 년마다 수행행
     for (yearInfo in yearList) {
-
+      
       tmpData = data %>%
         dplyr::group_by(key5, key6, addr1) %>%
         dplyr::summarise(sumVal = n()) %>%
@@ -11689,11 +11689,11 @@ for (key5Info in key5List) {
           , key6 == key6Info
           , addr1 == "충청남도"
         )
-
+      
       if (nrow(tmpData) <= 0) {
         next
       }
-
+      
       dataL1 = data %>%
         dplyr::group_by(dtYear, addr1, addr2, addr3, key5, key6) %>%
         dplyr::summarise(n = n()) %>%
@@ -11703,11 +11703,11 @@ for (key5Info in key5List) {
           , key6 == key6Info
         ) %>%
         dplyr::mutate(cnt = (n / tmpData$sumVal) * 100)
-
+      
       if (nrow(dataL1) <= 0) {
         next
       }
-
+      
       dataL2 = geoData_L1 %>%
         dplyr::left_join(dataL1, by = c("si_do_name" = "addr1", "sigungu_name" = "addr2", "emd_name" = "addr3")) %>%
         dplyr::mutate(
@@ -11755,12 +11755,12 @@ for (key5Info in key5List) {
             , TRUE ~ 0
           )
         )
-
+      
       # 시각화
       saveImg = paste0("TMP2/Img_079_", yearInfo, "_", key6Info, "_", key5Info, ".png")
       plotSubTitle = paste0("[", key6Info, "] ", key5Info, " 의료이용률 읍면동별 현황(", yearInfo, ")")
-
-
+      
+      
       ggplot() +
         theme_bw() +
         coord_fixed(ratio = 1) +
@@ -11786,7 +11786,7 @@ for (key5Info in key5List) {
           # , legend.position = "none"
         ) +
         ggsave(filename = paste(globalVar$figPath, saveImg, sep = "/"), width = 10, height = 5, dpi = 600)
-
+      
     }
   }
 }
@@ -12007,15 +12007,15 @@ summary(modelFit)
 dfData = readr::read_csv(file = "./rpy/mtcars.csv")
 
 modelFit = lm(mpg ~ cyl +
-  disp +
-  hp +
-  drat +
-  wt +
-  qsec +
-  vs +
-  am +
-  gear +
-  carb, data = dfData)
+                disp +
+                hp +
+                drat +
+                wt +
+                qsec +
+                vs +
+                am +
+                gear +
+                carb, data = dfData)
 
 modelStepAic = MASS::stepAIC(modelFit, direction = "both")
 
@@ -12508,18 +12508,18 @@ colList = colnames(data1 %>% select(-sample))
 
 dataL2 = data.frame()
 for (colInfo in colList) {
-
+  
   dataL1 = data %>%
     dplyr::select(val = colInfo, key = covid_status)
-
+  
   tTest = t.test(dataL1[dataL1$key == "positive",]$val, dataL1[dataL1$key == "negative",]$val)
-
+  
   tmpData = tibble(
     "colInfo" = colInfo
     , "tVal" = tTest$statistic
     , "pVal" = tTest$p.value
   )
-
+  
   dataL2 = dplyr::bind_rows(dataL2, tmpData)
 }
 
@@ -12597,22 +12597,22 @@ dataRes = tibble()
 
 for (i in 1:nrow(urlList)) {
   urlInfo2 = urlList[i, "urlInfo"]
-
+  
   val = urlInfo2 %>%
     purrr::map(~getUrlXpathText(.x, '//*[@id="container"]/div/span')) %>%
     unlist()
-
+  
   if (length(val) < 1) {
     val = "NA"
   }
-
+  
   log4r::info(log, paste0("진행률 : ", round((i / nrow(urlList)) * 100, 2), " %"))
-
+  
   tmpData = data.frame(
     "urlInfo" = urlInfo2
     , "val" = val
   )
-
+  
   dataRes = dplyr::bind_rows(dataRes, tmpData)
 }
 
@@ -12908,8 +12908,8 @@ obsTable = table(obsRank)
 sum(obsTable^3 - obsTable)
 
 VW = n1 * n2 / 12 / (n^2 - n) * (n^3 -
-  n -
-  sum(obsTable^3 - obsTable, na.rm = TRUE))
+                                   n -
+                                   sum(obsTable^3 - obsTable, na.rm = TRUE))
 EW = n1 * n2 / 2
 Z = (W - EW) / sqrt(VW)
 Pval = 2 * pnorm(Z, lower.tail = FALSE)
@@ -13106,7 +13106,7 @@ ggplot(ggData, aes(x = key, y = ratio, fill = type, label = round(ratio, 1))) +
 dataL2 = dataL1 %>%
   dplyr::select(dplyr::contains(c("key", "ref"))) %>%
   # dplyr::select(-key3, -key4, -key5)
-
+  
   # key 정렬
   dataL2$key1 = forcats::fct_relevel(dataL2$key1, c("남자", "여자"))
 dataL2$key2 = forcats::fct_relevel(dataL2$key2, c("20대 (10대포함)", "30대", "40대", "50대", "60대 이상"))
@@ -13123,11 +13123,11 @@ dataL4 = data.frame()
 
 for (i in 1:length(keyList)) {
   for (j in 1:length(colList)) {
-
+    
     rsAov = aov(get(colList[j], dataL2) ~ get(keyList[i], dataL2), data = dataL2) %>%
       summary %>%
       unlist()
-
+    
     tmpData = tibble(
       # typeName = typeNameList[i]
       type = keyList[i]
@@ -13137,10 +13137,10 @@ for (i in 1:length(keyList)) {
       , pVal = rsAov[9] %>% round(2)
     ) %>%
       dplyr::mutate(label = paste0(fVal, " (", pVal, ")"))
-
+    
     dataL3 = dplyr::bind_rows(dataL3, tmpData)
   }
-
+  
   tmpData2 = dataL2 %>%
     dplyr::group_by(type = get(keyList[i], dataL2)) %>%
     # dplyr::select(!dplyr::contains("type")) %>%
@@ -13151,7 +13151,7 @@ for (i in 1:length(keyList)) {
       , sd(., na.rm = TRUE) %>% round(2) # 표준편차
       # , n() # 자료 개수
     ))
-
+  
   dataL4 = dplyr::bind_rows(dataL4, tmpData2)
 }
 
@@ -13539,16 +13539,16 @@ valList = sort(unique(stationData$val))
 # valInfo = "문화 및 여가"
 
 for (valInfo in valList) {
-
+  
   stationDataL1 = stationData %>%
     dplyr::filter(val == valInfo)
-
+  
   # if (nrow(stationDataL1) < 1) { next }
-
+  
   # 시각화
   saveImg = sprintf("%s/TMP3/Img_%s_%05d_%s_%s.png", globalVar$figPath, serviceName, 2, "충청남도 전체 자원 분포 현황", valInfo)
   plotSubTitle = sprintf("[%s] %s", valInfo, "충청남도 전체 자원 분포 현황")
-
+  
   # ggplot(data = dataL2, aes(x = long, y = lat, group = group, fill = as.factor(sigungu_name))) +
   ggplot(data = dataL2, aes(x = long, y = lat, group = group, fill = factor(backColor))) +
     theme_bw() +
@@ -13643,7 +13643,7 @@ nameInfo = "서북구"
 # "서천군" "아산시" "예산군" "청양군" "태안군" "홍성군"
 
 for (nameInfo in nameList) {
-
+  
   dataL2 = geoData_L1 %>%
     dplyr::filter(sigungu_name == nameInfo) %>%
     dplyr::mutate(
@@ -13751,20 +13751,20 @@ for (nameInfo in nameList) {
       # TRUE ~ 3.5
       # )
     )
-
+  
   if (nrow(dataL2) < 1) { next }
-
+  
   stationDataL1 = stationData %>%
     dplyr::filter(stringr::str_detect(addr, nameInfo))
-
+  
   # if (nrow(stationDataL1) < 1) { next }
-
+  
   # 시각화
   saveImg = sprintf("%s/TMP3/Img_%s_%05d_%s_%s.png", globalVar$figPath, serviceName, 3, "충청남도 시군구별 자원 분포도", nameInfo)
-
+  
   # saveImg = sprintf("%s/TMP4/Img_%s_%05d_%s_%s.png", globalVar$figPath, serviceName, 3, "충청남도 시군구별 자원 분포도 (진료소 O)", nameInfo)
   plotSubTitle = sprintf("%s (%s)", "충청남도 시군구별 자원 분포도", nameInfo)
-
+  
   ggplot(data = dataL2, aes(x = long, y = lat, group = group, fill = factor(backColor))) +
     theme_bw() +
     coord_fixed(ratio = 1) +
@@ -13808,13 +13808,13 @@ nameList = sort(unique(geoData_L1$sigungu_name))
 
 for (nameInfo in nameList) {
   for (valInfo in valList) {
-
+    
     # 시각화
     saveImg = sprintf("%s/TMP3/Img_%s_%05d_%s_%s_%s.png", globalVar$figPath, serviceName, 4, "충청남도 시군구별 자원 분포도", nameInfo, valInfo)
     plotSubTitle = sprintf("[%s] %s (%s)", valInfo, "충청남도 시군구별 자원 분포도", nameInfo)
-
+    
     # if (fs::file_exists(saveImg) == TRUE) { next }
-
+    
     dataL2 = geoData_L1 %>%
       dplyr::filter(sigungu_name == nameInfo) %>%
       dplyr::mutate(
@@ -13922,18 +13922,18 @@ for (nameInfo in nameList) {
         # TRUE ~ 3.5
         # )
       )
-
+    
     if (nrow(dataL2) < 1) { next }
-
+    
     stationDataL1 = stationData %>%
       dplyr::filter(
         stringr::str_detect(addr, nameInfo)
         , val == valInfo
       )
-
+    
     # if (nrow(stationDataL1) < 1) { next }
-
-
+    
+    
     ggplot(data = dataL2, aes(x = long, y = lat, group = group, fill = factor(backColor))) +
       theme_bw() +
       coord_fixed(ratio = 1) +
@@ -14091,12 +14091,12 @@ iris_res = tibble()
 # i = 1
 for (i in 2:6) {
   iris_cluster = kmeans(iris_tb2, center = i)
-
+  
   iris_tmpData = tibble(
     "k" = i
     , "tot.withinss" = iris_cluster$tot.withinss
   )
-
+  
   iris_res = dplyr::bind_rows(iris_res, iris_tmpData)
 }
 
@@ -14112,23 +14112,23 @@ iris_resMean = tibble()
 i = 2
 for (i in 2:6) {
   iris_rsKmeans = kmeans(iris_tb2[, c("Sepal.Length", "Sepal.Width")], i)
-
+  
   iris_meanKmeans = iris_rsKmeans$centers %>%
     as.tibble()
-
+  
   iris_tmpData = tibble(
     iris_tb2[, c("Sepal.Length", "Sepal.Width")]
     , "cluster" = iris_rsKmeans$cluster
     , "i" = i
   )
-
+  
   iris_res = dplyr::bind_rows(iris_res, iris_tmpData)
-
+  
   iris_tmpData2 = tibble(
     iris_meanKmeans
     , "i" = i
   )
-
+  
   iris_resMean = dplyr::bind_rows(iris_resMean, iris_tmpData2)
 }
 
@@ -14274,26 +14274,26 @@ dataGeo = tibble::tibble()
 
 for (i in 1:nrow(dataNaver)) {
   keyword = dataNaver$roadAddress[i]
-
+  
   #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
   # 네이버 API (지도)
   #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
   reqUrl = "https://naveropenapi.apigw.ntruss.com/map-geocode/v2/geocode"
   reqQuery = stringr::str_c("?query=", RCurl::curlEscape(stringr::str_conv(keyword, encoding = "UTF-8")))
-
+  
   reqId = globalVar$naverApigwApiKeyId
   reqPw = globalVar$naverApigwApiKey
-
+  
   reqRes = httr::GET(
     stringr::str_c(reqUrl, reqQuery)
     , add_headers("X-NCP-APIGW-API-KEY-ID" = reqId, "X-NCP-APIGW-API-KEY" = reqPw, "Accept" = "application/json")
   )
-
+  
   resData = httr::content(reqRes, as = 'text') %>%
     jsonlite::fromJSON()
-
+  
   data = resData$addresses
-
+  
   makerLabel = stringr::str_c("markers=type:n|size:mid|pos:", data$x, "%20", data$y, "|label:", i)
   tmpData = tibble::tibble(lon = data$x, lat = data$y, maker = makerLabel)
   dataGeo = dplyr::bind_rows(dataGeo, tmpData)
@@ -14423,22 +14423,22 @@ dataL1 = tibble::tibble()
 # 경기데이터드림 API (자료 요청)
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 for (i in 1:length(dtDateList)) {
-
+  
   sDate = format(dtDateList[i], "%Y%m%d")
-
+  
   reqMesureDt = stringr::str_c("?MESURE_DE=", RCurl::curlEscape(stringr::str_conv(sDate, encoding = "EUC-KR")))
-
+  
   resRes = httr::GET(
     stringr::str_c(reqUrl, reqMesureDt, reqMesureTm, reqSigunNm, reqIndex, reqSize, reqType)
   )
-
+  
   resData = httr::content(resRes, as = 'text') %>%
     jsonlite::fromJSON()
-
+  
   data = resData$AWS1hourObser$row[[2]]
-
+  
   if (nrow(data) < 1) { next }
-
+  
   dataL1 = dplyr::bind_rows(dataL1, data)
 }
 
@@ -14494,24 +14494,24 @@ dataGeo = tibble::tibble()
 
 for (i in 1:nrow(dataL1)) {
   keyword = dataL1$REFINE_ROADNM_ADDR[i]
-
+  
   #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
   # 네이버 API (지도)
   #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
   reqUrl = "https://naveropenapi.apigw.ntruss.com/map-geocode/v2/geocode"
   reqQuery = stringr::str_c("?query=", RCurl::curlEscape(stringr::str_conv(keyword, encoding = "UTF-8")))
-
+  
   reqId = globalVar$naverApigwApiKeyId
   reqPw = globalVar$naverApigwApiKey
-
+  
   reqRes = httr::GET(
     stringr::str_c(reqUrl, reqQuery)
     , add_headers("X-NCP-APIGW-API-KEY-ID" = reqId, "X-NCP-APIGW-API-KEY" = reqPw, "Accept" = "application/json")
   )
-
+  
   resData = httr::content(reqRes, as = 'text') %>%
     jsonlite::fromJSON()
-
+  
   data = resData$addresses
   makerLabel = stringr::str_c("markers=type:n|size:mid|pos:", data$x, "%20", data$y, "|label:", i)
   tmpData = tibble::tibble(lon = data$x, lat = data$y, maker = makerLabel)
@@ -15017,11 +15017,11 @@ summary(stepAic)
 predictions = predict(stepAic, newdata = testData)
 
 resultData = dplyr::bind_rows(resultData
-  , data.frame(
-    type = "MLR"
-    , pred = predictions
-    , real = testData$self.esteem
-  )
+                              , data.frame(
+                                type = "MLR"
+                                , pred = predictions
+                                , real = testData$self.esteem
+                              )
 )
 
 # 시각화
@@ -15401,7 +15401,7 @@ ts(bb)
 
 makePlot = function(inTeamId) {
   library(tidyverse)
-
+  
   data = Teams %>%
     dplyr::filter(
       yearID > 1975
@@ -15411,12 +15411,12 @@ makePlot = function(inTeamId) {
       ratio = W / (W + L) * 100
       , plotLabel = substr(yearID, 3, 4)
     )
-
+  
   if (nrow(data) < 1) { next }
-
+  
   plot(attendance ~ ratio, col = "white", data = data)
   text(attendance ~ ratio, labels = plotLabel, data = data)
-
+  
 }
 
 # Boston Redsox
@@ -15437,10 +15437,10 @@ hist(Batting$yearID)
 
 #
 data = plyr::ddply(Batting
-  , .(playerID)
-  , function(df) {
-    data.frame(cnt = nrow(df))
-  }
+                   , .(playerID)
+                   , function(df) {
+                     data.frame(cnt = nrow(df))
+                   }
 )
 
 ind = which.max(data$cnt)
@@ -15497,56 +15497,56 @@ cnt = 0
 # [Step 2] 페이지 중앙의 Search and browse books에 “harry potter”를 검색하세요. 이후 맨 아래에 페이
 # 지를 변경해가며 URL의 특징을 파악하세요.
 for (keywordInfo in keywordList) {
-
+  
   # [Step 3] 수업시간에 배운 내용을 바탕으로 필요한 library를 호출하고, 제목, 저자, 평점, 평점의 수, 리뷰, 개수, 요약문에 관한 변수를 선언하세요.
   tmp_prefixUrl = paste0(url, "/search?utf8=%E2%9C%93")
   tmp_urlInit = modify_url(tmp_prefixUrl, query = list(query = keywordInfo))
   tmp_contentInit <- read_html(tmp_urlInit)
-
+  
   # [Step 4] 이번 과제에서는 검색 키워드가 변화하더라도 마지막 페이지까지 Scraping을 수행할 수 있도록 코드를 구현하고자 합니다. 첫 번째 페이지를 기준으로 문제 1의 결과를 이용하여 아래 그림의 마지막 페이 지인 100을 정수 타입으로 변수에 할당할 수 있는 코드를 작성하세요. (변수에 100을 직접 할당하는 방식은 허용되지 않습니다.)
   tmp_lastPageList = tmp_contentInit %>%
     html_nodes(css = ".leftContainer > div > div > a") %>%
     html_text()
   tmp_lastPage = as.numeric(tmp_lastPageList[length(tmp_lastPageList) - 1])
-
+  
   # [Step 5] Step 4의 결과를 바탕으로 처음 페이지부터 마지막 페이지까지 URL을 통해 접근할 수 있는 코드를 작성하세요.
   pageList = 1:tmp_lastPage
   # pageList = 1:2
   bookData = tibble::tibble()
   # pageInfo = 2
-
+  
   for (pageInfo in pageList) {
     # https://www.goodreads.com/search?page=5&query=harry+potter&tab=books&utf8=%E2%9C%93
-
+    
     # [Step 7] Step 6에서 수집된 URL의 개수를 이용하여 반복문을 작성하고, 이후 Step 6에서 수집된URL과 문 제 2의 결과를 이용하여 서적 제목의 링크로 이동할 수 있는 URL을 변수에 할당하세요. 결과적으로 반복문을 수행하며 페이지 내의 모든 서적 제목에 대해 지정된 링크로 이동하는 URL을 변수에 할당할 수 있는 코드를 작성하세요.
     tmp_url = modify_url(tmp_prefixUrl, query = list(query = keywordInfo, page = pageInfo)) %>% gsub('%2B', '+', .)
-
+    
     tmp_content = read_html(tmp_url)
     tmp_titleLink = tmp_content %>%
       html_nodes(css = '.bookTitle') %>%
       html_attr("href")
     tmp_urlDtlList = paste0(url, tmp_titleLink)
-
+    
     # 조회 결과 링크 목록
     for (tmp_urlDtlInfo in tmp_urlDtlList) {
-
+      
       # tmp_title = NA
       # tmp_author = NA
       # tmp_score = NA
       # tmp_ratingNum = NA
       # tmp_reviewNum = NA
       # tmp_summary = NA
-
+      
       tryCatch(
         expr = {
           tmp_contentDtl = read_html(tmp_urlDtlInfo)
-
+          
           # [Step 8] 서적의 제목을 수집하는 코드를 작성하세요. 이 때, 서적의 제목에 두 글자 이상의 공백이 있다면 일괄적으로 한 칸의 공백으로 변경하세요. 이후 제목의 앞 뒤에 여백이 있다면 여백을 제거하세요.
           tmp_title = tmp_contentDtl %>%
             html_nodes(xpath = '//*[@id="bookTitle"]') %>%
             html_text() %>%
             trim()
-
+          
           # [Step 9] 서적의 저자를 수집하는 코드를 작성하세요. 이 때, 저자의 이름 앞 뒤에 여백 또는 쉼표가 있다면 제거하고 저자의 이름이 ‘, ’로 구분되도록 수집하세요. (아래 예시에서는 J.K. Rowling, Mary GrandPre (Illustrator)와 같이 수집)
           tmp_author = tmp_contentDtl %>%
             html_nodes(xpath = '//*[@id="bookAuthors"]') %>%
@@ -15554,7 +15554,7 @@ for (keywordInfo in keywordList) {
             gsub("\\s+", " ", .) %>%
             gsub("\"", "", .) %>%
             str_trim
-
+          
           # [Step 10] 서적의 평점을 수집하는 코드를 작성하세요. 평점에 공백이 존재할 경우 제거하여 수집하도록 코드를 작성하세요.
           tmp_score = tmp_contentDtl %>%
             html_nodes(xpath = '//*[@id="bookMeta"]/span[2]') %>%
@@ -15563,7 +15563,7 @@ for (keywordInfo in keywordList) {
             gsub("\"", "", .) %>%
             str_trim %>%
             readr::parse_number()
-
+          
           # [Step 11] 서적의 총 평점 개수를 수집하는 코드를 작성하세요. 평점의 개수는 정수의 형태로 수집되도록 코드를 작성하세요. (아래 예시에서는 7071903)
           tmp_ratingNum = tmp_contentDtl %>%
             html_nodes(xpath = '//*[@id="bookMeta"]/a[2]/meta') %>%
@@ -15572,7 +15572,7 @@ for (keywordInfo in keywordList) {
             gsub("\"", "", .) %>%
             str_trim %>%
             readr::parse_number()
-
+          
           # [Step 12] 서적의 총 리뷰 개수를 수집하는 코드를 작성하세요. 리뷰의 개수는 정수의 형태로 수집되도록 코드를 작성하세요. (아래의 예시에서는 112684)
           tmp_reviewNum = tmp_contentDtl %>%
             html_nodes(xpath = '//*[@id="bookMeta"]/a[3]/meta') %>%
@@ -15581,7 +15581,7 @@ for (keywordInfo in keywordList) {
             gsub("\"", "", .) %>%
             str_trim %>%
             readr::parse_number()
-
+          
           # [Step 13] 서적의 요약문을 수집하는 코드를 작성하세요. 페이지에 보이는 부분만을 수집하는 코드를 작성하면 됩니다. (아래 예시에서는 “…more”까지) 두 칸 이상의 공백이 존재할 경우 일괄적으로 한 칸 공백으로 변경하고, 앞 뒤에 여백이 있을 경우 제거하세요. 만일 요약문이 존재하지 않으면 한 칸 공백 (“ ”)를 수집된 요약문으로 간주하도록 코드를 작성하세요.
           tmp_summary = tmp_contentDtl %>%
             html_nodes(xpath = '//*[@id="description"]') %>%
@@ -15589,9 +15589,9 @@ for (keywordInfo in keywordList) {
             gsub("\\s+", " ", .) %>%
             gsub("\"", "", .) %>%
             str_trim
-
+          
           if (str_length(tmp_summary) < 1) { tmp_summary = "" }
-
+          
           tmp_bookData = tibble::tibble(
             cnt = cnt
             , title = tmp_title
@@ -15601,13 +15601,13 @@ for (keywordInfo in keywordList) {
             , reviewNumber = tmp_reviewNum
             , summary = tmp_summary
           )
-
+          
           bookData = dplyr::bind_rows(bookData, tmp_bookData)
         }
         , error = function(e) {
-
+          
           print("An error occurs, skip the revie")
-
+          
           # cat(sprintf(
           #   "%s : %s"
           #   , "An error occurs, skip the revie"
@@ -15616,7 +15616,7 @@ for (keywordInfo in keywordList) {
         }
         , finally = {
           cnt = cnt + 1
-
+          
           cat(sprintf(
             "keywordInfo : %10s | pageInfo : %5s | cnt : %5s"
             , keywordInfo
@@ -15626,7 +15626,7 @@ for (keywordInfo in keywordList) {
         }
       )
     }
-
+    
   }
   tmp_multiBookData = tibble::tibble(keyword = keywordInfo, bookData)
   multiBookData = dplyr::bind_rows(multiBookData, tmp_multiBookData)
@@ -16143,15 +16143,15 @@ seqInfo = 2
 for (seqInfo in seqList) {
   colModelName = colnames(modelData)[seqInfo]
   colObsName = colnames(obsData)[seqInfo]
-
+  
   modelDataL1 = modelData %>%
     dplyr::select(colModelName) %>%
     dplyr::rename(
       "model" = colModelName
     ) %>%
     dplyr::arrange(model)
-
-
+  
+  
   obsDataL1 = obsData %>%
     dplyr::select(colObsName) %>%
     dplyr::rename(
@@ -16162,12 +16162,12 @@ for (seqInfo in seqList) {
     dplyr::bind_cols(modelDataL1) %>%
     dplyr::arrange(rowid) %>%
     dplyr::bind_cols(colModelName = colModelName, colObsName = colObsName)
-
+  
   dataL2 = dplyr::bind_rows(dataL2, obsDataL1)
-
+  
   obsDataL2 = obsDataL1 %>%
     dplyr::select(obs, model)
-
+  
   if (seqInfo == 1) {
     dataL3 = obsDataL2
   } else {
@@ -16452,7 +16452,7 @@ valList = c("gdp", "perGdp", "gdpPerCapita", "rate")
 for (valInfo in valList) {
   saveImg = sprintf("%s/Img_%s_%02d_%s.png", globalVar$figPath, serviceName, 1, valInfo)
   plotSubtitle = sprintf("2019년 %s 시각화", valInfo)
-
+  
   ggplot(dataL3, aes_string(fill = valInfo)) +
     geom_sf(data = world, fill = "#f0f0f0", colour = "white") +
     geom_sf(alpha = 0.8, colour = "white", size = 0.1) +
@@ -16485,17 +16485,17 @@ valList = c("gini", "gdpPerCapita")
 
 for (valInfo in valList) {
   for (yearInfo in yearList) {
-
+    
     saveImg = sprintf("%s/Img_%s_%02d_%s_%s.png", globalVar$figPath, serviceName, 2, yearInfo, valInfo)
     plotSubtitle = sprintf("%s년 %s 시각화", yearInfo, valInfo)
-
+    
     cat(saveImg, "\n")
-
+    
     dataL4 = dataL3 %>%
       dplyr::filter(year == yearInfo)
-
+    
     if (nrow(dataL4) < 1) { next }
-
+    
     ggplot(dataL4, aes_string(fill = valInfo)) +
       geom_sf(data = world, fill = "#f0f0f0", colour = "white") +
       geom_sf(alpha = 0.8, colour = "white", size = 0.1) +
@@ -16974,10 +16974,10 @@ globalVar$outPath = "."
 # Set Fun
 #************************************************
 perfEval = function(x, y) {
-
+  
   if (length(x) < 1) { return(sprintf("%s", "x 값 없음")) }
   if (length(y) < 1) { return(sprintf("%s", "y 값 없음")) }
-
+  
   slope = coef(lm(y ~ x))[2]
   interp = coef(lm(y ~ x))[1]
   xMean = mean(x, na.rm = TRUE)
@@ -16994,7 +16994,7 @@ perfEval = function(x, y) {
   diffMean = mean(x - y, na.rm = TRUE)
   diffSd = sd(x - y, na.rm = TRUE)
   # perDiffMean = mean((x - y) / y, na.rm = TRUE) * 100.0
-
+  
   return(c(slope, interp, xMean, yMean, xSd, ySd, cnt, bias, rBias, rmse, rRmse, r, r2, diffMean, diffSd))
 }
 
@@ -17021,45 +17021,45 @@ svmPredData = data.frame()
 for (i in 1:length(colList)) {
   data = data.frame(tmpData1[, i], tmpData2[, i]) %>%
     magrittr::set_colnames(c("obs", "model"))
-
+  
   dataL1 = data %>%
     dplyr::filter(
       !is.na(obs)
       , !is.na(model)
     )
-
+  
   #=====================================================================
   # 훈련 및 테스트 셋 설정 (70 : 30)
   #=====================================================================
   set.seed(1)
-
+  
   # 훈련 및 데이터 셋을 60:40으로 나누기 위한 인덱스 설정
   # ind = sample(1:nrow(dataL1), nrow(dataL1) * 0.7)
   ind = 1:302
-
+  
   # 해당 인덱스에 따라 자료 할당
   trainData = dataL1[ind,]
   testData = dataL1[-ind,]
-
+  
   # 훈련 데이터셋 확인
   dplyr::tbl_df(trainData)
-
+  
   # 테스트 데이터셋 확인
   dplyr::tbl_df(testData)
-
+  
   #=====================================================================
   # 랜덤포레스트 (RF)
   #=====================================================================
-
+  
   #***********************************
   # 학습
   #***********************************
   tictoc::tic()
-
+  
   # [시작] 병렬 처리
   # oSocClu = parallel::makePSOCKcluster(parallel::detectCores())
   # doParallel::registerDoParallel(oSocClu)
-
+  
   rfModel = caret::train(
     obs ~ model
     , data = trainData
@@ -17067,45 +17067,45 @@ for (i in 1:length(colList)) {
     , tuneGrid = expand.grid(.mtry = 1:2)
     , trControl = caret::trainControl(method = "repeatedcv", number = 10, repeats = 1, search = "grid") # 10분할 교차 검증 및 1번 반복
   )
-
+  
   # [종료] 병렬 처리
   # stopCluster(oSocClu)
-
+  
   tictoc::toc()
-
+  
   ggplot(rfModel)
-
+  
   #***********************************
   # 검증
   #***********************************
   yObs = testData$obs
   yHat = predict(rfModel, newdata = testData)
-
+  
   tmpData = data.frame(yHat) %>%
     magrittr::set_colnames(paste0("RF-", colList[i]))
-
+  
   if (ncol(rfPredData) == 0) {
     rfPredData = tmpData
   } else {
     rfPredData = dplyr::bind_cols(rfPredData, tmpData)
   }
-
+  
   perfTable[i,] = round(perfEval(yHat, yObs), 2)
   perfTable
-
+  
   #=====================================================================
   # 서포트벡터 (SVM)
   #=====================================================================
-
+  
   #***********************************
   # 학습
   #***********************************
   tictoc::tic()
-
+  
   # [시작] 병렬 처리
   # oSocClu = parallel::makePSOCKcluster(parallel::detectCores())
   # doParallel::registerDoParallel(oSocClu)
-
+  
   svmModel = caret::train(
     obs ~ model
     , data = trainData
@@ -17114,30 +17114,30 @@ for (i in 1:length(colList)) {
     # , preProcess = c("center", "scale")
     , trControl = caret::trainControl(method = "repeatedcv", number = 10, repeats = 1, search = "grid") # 10분할 교차 검증 및 1번 반복
   )
-
+  
   # [종료] 병렬 처리
   # stopCluster(oSocClu)
-
+  
   tictoc::toc()
-
+  
   # ggplot(svmModel)
-
+  
   #***********************************
   # 검증
   #***********************************
   yObs = testData$obs
   yHat = predict(svmModel, newdata = testData)
-
+  
   tmpData = data.frame(yHat) %>%
     magrittr::set_colnames(paste0("SVM-", colList[i]))
-
+  
   if (ncol(svmPredData) == 0) {
     svmPredData = tmpData
   } else {
     svmPredData = dplyr::bind_cols(svmPredData, tmpData)
-
+    
   }
-
+  
   perfTable[i + 22,] = round(perfEval(yHat, yObs), 2)
   perfTable
 }
@@ -17229,10 +17229,10 @@ log4r::logfile(log) = paste0(globalVar$logPath, "/log4r_", format(Sys.time(), "%
 log4r::level(log) = "INFO"
 
 perfEval = function(x, y) {
-
+  
   if (length(x) < 1) { return(sprintf("%s", "x 값 없음")) }
   if (length(y) < 1) { return(sprintf("%s", "y 값 없음")) }
-
+  
   slope = coef(lm(y ~ x))[2]
   interp = coef(lm(y ~ x))[1]
   xMean = mean(x, na.rm = TRUE)
@@ -17249,39 +17249,39 @@ perfEval = function(x, y) {
   diffMean = mean(x - y, na.rm = TRUE)
   diffSd = sd(x - y, na.rm = TRUE)
   # perDiffMean = mean((x - y) / y, na.rm = TRUE) * 100.0
-
+  
   return(c(slope, interp, xMean, yMean, xSd, ySd, cnt, bias, rBias, rmse, rRmse, r, p, diffMean, diffSd))
 }
 
 biasCorr = function(actu, pred, minVal, maxVal, interVal, isPlot = FALSE) {
-
+  
   factorVal = seq(minVal, maxVal, by = interVal)
-
+  
   # RMSE Fitting
   liResult = lapply(1:length(factorVal), function(i) Metrics::rmse(actu, pred * factorVal[i])) %>%
     unlist()
-
+  
   ind = which(liResult == min(liResult, na.rm = TRUE))
-
+  
   if (isPlot == TRUE) {
     plot(liResult)
   }
-
+  
   # Best Factor Index
   ind = which(liResult == min(liResult, na.rm = TRUE))
-
+  
   calibFactor = factorVal[[ind]]
   calPred = calibFactor * pred
-
+  
   meanDiff = mean(actu, na.rm = TRUE) - mean(calPred, na.rm = TRUE)
   newPred = (calPred) + meanDiff
-
+  
   cat(
     sprintf("%s : %.2f", "[보정 X] RMSE", Metrics::rmse(actu, pred))
     , sprintf("%s : %.2f", "[보정 O] RMSE", Metrics::rmse(actu, newPred))
     , "\n"
   )
-
+  
   return(c(newPred))
 }
 
@@ -17314,35 +17314,35 @@ oriData = data.frame()
 
 # i = 1
 for (i in 1:length(colList)) {
-
+  
   tryCatch(
     expr = {
       log4r::info(log, sprintf("%s", "[START] h2o.deeplearning"))
-
+      
       data = data.frame(tmpData1[, i], tmpData2[, i]) %>%
         magrittr::set_colnames(c("obs", "model"))
-
+      
       dataL1 = data %>%
         dplyr::filter(
           !is.na(obs)
           , !is.na(model)
         )
-
+      
       #*****************************************
       # 훈련 및 테스트 셋 설정 (70 : 30)
       #*****************************************
       set.seed(1)
-
+      
       # 훈련 및 데이터 셋을 60:40으로 나누기 위한 인덱스 설정
       # ind = sample(1:nrow(dataL1), nrow(dataL1) * 0.7)
       ind = 1:302
-
+      
       #*****************************************
       # 해당 인덱스에 따라 자료 할당
       #*****************************************
       trainData = dataL1[ind,]
       testData = dataL1[-ind,]
-
+      
       #*****************************************
       # 해당 인덱스에 따라 자료 할당 (표준화)
       #*****************************************
@@ -17351,7 +17351,7 @@ for (i in 1:length(colList)) {
       #
       # testData = dataL1[-ind,] %>%
       #   dplyr::mutate_each_(funs(scale), vars = c("obs"))
-
+      
       #*****************************************
       # 해당 인덱스에 따라 자료 할당 (정규화)
       #*****************************************
@@ -17360,43 +17360,43 @@ for (i in 1:length(colList)) {
       #
       # testData = dataL1[-ind,] %>%
       #   dplyr::mutate_each_(funs(scales::rescale), vars = c("obs"))
-
+      
       # 훈련 데이터셋 확인
       dplyr::tbl_df(trainData)
-
+      
       # 테스트 데이터셋 확인
       dplyr::tbl_df(testData)
-
+      
       yObs = testData$obs
       yModel = testData$model
-
+      
       if (isCorr == TRUE) {
         yModel = biasCorr(yObs, yModel, -100, 100, 0.001, FALSE)
       }
-
+      
       # 원시 데이터 (ORI)
       perfTable[i,] = round(perfEval(yModel, yObs), 2)
-
+      
       #===============================================
       # Deep Learning (DL)
       #===============================================
-
+      
       #***********************************
       # 학습
       #***********************************
       tictoc::tic()
-
+      
       # 초기화
       h2o.init()
-
+      
       # activation : 활성화 함수로서 Rectifier 정규화 선형 함수 (즉 Keras의 ReLU 동일)
       # hidden : 숨겨진 레이어의 수와 뉴런 수 (일반적으로 입력 차원의 1/10 or 1/100 단위)
       # epochs : 반복 횟수 (기본 10-40)
       # nfolds : 훈련 반복 수
-
+      
       layerNum = as.integer(nrow(trainData) / 10)
       # layerNum = as.integer(nrow(trainData) / 100)
-
+      
       dlModel = h2o::h2o.deeplearning(
         x = c("obs")
         , y = c("model")
@@ -17407,78 +17407,78 @@ for (i in 1:length(colList)) {
         , epochs = epochsInfo
         , seed = 1
       )
-
+      
       tictoc::toc()
-
+      
       tryCatch(
-
+        
         expr = {
           log4r::info(log, sprintf("%s", "[START] Make Image"))
-
+          
           saveImg = sprintf("%s/%s_%s_%s.png", globalVar$figPath, serviceName, colList[i], "Training-Scoring-History")
           png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
-
+          
           plot(dlModel, timestep = "epochs", metric = "rmse")
         }
-
+        
         , warning = function(warning) {
           log4r::warn(log, warning)
         }
-
+        
         , error = function(error) {
           log4r::error(log, error)
         }
-
+        
         , finally = {
           dev.off()
-
+          
           log4r::info(log, sprintf("%s", "[END] Make Image"))
         }
       )
-
+      
       tmpLastLayer = h2o::h2o.deepfeatures(dlModel, as.h2o(trainData), layer = layerInfo) %>%
         as.tibble() %>%
         dplyr::mutate(colInfo = colList[i])
-
+      
       dlLastLayerData = dplyr::bind_rows(dlLastLayerData, tmpLastLayer)
-
+      
       #***********************************
       # 검증
       #***********************************
       yObs = testData$obs
       yHat = as.data.frame(h2o::h2o.predict(object = dlModel, newdata = as.h2o(testData)))$predict
-
+      
       if (isCorr == TRUE) {
         yHat = biasCorr(yObs, yHat, -100, 100, 0.001, FALSE)
       }
-
+      
       tmpData = data.frame(yHat) %>%
         magrittr::set_colnames(paste0("DL-", colList[i]))
-
+      
       if (ncol(dlPredData) == 0) {
         dlPredData = tmpData
       } else {
         dlPredData = dplyr::bind_cols(dlPredData, tmpData)
       }
-
+      
       perfTable[i + 22,] = round(perfEval(yHat, yObs), 2)
-
+      
     }
-
+    
     , warning = function(warning) {
       perfTable[i + 22,] = 0
-
+      
       log4r::warn(log, warning)
     }
-
+    
     , error = function(error) {
       perfTable[i + 22,] = 0
-
+      
       log4r::error(log, error)
     }
-
+    
     , finally = {
-
+      
       log4r::info(log, sprintf("%s", "[END] h2o.deeplearning"))
     }
   )
@@ -17585,35 +17585,35 @@ oriData = data.frame()
 
 # i = 1
 for (i in 1:length(colList)) {
-
+  
   tryCatch(
     expr = {
       log4r::info(log, sprintf("%s", "[START] h2o.deeplearning"))
-
+      
       data = data.frame(tmpData1[, i], tmpData2[, i]) %>%
         magrittr::set_colnames(c("obs", "model"))
-
+      
       dataL1 = data %>%
         dplyr::filter(
           !is.na(obs)
           , !is.na(model)
         )
-
+      
       #*****************************************
       # 훈련 및 테스트 셋 설정 (70 : 30)
       #*****************************************
       set.seed(1)
-
+      
       # 훈련 및 데이터 셋을 60:40으로 나누기 위한 인덱스 설정
       # ind = sample(1:nrow(dataL1), nrow(dataL1) * 0.7)
       ind = 1:302
-
+      
       #*****************************************
       # 해당 인덱스에 따라 자료 할당
       #*****************************************
       trainData = dataL1[ind,]
       testData = dataL1[-ind,]
-
+      
       #*****************************************
       # 해당 인덱스에 따라 자료 할당 (표준화)
       #*****************************************
@@ -17622,7 +17622,7 @@ for (i in 1:length(colList)) {
       #
       # testData = dataL1[-ind,] %>%
       #   dplyr::mutate_each_(funs(scale), vars = c("obs"))
-
+      
       #*****************************************
       # 해당 인덱스에 따라 자료 할당 (정규화)
       #*****************************************
@@ -17631,32 +17631,32 @@ for (i in 1:length(colList)) {
       #
       # testData = dataL1[-ind,] %>%
       #   dplyr::mutate_each_(funs(scales::rescale), vars = c("obs"))
-
+      
       # 훈련 데이터셋 확인
       dplyr::tbl_df(trainData)
-
+      
       # 테스트 데이터셋 확인
       dplyr::tbl_df(testData)
-
+      
       yObs = testData$obs
       yModel = testData$model
-
+      
       if (isCorr == TRUE) {
         # 훈련 데이터셋 보정
         obsTrainData = trainData$obs
         modelTrainData = trainData$model
         corTrainData = biasCorr(obsTrainData, modelTrainData, -100, 100, 0.001, FALSE)
-
+        
         trainData$model = corTrainData
       }
-
+      
       # 원시 데이터 (ORI)
       perfTable[i,] = round(perfEval(yModel, yObs), 2)
-
+      
       #===============================================
       # Deep Neural Network (DNN)
       #===============================================
-
+      
       # FLAGS = flags(
       #   flag_boolean("stateful", FALSE),
       #   flag_boolean("stack_layers", FALSE),
@@ -17678,29 +17678,29 @@ for (i in 1:length(colList)) {
       #                     sgd = optimizer_sgd(lr = FLAGS$lr,
       #                                         momentum = FLAGS$momentum)
       # )
-
+      
       #***********************************
       # 학습
       #***********************************
       tictoc::tic()
-
+      
       # keras::install_keras()
       dnnModel = keras::keras_model_sequential()
-
+      
       # layerNum = as.integer(nrow(trainData) / 10)
-
+      
       dnnModel %>%
         layer_dense(units = 256, activation = 'relu', input_shape = c(1)) %>%
         layer_dropout(rate = 0.4) %>%
         layer_dense(units = 128, activation = 'relu') %>%
         layer_dropout(rate = 0.3) %>%
         layer_dense(units = 10, activation = 'softmax')
-
+      
       # dnnModel %>%
       #   layer_dense(units = layerNum, activation = 'relu', input_shape = c(1)) %>%
       #   layer_dense(units = layerNum, activation = 'relu') %>%
       #   layer_dense(units = layerNum, activation = 'softmax')
-
+      
       #
       # dnnModel %>% compile(
       #   loss = 'mean_squared_error',
@@ -17708,18 +17708,18 @@ for (i in 1:length(colList)) {
       #   metrics = c(rmse_metric, r2_metric, 'mae')
       # )
       #
-
+      
       # , rmse = Metrics::rmse(pred, cumDeath)
-
+      
       dnnModel %>% compile(
         loss = 'mean_squared_error'
         , optimizer = 'sgd'
         # , metrics = c(cor, Metrics::rmse)
       )
-
+      
       batchInfo = 5
       epochsInfo = 100
-
+      
       # 모형 적합
       dnnModel %>% fit(
         trainData$obs
@@ -17729,47 +17729,47 @@ for (i in 1:length(colList)) {
         , verbose = FALSE
         , validation_split = 0.3
       )
-
+      
       plot(dnnModel)
-
+      
       dnnModel %>%
         evaluate(testData$model, testData$obs)
-
-
+      
+      
       # 모형 테스트
       # dnn_model %>%
       #   evaluate(x_test, y_test)
-
-
+      
+      
       library(keras)
-
+      
       model = keras_model_sequential()
       model %>%
         layer_dense(units = 32, input_shape = c(784)) %>%
         layer_activation('relu') %>%
         layer_dense(units = 10) %>%
         layer_activation('softmax')
-
+      
       model %>% compile(
         optimizer = 'rmsprop',
         loss = 'categorical_crossentropy',
         metrics = c('accuracy')
       )
-
-
+      
+      
       summary(dnnModel)
-
+      
       # 초기화
       h2o.init()
-
+      
       # activation : 활성화 함수로서 Rectifier 정규화 선형 함수 (즉 Keras의 ReLU 동일)
       # hidden : 숨겨진 레이어의 수와 뉴런 수 (일반적으로 입력 차원의 1/10 or 1/100 단위)
       # epochs : 반복 횟수 (기본 10-40)
       # nfolds : 훈련 반복 수
-
+      
       layerNum = as.integer(nrow(trainData) / 10)
       # layerNum = as.integer(nrow(trainData) / 100)
-
+      
       dlModel = h2o::h2o.deeplearning(
         x = c("obs")
         , y = c("model")
@@ -17780,78 +17780,78 @@ for (i in 1:length(colList)) {
         , epochs = epochsInfo
         , seed = 1
       )
-
+      
       tictoc::toc()
-
+      
       tryCatch(
-
+        
         expr = {
           log4r::info(log, sprintf("%s", "[START] Make Image"))
-
+          
           saveImg = sprintf("%s/%s_%s_%s.png", globalVar$figPath, serviceName, colList[i], "Training-Scoring-History")
           png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
-
+          
           plot(dlModel, timestep = "epochs", metric = "rmse")
         }
-
+        
         , warning = function(warning) {
           log4r::warn(log, warning)
         }
-
+        
         , error = function(error) {
           log4r::error(log, error)
         }
-
+        
         , finally = {
           dev.off()
-
+          
           log4r::info(log, sprintf("%s", "[END] Make Image"))
         }
       )
-
+      
       tmpLastLayer = h2o::h2o.deepfeatures(dlModel, as.h2o(trainData), layer = layerInfo) %>%
         as.tibble() %>%
         dplyr::mutate(colInfo = colList[i])
-
+      
       dlLastLayerData = dplyr::bind_rows(dlLastLayerData, tmpLastLayer)
-
+      
       #***********************************
       # 검증
       #***********************************
       yObs = testData$obs
       yHat = as.data.frame(h2o::h2o.predict(object = dlModel, newdata = as.h2o(testData)))$predict
-
+      
       if (isCorr == TRUE) {
         yHat = biasCorr(yObs, yHat, -100, 100, 0.001, FALSE)
       }
-
+      
       tmpData = data.frame(yHat) %>%
         magrittr::set_colnames(paste0("DL-", colList[i]))
-
+      
       if (ncol(dlPredData) == 0) {
         dlPredData = tmpData
       } else {
         dlPredData = dplyr::bind_cols(dlPredData, tmpData)
       }
-
+      
       perfTable[i + 22,] = round(perfEval(yHat, yObs), 2)
-
+      
     }
-
+    
     , warning = function(warning) {
       perfTable[i + 22,] = 0
-
+      
       log4r::warn(log, warning)
     }
-
+    
     , error = function(error) {
       perfTable[i + 22,] = 0
-
+      
       log4r::error(log, error)
     }
-
+    
     , finally = {
-
+      
       log4r::info(log, sprintf("%s", "[END] h2o.deeplearning"))
     }
   )
@@ -17940,244 +17940,244 @@ fileList1 = Sys.glob(paste(globalVar$inpPath, "새폴더-1/C1/*.csv", sep = "/")
 # fileInfo1 = "E:/04. TalentPlatform/Github/TalentPlatform-R/INPUT/o2job/새폴더-1/C1/201209.csv"
 
 for (fileInfo1 in fileList1) {
-
+  
   fileName = tools::file_path_sans_ext(fs::path_file(fileInfo1))
-
+  
   fileInfo2 = fileInfo1 %>% str_replace_all(pattern = "/C1/", replacement = "/C2/")
   fileInfo3 = fileInfo1 %>% str_replace_all(pattern = "/C1/", replacement = "/C3/")
-
+  
   c1Data = readr::read_csv(file = fileInfo1, locale = locale("ko", encoding = "UTF-8"))
   c2Data = readr::read_csv(file = fileInfo2, locale = locale("ko", encoding = "UTF-8"))
   c3Data = readr::read_csv(file = fileInfo3, locale = locale("ko", encoding = "UTF-8"))
-
+  
   idList = sort(unique(c(c1Data$CellID, c2Data$CellID, c3Data$CellID)))
-
+  
   isC1Flag = FALSE
   isC2Flag = FALSE
   isC3Flag = FALSE
   isTotalFlag = FALSE
-
+  
   minC1Cnt = 9999999
   minC2Cnt = 9999999
   minC3Cnt = 9999999
   minTotalCnt = 9999999
-
+  
   dataC1L1 = tibble()
   dataC2L1 = tibble()
   dataC3L1 = tibble()
   dataTotalL1 = tibble()
   # idInfo = "FTL7110042"
   idList = idList[1:200]
-
+  
   for (idInfo in idList) {
-
+    
     c1DataL1 = c1Data %>%
       as.tibble() %>%
       dplyr::filter(
         t == as.integer(t)
         , CellID == idInfo
       )
-
+    
     c2DataL1 = c2Data %>%
       as.tibble() %>%
       dplyr::filter(
         t == as.integer(t)
         , CellID == idInfo
       )
-
+    
     c3DataL1 = c3Data %>%
       as.tibble() %>%
       dplyr::filter(
         t == as.integer(t)
         , CellID == idInfo
       )
-
+    
     if (nrow(c1DataL1) < 1) { next }
     if (nrow(c2DataL1) < 1) { next }
     if (nrow(c3DataL1) < 1) { next }
-
+    
     seqList = seq(min(c1DataL1$t, na.rm = TRUE), max(c1DataL1$t, na.rm = TRUE))
     c1DataL2 = approx(x = c1DataL1$t, y = c1DataL1$V, xout = seqList) %>%
       as.tibble() %>%
       dplyr::mutate(id = idInfo, key = sprintf("%s-%04d", "c1", x))
-
+    
     seqList = seq(min(c2DataL1$t, na.rm = TRUE), max(c2DataL1$t, na.rm = TRUE))
     c2DataL2 = approx(x = c2DataL1$t, y = c2DataL1$V, xout = seqList) %>%
       as.tibble() %>%
       dplyr::mutate(id = idInfo, key = sprintf("%s-%04d", "c2", x))
-
+    
     seqList = seq(min(c3DataL1$t, na.rm = TRUE), max(c3DataL1$t, na.rm = TRUE))
     c3DataL2 = approx(x = c3DataL1$t, y = c3DataL1$V, xout = seqList) %>%
       as.tibble() %>%
       dplyr::mutate(id = idInfo, key = sprintf("%s-%04d", "c3", x))
-
+    
     dataC1 = dplyr::bind_rows(c1DataL2) %>%
       dplyr::select(-x) %>%
       tidyr::spread(key = key, value = y)
-
+    
     dataC2 = dplyr::bind_rows(c2DataL2) %>%
       dplyr::select(-x) %>%
       tidyr::spread(key = key, value = y)
-
+    
     dataC3 = dplyr::bind_rows(c3DataL2) %>%
       dplyr::select(-x) %>%
       tidyr::spread(key = key, value = y)
-
+    
     dataTotal = dplyr::bind_rows(c1DataL2, c2DataL2, c3DataL2) %>%
       dplyr::select(-x) %>%
       tidyr::spread(key = key, value = y)
-
+    
     if (ncol(dataC1) < minC1Cnt) {
       colNameC1 = colnames(dataC1)
       minC1Cnt = ncol(dataC1)
     }
-
+    
     if (ncol(dataC2) < minC2Cnt) {
       colNameC2 = colnames(dataC2)
       minC2Cnt = ncol(dataC2)
     }
-
+    
     if (ncol(dataC3) < minC3Cnt) {
       colNameC3 = colnames(dataC3)
       minC3Cnt = ncol(dataC3)
     }
-
+    
     if (ncol(dataTotal) < minTotalCnt) {
       colNameTotal = colnames(dataTotal)
       minTotalCnt = ncol(dataTotal)
     }
-
+    
     dataC1L1 = dplyr::bind_rows(dataC1L1, dataC1)
     dataC2L1 = dplyr::bind_rows(dataC2L1, dataC2)
     dataC3L1 = dplyr::bind_rows(dataC3L1, dataC3)
     dataTotalL1 = dplyr::bind_rows(dataTotalL1, dataTotal)
-
+    
     if (ncol(dataC1L1) != length(colNameC1)) {
       isC1Flag = TRUE
     }
-
+    
     if (ncol(dataC2) != length(colNameC2)) {
       isC2Flag = TRUE
     }
-
+    
     if (ncol(dataC3) != length(colNameC3)) {
       isC3Flag = TRUE
     }
-
+    
     if (ncol(dataTotal) != length(colNameTotal)) {
       isTotalFlag = TRUE
     }
-
+    
     cat(
       sprintf("%s %s : %04d %04d %04d %04d", fileName, idInfo, ncol(dataC1), ncol(dataC2), ncol(dataC3), sum(ncol(dataC1), ncol(dataC2), ncol(dataC3), na.rm = TRUE))
       , sprintf(": %s %s %s %s", isC1Flag, isC2Flag, isC3Flag, isTotalFlag)
       , "\n"
     )
   }
-
-
+  
+  
   # 컬럼 순서대로 변경
   dataC1L2 = dataC1L1 %>%
     dplyr::select(colNameC1) %>%
     magrittr::set_colnames(c(id, seq(0, length(colNameC1)))) %>%
     as.data.frame()
-
+  
   dataC2L2 = dataC2L1 %>%
     dplyr::select(colNameC2) %>%
     magrittr::set_colnames(c(id, seq(0, length(colNameC2)))) %>%
     as.data.frame()
-
+  
   dataC3L2 = dataC3L1 %>%
     dplyr::select(colNameC3) %>%
     magrittr::set_colnames(c(id, seq(0, length(dataC3L1)))) %>%
     as.data.frame()
-
+  
   dataTotalL2 = dataTotalL1 %>%
     dplyr::select(colNameTotal) %>%
     magrittr::set_colnames(c(id, seq(0, length(dataTotalL1)))) %>%
     as.data.frame()
-
+  
   # 컬럼 순서대로 변경
   dataC1L3 = dataC1L1 %>%
     magrittr::set_colnames(c(id, seq(0, ncol(dataC1L1)))) %>%
     as.data.frame()
-
+  
   dataC2L3 = dataC2L1 %>%
     magrittr::set_colnames(c(id, seq(0, ncol(dataC2L1)))) %>%
     as.data.frame()
-
+  
   dataC3L3 = dataC3L1 %>%
     magrittr::set_colnames(c(id, seq(0, ncol(dataC3L1)))) %>%
     as.data.frame()
-
+  
   dataTotalL3 = dataTotalL1 %>%
     magrittr::set_colnames(c(id, seq(0, ncol(dataTotalL1)))) %>%
     as.data.frame()
-
-
+  
+  
   #=======================================
   # XLSX 출력
   #=======================================
   wb = openxlsx::createWorkbook()
-
+  
   # 최소 컬럼
   openxlsx::addWorksheet(wb, paste("Min-C1", isC1Flag, sep = "-"))
   openxlsx::writeData(wb, paste("Min-C1", isC1Flag, sep = "-"), dataC1L2, startRow = 1, startCol = 1)
-
+  
   openxlsx::addWorksheet(wb, paste("Min-C2", isC2Flag, sep = "-"))
   openxlsx::writeData(wb, paste("Min-C2", isC2Flag, sep = "-"), dataC2L2, startRow = 1, startCol = 1)
-
+  
   openxlsx::addWorksheet(wb, paste("Min-C3", isC3Flag, sep = "-"))
   openxlsx::writeData(wb, paste("Min-C3", isC3Flag, sep = "-"), dataC3L2, startRow = 1, startCol = 1)
-
+  
   openxlsx::addWorksheet(wb, paste("Min-Total", isTotalFlag, sep = "-"))
   openxlsx::writeData(wb, paste("Min-Total", isTotalFlag, sep = "-"), dataTotalL2, startRow = 1, startCol = 1)
-
-
+  
+  
   # 모든 컬럼
   openxlsx::addWorksheet(wb, paste("ALL-C1", isC1Flag, sep = "-"))
   openxlsx::writeData(wb, paste("ALL-C1", isC1Flag, sep = "-"), dataC1L3, startRow = 1, startCol = 1)
-
+  
   openxlsx::addWorksheet(wb, paste("ALL-C2", isC2Flag, sep = "-"))
   openxlsx::writeData(wb, paste("ALL-C2", isC2Flag, sep = "-"), dataC2L3, startRow = 1, startCol = 1)
-
+  
   openxlsx::addWorksheet(wb, paste("ALL-C3", isC3Flag, sep = "-"))
   openxlsx::writeData(wb, paste("ALL-C3", isC3Flag, sep = "-"), dataC3L3, startRow = 1, startCol = 1)
-
+  
   openxlsx::addWorksheet(wb, paste("ALL-Total", isTotalFlag, sep = "-"))
   openxlsx::writeData(wb, paste("ALL-Total", isTotalFlag, sep = "-"), dataTotalL3, startRow = 1, startCol = 1)
-
+  
   saveFile = sprintf("%s/%s_%s_%s.xlsx", globalVar$outPath, serviceName, "샘플 전처리", fileName)
   openxlsx::saveWorkbook(wb, file = saveFile, overwrite = TRUE)
-
+  
   #=======================================
   # CSV 출력
   #=======================================
   # 최소 컬럼
   saveFile = sprintf("%s/%s_%s_%s.csv", globalVar$outPath, serviceName, "Min-C1", fileName)
   utils::write.csv(dataC1L2, file = saveFile)
-
+  
   saveFile = sprintf("%s/%s_%s_%s.csv", globalVar$outPath, serviceName, "Min-C2", fileName)
   utils::write.csv(dataC2L2, file = saveFile)
-
+  
   saveFile = sprintf("%s/%s_%s_%s.csv", globalVar$outPath, serviceName, "Min-C3", fileName)
   utils::write.csv(dataC3L2, file = saveFile)
-
+  
   saveFile = sprintf("%s/%s_%s_%s.csv", globalVar$outPath, serviceName, "Min-Total", fileName)
   utils::write.csv(dataTotalL2, file = saveFile)
-
+  
   saveFile = sprintf("%s/%s_%s_%s.csv", globalVar$outPath, serviceName, "ALL-C1", fileName)
   utils::write.csv(dataC1L3, file = saveFile)
-
+  
   saveFile = sprintf("%s/%s_%s_%s.csv", globalVar$outPath, serviceName, "ALL-C2", fileName)
   utils::write.csv(dataC2L3, file = saveFile)
-
+  
   saveFile = sprintf("%s/%s_%s_%s.csv", globalVar$outPath, serviceName, "ALL-C3", fileName)
   utils::write.csv(dataC3L3, file = saveFile)
-
+  
   saveFile = sprintf("%s/%s_%s_%s.csv", globalVar$outPath, serviceName, "ALL-Total", fileName)
   utils::write.csv(dataTotalL3, file = saveFile)
-
+  
 }
 
 # file.show(saveFile)
@@ -18429,33 +18429,33 @@ ggplot(dataL3, aes(x = key, y = value, colour = factor(key))) +
 colList = colnames(dataL2)
 
 for (colInfo in colList) {
-
+  
   dataL4 = dataL2 %>%
     dplyr::select(colInfo) %>%
     magrittr::set_colnames(c("val"))
-
-
+  
+  
   #**************************************
   # 68.27% / 95.45% / 99.73% 신뢰구간
   #**************************************
   meanVal = mean(dataL4$val, na.rm = TRUE)
   sdVal = sd(dataL4$val, na.rm = TRUE)
-
+  
   left68Conf = meanVal - (1 * sdVal)
   right68Conf = meanVal + (1 * sdVal)
   left95Conf = meanVal - (2 * sdVal)
   right95Conf = meanVal + (2 * sdVal)
   left99Conf = meanVal - (3 * sdVal)
   right99Conf = meanVal + (3 * sdVal)
-
+  
   labelData = data.frame(
     label = c("-1σ", "+1σ", "-2σ", "+2σ", "-3σ", "+3σ")
     , value = c(left68Conf, right68Conf, left95Conf, right95Conf, left99Conf, right99Conf)
   )
-
+  
   saveImg = sprintf("%s/%s_%s_%s.png", globalVar$figPath, serviceName, colInfo, "빈도분포")
   plotSubTitle = sprintf("[%s] 빈도분포", colInfo)
-
+  
   ggplot(data = dataL4, aes(x = val)) +
     geom_histogram(aes(y = ..density..), color = "black", fill = "white") +
     stat_function(fun = dnorm, args = list(mean = meanVal, sd = sdVal), colour = "blue", size = 1) +
@@ -18464,21 +18464,21 @@ for (colInfo in colList) {
     labs(title = plotSubTitle, x = NULL, y = NULL, colour = NULL, fill = "단위 : 명", subtitle = NULL) +
     theme(text = element_text(size = 18)) +
     ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
-
+  
   file_show(saveImg)
-
+  
   # 95% 신뢰구간에서 이상치 확인
   dataL4 %>%
     dplyr::filter(
       !dplyr::between(val, left95Conf, right95Conf)
     )
-
+  
   # 95% 신뢰구간에서 이상치 제거
   dataL5 = dataL4 %>%
     dplyr::filter(
       dplyr::between(val, left95Conf, right95Conf)
     )
-
+  
 }
 
 
@@ -18903,37 +18903,37 @@ colList = c("seoul3", "seoul6", "seoul9", "seoul12")
 # colInfo = "seoul3"
 
 for (colInfo in colList) {
-
+  
   naData = data %>%
     dplyr::rename(
       val = colInfo
     ) %>%
     dplyr::filter(
       is.na(val)
-        | is.infinite(val)
+      | is.infinite(val)
     )
-
+  
   # i = 1
   for (i in 1:nrow(naData)) {
-
+    
     selRowNum = naData$rowNum[i]
     selDate = naData$dtDate[i]
-
+    
     dtPrevDate = selDate %m-% months(1)
     dtNextDate = selDate %m+% months(1)
-
+    
     dataL1 = data %>%
       dplyr::rename(
         val = colInfo
       ) %>%
       dplyr::filter(dtDate %in% c(dtPrevDate, dtNextDate)) %>%
       dplyr::filter(!(is.na(val) | is.infinite(val)))
-
+    
     if (nrow(dataL1) < 1) { next }
-
+    
     # meanVal = mean(dataL1$val, na.rm = TRUE)
     minVal = min(dataL1$val, na.rm = TRUE)
-
+    
     # data[selRowNum, colInfo] = meanVal
     data[selRowNum, colInfo] = minVal
   }
@@ -18998,7 +18998,7 @@ dataL1 = data %>%
   ) %>%
   dplyr::filter(
     as.Date("2019-12-15") <= dtDateTime & dtDateTime <= as.Date("2020-01-14")
-      | as.Date("2020-03-09") <= dtDateTime & dtDateTime <= as.Date("2020-05-11")
+    | as.Date("2020-03-09") <= dtDateTime & dtDateTime <= as.Date("2020-05-11")
   ) %>%
   dplyr::select(-dtDateTime, -season, -wind_direction, -index)
 
@@ -19123,11 +19123,11 @@ j = 1
 
 for (j in c(1:208)) {
   m <- psych::describeBy(val[j], val$change, mat = TRUE)
-
+  
   if (nrow(m) < 1) { next }
-
+  
   cat("colnames : ", colnames(val)[j], "\n")
-
+  
   print(m)
 }
 
@@ -19287,7 +19287,9 @@ prjName = "test"
 # serviceName = "LSH0105"
 # serviceName = "LSH0195"
 # serviceName = "LSH0197"
-serviceName = "LSH0201"
+# serviceName = "LSH0201"
+# serviceName = "LSH0202"
+serviceName = "LSH0205"
 
 contextPath = ifelse(env == "local", ".", getwd())
 
@@ -19377,7 +19379,13 @@ fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0195_일식 식분도 이�
 # sheetInfo = 12
 
 # 시트 13 : 남명+개경조선(2)
-sheetInfo = 13
+# sheetInfo = 13
+
+# 시트 14 : 남명온리(17)
+# sheetInfo = 14
+
+# 시트 15 : 북명온리(14)
+sheetInfo = 15
 
 sheetName = dplyr::case_when(
   sheetInfo == 1 ~ "테스트"
@@ -19394,6 +19402,8 @@ sheetName = dplyr::case_when(
   , sheetInfo == 11 ~ "남명+조선공통(6)"
   , sheetInfo == 12 ~ "개경조선온리(1)"
   , sheetInfo == 13 ~ "남명+개경조선(2)"
+  , sheetInfo == 14 ~ "남명온리(17)"
+  , sheetInfo == 15 ~ "북명온리(14)"
   , TRUE ~ NA_character_
 )
 
@@ -19405,17 +19415,17 @@ data = openxlsx::read.xlsx(fileInfo, sheet = sheetInfo) %>%
 
 typeList = data$type %>% unique %>% sort
 
-for (typeInfo in typeList[2]) {
-
+for (typeInfo in typeList[4]) {
+  
   tmpData = data %>%
     dplyr::filter(
       type == typeInfo
       , !is.na(val)
     ) %>%
     dplyr::select(-type)
-
+  
   dataL1 = MBA::mba.points(tmpData, gridData)
-
+  
   dataL2 = dataL1 %>%
     as.data.frame() %>%
     as.tibble() %>%
@@ -19427,14 +19437,14 @@ for (typeInfo in typeList[2]) {
     dplyr::mutate(
       type = typeInfo
     )
-
+  
   summary(dataL2)
   
   saveImg = sprintf("%s/%s_%s_%s.png", globalVar$figPath, serviceName, sheetName, typeInfo)
-
+  
   ind = which(dataL2$zAxis == max(dataL2$zAxis, na.rm = TRUE))
   maxData = dataL2[ind,]
-
+  
   ggplot(data = dataL2, aes(x = xAxis, y = yAxis, fill = zAxis, z = zAxis)) +
     geom_raster(interpolate = TRUE, na.rm = TRUE) +
     # metR::geom_contour_fill(na.fill = TRUE, kriging = TRUE) +.
@@ -19462,7 +19472,7 @@ for (typeInfo in typeList[2]) {
     ) +
     theme(text = element_text(size = 18)) +
     ggsave(filename = saveImg, width = 10, height = 10, dpi = 600)
-
+  
 }
 
 # 마리오 알람 소리
@@ -19472,15 +19482,27 @@ beepr::beep(sound = 8)
 # 시트에 따른 데이터 병합
 #**************************************************
 # sheetList = c(7, 8)
-sheetList = c(8, 9, 10, 11)
-# sheetList = c(12, 13)
-
 # sheetName = "청온리(18)+청-조선공통(92)"
-sheetName = "청-조선공통(92)+조선온리(20)+북명-조선공통(74)+남명-조선공통(6)"
+
+# sheetList = c(8, 9, 10, 11)
+# sheetName = "청-조선공통(92)+조선온리(20)+북명-조선공통(74)+남명-조선공통(6)"
+
+# sheetList = c(12, 13)
 # sheetName = "개경조선온리(1)+남명-개경조선(2)"
+
+# sheetList = c(11, 13, 14)
+# sheetName = "남명-조선공통(6)+남명-개경조선(2)+남명온리(17)"
+
+sheetList = c(14)
+sheetName = "남명온리(17)"
 
 dataL3 = tibble()
 for (sheetInfo in sheetList) {
+  
+  cat(
+    sprintf("%s : %s", "sheetInfo : ", sheetInfo)
+    , "\n"
+  )
   
   data = openxlsx::read.xlsx(fileInfo, sheet = sheetInfo) %>%
     as.tibble()
@@ -19488,6 +19510,11 @@ for (sheetInfo in sheetList) {
   typeList = data$type %>% unique %>% sort
   
   for (typeInfo in typeList) {
+    
+    cat(
+      sprintf("%s : %s", "typeInfo : ", typeInfo)
+      , "\n"
+    )
     
     tmpData = data %>%
       dplyr::filter(
@@ -19518,6 +19545,8 @@ for (sheetInfo in sheetList) {
 #**************************************************
 # 공간 평균
 #**************************************************
+dataL3$type %>% unique() %>% length()
+
 dataL4 = dataL3 %>%
   dplyr::group_by(xAxis, yAxis) %>%
   dplyr::summarise(
@@ -19527,10 +19556,14 @@ dataL4 = dataL3 %>%
 summary(dataL4)
 
 ind = which(dataL4$meanVal == max(dataL4$meanVal, na.rm = TRUE))
-maxData = dataL4[ind,]
+maxData = dataL4[ind, ]
 
-setBreak = c(seq(0.42, 0, -0.02), 0.41, seq(0.42, 0.43, 0.001))
+# setBreak = c(seq(0.42, 0, -0.02), 0.41, seq(0.42, 0.43, 0.001))
 # setBreak = c(seq(0.55, 0, -0.02), 0.555)
+# setBreak = c(seq(0.37, 0, -0.02), 0.41, seq(0.37, 0.38, 0.001))
+# setBreak = c(seq(0.37, 0, -0.02))
+setBreak = c(seq(0.29, 0, -0.02))
+
 
 saveImg = sprintf("%s/%s_%s_%s.png", globalVar$figPath, serviceName, sheetName, "Mean_Color")
 
@@ -19578,6 +19611,8 @@ ggplot(data = dataL4, aes(x = xAxis, y = yAxis, fill = meanVal, z = meanVal)) +
   theme(text = element_text(size = 18)) +
   ggsave(filename = saveImg, width = 10, height = 10, dpi = 600)
 
+# 마리오 알람 소리
+beepr::beep(sound = 8)
 
 #===============================================================================================
 # Routine : Main R program
@@ -19689,46 +19724,46 @@ trainPerRat = 80
 fileList = Sys.glob(paste(globalVar$inpPath, "LSH0107_input*.csv", sep = "/"))
 
 for (fileInfo in fileList) {
-
+  
   data = readr::read_csv(file = fileInfo, locale = locale("ko", encoding = "UTF-8"))
-
+  
   #=====================================================================
   # 훈련 및 테스트 셋 설정 (80 : 20)
   #=====================================================================
   # 훈련 및 데이터 셋을 80:20으로 나누기 위한 인덱스 설정
   ind = sample(1:nrow(data), nrow(data) * trainPerRat / 100)
-
+  
   # 해당 인덱스에 따라 자료 할당
   trainData = data[ind,]
   testData = data[-ind,]
-
+  
   # 훈련 데이터셋 확인
   # dplyr::tbl_df(trainData)
-
+  
   # 테스트 데이터셋 확인
   # dplyr::tbl_df(testData)
-
+  
   fileName = tools::file_path_sans_ext(fs::path_file(fileInfo))
-
+  
   # 훈련 데이터셋 CSV 저장
   saveTrainCsvFile = sprintf("%s/%s_%s_%s-%s.csv", globalVar$outPath, fileName, "trainData", trainPerRat, 100 - trainPerRat)
   readr::write_csv(x = trainData, file = saveTrainCsvFile)
-
+  
   # 테스트 데이터셋 CSV 저장
   saveTestCsvFile = sprintf("%s/%s_%s_%s-%s.csv", globalVar$outPath, fileName, "testData", trainPerRat, 100 - trainPerRat)
   readr::write_csv(x = testData, file = saveTestCsvFile)
-
+  
   # 훈련/테스트 데이터셋 EXCEL 저장
   saveExcelFile = sprintf("%s/%s_%s-%s.xlsx", globalVar$outPath, fileName, trainPerRat, 100 - trainPerRat)
-
+  
   wb = openxlsx::createWorkbook()
-
+  
   openxlsx::addWorksheet(wb, "trainData")
   openxlsx::writeData(wb, "trainData", trainData, startRow = 1, startCol = 1)
-
+  
   openxlsx::addWorksheet(wb, "testData")
   openxlsx::writeData(wb, "testData", testData, startRow = 1, startCol = 1)
-
+  
   openxlsx::saveWorkbook(wb, file = saveExcelFile, overwrite = TRUE)
 }
 
@@ -19845,12 +19880,12 @@ showtext::showtext.auto()
 random_num = sample(1:100, 50)
 
 for (i in random_num) {
-
+  
   # 짝수인 경우
   if (random_num[1] %% 2 == 0) {
     break
   }
-
+  
   # 홀수인 경우
   if (i %% 2 == 1) {
     cat(i, "\n")
@@ -19863,10 +19898,10 @@ for (i in random_num) {
 
 # 반복 실행
 repeat {
-
+  
   # 정수 입력 및 정수형 변경
   x = as.numeric(scan(what = "정수 입력", n = 1, nlines = 1))
-
+  
   # 변수 범위 설정 및 출력
   if (x > 1 && x <= 1000) {
     cat("정수 입력: ", x, "\n")
@@ -19878,11 +19913,11 @@ repeat {
 oddMat = 1
 for (n in seq(1, 999, 2)) {
   oddMat = oddMat * n
-
+  
   # 홀수의 곱을 만족하는 조건식
   if (oddMat >= x) {
     cat("n: ", n, "\n")
-
+    
     break
   }
 }
@@ -19900,13 +19935,13 @@ in_chs = scan(what = "", n = 10)
 
 data = c()
 for (i in 1:(length(in_chs) - 1)) {
-
+  
   # 문자열 인덱스 1-2번째 그리고 소문자 변환
   getStr = tolower(paste0(in_chs[i], in_chs[i + 1]))
-
+  
   # 데이터셋 append
   data = append(data, getStr)
-
+  
   cat(i, getStr, "\n")
 }
 
@@ -20675,7 +20710,7 @@ colnames(reg) <- c("기간", "자치구", "동", "성별",
                    "계",
                    "A_0_4", "A_5_9", "A_10_14", "A_15_19", "A_20_24",
                    "A_25_29", "A_30_34", "A_35_39", "A_40_44", "A_45_49", "A_50_54", "A_55_59", "A_60_64"
-  , "A_65_69", "A_70_74", "A_75_79", "A_80_84", "A_85_89", "A_90_94", "A_95_99", "A_100")
+                   , "A_65_69", "A_70_74", "A_75_79", "A_80_84", "A_85_89", "A_90_94", "A_95_99", "A_100")
 
 #change to numeric values
 reg$A_0_4 <- as.numeric(gsub(pattern = "[^0-9]", replacement = "", reg$A_0_4))
@@ -20889,7 +20924,7 @@ tictoc::tic()
 parallel::parSapply(oSocClu, X = 1:8, function(x) {
   hurls = data.frame(t(raster::extract(r, cbind(data$lat[x], data$lon[x]))))
   colnames(hurls) = c(paste(data$lat[x], data$lon[x], sep = "p"))
-
+  
   saveFile = sprintf("%s/%s_%s_%s.csv", globalVar$outPath, serviceName, data$lat[x], data$lon[x])
   readr::write_csv(x = hurls, file = saveFile)
 })
@@ -21386,7 +21421,7 @@ showtext::showtext.auto()
 #================================================
 # 1) 평과 제곱미터를 서로 변환해주는 transPyungMeter() 함수 작성
 transPyungMeter <- function(x, inUnit) {
-
+  
   if (inUnit == "PY") {
     sprintf("%s평은 %s제곱미터입니다.", x, round(x * 3.30579, 2))
   } else if (inUnit == "M2") {
@@ -21394,7 +21429,7 @@ transPyungMeter <- function(x, inUnit) {
   } else {
     sprintf("%s을/를 확인해주시기 바랍니다.", inUnit)
   }
-
+  
 }
 
 # 2) transPyungMeter(x, unit="PY") 형태로 선언할 것
@@ -21503,10 +21538,10 @@ valDataL2 = tibble()
 for (i in 3:ncol(dataL1)) {
   for (j in 3:ncol(valDataL1)) {
     if (colnames(dataL1)[i] != colnames(valDataL1)[j]) next
-
+    
     rtnData = hydroGOF::gof(sim = dataL1[, i], obs = valDataL1[, j], digits = 5, na.rm = TRUE) %>%
       as.data.frame()
-
+    
     if (nrow(valDataL2) == 0) {
       valDataL2 = rtnData
     } else {
@@ -21573,11 +21608,11 @@ valDataL2 = tibble()
 for (i in 3:ncol(dataL1)) {
   for (j in 3:ncol(valDataL1)) {
     if (colnames(dataL1)[i] != colnames(valDataL1)[j]) next
-
+    
     rtnData = hydroGOF::gof(sim = dataL1[, i], obs = valDataL1[, j], na.rm = TRUE) %>%
       round(3) %>%
       as.data.frame()
-
+    
     if (nrow(valDataL2) == 0) {
       valDataL2 = rtnData
     } else {
@@ -21643,11 +21678,11 @@ valDataL2 = tibble()
 for (i in 3:ncol(dataL1)) {
   for (j in 3:ncol(valDataL1)) {
     if (colnames(dataL1)[i] != colnames(valDataL1)[j]) next
-
+    
     rtnData = hydroGOF::gof(sim = dataL1[, i], obs = valDataL1[, j], na.rm = TRUE) %>%
       round(3) %>%
       as.data.frame()
-
+    
     if (nrow(valDataL2) == 0) {
       valDataL2 = rtnData
     } else {
@@ -21758,10 +21793,10 @@ log4r::logfile(log) = saveLogFile
 log4r::level(log) = "INFO"
 
 perfEval = function(x, y) {
-
+  
   if (length(x) < 1) { return(sprintf("%s", "x 값 없음")) }
   if (length(y) < 1) { return(sprintf("%s", "y 값 없음")) }
-
+  
   slope = coef(lm(y ~ x))[2]
   interp = coef(lm(y ~ x))[1]
   xMean = mean(x, na.rm = TRUE)
@@ -21778,39 +21813,39 @@ perfEval = function(x, y) {
   diffMean = mean(x - y, na.rm = TRUE)
   diffSd = sd(x - y, na.rm = TRUE)
   # perDiffMean = mean((x - y) / y, na.rm = TRUE) * 100.0
-
+  
   return(c(slope, interp, xMean, yMean, xSd, ySd, cnt, bias, rBias, rmse, rRmse, r, p, diffMean, diffSd))
 }
 
 biasCorr = function(actu, pred, minVal, maxVal, interVal, isPlot = FALSE) {
-
+  
   factorVal = seq(minVal, maxVal, by = interVal)
-
+  
   # RMSE Fitting
   liResult = lapply(1:length(factorVal), function(i) Metrics::rmse(actu, pred * factorVal[i])) %>%
     unlist()
-
+  
   ind = which(liResult == min(liResult, na.rm = TRUE))
-
+  
   if (isPlot == TRUE) {
     plot(liResult)
   }
-
+  
   # Best Factor Index
   ind = which(liResult == min(liResult, na.rm = TRUE))
-
+  
   calibFactor = factorVal[[ind]]
   calPred = calibFactor * pred
-
+  
   meanDiff = mean(actu, na.rm = TRUE) - mean(calPred, na.rm = TRUE)
   newPred = (calPred) + meanDiff
-
+  
   cat(
     sprintf("%s : %.2f", "[보정 X] RMSE", Metrics::rmse(actu, pred))
     , sprintf("%s : %.2f", "[보정 O] RMSE", Metrics::rmse(actu, newPred))
     , "\n"
   )
-
+  
   return(c(newPred))
 }
 
@@ -21865,34 +21900,34 @@ svmPredData = data.frame()
 # i =1
 # for (i in 2:length(colList)) {
 for (i in 1:1) {
-
+  
   data = data.frame(tmpData1[, i], tmpData2[, i], tmpData3[, i]) %>%
     magrittr::set_colnames(c("taMin", "taMax", "obs"))
-
+  
   dataL1 = data %>%
     dplyr::filter(
       !is.na(obs)
       , !is.na(taMin)
       , !is.na(taMax)
     )
-
+  
   if (nrow(dataL1) < 1) next
-
+  
   #*****************************************
   # 훈련 및 테스트 셋 설정 (70 : 30)
   #*****************************************
   set.seed(1)
-
+  
   # 훈련 및 데이터 셋을 60:40으로 나누기 위한 인덱스 설정
   # ind = sample(1:nrow(dataL1), nrow(dataL1) * 0.7)
   # ind = 1:9131
-
+  
   #*****************************************
   # 해당 인덱스에 따라 자료 할당
   #*****************************************
   # trainData = dataL1[ind,]
   # testData = dataL1[-ind,]
-
+  
   trainData = dataL1
   testData = data.frame(tmpData4[, i], tmpData4[, i]) %>%
     magrittr::set_colnames(c("taMax", "taMin")) %>%
@@ -21900,7 +21935,7 @@ for (i in 1:1) {
       !is.na(taMax)
       , !is.na(taMin)
     )
-
+  
   #*****************************************
   # 해당 인덱스에 따라 자료 할당 (표준화)
   #*****************************************
@@ -21909,7 +21944,7 @@ for (i in 1:1) {
   #
   # testData = dataL1[-ind,] %>%
   #   dplyr::mutate_each_(funs(scale), vars = c("obs"))
-
+  
   #*****************************************
   # 해당 인덱스에 따라 자료 할당 (정규화)
   #*****************************************
@@ -21918,23 +21953,23 @@ for (i in 1:1) {
   #
   # testData = dataL1[-ind,] %>%
   #   dplyr::mutate_each_(funs(scales::rescale), vars = c("obs"))
-
+  
   # 훈련 데이터셋 확인
   dplyr::tbl_df(trainData)
-
+  
   # 테스트 데이터셋 확인
   dplyr::tbl_df(testData)
-
+  
   # yObs = testData$obs
   # yModel = testData$model
-
+  
   # if (isCorr == TRUE) {
   #   yModel = biasCorr(yObs, yModel, -100, 100, 0.001, FALSE)
   # }
-
+  
   # 원시 데이터 (ORI)
   # perfTable[i, ] = round(perfEval(yModel, yObs), 2)
-
+  
   # =====================================================================
   # 서포트벡터 (SVM)
   #======================================================================
@@ -21943,11 +21978,11 @@ for (i in 1:1) {
   #***********************************
   tryCatch(
     expr = {
-
+      
       log4r::info(log, sprintf("%s", "[START] SVM"))
-
+      
       tictoc::tic()
-
+      
       svmModel = caret::train(
         obs ~ taMin + taMax
         , data = trainData
@@ -21956,67 +21991,67 @@ for (i in 1:1) {
         # , preProcess = c("center", "scale")
         , trControl = caret::trainControl(method = "repeatedcv", number = nfoldsInfo, repeats = 1, search = "grid") # 10분할 교차 검증 및 1번 반복
       )
-
+      
       tictoc::toc()
-
+      
       #***********************************
       # 검증
       #***********************************
       # yObs = testData$obs
       yHat = predict(svmModel, newdata = testData)
-
+      
       tmpData = data.frame(yHat) %>%
         magrittr::set_colnames(paste0("SVM-", colList[i]))
-
+      
       if (ncol(svmPredData) == 0) {
         svmPredData = tmpData
       } else {
         svmPredData = dplyr::bind_cols(svmPredData, tmpData)
-
+        
       }
-
+      
       # perfTable[i,] = round(perfEval(yHat, yObs), 2)
       # perfTable
     }
-
+    
     , warning = function(warning) {
       perfTable[i,] = "WARN"
-
+      
       log4r::warn(log, warning)
     }
-
+    
     , error = function(error) {
       perfTable[i,] = "ERROR"
-
+      
       log4r::error(log, error)
     }
-
+    
     , finally = {
-
+      
       log4r::info(log, sprintf("%s", "[END] SVM"))
     }
   )
-
+  
   #===============================================
   # Deep Learning (DL)
   #===============================================
   tryCatch(
     expr = {
       log4r::info(log, sprintf("%s", "[START] Deep Learning"))
-
+      
       #***********************************
       # 학습
       #***********************************
       tictoc::tic()
-
+      
       # activation : 활성화 함수로서 Rectifier 정규화 선형 함수 (즉 Keras의 ReLU 동일)
       # hidden : 숨겨진 레이어의 수와 뉴런 수 (일반적으로 입력 차원의 1/10 or 1/100 단위)
       # epochs : 반복 횟수 (기본 10-40)
       # nfolds : 훈련 반복 수
-
+      
       layerNum = as.integer(nrow(trainData) / 10)
       # layerNum = as.integer(nrow(trainData) / 100)
-
+      
       dlModel = h2o::h2o.deeplearning(
         x = c("taMin", "taMax")
         , y = c("obs")
@@ -22027,78 +22062,78 @@ for (i in 1:1) {
         , epochs = epochsInfo
         , seed = 1
       )
-
+      
       tictoc::toc()
-
+      
       tryCatch(
-
+        
         expr = {
           log4r::info(log, sprintf("%s", "[START] Make Image"))
-
+          
           saveImg = sprintf("%s/%s_%s_%s.png", globalVar$figPath, serviceName, colList[i], "Training-Scoring-History")
           png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
-
+          
           plot(dlModel, timestep = "epochs", metric = "rmse")
         }
-
+        
         , warning = function(warning) {
           log4r::warn(log, warning)
         }
-
+        
         , error = function(error) {
           log4r::error(log, error)
         }
-
+        
         , finally = {
           dev.off()
-
+          
           log4r::info(log, sprintf("%s", "[END] Make Image"))
         }
       )
-
+      
       tmpLastLayer = h2o::h2o.deepfeatures(dlModel, as.h2o(trainData), layer = layerInfo) %>%
         as.tibble() %>%
         dplyr::mutate(colInfo = colList[i])
-
+      
       dlLastLayerData = dplyr::bind_rows(dlLastLayerData, tmpLastLayer)
-
+      
       #***********************************
       # 검증
       #***********************************
       # yObs = testData$obs
       yHat = as.data.frame(h2o::h2o.predict(object = dlModel, newdata = as.h2o(testData)))$predict
-
+      
       if (isCorr == TRUE) {
         yHat = biasCorr(yObs, yHat, -100, 100, 0.001, FALSE)
       }
-
+      
       tmpData = data.frame(yHat) %>%
         magrittr::set_colnames(paste0("DL-", colList[i]))
-
+      
       if (ncol(dlPredData) == 0) {
         dlPredData = tmpData
       } else {
         dlPredData = dplyr::bind_cols(dlPredData, tmpData)
       }
-
+      
       # perfTable[i + rowNum,] = round(perfEval(yHat, yObs), 2)
-
+      
     }
-
+    
     , warning = function(warning) {
       perfTable[i + rowNum,] = "WARN"
-
+      
       log4r::warn(log, warning)
     }
-
+    
     , error = function(error) {
       perfTable[i + rowNum,] = "ERROR"
-
+      
       log4r::error(log, error)
     }
-
+    
     , finally = {
-
+      
       log4r::info(log, sprintf("%s", "[END] Deep Learning"))
     }
   )
@@ -22350,7 +22385,7 @@ tictoc::tic()
 parallel::parSapply(oSocClu, X = 1:8, function(x) {
   hurls = data.frame(t(raster::extract(r, cbind(data$lat[x], data$lon[x]))))
   colnames(hurls) = c(paste(data$lat[x], data$lon[x], sep = "p"))
-
+  
   saveFile = sprintf("%s/%s_%s_%s.csv", globalVar$outPath, serviceName, data$lat[x], data$lon[x])
   readr::write_csv(x = hurls, file = saveFile)
 })
@@ -22404,22 +22439,22 @@ showtext::showtext.auto()
 # substr(), nChar(), 반복문 등을 활용하세요.
 
 delChar = function(x, y) {
-
+  
   # 입력 파라미터
   txt <- x
   delText <- y
-
+  
   newTxt <- ""
-
+  
   for (i in 1:nchar(txt)) {
     char = substr(txt, i, i)
     if (char == delText) {
       char <- ""
     }
-
+    
     newTxt <- paste0(newTxt, char)
   }
-
+  
   return(newTxt)
 }
 
@@ -22687,11 +22722,11 @@ dataL1 = tibble::tibble()
 
 for (fileInfo in fileList) {
   data = readr::read_csv(file = fileInfo, locale = locale("ko", encoding = "EUC-KR"))
-
+  
   x = data$CS
   y = data$H2SO4
   fileName = tools::file_path_sans_ext(fs::path_file(fileInfo))
-
+  
   dataL1 = dplyr::bind_rows(
     dataL1
     , data.frame(
@@ -22730,7 +22765,7 @@ ggplot(dataL2, aes(x = x, y = y, color = factor(makeColor), shape = factor(makeS
   geom_errorbarh(aes(xmin = xmin, xmax = xmax), height = 0.10) +
   geom_errorbar(aes(ymin = ymin, ymax = ymax), width = 0.05) +
   scale_color_manual(values = c("1" = "green", "2" = "red", "3" = "blue", "4" = "yellow", "5" = "Black"), name = NULL, na.value = NA
-    , labels = c("A", "B", "G", "J", "REF")
+                     , labels = c("A", "B", "G", "J", "REF")
   ) +
   scale_x_log10(breaks = trans_breaks("log10", function(x) 10^x), labels = trans_format("log10", math_format(10^.x))) +
   scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x), labels = trans_format("log10", math_format(10^.x))) +
@@ -22824,24 +22859,24 @@ dataL3 = tibble::tibble()
 
 # dtDateInfo = "1987-07-05"
 for (dtDateInfo in dtDateList) {
-
+  
   dataL1 = data %>%
     dplyr::filter(X1 == dtDateInfo) %>%
     tidyr::gather(-X1, key = "key", value = "val") %>%
     tidyr::separate(col = "key", into = c("tmpLon", "lat"), sep = "p") %>%
     tidyr::separate(col = "tmpLon", into = c(NA, "lon"), sep = "X") %>%
     readr::type_convert()
-
+  
   spData = dataL1
   coordinates(spData) = ~lon + lat
   gridded(spData) = TRUE
   # plot(spData)
-
+  
   if (nrow(dataL1) < 1) { next }
-
+  
   i = 1
   for (i in 1:nrow(stationData)) {
-
+    
     # IDW 학습 및 전처리수행
     spDataL1 = gstat::idw(
       formula = val ~ 1
@@ -22854,7 +22889,7 @@ for (dtDateInfo in dtDateList) {
         val = var1.pred
       ) %>%
       dplyr::select(-var1.var)
-
+    
     # 데이터 병합
     dataL3 = dplyr::bind_rows(
       dataL3
@@ -22864,7 +22899,7 @@ for (dtDateInfo in dtDateList) {
         , spDataL1
       )
     )
-
+    
   }
 }
 
@@ -22930,10 +22965,10 @@ dataL1 = tibble::tibble()
 
 for (fileInfo in fileList) {
   fileName = tools::file_path_sans_ext(fs::path_file(fileInfo))
-
+  
   data = readr::read_csv(file = fileInfo, locale = locale("ko", encoding = "EUC-KR")) %>%
     dplyr::select(season, J)
-
+  
   dataL1 = dplyr::bind_rows(
     dataL1
     , data.frame(
@@ -22974,7 +23009,7 @@ ggplot(dataL2, aes(x = season, y = J, fill = season)) +
   scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x), labels = trans_format("log10", math_format(10^.x)), limits = c(1e-2, 1e2)) +
   annotation_logticks(sides = "l") +
   scale_fill_manual(values = c("spring" = "green", "winter" = "blue"), name = NULL, na.value = NA
-    , labels = c("spring", "winter")
+                    , labels = c("spring", "winter")
   ) +
   theme_bw() +
   theme(
@@ -23090,21 +23125,21 @@ parallel::clusterEvalQ(oSocClu, library(sp))
 tictoc::tic()
 # parallel::parSapply(oSocClu, X = 1:length(dtDateList), function(x) {
 parallel::parSapply(oSocClu, X = 1:12, function(x) {
-
+  
   dataL1 = data %>%
     dplyr::filter(X1 == dtDateList[x]) %>%
     tidyr::gather(-X1, key = "key", value = "val") %>%
     tidyr::separate(col = "key", into = c("tmpLon", "lat"), sep = "p") %>%
     tidyr::separate(col = "tmpLon", into = c(NA, "lon"), sep = "X") %>%
     readr::type_convert()
-
+  
   spData = dataL1
   sp::coordinates(spData) = ~lon + lat
   gridded(spData) = TRUE
-
+  
   if (nrow(dataL1) < 1) { next }
-
-
+  
+  
   # IDW 학습 및 전처리수행
   spDataL1 = gstat::idw(
     formula = val ~ 1
@@ -23117,17 +23152,17 @@ parallel::parSapply(oSocClu, X = 1:12, function(x) {
       val = var1.pred
     ) %>%
     dplyr::select(-var1.var)
-
+  
   # 데이터 병합
   dataL3 = data.frame(
     date = dtDateList[x]
     , name = stationData$name
     , spDataL1
   )
-
+  
   saveFile = sprintf("%s/%s_%s_%s.csv", globalVar$outPath, serviceName, "obs-to-idw", dtDateList[x])
   readr::write_csv(x = dataL3, file = saveFile)
-
+  
 })
 
 tictoc::toc()
@@ -23470,10 +23505,10 @@ dataL1 %>%
   dplyr::summarise(
     sumS5Y2 = sum(c(Y2S5_15, Y2S5_16, Y2S5_17, Y2S5_18, Y2S5_19, Y2S5_20, Y2S5_21, Y2S5_22, Y2S5_23), na.rm = TRUE)
     , meanS5Y2 = mean(c(Y2S5_15, Y2S5_16, Y2S5_17, Y2S5_18, Y2S5_19, Y2S5_20, Y2S5_21, Y2S5_22, Y2S5_23), na.rm = TRUE)
-
+    
     , sumS2Y2 = sum(c(Y2S2_24, Y2S2_25, Y2S2_26, Y2S2_28, Y2S2_29, Y2S2_30), na.rm = TRUE)
     , meanS2Y2 = mean(c(Y2S2_24, Y2S2_25, Y2S2_26, Y2S2_28, Y2S2_29, Y2S2_30), na.rm = TRUE)
-
+    
     , meanKorY2 = mean(c(Y2KOR_S), na.rm = TRUE)
   )
 
@@ -23493,10 +23528,10 @@ dataL1 %>%
   dplyr::summarise(
     sumS5Y2 = sum(c(Y2S5_15, Y2S5_16, Y2S5_17, Y2S5_18, Y2S5_19, Y2S5_20, Y2S5_21, Y2S5_22, Y2S5_23), na.rm = TRUE)
     , meanS5Y2 = mean(c(Y2S5_15, Y2S5_16, Y2S5_17, Y2S5_18, Y2S5_19, Y2S5_20, Y2S5_21, Y2S5_22, Y2S5_23), na.rm = TRUE)
-
+    
     , sumS2Y2 = sum(c(Y2S2_24, Y2S2_25, Y2S2_26, Y2S2_28, Y2S2_29, Y2S2_30), na.rm = TRUE)
     , meanS2Y2 = mean(c(Y2S2_24, Y2S2_25, Y2S2_26, Y2S2_28, Y2S2_29, Y2S2_30), na.rm = TRUE)
-
+    
     , meanKorY2 = mean(c(Y2KOR_S), na.rm = TRUE)
   )
 
@@ -23671,8 +23706,8 @@ dataL1 %>%
 # (필요한 경우 하위 범주를 통합하여 범주의 수를 조정 가능). 
 #=====================================================================================
 rsAov = aov(dataL1$Y1MAT_S ~ dataL1$Y1S11_5 +
-  dataL1$Y1S11_6 +
-  dataL1$Y1S11_5:dataL1$Y1S11_6)
+              dataL1$Y1S11_6 +
+              dataL1$Y1S11_5:dataL1$Y1S11_6)
 summary(rsAov)
 
 # 교육태도 1 (선생님학업성적중요시)
@@ -23795,8 +23830,8 @@ resHsdL1 = resHsd$Age.Group %>%
   as.data.frame() %>%
   dplyr::mutate(
     msg = ifelse(`p adj` < 0.05
-      , sprintf("유의수준 (p.value)이 %s로서 귀무가설 기각 (사망자 수의 차이가 있다)", round(`p adj`, 2))
-      , sprintf("유의수준 (p.value)이 %s로서 귀무가설 채택 (사망자 수의 차이가 없다)", round(`p adj`, 2))
+                 , sprintf("유의수준 (p.value)이 %s로서 귀무가설 기각 (사망자 수의 차이가 있다)", round(`p adj`, 2))
+                 , sprintf("유의수준 (p.value)이 %s로서 귀무가설 채택 (사망자 수의 차이가 없다)", round(`p adj`, 2))
     )
   )
 
@@ -23810,19 +23845,19 @@ dataL4 = tibble::tibble()
 for (key in keyList) {
   dataL3 = dataL1 %>%
     dplyr::filter(Age.Group == key)
-
+  
   if (nrow(dataL3) < 1) { next }
   if (sum(dataL3$COVID.19.Deaths.mean, na.rm = TRUE) < 1) { next }
-
+  
   res = shapiro.test(dataL3$COVID.19.Deaths.mean)
   pVal = res$p.value
-
+  
   if (pVal < 0.05) {
     msg = sprintf("유의수준 (p.value)이 %s로서 귀무가설 기각 (정규 분포를 따르지 않음)", round(pVal, 2))
   } else {
     msg = sprintf("유의수준 (p.value)이 %s로서 귀무가설 채택 (정규 분포를 따름)", round(pVal, 2))
   }
-
+  
   dataL4 = dplyr::bind_rows(dataL4, data.frame(
     key = key
     , statistic = res$statistic
@@ -23887,27 +23922,27 @@ summary(rlmFit)
 
 # 잔차 분석
 tryCatch(
-
+  
   expr = {
     log4r::info(log, sprintf("%s", "[START] Make Image"))
-
+    
     saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "잔차 분석")
-
+    
     png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
     plot(rlmFit, 1)
   }
-
+  
   , warning = function(warning) {
     log4r::warn(log, warning)
   }
-
+  
   , error = function(error) {
     log4r::error(log, error)
   }
-
+  
   , finally = {
     dev.off()
-
+    
     log4r::info(log, sprintf("%s", "[END] Make Image"))
   }
 )
@@ -24293,7 +24328,7 @@ ggmap(map, extent = "device") +
   geom_point(data = dataL1, aes(x = longitude, y = latitude, color = sumOrder, size = sumOrder, alpha = 0.3)) +
   scale_fill_gradientn(colours = cbMatlab, na.value = NA) +
   scale_color_gradientn(colours = cbMatlab, na.value = NA) +
-
+  
   labs(
     subtitle = NULL
     , x = NULL
@@ -24374,19 +24409,19 @@ hanoiPos4 = function(N, A, D, B, C) {
     # 실제로 옮김
     cat("move disk ", N, " from", A, "to", D, "\n")
   } else {
-
+    
     # 기둥 A에서 N-2개의 원반을 기둥 B, C를 이용하여 기둥 D로 옮김
     hanoiPos4(N - 2, "A", "B", "C", "D")
-
+    
     # 기둥 A에서 N-2개의 원반을 기둥 C로 옮김
     cat("move disk ", (N - 1), " from", A, "to", C, "\n")
-
+    
     # 기둥 A에서 N개의 원반을 기둥 D로 옮김
     cat("move disk ", (N), " from", A, "to", D, "\n")
-
+    
     # 기둥 C에서 N-1개의 원반을 기둥 D로 옮김
     cat("move disk ", (N - 1), " from", C, "to", D, "\n")
-
+    
     # 기둥 B에서 N-2개의 원반을 기둥 A, C를 이용하여 기둥 D로 옮김
     hanoiPos4(N - 2, "B", "D", "A", "C")
   }
@@ -24459,9 +24494,9 @@ fileList = Sys.glob(paste(globalVar$inpPath, "LSH0145_*.xlsx", sep = "/"))
 for (fileInfo in fileList) {
   data = openxlsx::read.xlsx(xlsxFile = fileInfo, sheet = 1)
   # data = readr::read_csv(file = fileInfo, locale = locale("ko", encoding = "EUC-KR"))
-
+  
   fileName = tools::file_path_sans_ext(fs::path_file(fileInfo))
-
+  
   dataL1 = data %>%
     dplyr::rename(
       x = 'X축'
@@ -24471,7 +24506,7 @@ for (fileInfo in fileList) {
     ) %>%
     dplyr::select(x, y, shapeType, colorClass) %>%
     na.omit()
-
+  
   dataL2 = dataL1 %>%
     # dplyr::bind_rows(refData) %>% 
     dplyr::mutate(
@@ -24491,19 +24526,19 @@ for (fileInfo in fileList) {
         , stringr::str_detect(shapeType, regex("Coast")) ~ 4 # 삼각형
         , stringr::str_detect(shapeType, regex("Remote")) ~ 5 # 뒤집힌 삼각형
         , TRUE ~ 21
-
+        
       )
     )
-
+  
   saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, fileName, "모양 및 색깔에 따른 산점도")
-
+  
   ggplot(dataL2, aes(x = x, y = y, color = factor(makeColor), shape = factor(makeShape))) +
     # geom_point(size = 7, color = "transparent", show.legend = FALSE) + 
     geom_point(size = 7, fill = "transparent", show.legend = FALSE, stroke = 3) +
     # geom_errorbarh(aes(xmin = xmin, xmax = xmax), height = 0.10) +
     # geom_errorbar(aes(ymin = ymin, ymax = ymax), width = 0.05) +
     scale_color_manual(values = c("1" = "orange", "2" = "red", "3" = "violet", "4" = "blue", "5" = "darkgreen", "6" = "grey"), name = NULL, na.value = NA
-      , labels = c("China", "Korea", "South Asia", "Europe", "North America", "Antarctica / Arctic")
+                       , labels = c("China", "Korea", "South Asia", "Europe", "North America", "Antarctica / Arctic")
     ) +
     # scale_fill_manual(values = c("1" = "orange", "2" = "magenta", "3" = "violet", "4" = "blue", "5" = "green", "6" = "grey"), name = NULL, na.value = NA
     #                   , labels = c("China", "Korea", "South Asia", "Europe", "North America", "Antarctica / Arctic")
@@ -24540,19 +24575,19 @@ for (fileInfo in fileList) {
       # , axis.text.y = element_text(margin = unit(c(0, 0.4, 0, 0), "cm"))
     ) +
     ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
-
+  
   saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, fileName, "모양 및 색깔에 따른 산점도2")
-
+  
   ggplot(dataL2, aes(x = x, y = y, color = factor(makeColor), fill = factor(makeColor), shape = factor(makeShape))) +
     geom_point(size = 7, show.legend = FALSE) +
     # geom_point(size = 7, fill = "transparent", show.legend = FALSE, stroke = 3) + 
     # geom_errorbarh(aes(xmin = xmin, xmax = xmax), height = 0.10) +
     # geom_errorbar(aes(ymin = ymin, ymax = ymax), width = 0.05) +
     scale_color_manual(values = c("1" = "orange", "2" = "red", "3" = "violet", "4" = "blue", "5" = "darkgreen", "6" = "grey"), name = NULL, na.value = NA
-      , labels = c("China", "Korea", "South Asia", "Europe", "North America", "Antarctica / Arctic")
+                       , labels = c("China", "Korea", "South Asia", "Europe", "North America", "Antarctica / Arctic")
     ) +
     scale_fill_manual(values = c("1" = "orange", "2" = "red", "3" = "violet", "4" = "blue", "5" = "darkgreen", "6" = "grey"), name = NULL, na.value = NA
-      , labels = c("China", "Korea", "South Asia", "Europe", "North America", "Antarctica / Arctic")
+                      , labels = c("China", "Korea", "South Asia", "Europe", "North America", "Antarctica / Arctic")
     ) +
     scale_shape_manual(values = c(21, 22, 23, 24, 25)) +
     scale_x_log10(breaks = trans_breaks("log10", function(x) 10^x), labels = trans_format("log10", math_format(10^.x))) +
@@ -24942,7 +24977,7 @@ parallel::parSapply(oSocClu, X = 1:12, function(x) {
       val = var1.pred
     ) %>%
     dplyr::select(-var1.var, -lon, -lat)
-    # dplyr::select(-var1.var)
+  # dplyr::select(-var1.var)
   
   # 데이터 병합
   dataL3 = data.frame(
@@ -24950,7 +24985,7 @@ parallel::parSapply(oSocClu, X = 1:12, function(x) {
     , name = stationData$name
     , spDataL1
   ) %>% 
-  tidyr::spread(key = "name", value = "val")
+    tidyr::spread(key = "name", value = "val")
   
   saveFile = sprintf("%s/%s_%s_%s.csv", globalVar$outPath, serviceName, "obs-to-krige", dtDateList[x])
   readr::write_csv(x = dataL3, file = saveFile)
@@ -25397,7 +25432,7 @@ markt <- left_join(marche, code, by="코드") %>%
   relocate(연도_분기, 코드, 자치구_행정동, 상권_변화_지표, 운영개월, 폐업개월, 영업지수)
 paged_table(markt)
 
-  ## 영업지수 지표 설명_광원님
+## 영업지수 지표 설명_광원님
 ggplot(markt, aes(x=운영개월, y=폐업개월))+
   geom_point(mapping=aes(color=상권_변화_지표))+
   scale_color_manual(values=c("palevioletred2", "lightgoldenrod", "seagreen3", "slateblue"))+
@@ -25415,8 +25450,8 @@ einfach2 <- ggplot(data=markt, mapping=aes(x=reorder(자치구_행정동, 보정
   theme(axis.text.x=element_blank())+
   theme(legend.position=c(0.85, 0.2))
 
-  # 독립변수 설정
-  ## 서비스업 유형 자료(business_type)_광원님
+# 독립변수 설정
+## 서비스업 유형 자료(business_type)_광원님
 # type <- readr::read_csv("business_type.csv", locale=locale(encoding="EUC-KR"))
 fileInfo = Sys.glob(paste(globalVar$inpPath, "LSH0161_business_type.csv", sep = "/"))
 type <- readr::read_csv(fileInfo, locale=locale(encoding="EUC-KR"))
@@ -25554,18 +25589,18 @@ abline(lm(log(sorte$Q.보건사회복지서비스업_종사자수+1)~log(sorte$�
 legend("topleft", legend=c("D.전기가스공급업", "E.수도하수재생업", "H.운수창고업",
                            "O.공공행정국방업", "P.교육서비스업", "Q.보건사회복지서비스업"), 
        col=c("lightpink", "lightcoral", "salmon2", "royalblue2", "slateblue", "mediumorchid4"), lty=1)
-  
-  ## 사업체수와 종사자밀도비 자료(business_number)_지영님
-  
-  # <br>
-  # <br>
-  
-  ## 사업체 영업기간 자료(business_age)_지영님
-  
-  # <br>
-  # <br>
-  
-  ## 사업체 창업률 자료(business_founding)_종호님
+
+## 사업체수와 종사자밀도비 자료(business_number)_지영님
+
+# <br>
+# <br>
+
+## 사업체 영업기간 자료(business_age)_지영님
+
+# <br>
+# <br>
+
+## 사업체 창업률 자료(business_founding)_종호님
 # 2.4.1 변수 설명: 신규진입하는 사업자가 많으면 창업률은 당연히 높을 것.
 # 서비스 증가 > 시장에 신규진입하기 용이한 업종 증가 > 신규진입하는 사용자 증가 > 창업률 증가
 
@@ -25576,10 +25611,10 @@ delta %>%
   GGally::ggpairs(.) +
   theme(text = element_text(size = 18))
 
-  # <br>
-  # <br>
-  
-  ## 자영업 종사자수 자료(business_private)_종호님
+# <br>
+# <br>
+
+## 자영업 종사자수 자료(business_private)_종호님
 # 2.5.1 변수 설명: 신규진입하는 사업자는 대부분 개인사업일 것이기 때문에 이들이 많으면 자영업 종사자수도 많을 것.
 epsilon %>% 
   dplyr::select(생산자서비스업, 생산자서비스업비율, 소비자서비스업, 소비자서비스업비율, 자영업_종사자수) %>% 
@@ -25587,18 +25622,18 @@ epsilon %>%
   theme(text = element_text(size = 18))
 
 
-  # <br>
-  # <br>
-  ## 생계형사업 종사자수 자료(business_living)_지영님
-  
-  # <br>
-  # <br>
-  
-  # 단순회귀분석 실시
-  ## 산점도로 변수 조망_광원님
-  # ![](./scatterplot.png)
-  
-  ## 서비스업 유형 자료_광원님
+# <br>
+# <br>
+## 생계형사업 종사자수 자료(business_living)_지영님
+
+# <br>
+# <br>
+
+# 단순회귀분석 실시
+## 산점도로 변수 조망_광원님
+# ![](./scatterplot.png)
+
+## 서비스업 유형 자료_광원님
 sorte[is.na(sorte)] <- 0
 
 gattung <- sorte %>%
@@ -25632,9 +25667,9 @@ summary(lm(log(보정영업지수)~생산자서비스업비율, alpha))
 # ```
 # <br>
 #   <br>
-  
-  ## 사업체수 자료 정리_지영님
-  # ```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+
+## 사업체수 자료 정리_지영님
+# ```{r message=FALSE, warning=FALSE, paged.print=TRUE}
 # number <- readr::read_csv("business_number.csv", locale=locale(encoding="EUC-KR"))
 fileInfo = Sys.glob(paste(globalVar$inpPath, "LSH0161_business_number.csv", sep = "/"))
 number <- readr::read_csv(fileInfo, locale=locale(encoding="EUC-KR")) 
@@ -25666,8 +25701,8 @@ abline(lm(log(beta$보정영업지수)~log(beta$종사자밀도비)), col="light
 summary(lm(log(보정영업지수)~log(사업체수), beta))
 summary(lm(log(보정영업지수)~log(평균종사자), beta))
 summary(lm(log(보정영업지수)~log(종사자밀도비), beta))
-  
-  ## 사업체 영업기간 자료 정리_지영님
+
+## 사업체 영업기간 자료 정리_지영님
 
 fileInfo = Sys.glob(paste(globalVar$inpPath, "LSH0161_business_age.csv", sep = "/"))  
 age <- readr::read_csv(fileInfo, locale=locale(encoding="EUC-KR"))
@@ -25774,7 +25809,7 @@ ggData = delta %>%
   dplyr::mutate(
     x = log(사업체_창업률)
     , y = log(보정영업지수)
-    )
+  )
 
 ggData = delta %>% 
   dplyr::mutate(
@@ -25835,12 +25870,12 @@ ggpubr::ggscatter(
 # summary(lm(log(delta$보정영업지수)~delta$사업체_창업률))
 # ```
 # <br>
-  # <br>
-  
+# <br>
+
 # 3.6 자영업 종사자수 자료(business_private) -> 종호님
 # 3.6.1 로그로 변환하거나 하지 않은 변수 모두에 대해 종속변수와의 관계 관찰 -> 모두 유의미 X
 
-  ## 자영업 종사자수 자료 정리_종호님
+## 자영업 종사자수 자료 정리_종호님
 # private <- readr::read_csv("business_private.csv", locale=locale(encoding="EUC-KR"))
 fileInfo = Sys.glob(paste(globalVar$inpPath, "LSH0161_business_private.csv", sep = "/"))  
 private <- readr::read_csv(fileInfo, locale=locale(encoding="EUC-KR"))
@@ -25868,7 +25903,7 @@ abline(lm(log(epsilon$보정영업지수)~log(epsilon$자영업_종사자수)), 
 
 summary(lm(log(epsilon$보정영업지수)~epsilon$자영업_종사자수))
 summary(lm(log(epsilon$보정영업지수)~(log(epsilon$자영업_종사자수))))
-  
+
 
 ggData = epsilon %>% 
   dplyr::mutate(
@@ -25937,7 +25972,7 @@ ggpubr::ggscatter(
   ggpubr::stat_cor(label.x.npc = 0.0, label.y.npc = 0.85) +
   theme(text = element_text(size = 14))
 
-  ## 생계형사업 종사자수 자료 정리_지영님
+## 생계형사업 종사자수 자료 정리_지영님
 # living <- readr::read_csv("business_living.csv", locale=locale(encoding="EUC-KR"))
 fileInfo = Sys.glob(paste(globalVar$inpPath, "LSH0161_business_living.csv", sep = "/"))  
 living <- readr::read_csv(fileInfo, locale=locale(encoding="EUC-KR"))
@@ -25968,7 +26003,7 @@ abline(lm(log(zeta$보정영업지수)~log(zeta$체인화편의점업)), col="de
 
 summary(lm(log(zeta$보정영업지수)~log(zeta$커피전문점업+1)))
 summary(lm(log(zeta$보정영업지수)~log(zeta$체인화편의점업)))
-  
+
 # 교호관계 분석
 eta <- mutate(zeta, log보정영업지수=log(보정영업지수), log종사자밀도비=log(종사자밀도비),
               log커피전문점업=log(커피전문점업+1), log체인화편의점업=log(체인화편의점업))
@@ -26053,7 +26088,7 @@ codeList = readr::read_delim(codeInfo, delim = "\t", locale = locale("ko", encod
     , stringr::str_detect(isUse, regex("존재"))
     , is.na(d3)
     , is.na(d4)
-    )
+  )
 
 codeDistList = codeList %>%
   dplyr::distinct(emdCd)
@@ -26074,45 +26109,45 @@ dataL1 = tibble::tibble()
 
 for (i in 1:length(dtDateList)) {
   for (j in 1:nrow(codeDistList)) {
-
+    
     sDate = format(dtDateList[i], "%Y%m")
-
+    
     # 요청 법정동
     reqLawdCd = stringr::str_c("&LAWD_CD=", codeDistList[j, 'emdCd'])
-
+    
     # 요청 날짜
     reqYmd = stringr::str_c("&DEAL_YMD=", sDate)
-
+    
     resData = httr::GET(
       stringr::str_c(reqUrl, reqKey, reqLawdCd, reqYmd)
-      ) %>%
+    ) %>%
       httr::content(as = "text", encoding = "UTF-8") %>%
       jsonlite::fromJSON()
-
+    
     resCode = resData$response$header$resultCode
     if (resCode != "00") { next }
-
+    
     resItems = resData$response$body$items
     if (resItems == "") { next }
-
+    
     cat(sprintf(
       "dtDate : %10s | code : %5s"
       , sDate
       , codeList[j, 'emdCd']
     ), "\n")
-
+    
     resItem = resItems$item %>%
       as.data.frame()
-      # readr::type_convert()
-
+    # readr::type_convert()
+    
     dataL1 = dplyr::bind_rows(
       dataL1
       , data.frame(
         'dtYm' = sDate
         , 'emdCd' = codeDistList[j, 'emdCd']
         , resItem
-        )
       )
+    )
   }
 }
 
@@ -26172,7 +26207,7 @@ dataL2 %>%
   ) %>%
   dplyr::arrange(desc(meanVal))
 
-  
+
 #***********************************************
 # 그래프 그리기(히스토그램, 상자 수염그림, 산점도 등)
 #***********************************************
@@ -26198,7 +26233,7 @@ ggplot(dataL3, aes(x = d2, y = meanVal, fill = meanVal)) +
   theme(
     text = element_text(size = 18)
     , axis.text.x = element_text(angle = 45, hjust = 1)
-    ) +
+  ) +
   ggsave(filename = saveImg, width = 12, height = 8, dpi = 600)
 
 
@@ -26232,7 +26267,7 @@ ggpubr::ggscatter(
   , add = "reg.line", conf.int = TRUE, scales = "free_x"
   # , facet.by = "전체 법정동"
   , add.params = list(color = "blue", fill = "lightblue")
-  ) +
+) +
   labs(
     title = NULL
     , x = "전용면적"
@@ -26254,7 +26289,7 @@ ggpubr::ggscatter(
   , add = "reg.line", conf.int = TRUE, scales = "free_x"
   , facet.by = "d2"
   , add.params = list(color = "black", fill = "lightgray")
-  ) +
+) +
   labs(
     title = NULL
     , x = "전용면적"
@@ -26436,7 +26471,7 @@ data = openxlsx::read.xlsx(fileInfo, sheet = 1) %>%
 
 # 0값을 NA로 변환
 # dataL1 = data %>%
-  # dplyr::na_if(0)
+# dplyr::na_if(0)
 
 dataL1 = data
 
@@ -26701,7 +26736,7 @@ dataL1 = data %>%
   dplyr::filter(
     class == 1
     , english >= 80
-    )
+  )
 
 dplyr::tbl_df(dataL1)
 summary(dataL1)
@@ -26784,7 +26819,7 @@ ggplot(nepali, aes(x = 1, y = ht)) +
   geom_boxplot() +
   xlab("") +
   ylab("Height (kg)")
-  
+
 # 실습 7
 # 성별 (x축) 및 키 (y축)를 기준으로 상자 그림을 시각화
 # x축 이름, y축 이름을 추가
@@ -29001,7 +29036,7 @@ testCHWL1 = testCHW %>% # [ADD]
     dtDate = YMDH2
     , Temp = meanTemp
     , Height = meanHeight
-    ) %>% 
+  ) %>% 
   dplyr::select(names(dataL2))
 
 
@@ -29015,7 +29050,7 @@ trainCHWL1 = trainCHW %>%
   dplyr::rename(
     dtDate = YMDH2
     , pred = meanCHWEUI
-    )
+  )
 
 # 통합 데이터셋
 dataL3 = dplyr::bind_rows(dataL2, testCHWL1) %>%  # [ADD] 
@@ -29549,7 +29584,7 @@ tmap::tm_shape(mapShapeL1) +
 # 연도별 법정동에 따른 연소득당 거래금액 주제도
 # dtYearInfo = 2017
 for (dtYearInfo in dtYearList) {
-
+  
   dataL7 = dataL2 %>% 
     dplyr::left_join(addrData, by = c("addr" = "value")) %>% 
     dplyr::filter(
@@ -29566,7 +29601,7 @@ for (dtYearInfo in dtYearList) {
   
   mapShapeL1 = mapShape %>% 
     dplyr::inner_join(dataL7, by = c("SIG_CD" = "emdCd"))
-
+  
   setTilte = stringr::str_c(dtYearInfo, "년 법정동에 따른 연소득당 거래금액 주제도")
   saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, setTilte)
   
@@ -29778,7 +29813,7 @@ resultData = data.frame()
 
 # pima_trainL1 = pima_train %>% 
 #   readr::type_convert()
-  
+
 
 # summary(pima_train)
 
@@ -29867,12 +29902,12 @@ for (typeInfo in typeList) {
   getVal2 = abdiv::binomial_deviance(xAxis, yAxis) %>% round(2)
   
   cat(sprintf(
-          "[%10s] AUC : %10s | abdiv : %5s"
-          , typeInfo
-          , getVal1
-          , getVal2
-        ), "\n")
-
+    "[%10s] AUC : %10s | abdiv : %5s"
+    , typeInfo
+    , getVal1
+    , getVal2
+  ), "\n")
+  
   saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, paste(typeInfo, "ROC", sep = "-"))
   
   png(file = saveImg, width = 8, height = 8, units = "in", res = 600)
@@ -30105,7 +30140,7 @@ ggplot(df_term_freq1, aes(x=reorder(term, freq), y=freq)) +
   theme(
     # axis.text=element_text(size=12)
     text = element_text(size = 10)
-    )
+  )
 
 saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, paste(base_name, "빈도막대그래프", sep = "_"))
 
@@ -30477,7 +30512,7 @@ ggscatter(
   as_tibble(tsData), x = "ut", y = "yt", color = "black"
   , add = "reg.line", conf.int = TRUE
   , add.params = list(color = "blue", fill = "lightblue")
-  ) +
+) +
   theme_bw() +
   ggpubr::stat_regline_equation(label.x.npc = 0.0, label.y.npc = 1.0, size = 5) +
   ggpubr::stat_cor(label.x.npc = 0.0, label.y.npc = 0.9, p.accuracy =  0.01, r.accuracy = 0.01, size = 5) +
@@ -30489,7 +30524,7 @@ ggscatter(
   ) +
   theme(
     text = element_text(size = 18)
-    ) +
+  ) +
   ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
 
 
@@ -30986,18 +31021,18 @@ fileList = Sys.glob(paste(globalVar$inpPath, "LSH0189/period_2/*.csv", sep = "/"
 dataL1 = tibble::tibble()
 
 for (fileInfo in fileList) {
-    fileName = tools::file_path_sans_ext(fs::path_file(fileInfo))
-    
-    data = readr::read_csv(file = fileInfo, locale = locale("ko", encoding = "EUC-KR")) %>%
-      dplyr::select(type, season, CS, H2SO4)
-    
-    dataL1 = dplyr::bind_rows(
-      dataL1
-      , data.frame(
-        fileName = fileName
-        , data
-      )
+  fileName = tools::file_path_sans_ext(fs::path_file(fileInfo))
+  
+  data = readr::read_csv(file = fileInfo, locale = locale("ko", encoding = "EUC-KR")) %>%
+    dplyr::select(type, season, CS, H2SO4)
+  
+  dataL1 = dplyr::bind_rows(
+    dataL1
+    , data.frame(
+      fileName = fileName
+      , data
     )
+  )
 }
 
 # dataL1$fileName %>% unique()
@@ -31118,7 +31153,7 @@ ggplot(dataL2, aes(x=seasonLabel, y=H2SO4, fill=makeLegend)) +
   # facet_wrap(~makeLabel, scale = "free") +
   facet_wrap(~makeLabel) +
   ggsave(filename = saveImg, width = 6, height = 4, dpi = 600)
-  
+
 
 #===============================================================================================
 # Routine : Main R program
@@ -31999,7 +32034,7 @@ mlrModel = caret::train(
   , metric = "RMSE"
   , tuneGrid = expand.grid(
     intercept = c(TRUE, FALSE)
-    )
+  )
   , trControl = controlInfo
 )
 
@@ -32124,7 +32159,7 @@ gamModel = mgcv::gam(
   + s(CD) + s(HD) + s(Solar) + s(Pressure) + s(Humidity)
   + seasonType + bizDayType + hourType
   , data = trainData
-  )
+)
 
 # 요약
 summary(gamModel)
