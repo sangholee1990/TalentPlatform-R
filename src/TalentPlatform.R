@@ -19424,7 +19424,7 @@ data = openxlsx::read.xlsx(fileInfo, sheet = sheetInfo) %>%
 
 typeList = data$type %>% unique %>% sort
 
-for (typeInfo in typeList[7]) {
+for ( typeInfo in typeList[39] ) {
   
   tmpData = data %>%
     dplyr::filter(
@@ -19505,8 +19505,11 @@ beepr::beep(sound = 8)
 # sheetList = c(14)
 # sheetName = "남명온리(17)"
 
-sheetList = c(10, 15)
-sheetName = "북명-조선공통(74)+북명온리(14)"
+# sheetList = c(10, 15)
+# sheetName = "북명-조선공통(74)+북명온리(14)"
+
+sheetList = c(16, 17)
+sheetName = "남원-남송공통(4)+남원온리(39)"
 
 dataL3 = tibble()
 for (sheetInfo in sheetList) {
@@ -19568,6 +19571,7 @@ maxData = dataL4[ind, ]
 # setBreak = c(seq(0.37, 0, -0.02), 0.41, seq(0.37, 0.38, 0.001))
 # setBreak = c(seq(0.37, 0, -0.02))
 # setBreak = c(seq(0.29, 0, -0.02))
+# setBreak = c(seq(0.42, 0, -0.02), 0.41)
 setBreak = c(seq(0.42, 0, -0.02), 0.41)
 
 
@@ -31711,7 +31715,7 @@ ggplot(dataGenderAge, aes(x = key, y = cnt, fill = group, label = round(cnt, 0))
 #================================================
 # 요구사항
 #================================================
-# R을 이용한 머신러닝 및 딥러닝 기반으로 예측 모형 개발
+# R을 이용한 caret 머신러닝 (MLR, GAM, RF, SVM, GBM, EL) 및 h2o 딥러닝 (DNN, AML) 기반으로 예측 모형 개발
 
 #================================================
 # 초기 환경변수 설정
@@ -32446,3 +32450,920 @@ perfTable["AML", ] = perfEval(
 # 최근에 AML을 활용하여 자동 머신러닝/딥러닝뿐만 아니라 앙상블로 최적의 모형을 보여줌
 # 다소 시간을 오래걸릴지라도 사용자 측면에서는 고려할 수 있는 경우에서 최적의 결과 도출
 # 이는 작업스케쥴링 (srun), 병렬처리 또는 리눅스 기반을 수행 필연
+
+
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+#================================================
+# 요구사항
+#================================================
+# R을 이용한 머신러닝 (MLR) 기반으로 현재/미래 예측 및 시각화
+
+#================================================
+# 초기 환경변수 설정
+#================================================
+# env = "local"   # 로컬 : 원도우 환경, 작업환경 (현재 소스 코드 환경 시 .) 설정
+env = "dev"   # 개발 : 원도우 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+# env = "oper"  # 운영 : 리눅스 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+
+# prjName = "UPenn"
+# serviceName = "Deeplearning"
+prjName = "test"
+serviceName = "LSH0213"
+contextPath = ifelse(env == "local", ".", getwd())
+
+if (env == "local") {
+  globalVar = list(
+    "inpPath" = contextPath
+    , "figPath" = contextPath
+    , "outPath" = contextPath
+    , "tmpPath" = contextPath
+    , "logPath" = contextPath
+  )
+} else {
+  source(here::here(file.path(contextPath, "src"), "InitConfig.R"), encoding = "UTF-8")
+}
+
+#================================================
+# 함수 정의
+#================================================
+perfEval = function(x, y) {
+  
+  if (length(x) < 1) { return(sprintf("%s", "x 값 없음")) }
+  if (length(y) < 1) { return(sprintf("%s", "y 값 없음")) }
+  
+  slope = coef(lm(y ~ x))[2]
+  interp = coef(lm(y ~ x))[1]
+  xMean = mean(x, na.rm = TRUE)
+  yMean = mean(y, na.rm = TRUE)
+  xSd = sd(x, na.rm = TRUE)
+  ySd = sd(y, na.rm = TRUE)
+  cnt = length(x)
+  bias = mean(x - y, na.rm = TRUE)
+  rBias = (bias / yMean) * 100.0
+  rmse = sqrt(mean((x - y)^2, na.rm = TRUE))
+  rRmse = (rmse / yMean) * 100.0
+  r = cor.test(x, y)$estimate
+  p = cor.test(x, y)$p.value
+  diffMean = mean(x - y, na.rm = TRUE)
+  diffSd = sd(x - y, na.rm = TRUE)
+  # perDiffMean = mean((x - y) / y, na.rm = TRUE) * 100.0
+  
+  return(c(slope, interp, xMean, yMean, xSd, ySd, cnt, bias, rBias, rmse, rRmse, r, p, diffMean, diffSd))
+}
+
+biasCorr = function(actu, pred, minVal, maxVal, interVal, isPlot = FALSE) {
+  
+  factorVal = seq(minVal, maxVal, by = interVal)
+  
+  # RMSE Fitting
+  liResult = lapply(1:length(factorVal), function(i) Metrics::rmse(actu, pred * factorVal[i])) %>%
+    unlist()
+  
+  ind = which(liResult == min(liResult, na.rm = TRUE))
+  
+  if (isPlot == TRUE) {
+    plot(liResult)
+  }
+  
+  # Best Factor Index
+  ind = which(liResult == min(liResult, na.rm = TRUE))
+  
+  calibFactor = factorVal[[ind]]
+  calPred = calibFactor * pred
+  
+  meanDiff = mean(actu, na.rm = TRUE) - mean(calPred, na.rm = TRUE)
+  newPred = (calPred) + meanDiff
+  
+  cat(
+    sprintf("%s : %.2f", "[보정 X] RMSE", Metrics::rmse(actu, pred))
+    , sprintf("%s : %.2f", "[보정 O] RMSE", Metrics::rmse(actu, newPred))
+    , "\n"
+  )
+  
+  return(c(newPred))
+}
+
+
+#================================================
+# 비즈니스 로직 수행
+#================================================
+# 라이브러리 읽기
+library(readxl)
+library(tidyverse)
+library(ggplot2)
+library(ggmap)
+library(lubridate)
+library(MASS)
+library(scales)
+library(dplyr)
+library(hrbrthemes)
+library(data.table)
+library(ggpubr)
+library(forcats)
+library(lubridate)
+library(openxlsx)
+library(vroom)
+library(RQuantLib)
+library(caret)
+library(tictoc)
+library(caret)
+library(glmnet)
+library(Metrics)
+library(randomForest)
+library(mgcv)
+library(nima)
+library(h2o)
+library(stringr)
+library(vroom)
+library(RQuantLib)
+
+# 로그 설정
+saveLogFile = sprintf("%s/%s_%s_%s_%s.log", globalVar$logPath, Sys.info()["sysname"], Sys.info()["nodename"], prjName, format(Sys.time(), "%Y%m%d"))
+
+log = log4r::create.logger()
+log4r::logfile(log) = saveLogFile
+log4r::level(log) = "INFO"
+
+# 검증 지수 테이블 생성
+# rowNum = 1
+# colNum = 7
+# perfTable = data.frame(matrix(0, nrow = rowNum * colNum, ncol = 15))
+# rownames(perfTable) = c("MLR", "RF", "GAM", "SVM", "GBM", "EL", "DNN")
+# # rownames(perfTable) = c(
+# #   paste0("MLR-", 1:rowNum), paste0("RF-", 1:rowNum), paste0("GAM-", 1:rowNum)
+# #   , paste0("SARIMA-", 1:rowNum), paste0("SVM-", 1:rowNum), paste0("DNN-", 1:rowNum)
+# # )
+# colnames(perfTable) = c("slope", "interp", "xMean", "yMean", "xSd", "ySd", "cnt", "bias", "rBias", "rmse", "rRmse", "r", "pVal", "diffMean", "diffSd")
+
+
+# 데이터 읽기
+# fileInfo = Sys.glob(paste(globalVar$inpPath, "PAhourlyCHW.csv", sep = "/"))
+fileInfo = Sys.glob(paste(globalVar$inpPath, "LSH0194_PAhourlyCHW.csv", sep = "/"))
+
+data = vroom::vroom(
+  file = fileInfo
+  , col_select = c(YMDH, Uvalue_Wall, Uvalue_Window, Uvalue_Roof, WWR, Height, Year.y, AgeAfterRenov, Equipment, Lighting, Solar, HD, CD, Humidity, Pressure, WindSpeed, type2, CHWEUI)
+  , col_names = TRUE
+)
+
+# PAHourlyCHW = data.table::fread(file = fileInfo)
+# summary(data)
+# summary(PAHourlyCHW)
+# RQuantLib::isBusinessDay("UnitedStates/NYSE", seq(from=lubridate::as_date(min(data$YMDH, na.rm = TRUE)), to=lubridate::as_date(max(data$YMDH, na.rm = TRUE)), by=1))
+# data$type2 %>% unique() %>% sort()
+# dataL1$type2 %>% unique() %>% sort()
+
+dataL1 = data %>%
+  dplyr::mutate(
+    isType2 = dplyr::case_when(
+      # type2 %in% c("Education", "Lab", "Lodge", "office ", "public")
+      stringr::str_detect(type2, regex("Education|Lab|Lodge|office|public")) ~ TRUE
+      , TRUE ~ FALSE
+    )
+  ) %>% 
+  dplyr::filter(
+    0.01 < WWR & WWR < 0.9
+    , isType2 == TRUE
+  ) %>%
+  dplyr::mutate(
+    nMonth = lubridate::month(YMDH)
+    , nDay = lubridate::day(YMDH)
+    , nHour = lubridate::hour(YMDH)
+    , refYmd = lubridate::make_date(year = 2000, month = nMonth, day = nDay)
+    
+    #  교호작용 변수
+    , interTerm1 = Uvalue_Wall * WWR
+    , interTerm2 = Uvalue_Window * WWR
+    , interTerm3 = Year.y * AgeAfterRenov
+    
+    , isTrainValid = dplyr::between(lubridate::as_date(YMDH), lubridate::date("2015-07-01"), lubridate::date("2016-07-01"))
+    
+    # 펜실레니아 근처 뉴욕 기준으로 비즈니스 여부 판단
+    # , isBizDay = bizdays::is.bizday(YMDH, "QuantLib/UnitedStates/NYSE")
+    , isBizDay = RQuantLib::isBusinessDay("UnitedStates/NYSE", lubridate::as_date(YMDH))
+    
+    , seasonType = dplyr::case_when(
+      dplyr::between(refYmd, lubridate::date("2000-01-13"), lubridate::date("2000-05-10")) ~ "spring"
+      , dplyr::between(refYmd, lubridate::date("2000-05-11"), lubridate::date("2000-08-25")) ~ "summer"
+      , dplyr::between(refYmd, lubridate::date("2000-08-26"), lubridate::date("2000-12-18")) ~ "fall"
+      , lubridate::date("2000-12-19") <= refYmd | refYmd <= lubridate::date("2000-01-12") ~ "winter"
+    )
+    
+    , bizDayType =  dplyr::case_when(
+      isBizDay == TRUE ~ "Business day"
+      , isBizDay == FALSE ~ "non-business day"
+    )
+    
+    , hourType = dplyr::case_when(
+      dplyr::between(nHour, 7, 17) ~ "working"
+      , 17 < nHour & nHour <= 22 ~ "evening"
+      , 22 < nHour | nHour < 7 ~ "night"
+    )
+  ) %>% 
+  dplyr::mutate_if(is.character, as.factor)
+
+# dplyr::select(YMDH, nMonth, nDay, nHour, WWR, refYmd, hourType, businessDay, seasonType)
+# dplyr::tbl_df(dataL1)
+
+# summary(data)
+summary(dataL1)
+
+
+# saveFile = sprintf("%s/%s_%s.csv", globalVar$outPath, serviceName, "PAhourlyCHW_FNL")
+# readr::write_csv(x = dataL1, file = saveFile)
+# 
+# dataL2 = vroom::vroom(
+#   file = saveFile
+# )
+
+#*******************************************
+# 모형 구성
+#*******************************************
+dataL2 = dataL1 %>% 
+  dplyr::select(-c(nMonth, nDay, nHour, refYmd, isTrainValid, isBizDay, isType2))#YMDH, 
+
+# 선형회귀분석
+lmFit = lm(CHWEUI ~ ., data = dataL2)
+summary(lmFit)
+
+# plot(lmFit)
+
+# 단계별 소거법
+lmFitStep = MASS::stepAIC(lmFit, direction = "both")
+summary(lmFitStep)
+
+# 독립변수 및 종속변수 선정
+# modelForm = as.formula(lmFit$call$formula)
+modelForm = as.formula(lmFitStep$call$formula)
+
+modelFormSep = modelForm %>% paste(sep = " ~ ") 
+modelFormY = modelFormSep[2]
+modelFormX = modelFormSep[3] %>% stringr::str_split(" \\+ ") %>% unlist()
+
+# 오래 시간 소요
+# nima::lm_plot(lmFit)
+
+# Residuals vs Fitted : 선형 회귀분석에서 오차는 평균이 0이고 분산이 일정한 정규분 분포를 가정하였으므로 잔차가 특별한 경향을 보이지 않는 것이 이상적이다.
+# Gaussian Q-Q : 잔차가 정규분포를 따르는지 확인. 기울기 1인 직선이 되는 것이 이상적이다.
+# Scale-Location : 또한 표준화 잔차가 특별한 경향을 보이지 않는 것이 이상적이다.
+# Cook’s distance, Residuals vs Leverage,  Cook’s distance vs Leverage : 영향점의 유무를 검사하는데 유용하다. (중회귀분석 시간에 다시)
+
+#*******************************************
+# 훈련/검증/테스트 셋 설정
+#*******************************************
+set.seed(1)
+
+trainData = dataL1 %>% 
+  dplyr::filter(isTrainValid == TRUE) %>% 
+  dplyr::select(-c(nMonth, nDay, nHour, refYmd, isTrainValid, isBizDay, isType2))#YMDH, 
+
+# 훈련 데이터셋 확인
+dplyr::tbl_df(trainData)
+
+
+testData = dataL1 %>% 
+  dplyr::filter(isTrainValid == FALSE) %>% 
+  dplyr::select(-c(nMonth, nDay, nHour, refYmd, isTrainValid, isBizDay, isType2))#YMDH, 
+
+# 검증 데이터셋 확인
+# dplyr::tbl_df(validdataCHW)
+
+# 테스트 데이터셋 확인
+dplyr::tbl_df(testData)
+
+#**********************************************************
+# 학습 파라미터 설정
+#**********************************************************
+# method : 데이터 샘플링 기법로서  boot(부트스트래핑), boot632(부트스트래핑의 개선된 버전), cv(교차 검증), repeatedcv(교차 검증의 반복), LOOCV(Leave One Out Cross Validation) 
+# repeats : 데이터 샘플링 반복 횟수
+# number : 분할 횟수
+
+# 훈련 및 데이터 셋을 80:20으로 나누기 위한 인덱스 설정
+# idx = caret::createDataPartition(y = dataL3$CHWEUI, p = 0.8, list = FALSE)  ㅍㄲ
+# controlInfo = caret::trainControl(
+#   method = 'repeatedcv'
+#   , repeats = 10
+#   , number = 10
+#   , p = 0.8
+# )
+
+controlInfo = caret::trainControl(
+  method = 'repeatedcv'
+  , repeats = 1
+  , number = 10
+  , p = 0.8
+)
+
+
+# #**********************************************************
+# # 머신러닝 (MLR, RF, GAM, SARIMA, SVR, GBM)
+# #**********************************************************
+# 
+# #++++++++++++++++++++++++++++++++++++++++++++++++++
+# # 3. Multiple Linear Regression (MLR) model
+# #++++++++++++++++++++++++++++++++++++++++++++++++++
+# # form : 모델 형식
+# # data : 모델 적용 데이터
+# # preProc : 데이터 전처리로서 center (평균이 0이 되게 함), scale (분산이 1이 되게 함), pca(주성분 분석) 설정 가능
+# # metric : 분류 문제의 경우 정확도(accuracy), 회귀 문제일 경우 RMSE로 자동 지정
+# # tuneGrid : 하이퍼 파라미터 설정
+# # trControl : 학습 파라미터 설정
+# 
+# # 모델 학습
+# mlrModel = caret::train(
+#   form = modelForm
+#   , data = trainData
+#   , method = "lm"
+#   , preProc = c("center", "scale")
+#   , metric = "RMSE"
+#   , tuneGrid = expand.grid(
+#     intercept = c(TRUE, FALSE)
+#     )
+#   , trControl = controlInfo
+# )
+# 
+# saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "MLR RMSE Results Across Tuning Parameters")
+# 
+# ggplot(mlrModel) +
+#   theme(text = element_text(size = 18)) +
+#   ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
+# 
+# # 최적 모형의 회귀계수
+# mlrModel$finalModel 
+# 
+# # 모델 검증
+# perfTable["MLR", ] = perfEval(
+#   predict(mlrModel, newdata = testData)
+#   , testData$CHWEUI
+# ) %>% 
+#   round(2)
+
+#****************************************
+# subdata_Future
+#****************************************
+names(trainData)
+
+dataCHWL1 = trainData %>% 
+  dplyr::group_by(type2) %>% 
+  dplyr::summarise(
+    Uvalue_Wall = mean(Uvalue_Wall, na.rm = TRUE)
+    ,Uvalue_Window = mean(Uvalue_Window, na.rm = TRUE)
+    ,Uvalue_Roof = mean(Uvalue_Roof, na.rm = TRUE)
+    ,WWR = mean(WWR, na.rm = TRUE)
+    ,Height = mean(Height, na.rm = TRUE)
+    ,Year.y = mean(Year.y, na.rm = TRUE)
+    ,AgeAfterRenov = mean(AgeAfterRenov, na.rm = TRUE)
+    ,Equipment = mean(Equipment, na.rm = TRUE)
+    ,Lighting = mean(Lighting, na.rm = TRUE)
+    ,Solar = mean(Solar, na.rm = TRUE)
+    ,HD = mean(HD, na.rm = TRUE)
+    ,CD = mean(CD, na.rm = TRUE)
+    ,Height = mean(Height, na.rm = TRUE)
+    ,Humidity = mean(Humidity, na.rm = TRUE)
+    ,Pressure = mean(Pressure, na.rm = TRUE)
+    ,WindSpeed = mean(WindSpeed, na.rm = TRUE)
+    ,interTerm1 = mean(interTerm1, na.rm = TRUE)
+    ,interTerm2 = mean(interTerm2, na.rm = TRUE)
+    ,interTerm3 = mean(interTerm3, na.rm = TRUE)
+  )
+
+summary(future)
+
+fileInfo2 = Sys.glob(paste(globalVar$inpPath, "LSH0179_Future_Temp.xlsx", sep = "/"))
+future = openxlsx::read.xlsx(fileInfo2, sheet = 1) 
+future$TempCelsius<-(future$Temp-32)*5/9############################ 
+CD <- future$TempCelsius-18.3333
+HD <- 18.3333-future$TempCelsius
+future$HD <- ifelse(HD>0, HD, 0)
+future$CD <- ifelse( CD>0, CD, 0)
+
+# #CDD, HDD
+# future %>% 
+#   group_by(Year,Month,Day) %>%
+#   mutate(HDD=sum(HD)/24)%>%
+#   mutate(CDD=sum(CD)/24)%>%#, Hour
+#   tibble::as.tibble() %>% 
+#   dplyr::mutate(
+#     sDate = paste(Year, Month, Day, Hour, sep = "-")
+#     , dtDate = lubridate::ymd_h(sDate)
+#   ) %>% 
+#   dplyr::select(dtDate, TempCelsius, HDD, CDD) 
+# 
+typeList = dataCHWL1$type2 %>% unique() %>% sort()
+
+dataCHWL2 = tibble::tibble()
+for (type in typeList) {
+  
+  tmpData = future %>% 
+    # mutate(TempCelsius=(Temp-32)*5/9)%>% ############################ 
+    # mutate(CD =TempCelsius-18.3333)%>% 
+    # mutate(HD =18.3333-TempCelsius)%>% 
+    # mutate(HD =ifelse(HD>0, HD, 0))%>% 
+    # mutate(CD =ifelse( CD>0, CD, 0))%>% 
+    # 주석 처리
+    group_by(Year,Month,Day) %>%
+    # mutate(HDD=sum(HD)/24)%>%
+    # mutate(CDD=sum(CD)/24)%>%#, Hour
+    dplyr::mutate(
+      type2 = type
+    ) %>% 
+    dplyr::left_join(dataCHWL1, by = c("type2" = "type2")) %>% 
+    
+    # LSH
+    dplyr::mutate(
+      TempCelsius=(Temp-32)*5/9
+      , CD =TempCelsius-18.3333
+      , HD =18.3333-TempCelsius
+      , HD =ifelse(HD>0, HD, 0)
+      , CD =ifelse( CD>0, CD, 0)
+      , YMDH = lubridate::make_datetime(Year, Month, Day, Hour)
+      , refYmd = lubridate::make_date(year = 2000, month = Month, day = Day)
+      , seasonType = dplyr::case_when(
+        dplyr::between(refYmd, lubridate::date("2000-01-13"), lubridate::date("2000-05-10")) ~ "spring"
+        , dplyr::between(refYmd, lubridate::date("2000-05-11"), lubridate::date("2000-08-25")) ~ "summer"
+        , dplyr::between(refYmd, lubridate::date("2000-08-26"), lubridate::date("2000-12-18")) ~ "fall"
+        , lubridate::date("2000-12-19") <= refYmd | refYmd <= lubridate::date("2000-01-12") ~ "winter"
+      )
+      , isBizDay = RQuantLib::isBusinessDay("UnitedStates/NYSE", lubridate::as_date(YMDH))
+      , bizDayType =  dplyr::case_when(
+        isBizDay == TRUE ~ "Business day"
+        , isBizDay == FALSE ~ "non-business day"
+      )
+      , hourType = dplyr::case_when(
+        dplyr::between(Hour, 7, 17) ~ "working"
+        , 17 < Hour & Hour <= 22 ~ "evening"
+        , 22 < Hour | Hour < 7 ~ "night"
+      )
+    )
+    
+  dataCHWL2 = dplyr::bind_rows(dataCHWL2, tmpData)
+}
+
+summary(dataCHWL2)
+
+# lubridate::month(testData$YMDH[1])
+
+# [ADD] [Case 1]testset preprocessing
+testCHWL1 = testData %>% 
+  tibble::as.tibble() %>%
+  # dplyr::rename(
+    # dtDate = YMDH
+    # Year = Year.y
+  # ) %>% 
+  # LSH
+  dplyr::mutate(
+    dtDate = YMDH
+    , Year = Year.y
+  ) # %>% 
+  # dplyr::select(tidyselect::any_of(names(dataCHWL2)))
+
+# names(trainData)
+
+# [ADD] 트레이닝셋
+trainCHWL1 = trainData %>%
+  tibble::as.tibble() %>%
+  dplyr::group_by(YMDH, type2) %>%
+  dplyr::summarise(
+    meanCHWEUI = mean(CHWEUI, na.rm = TRUE)
+  ) %>% 
+  dplyr::rename(
+    pred = meanCHWEUI
+  ) %>% 
+  # LSH
+  dplyr::mutate(
+    dtDate = YMDH
+  )
+
+# 통합 데이터셋
+dataCHWL3 = dplyr::bind_rows(dataCHWL2, testCHWL1) %>%  # [ADD] 
+  modelr::add_predictions(lmFit) %>% 
+  dplyr::bind_rows(trainCHWL1) %>% # [ADD] 
+  dplyr::mutate(
+    type3 = dplyr::case_when(
+      YMDH < lubridate::ymd_h("2047-01-01 00") ~ "2015-2016"
+      , lubridate::ymd_h("2047-01-01 00") <= YMDH & YMDH < lubridate::ymd_h("2054-01-01 00") ~ "2047"
+      , lubridate::ymd_h("2054-01-01 00") <= YMDH ~ "2054"
+      , TRUE ~ "NA"
+    )
+  )
+
+summary(dataCHWL3)
+
+
+# 통합 데이터셋 확인
+dataCHWL3$type3 %>% unique %>% sort
+
+dataCHWL3 %>%
+  # dplyr::filter(dtDate == lubridate::ymd_h("2047-01-01 01"))
+  dplyr::filter(YMDH == lubridate::ymd_h("2047-01-01 01"))
+
+#****************************************
+# 시각화
+#****************************************
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "CHW prediction by building types in 2047 and 2053")
+
+# [ADD]
+Sys.setlocale("LC_ALL", "English")
+
+ggplot(dataCHWL3, aes(x = YMDH, y = pred, color = type2)) +
+  geom_line() +
+  # geom_smooth(method = 'lm', se = TRUE) +
+  # ggpubr::stat_regline_equation(label.x.npc = 0.0, label.y.npc = 1.0) +
+  # ggpubr::stat_cor(label.x.npc = 0.8, label.y.npc = 1.0) +
+  labs(
+    x = "Date"
+    , y = "CHW consumption (kBTU/GSF)"
+    , color = NULL
+    , fill = NULL
+    , subtitle = "CHW prediction by building types in 2047 and 2053"
+  ) +
+  # facet_wrap(~Year, ncol = 3, scale = "free") +
+  # facet_wrap(~type3, nrow = 3, scale = "free_x") +
+  facet_wrap(~type3, ncol = 3, scale = "free_x") +
+  theme(
+    text = element_text(size = 18)
+    , axis.text.x = element_text(angle = 45, hjust = 1)
+    , legend.position = "bottom"
+  ) +
+  ggsave(filename = saveImg, width = 12, height = 8, dpi = 600)
+
+
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+#================================================
+# 요구사항
+#================================================
+# R을 이용한 머신러닝 기반으로 클러스터링 모형 개발 및 구글 시각화
+
+#================================================
+# 초기 환경변수 설정
+#================================================
+# env = "local"   # 로컬 : 원도우 환경, 작업환경 (현재 소스 코드 환경 시 .) 설정
+env = "dev"   # 개발 : 원도우 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+# env = "oper"  # 운영 : 리눅스 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+
+prjName = "test"
+serviceName = "LSH0208"
+contextPath = ifelse(env == "local", ".", getwd())
+
+if (env == "local") {
+  globalVar = list(
+    "inpPath" = contextPath
+    , "figPath" = contextPath
+    , "outPath" = contextPath
+    , "tmpPath" = contextPath
+    , "logPath" = contextPath
+  )
+} else {
+  source(here::here(file.path(contextPath, "src"), "InitConfig.R"), encoding = "UTF-8")
+}
+
+#================================================
+# 함수 정의
+#================================================
+perfEval = function(x, y) {
+  
+  if (length(x) < 1) { return(sprintf("%s", "x 값 없음")) }
+  if (length(y) < 1) { return(sprintf("%s", "y 값 없음")) }
+  
+  slope = coef(lm(y ~ x))[2]
+  interp = coef(lm(y ~ x))[1]
+  xMean = mean(x, na.rm = TRUE)
+  yMean = mean(y, na.rm = TRUE)
+  xSd = sd(x, na.rm = TRUE)
+  ySd = sd(y, na.rm = TRUE)
+  cnt = length(x)
+  bias = mean(x - y, na.rm = TRUE)
+  rBias = (bias / yMean) * 100.0
+  rmse = sqrt(mean((x - y)^2, na.rm = TRUE))
+  rRmse = (rmse / yMean) * 100.0
+  r = cor.test(x, y)$estimate
+  p = cor.test(x, y)$p.value
+  diffMean = mean(x - y, na.rm = TRUE)
+  diffSd = sd(x - y, na.rm = TRUE)
+  # perDiffMean = mean((x - y) / y, na.rm = TRUE) * 100.0
+  
+  return(c(slope, interp, xMean, yMean, xSd, ySd, cnt, bias, rBias, rmse, rRmse, r, p, diffMean, diffSd))
+}
+
+biasCorr = function(actu, pred, minVal, maxVal, interVal, isPlot = FALSE) {
+  
+  factorVal = seq(minVal, maxVal, by = interVal)
+  
+  # RMSE Fitting
+  liResult = lapply(1:length(factorVal), function(i) Metrics::rmse(actu, pred * factorVal[i])) %>%
+    unlist()
+  
+  ind = which(liResult == min(liResult, na.rm = TRUE))
+  
+  if (isPlot == TRUE) {
+    plot(liResult)
+  }
+  
+  # Best Factor Index
+  ind = which(liResult == min(liResult, na.rm = TRUE))
+  
+  calibFactor = factorVal[[ind]]
+  calPred = calibFactor * pred
+  
+  meanDiff = mean(actu, na.rm = TRUE) - mean(calPred, na.rm = TRUE)
+  newPred = (calPred) + meanDiff
+  
+  cat(
+    sprintf("%s : %.2f", "[보정 X] RMSE", Metrics::rmse(actu, pred))
+    , sprintf("%s : %.2f", "[보정 O] RMSE", Metrics::rmse(actu, newPred))
+    , "\n"
+  )
+  
+  return(c(newPred))
+}
+
+
+#================================================
+# 비즈니스 로직 수행
+#================================================
+# 라이브러리 읽기
+library(readxl)
+library(tidyverse)
+library(ggplot2)
+library(ggmap)
+library(lubridate)
+library(MASS)
+library(scales)
+library(dplyr)
+library(hrbrthemes)
+library(data.table)
+library(ggpubr)
+library(forcats)
+library(lubridate)
+library(openxlsx)
+library(vroom)
+library(RQuantLib)
+library(caret)
+library(tictoc)
+library(caret)
+library(glmnet)
+library(Metrics)
+library(randomForest)
+library(mgcv)
+library(nima)
+library(h2o)
+library(stringr)
+library(vroom)
+library(RQuantLib)
+library(mgcViz)
+
+# 로그 설정
+saveLogFile = sprintf("%s/%s_%s_%s_%s.log", globalVar$logPath, Sys.info()["sysname"], Sys.info()["nodename"], prjName, format(Sys.time(), "%Y%m%d"))
+
+log = log4r::create.logger()
+log4r::logfile(log) = saveLogFile
+log4r::level(log) = "INFO"
+
+log4r::info(log, sprintf("%s", "[START] Main R"))
+
+# 검증 지수 테이블 생성
+# rowNum = 1
+# colNum = 9
+# perfTable = data.frame(matrix(0, nrow = rowNum * colNum, ncol = 15))
+# rownames(perfTable) = c("MLR", "RF", "GAM", "SARIMA", "SVM", "GBM", "EL", "DNN", "AML")
+# # rownames(perfTable) = c(
+# #   paste0("MLR-", 1:rowNum), paste0("RF-", 1:rowNum), paste0("GAM-", 1:rowNum)
+# #   , paste0("SARIMA-", 1:rowNum), paste0("SVM-", 1:rowNum), paste0("DNN-", 1:rowNum)
+# # )
+# colnames(perfTable) = c("slope", "interp", "xMean", "yMean", "xSd", "ySd", "cnt", "bias", "rBias", "rmse", "rRmse", "r", "pVal", "diffMean", "diffSd")
+
+
+# 데이터 읽기
+fileInfo = Sys.glob(paste(globalVar$inpPath, "LSH0208_clustering.csv", sep = "/"))
+
+# ""  ""           ""     ""       
+# ""       ""        ""         ""    
+# ""             ""     ""            ""      
+# ""    ""         ""            ""      
+#  ""         ""              ""              ""          
+# "
+autocluster 
+# 
+
+data = vroom::vroom(
+  file = fileInfo
+  , col_select = c(POINT_X, POINT_Y, Bldg_Style_Desc, Bldg_Use_Desc, Bldg_EffYrBlt, Bldg_ActYrBlt, Bldg_Bedrooms, Bldg_Bathrooms, Bldg_Quality
+                   , Bldg_AC_Type_Desc, Bldg_Total_SqFt, Bldg_Heated_SqFt, Asphalt, Modular_Metal, Tar_Gravel
+                   , other_roofc, other_wall, Cb_Stucco, Cedar.Redwood, Metal, Single_Siding, Carpet, Sheet_Vinyl
+                   , Pine.Soft.Wood, Cork_Tile, Marble, other_floor, Gable.Hip, Flat, Shed, Mansard
+                   , other_roofs)
+  , col_names = TRUE
+)
+
+########################################################
+
+library(h2o)
+h2o.init()
+prostate_path <- system.file("extdata", "prostate.csv", package = "h2o")
+prostate <- h2o.uploadFile(path = prostate_path)
+
+# standardize=TRUE
+# kmeansModel = h2o::h2o.kmeans(k = 3, training_frame = prostate, estimate_k = FALSE, seed = 1, standardize=TRUE, x = c("AGE", "RACE", "VOL", "GLEASON"))
+
+# library(h2o)
+# h2o.init()
+# prostate_path <- system.file("extdata", "prostate.csv", package = "h2o")
+# prostate <- h2o.uploadFile(path = prostate_path)
+kmeansModel = h2o.kmeans(training_frame = prostate, standardize = TRUE, estimate_k = FALSE, k = 10, nfolds = 5, x = c("AGE", "RACE", "VOL", "GLEASON"))
+h2o.tot_withinss(kmeansModel, xval = TRUE)
+
+
+max_groups <- 5
+wss_h2o <- numeric(max_groups)
+i = 5
+for(i in 1:max_groups){
+  kos_km1 <- h2o.kmeans(training_frame = prostate, x= c("AGE", "RACE", "VOL", "GLEASON"), estimate_k = FALSE, k = i, standardize = FALSE, 
+                        nfolds = 5, max_iterations = 25)   
+  wss_h2o[i] <- h2o.tot_withinss(kos_km1, xval = TRUE) # xval=TRUE means cross validation used
+}
+par(font.main = 1)
+plot(1:max_groups, wss_h2o, type="b", xlab="Number of Clusters",
+     ylab="Within groups sum of squares", bty = "l")
+# grid()
+
+################################################
+p <- h2o.predict(kos_km1, prostate)
+# plot all variable pairs
+plot(as.data.frame(prostate), col = as.vector(p) + 2,
+     main = "H2O k-means",
+     pch = 20, cex = 2)
+
+# k-means: unify cluster labels
+# inspect labels
+df[, "V8"] # actuals
+km1$cluster # base R
+as.vector(p) # h2o
+# decode base R cluster id
+base_r_cluster_id <- km1$cluster
+base_r_cluster <- ifelse(base_r_cluster_id==3, 1,
+                         ifelse(base_r_cluster_id==1, 2, 3))
+# decode H2O cluster id
+h2o_cluster_id <- as.vector(p)
+h2o_cluster <- ifelse(h2o_cluster_id==2, 1,
+                      ifelse(h2o_cluster_id==0, 2, 3))
+
+
+
+
+
+
+kmeansModel
+kmeansModel@model$centers       # The centers for each cluster
+kmeansModel@model$tot.withinss  # total within cluster sum of squares
+kmeansModel@model$cluster       # cluster assignments per observation
+
+km.model@model$params
+
+?h2o.kmeans
+
+
+# print the cluster centers
+h2o.centers(kmeansModel)
+
+# print the centroid statistics
+h2o.centroid_stats(kmeansModel)
+
+
+########################################################
+
+h2o.tot_withinss(kmeanModel, xval = TRUE)
+
+
+predicted = h2o.predict(kmeanModel, prostate)
+# 
+
+ggplot(prostate, aes(Distance_Feature, Speeding_Feature) , color = labels) + 
+  geom_point()
+
+###: The following example shows how to use a range of clusters size to generate results
+for (i in 2:15){
+  estimator = h2o.kmeans(k=i, init="Random", seed=2, standardize=TRUE, x= h2o.colnames(hdf), training_frame = hdf)
+}
+
+
+###: The following example shows how to use estimate_k to find the cluster size
+estimator = h2o.kmeans(k=100, estimate_k = TRUE,  init="Random", seed=2, standardize=TRUE,
+                       x=h2o.colnames(hdf), training_frame = hdf)
+
+
+dd = tkmeans(prostate)
+plot (dd)
+
+dd
+demo(h2o.kmeans)
+
+library(tclust)
+data ("geyser2")
+
+clus <- tkmeans(geyser2, k = 3, alpha = 0.03)
+plot (clus)
+
+
+# library(cluster)
+
+
+# data$Bldg_Use_Desc %>% unique %>% sort
+data$Bldg_Style_Desc %>% unique %>% sort
+
+# PAHourlyCHW = data.table::fread(file = fileInfo)
+# summary(data)
+# summary(PAHourlyCHW)
+
+# RQuantLib::isBusinessDay("UnitedStates/NYSE", seq(from=lubridate::as_date(min(data$YMDH, na.rm = TRUE)), to=lubridate::as_date(max(data$YMDH, na.rm = TRUE)), by=1))
+# data$type2 %>% unique() %>% sort()
+# dataL1$type2 %>% unique() %>% sort()
+
+dataL1 = data %>%
+  dplyr::mutate(
+    isType2 = dplyr::case_when(
+      # type2 %in% c("Education", "Lab", "Lodge", "office ", "public")
+      stringr::str_detect(type2, regex("Education|Lab|Lodge|office|public")) ~ TRUE
+      , TRUE ~ FALSE
+    )
+  ) %>% 
+  dplyr::filter(
+    0.01 < WWR & WWR < 0.9
+    , isType2 == TRUE
+  ) %>%
+  dplyr::mutate(
+    nMonth = lubridate::month(YMDH)
+    , nDay = lubridate::day(YMDH)
+    , nHour = lubridate::hour(YMDH)
+    , refYmd = lubridate::make_date(year = 2000, month = nMonth, day = nDay)
+    
+    #  교호작용 변수
+    , interTerm1 = Uvalue_Wall * WWR
+    , interTerm2 = Uvalue_Window * WWR
+    , interTerm3 = Year.y * AgeAfterRenov
+    
+    , isTrainValid = dplyr::between(lubridate::as_date(YMDH), lubridate::date("2015-07-01"), lubridate::date("2016-07-01"))
+    
+    # 펜실레니아 근처 뉴욕 기준으로 비즈니스 여부 판단
+    # , isBizDay = bizdays::is.bizday(YMDH, "QuantLib/UnitedStates/NYSE")
+    , isBizDay = RQuantLib::isBusinessDay("UnitedStates/NYSE", lubridate::as_date(YMDH))
+    
+    , seasonType = dplyr::case_when(
+      dplyr::between(refYmd, lubridate::date("2000-01-13"), lubridate::date("2000-05-10")) ~ "spring"
+      , dplyr::between(refYmd, lubridate::date("2000-05-11"), lubridate::date("2000-08-25")) ~ "summer"
+      , dplyr::between(refYmd, lubridate::date("2000-08-26"), lubridate::date("2000-12-18")) ~ "fall"
+      , lubridate::date("2000-12-19") <= refYmd | refYmd <= lubridate::date("2000-01-12") ~ "winter"
+    )
+    
+    , isBizDay = RQuantLib::isBusinessDay("UnitedStates/NYSE", lubridate::as_date(YMDH))
+    , bizDayType =  dplyr::case_when(
+      isBizDay == TRUE ~ "Business day"
+      , isBizDay == FALSE ~ "non-business day"
+    )
+    
+    , hourType = dplyr::case_when(
+      dplyr::between(nHour, 7, 17) ~ "working"
+      , 17 < nHour & nHour <= 22 ~ "evening"
+      , 22 < nHour | nHour < 7 ~ "night"
+    )
+  ) %>% 
+  dplyr::mutate_if(is.character, as.factor)
+
+# dplyr::select(YMDH, nMonth, nDay, nHour, WWR, refYmd, hourType, businessDay, seasonType)
+# dplyr::tbl_df(dataL1)
+
+# summary(data)
+summary(dataL1)
+
+
+# saveFile = sprintf("%s/%s_%s.csv", globalVar$outPath, serviceName, "PAhourlyCHW_FNL")
+# readr::write_csv(x = dataL1, file = saveFile)
+# 
+# dataL2 = vroom::vroom(
+#   file = saveFile
+# )
+
+#*******************************************
+# 모형 구성
+#*******************************************
+dataL2 = dataL1 %>% 
+  dplyr::select(-c(YMDH, nMonth, nDay, nHour, refYmd, isTrainValid, isBizDay, isType2))
+
+# 선형회귀분석
