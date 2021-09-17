@@ -19289,7 +19289,8 @@ prjName = "test"
 # serviceName = "LSH0197"
 # serviceName = "LSH0201"
 # serviceName = "LSH0202"
-serviceName = "LSH0205"
+# serviceName = "LSH0205"
+serviceName = "LSH0206"
 
 contextPath = ifelse(env == "local", ".", getwd())
 
@@ -19385,7 +19386,13 @@ fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0195_일식 식분도 이�
 # sheetInfo = 14
 
 # 시트 15 : 북명온리(14)
-sheetInfo = 15
+# sheetInfo = 15
+
+# 시트 16 : 남원+남송공통(4)
+# sheetInfo = 16
+
+# 시트 17 : 남원온리(39)
+sheetInfo = 17
 
 sheetName = dplyr::case_when(
   sheetInfo == 1 ~ "테스트"
@@ -19404,6 +19411,8 @@ sheetName = dplyr::case_when(
   , sheetInfo == 13 ~ "남명+개경조선(2)"
   , sheetInfo == 14 ~ "남명온리(17)"
   , sheetInfo == 15 ~ "북명온리(14)"
+  , sheetInfo == 16 ~ "남원+남송공통(4)"
+  , sheetInfo == 17 ~ "남원온리(39)"
   , TRUE ~ NA_character_
 )
 
@@ -19415,7 +19424,7 @@ data = openxlsx::read.xlsx(fileInfo, sheet = sheetInfo) %>%
 
 typeList = data$type %>% unique %>% sort
 
-for (typeInfo in typeList[14]) {
+for (typeInfo in typeList[7]) {
   
   tmpData = data %>%
     dplyr::filter(
