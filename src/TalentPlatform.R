@@ -19415,7 +19415,7 @@ data = openxlsx::read.xlsx(fileInfo, sheet = sheetInfo) %>%
 
 typeList = data$type %>% unique %>% sort
 
-for (typeInfo in typeList[4]) {
+for (typeInfo in typeList[14]) {
   
   tmpData = data %>%
     dplyr::filter(
@@ -19493,16 +19493,14 @@ beepr::beep(sound = 8)
 # sheetList = c(11, 13, 14)
 # sheetName = "남명-조선공통(6)+남명-개경조선(2)+남명온리(17)"
 
-sheetList = c(14)
-sheetName = "남명온리(17)"
+# sheetList = c(14)
+# sheetName = "남명온리(17)"
+
+sheetList = c(10, 15)
+sheetName = "북명-조선공통(74)+북명온리(14)"
 
 dataL3 = tibble()
 for (sheetInfo in sheetList) {
-  
-  cat(
-    sprintf("%s : %s", "sheetInfo : ", sheetInfo)
-    , "\n"
-  )
   
   data = openxlsx::read.xlsx(fileInfo, sheet = sheetInfo) %>%
     as.tibble()
@@ -19510,11 +19508,6 @@ for (sheetInfo in sheetList) {
   typeList = data$type %>% unique %>% sort
   
   for (typeInfo in typeList) {
-    
-    cat(
-      sprintf("%s : %s", "typeInfo : ", typeInfo)
-      , "\n"
-    )
     
     tmpData = data %>%
       dplyr::filter(
@@ -19545,7 +19538,10 @@ for (sheetInfo in sheetList) {
 #**************************************************
 # 공간 평균
 #**************************************************
-dataL3$type %>% unique() %>% length()
+cat(
+  sprintf("%s : %s", "Type Length : ", dataL3$type %>% unique %>% length)
+  , "\n"
+)
 
 dataL4 = dataL3 %>%
   dplyr::group_by(xAxis, yAxis) %>%
@@ -19562,7 +19558,8 @@ maxData = dataL4[ind, ]
 # setBreak = c(seq(0.55, 0, -0.02), 0.555)
 # setBreak = c(seq(0.37, 0, -0.02), 0.41, seq(0.37, 0.38, 0.001))
 # setBreak = c(seq(0.37, 0, -0.02))
-setBreak = c(seq(0.29, 0, -0.02))
+# setBreak = c(seq(0.29, 0, -0.02))
+setBreak = c(seq(0.42, 0, -0.02), 0.41)
 
 
 saveImg = sprintf("%s/%s_%s_%s.png", globalVar$figPath, serviceName, sheetName, "Mean_Color")
