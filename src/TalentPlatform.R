@@ -33367,3 +33367,543 @@ dataL2 = dataL1 %>%
   dplyr::select(-c(YMDH, nMonth, nDay, nHour, refYmd, isTrainValid, isBizDay, isType2))
 
 # 선형회귀분석
+
+
+
+
+
+
+
+
+
+library("ggalt")
+library("tidyr")
+
+# pacman::p_load('dplyr', 'tidyr', 'gapminder',
+#                'ggplot2',  'ggalt',
+#                'forcats', 'R.utils', 'png', 
+#                'grid', 'ggpubr', 'scales',
+#                'bbplot')
+
+#Prepare data
+dumbbell_df <- gapminder %>%
+  filter(year == 1967 | year == 2007) %>%
+  dplyr::select(country, year, lifeExp) %>%
+  spread(year, lifeExp) %>%
+  mutate(gap = `2007` - `1967`) %>%
+  arrange(desc(gap)) %>%
+  head(10)
+
+#Make plot
+ggplot(dumbbell_df, aes(x = `1967`, xend = `2007`, y = reorder(country, gap), group = country)) + 
+  geom_dumbbell(colour = "#dddddd",
+                size = 3,
+                colour_x = "#FAAB18",
+                colour_xend = "#1380A1") +
+  bbplot::bbc_style() +
+  labs(title="We're living longer",
+       subtitle="Biggest life expectancy rise, 1967-2007")
+
+
+
+
+
+library(viridis)
+
+p <- ggplot(studebt, aes(y = pct/100, x = type, fill = Debtrc))
+p + geom_bar(stat = "identity", color = "gray80") +
+  scale_x_discrete(labels = as_labeller(f_labs)) +
+  scale_y_continuous(labels = scales::percent) +
+  scale_fill_viridis(discrete = TRUE) +
+  guides(fill = guide_legend(reverse = TRUE,
+                             title.position = "top",
+                             label.position = "bottom",
+                             keywidth = 3,
+                             nrow = 1)) +
+  labs(x = NULL, y = NULL,
+       fill = "Amount Owed, in thousands of dollars",
+       caption = p_caption,
+       title = p_title,
+       subtitle = p_subtitle) +
+  theme(legend.position = "top",
+        axis.text.y = element_text(face = "bold", hjust = 1, size = 12),
+        axis.ticks.length = unit(0, "cm"),
+        panel.grid.major.y = element_blank()) +
+  coord_flip()
+
+
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+#================================================
+# 요구사항
+#================================================
+# R을 이용한 사후 확률 가중치 산정 및 불확실성 정량화
+
+# 대략적 방법은 historical data와 관측값의 확률밀도함수를 산정하여,
+# 그후 BMA 패키지 함수로 사후 확률로 가중치를 산정합니다.
+# 그 후 BMA 예측을 수행해서 모형간 사후 평균과 분산을 산정하여 불확실성을 정량화합니다!
+
+# 근데 여기서 가우스 분포대신 GEV 분포를 사용할 예정입니다!
+  
+#================================================
+# 초기 환경변수 설정
+#================================================
+# env = "local"   # 로컬 : 원도우 환경, 작업환경 (현재 소스 코드 환경 시 .) 설정
+env = "dev"   # 개발 : 원도우 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+# env = "oper"  # 운영 : 리눅스 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+
+prjName = "test"
+serviceName = "LSH0212"
+contextPath = ifelse(env == "local", ".", getwd())
+
+if (env == "local") {
+  globalVar = list(
+    "inpPath" = contextPath
+    , "figPath" = contextPath
+    , "outPath" = contextPath
+    , "tmpPath" = contextPath
+    , "logPath" = contextPath
+  )
+} else {
+  source(here::here(file.path(contextPath, "src"), "InitConfig.R"), encoding = "UTF-8")
+}
+
+#================================================
+# 비즈니스 로직 수행
+#================================================
+# 라이브러리 읽기
+library(readxl)
+library(tidyverse)
+library(ggplot2)
+library(ggmap)
+library(lubridate)
+
+
+# 대략적 방법은 historical data와 관측값의 확률밀도함수를 산정하여,
+# 그후 BMA 패키지 함수로 사후 확률로 가중치를 산정합니다.
+# 그 후 BMA 예측을 수행해서 모형간 사후 평균과 분산을 산정하여 불확실성을 정량화합니다!
+
+# 근데 여기서 가우스 분포대신 GEV 분포를 사용할 예정입니다!
+
+library(GEVcdn)
+
+## Generate synthetic data, quantiles
+x <- as.matrix(seq(0.1, 1, length = 50))
+loc <- x^2
+scl <- x/2
+shp <- seq(-0.1, 0.3, length = length(x))
+set.seed(100)
+y <- as.matrix(rgev(length(x), location = loc, scale = scl,
+                    shape = shp))
+q <- sapply(c(0.1, 0.5, 0.9), qgev, location = loc, scale = scl,
+            shape = shp)
+## Define a hierarchy of models of increasing complexity
+
+models <- vector("list", 4)
+# Stationary model
+models[[1]] <- list(Th = gevcdn.identity,
+                    fixed = c("location", "scale", "shape"))
+# Linear model
+models[[2]] <- list(Th = gevcdn.identity)
+# Nonlinear, 1 hidden node
+models[[3]] <- list(n.hidden = 1, Th = gevcdn.logistic)
+# Nonlinear, 2 hidden nodes
+models[[4]] <- list(n.hidden = 2, Th = gevcdn.logistic)
+## Fit models
+weights.models <- vector("list", length(models))
+for(i in seq_along(models)){
+  weights.models[[i]] <- gevcdn.fit(x = x, y = y, n.trials = 1,
+                                    n.hidden = models[[i]]$n.hidden,
+                                    Th = models[[i]]$Th,
+                                    fixed = models[[i]]$fixed)
+}
+## Select model with minimum AICc
+models.AICc <- sapply(weights.models, attr, which = "AICc")
+weights.best <- weights.models[[which.min(models.AICc)]]
+parms.best <- gevcdn.evaluate(x, weights.best)
+## 10th, 50th, and 90th percentiles
+q.best <- sapply(c(0.1, 0.5, 0.9), qgev,
+                 location = parms.best[,"location"],
+                 scale = parms.best[,"scale"],
+                 shape = parms.best[,"shape"])
+## Plot data and quantiles
+matplot(x, cbind(y, q, q.best), type = c("b", rep("l", 6)),
+        lty = c(1, rep(c(1, 2, 1), 2)),
+        lwd = c(1, rep(c(3, 2, 3), 2)),
+        col = c("red", rep("orange", 3), rep("blue", 3)),
+        pch = 19, xlab = "x", ylab = "y", main = "gevcdn.fit")
+
+
+library(extRemes)
+library(ismev)
+
+data (ftcanmax)
+data = ftcanmax [ "Prec"]
+fit <- gev.fit (ftcanmax [ "Prec"])
+class (fit) <- "gev.fit"
+rlplot (fit)
+
+
+dgev(2:4, 1, 0.5, 0.8)
+pgev(2:4, 1, 0.5, 0.8)
+qgev(seq(0.9, 0.6, -0.1), 2, 0.5, 0.8)
+rgev(6, 1, 0.5, 0.8)
+p <- (1:9)/10
+pgev(qgev(p, 1, 2, 0.8), 1, 2, 0.8)
+
+
+
+
+
+
+library(BMA)
+
+
+
+
+
+
+
+# Loading datasets and required libraries
+#########################################
+set.seed(2011)
+library(MASS)
+data(UScrime); attach(UScrime)
+UScrime1 <- (cbind(log(UScrime[,c(16,1,3:15)]), So))
+noise<- matrix(rnorm(35*nrow(UScrime)), ncol=35)
+colnames(noise)<- paste('noise', 1:35, sep='')
+UScrime.log <- cbind(UScrime1,noise)
+X <- UScrime1[,-1]; Y <- UScrime1[,1]
+x <- UScrime.log[,-1]; y <- UScrime.log[,1]
+# Full enumaration of model space (Tables 4 and 5)
+##################################################
+# BMS Package:
+library(BMS)
+bms_enu <- bms(UScrime1, mcmc="enumerate", g="UIP", mprior="uniform",
+               user.int=FALSE)
+coef(bms_enu)
+detach("package:BMS")
+# BMA Package:
+library(BMA)
+bma_enu <- iBMA.bicreg(X, Y, thresProbne0 = 5, verbose = TRUE, maxNvar = 30)
+summary(bma_enu)
+detach("package:BMA")
+# BAS Package:
+library(BAS)
+bas_enu<- bas.lm(y~., data=UScrime1, n.models=NULL, prior="ZS-null",
+                 modelprior=uniform(), initprobs="Uniform")
+
+
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+#================================================
+# 요구사항
+#================================================
+# R을 이용한 선거 동별 시각화 및 도표 삽입
+
+#================================================
+# 초기 환경변수 설정
+#================================================
+# env = "local"   # 로컬 : 원도우 환경, 작업환경 (현재 소스 코드 환경 시 .) 설정
+env = "dev"   # 개발 : 원도우 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+# env = "oper"  # 운영 : 리눅스 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+
+prjName = "test"
+serviceName = "LSH0214"
+contextPath = ifelse(env == "local", ".", getwd())
+
+if (env == "local") {
+  globalVar = list(
+    "inpPath" = contextPath
+    , "figPath" = contextPath
+    , "outPath" = contextPath
+    , "tmpPath" = contextPath
+    , "logPath" = contextPath
+  )
+} else {
+  source(here::here(file.path(contextPath, "src"), "InitConfig.R"), encoding = "UTF-8")
+}
+
+#================================================
+# 비즈니스 로직 수행
+#================================================
+# 라이브러리 읽기
+library(readxl)
+library(tidyverse)
+library(ggplot2)
+library(ggmap)
+library(lubridate)
+library(tidyverse)
+library(ggplot2)
+library(lubridate)
+library(openxlsx)
+library(fs)
+library(openxlsx)
+library(readxl)
+library(tidyverse)
+library(ggplot2)
+library(ggmap)
+library(ggplot2)
+library(lubridate)
+library(raster)
+library(rgeos)
+library(maptools)
+library(rgdal)
+library(sf)
+library(ggmap)
+library(ggcharts)
+library(scales)
+library(raster)
+library(cowplot)
+library(patchwork)
+
+# 선거 데이터 읽기
+fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0214_선거분석(강서병).xlsx"))
+data = openxlsx::read.xlsx(fileInfo, sheet = 2)
+
+dataL1 = data %>%
+  as.tibble() %>%
+  na.omit() %>%
+  readr::type_convert()
+
+dataL2 = dataL1 %>% 
+  rowwise(투표구) %>% 
+  dplyr::mutate(
+    sumVal = sum(더불어민주당, 자유한국당, 기타야당, na.rm = TRUE)
+    , maxVal = max(더불어민주당, 자유한국당, 기타야당, na.rm = TRUE)
+    , meanVal = (더불어민주당 / sumVal) * 100
+    , meanVal2 = (자유한국당 / sumVal) * 100
+    , meanVal3 = (기타야당 / sumVal) * 100
+    , val = dplyr::case_when(
+      자유한국당 == maxVal ~ 1
+      , 더불어민주당 == maxVal ~ 2
+      , 기타야당 == maxVal ~ 3
+      )
+    )
+
+dataL3 = dataL2 %>%
+  dplyr::select(-c(더불어민주당, 자유한국당, 기타야당, sumVal, val, maxVal)) %>%
+  # dplyr::select(-c(meanVal, meanVal2, meanVal3, sumVal, val, maxVal)) %>%
+  dplyr::rename(
+    더불어민주당 = meanVal
+    , 자유한국당 = meanVal2
+    , 기타야당 = meanVal3
+  ) %>% 
+  tidyr::gather(-c(투표구, 종류), key = "key", value = "val")
+
+# 정당에 따른 정렬
+dataL3$key = forcats::fct_relevel(dataL3$key, c("자유한국당", "더불어민주당", "기타야당"))
+
+selData = dataL1 %>% dplyr::filter(종류 == "광역단체장")
+dataL3$투표구 = forcats::fct_relevel(dataL3$투표구, rev(selData$투표구))
+
+saveImg1 = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "서울특별시_강서구_선거_빈도분포")
+
+#************************************************
+# 선거 빈도분포
+#************************************************
+ggplot(dataL3, aes(x = 투표구, y = val, fill = key, group = key, label = round(val, 0))) +
+  # geom_bar(position = "dodge", stat = "identity") +
+  geom_bar(position = position_stack(), stat = "identity") +
+  # geom_text(size = 5, vjust = 1.6, hjust = 0.5, color = "white") +
+  geom_text(position = position_stack(vjust = 0.5), size = 5, color = "white") +
+  coord_flip() +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1, scale = 1)) +
+  labs(x = "투표구", y = "비율", fill = NULL, subtitle = "서울특별시 강서구 선거 빈도분포") +
+  # scale_x_continuous(breaks = seq(1, 11, 1)) +
+  theme(
+    text = element_text(size = 16)
+    # , axis.text.x = element_text(angle = 45, hjust = 1)
+    , legend.position = "top"
+  ) +
+  facet_wrap(~종류, scale = "free", ncol = 3) +
+  ggsave(filename = saveImg1, width = 12, height = 10, dpi = 600)
+
+
+# 읍면동 지도 읽기
+mapInfo = Sys.glob(file.path(globalVar$mapPath, "koreaInfo/bnd_dong_00_2019_2019_2Q.shp"))
+# mapInfo = Sys.glob(file.path(globalVar$mapPath, "LSMD_ADM_SECT_UMD_서울/LSMD_ADM_SECT_UMD_11.shp"))
+# mapInfo = Sys.glob(file.path(globalVar$mapPath, "LSMD_CONT_LDREG_서울_강서구/LSMD_CONT_LDREG_11500.shp"))
+# mapInfo = Sys.glob(file.path(globalVar$mapPath, "읍면동/EMD_202101/TL_SCCO_EMD.shp"))
+
+# shp 파일 읽기 (1)
+# mapData = raster::shapefile(mapInfo, encoding = "UTF-8")
+# geoData = sp::spTransform(mapData, CRS("+proj=longlat"))
+# mapGeoData = ggplot2::fortify(geoData, region = "EMD_CD", region2 = "EMD_KOR_NM")
+
+# shp 파일 읽기 (2)
+mapGlobal = sf::st_read(mapInfo, quiet = TRUE, options = "ENCODING=EUC-KR") %>% 
+  sf::st_transform(CRS("+proj=longlat"))
+
+st_crs(mapGlobal)
+
+# 법정동 코드 읽기 (1)
+# codeInfo = Sys.glob(file.path(globalVar$mapPath, "admCode/법정동코드_전체자료.txt"))
+# codeData = utils::read.table(codeInfo, sep = "\t", header = TRUE, colClasses = "character", fileEncoding = "EUC-KR") %>%
+#   as.tibble() %>%
+#   magrittr::set_colnames(c("EMD_CD", "addr", "isUse"))
+
+# codeDataL1 = codeData %>%
+#   tidyr::separate(col = "addr", into = c("addr1", "addr2", "addr3", "addr4", "addr5"), sep = " ") %>%
+#   # dplyr::select(-addr4, -addr5) %>%
+#   dplyr::filter(
+#     stringr::str_detect(addr1, regex("서울특별시"))
+#     , stringr::str_detect(addr2, regex("강서구"))
+#     # , isUse == "존재"
+#   ) %>%
+#   # dplyr::filter(
+#   #   !is.na(addr1)
+#   #   , !is.na(addr2)
+#   #   , !is.na(addr3)
+#   # ) %>%
+#   dplyr::mutate(
+#     id = stringr::str_sub(EMD_CD, 1, 8)
+#   )
+
+
+# 법정도 코드 읽기 (2)
+codeInfo = Sys.glob(file.path(globalVar$mapPath, "admCode/admCode.xlsx"))
+codeData = openxlsx::read.xlsx(codeInfo, sheet = 1, startRow = 2)
+
+codeDataL1 = codeData %>%
+  dplyr::select("시도코드", "시도명칭", "시군구코드", "시군구명칭", "읍면동코드", "읍면동명칭") %>% 
+  dplyr::filter(
+    stringr::str_detect(시도명칭, regex("서울특별시"))
+    , stringr::str_detect(시군구명칭, regex("강서구"))
+  ) 
+
+
+tmpData= dataL2 %>% 
+  dplyr::filter(종류 == "광역단체장")
+
+# 통합 데이터셋
+dataL4 = mapGlobal %>%
+  dplyr::inner_join(codeDataL1, by = c("adm_dr_cd" = "읍면동코드")) %>%
+  dplyr::left_join(tmpData, by = c("adm_dr_nm" = "투표구"))
+
+  # dplyr::inner_join(codeDataL1, by = c("EMD_CD" = "id")) # %>%
+  
+# 서울 강서구
+# mapData = ggmap::get_map(
+#   location = c(lon = 126.822838, lat = 37.560797)
+#   , zoom = 13
+#   , maptype = "hybrid"
+# )
+
+#************************************************
+# 선거 주제도
+#************************************************
+saveImg2 = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "서울특별시_강서구_선거_주제도")
+plotSubTitle = sprintf("[광역단체장] %s", "서울특별시 강서구 선거 주제도")
+
+ggplotDefaultColor = hue_pal()(3)
+
+ggplot() +
+  theme_bw() +
+  coord_fixed(ratio = 1) +
+  geom_sf(data = dataL4, aes(fill = factor(val)), inherit.aes = FALSE) +
+  geom_sf_text(data = dataL4, aes(label = 읍면동명칭)) +
+  scale_fill_manual(
+    name = NULL
+    , na.value = "transparent"
+    , values = c("1" = ggplotDefaultColor[1], "2" = ggplotDefaultColor[2], "3" = ggplotDefaultColor[3])
+    , labels = c("자유한국당", "더불어민주당", "기타야당")
+  ) +
+  labs(title = plotSubTitle, x = NULL, y = NULL, colour = NULL, fill = NULL, subtitle = NULL) +
+  theme(
+    text = element_text(size = 16)
+    , panel.grid.major.x = element_blank()
+    , panel.grid.major.y = element_blank()
+    , panel.grid.minor.x = element_blank()
+    , panel.grid.minor.y = element_blank()
+    , axis.text.x = element_blank()
+    , axis.ticks.x = element_blank()
+    , axis.title.x = element_blank()
+    , axis.text.y = element_blank()
+    , axis.ticks.y = element_blank()
+    , axis.title.y = element_blank()
+    , plot.subtitle = element_text(hjust = 1)
+    , legend.position = "top"
+  ) +
+  ggsave(filename = saveImg2, width = 12, height = 8, dpi = 600)
+
+
+
+#************************************************
+# 스토리 보드
+#************************************************
+# 테이블
+ggTable = dataL2 %>% 
+  dplyr::filter(종류 == "광역단체장") %>% 
+  dplyr::select(투표구, 자유한국당, 더불어민주당, 기타야당) %>%
+  dplyr::mutate(
+    자유한국당 = scales::comma(자유한국당)
+    , 더불어민주당 = scales::comma(더불어민주당)
+    , 기타야당 = scales::comma(기타야당)
+  )
+
+ggTableL1 = ggpubr::ggtexttable(ggTable, rows = NULL)
+
+# 빈도분포
+ggFreqPlot = ggplot(ggData, aes(x = 투표구, y = val, fill = key, group = key, label = round(val, 0))) +
+  geom_bar(position = position_stack(), stat = "identity") +
+  geom_text(position = position_stack(vjust = 0.5), size = 5, color = "white") +
+  coord_flip() +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1, scale = 1)) +
+  labs(x = NULL, y = NULL, fill = NULL, subtitle = "서울특별시 강서구 선거 빈도분포") +
+  theme(
+    text = element_text(size = 16)
+    , legend.position = "top"
+  )
+
+# 지도
+ggMapPlot = ggplot() +
+  theme_bw() +
+  coord_fixed(ratio = 1) +
+  geom_sf(data = dataL4, aes(fill = factor(val)), inherit.aes = FALSE) +
+  geom_sf_text(data = dataL4, aes(label = 읍면동명칭)) +
+  scale_fill_manual(
+    name = NULL
+    , na.value = "transparent"
+    , values = c("1" = ggplotDefaultColor[1], "2" = ggplotDefaultColor[2], "3" = ggplotDefaultColor[3])
+    , labels = c("자유한국당", "더불어민주당", "기타야당")
+  ) +
+  labs(title = plotSubTitle, x = NULL, y = NULL, colour = NULL, fill = NULL, subtitle = NULL)
+
+ggMapPlotTheme = theme(
+  text = element_text(size = 14)
+  , panel.grid.major.x = element_blank()
+  , panel.grid.major.y = element_blank()
+  , panel.grid.minor.x = element_blank()
+  , panel.grid.minor.y = element_blank()
+  , axis.text.x = element_blank()
+  , axis.ticks.x = element_blank()
+  , axis.title.x = element_blank()
+  , axis.text.y = element_blank()
+  , axis.ticks.y = element_blank()
+  , axis.title.y = element_blank()
+  , plot.subtitle = element_text(hjust = 1)
+  , legend.position = "none"
+)
+
+saveImgMerge = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "서울특별시_강서구_선거_통합")
+
+(ggMapPlot & ggMapPlotTheme ) / (ggFreqPlot | ggTableL1) +
+  patchwork::plot_layout(heights = c(3, 1)) +
+  ggsave(filename = saveImgMerge, width = 10, height = 10, dpi = 600)
