@@ -19290,7 +19290,8 @@ prjName = "test"
 # serviceName = "LSH0201"
 # serviceName = "LSH0202"
 # serviceName = "LSH0205"
-serviceName = "LSH0206"
+# serviceName = "LSH0206"
+serviceName = "LSH0210"
 
 contextPath = ifelse(env == "local", ".", getwd())
 
@@ -19392,7 +19393,22 @@ fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0195_일식 식분도 이�
 # sheetInfo = 16
 
 # 시트 17 : 남원온리(39)
-sheetInfo = 17
+# sheetInfo = 17
+
+# 시트 18 : 남송+선금공통(6)
+# sheetInfo = 18
+
+# 시트 19 : 남송+중금공통(19)
+sheetInfo = 19
+
+# 시트 20 : 남송+후금공통(6)
+# sheetInfo = 20
+
+# 시트 21 : 남송온리(17)
+# sheetInfo = 21
+
+# 시트 22 : 북원+남송공통(5)
+# sheetInfo = 22
 
 sheetName = dplyr::case_when(
   sheetInfo == 1 ~ "테스트"
@@ -19413,6 +19429,11 @@ sheetName = dplyr::case_when(
   , sheetInfo == 15 ~ "북명온리(14)"
   , sheetInfo == 16 ~ "남원+남송공통(4)"
   , sheetInfo == 17 ~ "남원온리(39)"
+  , sheetInfo == 18 ~ "남송+선금공통(6)"
+  , sheetInfo == 19 ~ "남송+중금공통(19)"
+  , sheetInfo == 20 ~ "남송+후금공통(6)"
+  , sheetInfo == 21 ~ "남송온리(17)"
+  , sheetInfo == 22 ~ "북원+남송공통(5)"
   , TRUE ~ NA_character_
 )
 
@@ -19424,12 +19445,15 @@ data = openxlsx::read.xlsx(fileInfo, sheet = sheetInfo) %>%
 
 typeList = data$type %>% unique %>% sort
 
-for ( typeInfo in typeList[39] ) {
+selTypeList = typeList[5]
+
+for (typeInfo in selTypeList) {
+# for (typeInfo in typeList) {
   
   tmpData = data %>%
     dplyr::filter(
       type == typeInfo
-      , !is.na(val)
+      , ! is.na(val)
     ) %>%
     dplyr::select(-type)
   
@@ -19446,8 +19470,6 @@ for ( typeInfo in typeList[39] ) {
     dplyr::mutate(
       type = typeInfo
     )
-  
-  summary(dataL2)
   
   saveImg = sprintf("%s/%s_%s_%s.png", globalVar$figPath, serviceName, sheetName, typeInfo)
   
