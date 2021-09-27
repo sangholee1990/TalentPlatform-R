@@ -19445,7 +19445,7 @@ data = openxlsx::read.xlsx(fileInfo, sheet = sheetInfo) %>%
 
 typeList = data$type %>% unique %>% sort
 
-selTypeList = typeList[5]
+selTypeList = typeList[8]
 
 for (typeInfo in selTypeList) {
 # for (typeInfo in typeList) {
