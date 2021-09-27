@@ -33092,7 +33092,7 @@ library(patchwork)
 
 # 선거 데이터 읽기
 fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0214_선거분석(강서병).xlsx"))
-data = openxlsx::read.xlsx(fileInfo, sheet = 2)
+data = openxlsx::read.xlsx(fileInfo, sheet = 3)
 
 dataL1 = data %>%
   as.tibble() %>%
@@ -33100,6 +33100,15 @@ dataL1 = data %>%
   readr::type_convert()
 
 dataL2 = dataL1 %>% 
+  tidyr::gather(-c(투표구, 종류), key = "key", value = "val") %>% 
+  dplyr::group_by(투표구, key) %>% 
+  dplyr::summarise(
+    meanVal = mean(val, na.rm = TRUE)
+  ) %>% 
+  dplyr::ungroup() %>% 
+  tidyr::spread(key = "key", value = "meanVal")
+
+dataL3 = dataL2 %>% 
   rowwise(투표구) %>% 
   dplyr::mutate(
     sumVal = sum(더불어민주당, 자유한국당, 기타야당, na.rm = TRUE)
@@ -33114,7 +33123,7 @@ dataL2 = dataL1 %>%
       )
     )
 
-dataL3 = dataL2 %>%
+dataL4 = dataL3 %>%
   dplyr::select(-c(더불어민주당, 자유한국당, 기타야당, sumVal, val, maxVal)) %>%
   # dplyr::select(-c(meanVal, meanVal2, meanVal3, sumVal, val, maxVal)) %>%
   dplyr::rename(
@@ -33122,20 +33131,20 @@ dataL3 = dataL2 %>%
     , 자유한국당 = meanVal2
     , 기타야당 = meanVal3
   ) %>% 
-  tidyr::gather(-c(투표구, 종류), key = "key", value = "val")
+  tidyr::gather(-c(투표구), key = "key", value = "val")
 
 # 정당에 따른 정렬
-dataL3$key = forcats::fct_relevel(dataL3$key, c("자유한국당", "더불어민주당", "기타야당"))
+dataL4$key = forcats::fct_relevel(dataL4$key, c("자유한국당", "더불어민주당", "기타야당"))
 
 selData = dataL1 %>% dplyr::filter(종류 == "광역단체장")
-dataL3$투표구 = forcats::fct_relevel(dataL3$투표구, rev(selData$투표구))
-
-saveImg1 = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "서울특별시_강서구_선거_빈도분포")
+dataL4$투표구 = forcats::fct_relevel(dataL4$투표구, rev(selData$투표구))
 
 #************************************************
 # 선거 빈도분포
 #************************************************
-ggplot(dataL3, aes(x = 투표구, y = val, fill = key, group = key, label = round(val, 0))) +
+saveImg1 = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "서울특별시_강서구_선거_빈도분포")
+
+ggplot(dataL4, aes(x = 투표구, y = val, fill = key, group = key, label = round(val, 0))) +
   # geom_bar(position = "dodge", stat = "identity") +
   geom_bar(position = position_stack(), stat = "identity") +
   # geom_text(size = 5, vjust = 1.6, hjust = 0.5, color = "white") +
@@ -33149,7 +33158,7 @@ ggplot(dataL3, aes(x = 투표구, y = val, fill = key, group = key, label = roun
     # , axis.text.x = element_text(angle = 45, hjust = 1)
     , legend.position = "top"
   ) +
-  facet_wrap(~종류, scale = "free", ncol = 3) +
+  # facet_wrap(~종류, scale = "free", ncol = 3) +
   ggsave(filename = saveImg1, width = 12, height = 10, dpi = 600)
 
 
@@ -33206,14 +33215,10 @@ codeDataL1 = codeData %>%
   ) 
 
 
-tmpData= dataL2 %>% 
-  dplyr::filter(종류 == "광역단체장")
-
 # 통합 데이터셋
-dataL4 = mapGlobal %>%
+dataL5 = mapGlobal %>%
   dplyr::inner_join(codeDataL1, by = c("adm_dr_cd" = "읍면동코드")) %>%
-  dplyr::left_join(tmpData, by = c("adm_dr_nm" = "투표구"))
-
+  dplyr::left_join(dataL3, by = c("adm_dr_nm" = "투표구"))
   # dplyr::inner_join(codeDataL1, by = c("EMD_CD" = "id")) # %>%
   
 # 서울 강서구
@@ -33227,7 +33232,7 @@ dataL4 = mapGlobal %>%
 # 선거 주제도
 #************************************************
 saveImg2 = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "서울특별시_강서구_선거_주제도")
-plotSubTitle = sprintf("[광역단체장] %s", "서울특별시 강서구 선거 주제도")
+plotSubTitle = sprintf("=%s", "서울특별시 강서구 선거 주제도")
 
 ggplotDefaultColor = hue_pal()(3)
 
@@ -33236,6 +33241,7 @@ ggplot() +
   coord_fixed(ratio = 1) +
   geom_sf(data = dataL4, aes(fill = factor(val)), inherit.aes = FALSE) +
   geom_sf_text(data = dataL4, aes(label = 읍면동명칭)) +
+  ggrepel::geom_label_repel(data = dataL4, aes(label = 읍면동명칭)) +
   scale_fill_manual(
     name = NULL
     , na.value = "transparent"
@@ -33266,24 +33272,24 @@ ggplot() +
 # 스토리 보드
 #************************************************
 # 테이블
-ggTable = dataL2 %>% 
-  dplyr::filter(종류 == "광역단체장") %>% 
+ggTable = dataL3 %>% 
   dplyr::select(투표구, 자유한국당, 더불어민주당, 기타야당) %>%
   dplyr::mutate(
     자유한국당 = scales::comma(자유한국당)
     , 더불어민주당 = scales::comma(더불어민주당)
     , 기타야당 = scales::comma(기타야당)
-  )
+  ) %>% 
+  dplyr::arrange(factor(투표구, levels = selData$투표구))
 
 ggTableL1 = ggpubr::ggtexttable(ggTable, rows = NULL)
 
 # 빈도분포
-ggFreqPlot = ggplot(ggData, aes(x = 투표구, y = val, fill = key, group = key, label = round(val, 0))) +
+ggFreqPlot = ggplot(dataL4, aes(x = 투표구, y = val, fill = key, group = key, label = round(val, 0))) +
   geom_bar(position = position_stack(), stat = "identity") +
   geom_text(position = position_stack(vjust = 0.5), size = 5, color = "white") +
   coord_flip() +
   scale_y_continuous(labels = scales::percent_format(accuracy = 1, scale = 1)) +
-  labs(x = NULL, y = NULL, fill = NULL, subtitle = "서울특별시 강서구 선거 빈도분포") +
+  labs(x = NULL, y = NULL, fill = NULL, subtitle = "선거 빈도분포") +
   theme(
     text = element_text(size = 16)
     , legend.position = "top"
@@ -33293,8 +33299,9 @@ ggFreqPlot = ggplot(ggData, aes(x = 투표구, y = val, fill = key, group = key,
 ggMapPlot = ggplot() +
   theme_bw() +
   coord_fixed(ratio = 1) +
-  geom_sf(data = dataL4, aes(fill = factor(val)), inherit.aes = FALSE) +
-  geom_sf_text(data = dataL4, aes(label = 읍면동명칭)) +
+  geom_sf(data = dataL5, aes(fill = factor(val)), inherit.aes = FALSE) +
+  geom_sf_text(data = dataL5, aes(label = 읍면동명칭)) +
+  # ggrepel::geom_text_repel(data = dataL5, aes(label = 읍면동명칭, geometry = geometry), stat = "sf_coordinates") +
   scale_fill_manual(
     name = NULL
     , na.value = "transparent"
@@ -33319,7 +33326,8 @@ ggMapPlotTheme = theme(
   , legend.position = "none"
 )
 
-saveImgMerge = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "서울특별시_강서구_선거_통합")
+saveImgMerge = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "서울특별시_강서구_선거_통합B")
+plotSubTitle = sprintf("%s", "[서울특별시 강서구] 선거 주제도")
 
 (ggMapPlot & ggMapPlotTheme ) / (ggFreqPlot | ggTableL1) +
   patchwork::plot_layout(heights = c(3, 1)) +
