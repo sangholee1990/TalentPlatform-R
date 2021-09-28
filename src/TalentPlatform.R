@@ -1,14 +1,3 @@
-#-*- coding: utf-8 -*
-
-# .libPaths("C:/Users/saima/OneDrive/문서/R/win-library")
-
-#=====================================
-# Init Confiure
-#=====================================
-rm(list = ls())
-prjName = "o2job"
-source(here::here("E:/04. TalentPlatform/Github/TalentPlatform-R/src", "InitConfig.R"), encoding = "UTF-8")
-
 #===============================================================================================
 # Routine : Main R program
 #
@@ -19399,13 +19388,13 @@ fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0195_일식 식분도 이�
 # sheetInfo = 18
 
 # 시트 19 : 남송+중금공통(19)
-sheetInfo = 19
+# sheetInfo = 19
 
 # 시트 20 : 남송+후금공통(6)
 # sheetInfo = 20
 
 # 시트 21 : 남송온리(17)
-# sheetInfo = 21
+sheetInfo = 21
 
 # 시트 22 : 북원+남송공통(5)
 # sheetInfo = 22
@@ -19445,7 +19434,7 @@ data = openxlsx::read.xlsx(fileInfo, sheet = sheetInfo) %>%
 
 typeList = data$type %>% unique %>% sort
 
-selTypeList = typeList[8]
+selTypeList = typeList[17]
 
 for (typeInfo in selTypeList) {
 # for (typeInfo in typeList) {
@@ -19530,8 +19519,11 @@ beepr::beep(sound = 8)
 # sheetList = c(10, 15)
 # sheetName = "북명-조선공통(74)+북명온리(14)"
 
-sheetList = c(16, 17)
-sheetName = "남원-남송공통(4)+남원온리(39)"
+# sheetList = c(16, 17)
+# sheetName = "남원-남송공통(4)+남원온리(39)"
+
+sheetList = c(16, 18, 19, 20, 21, 22)
+sheetName = "남원-남송공통(4)+남송-선금공통(6)+남송-중금공통(19)+남송-후금공통(6)+남송온리(17)+북원-남송공통(5)"
 
 dataL3 = tibble()
 for (sheetInfo in sheetList) {
@@ -19594,8 +19586,8 @@ maxData = dataL4[ind, ]
 # setBreak = c(seq(0.37, 0, -0.02))
 # setBreak = c(seq(0.29, 0, -0.02))
 # setBreak = c(seq(0.42, 0, -0.02), 0.41)
-setBreak = c(seq(0.42, 0, -0.02), 0.41)
-
+# setBreak = c(seq(0.42, 0, -0.02), 0.41)
+setBreak = c(seq(0.44, 0, -0.02), 0.43)
 
 saveImg = sprintf("%s/%s_%s_%s.png", globalVar$figPath, serviceName, sheetName, "Mean_Color")
 
