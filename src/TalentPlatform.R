@@ -33326,7 +33326,7 @@ ggMapPlotTheme = theme(
   , legend.position = "none"
 )
 
-saveImgMerge = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "서울특별시_강서구_선거_통합B")
+saveImgMerge = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "서울특별시_강서구_선거_통합")
 plotSubTitle = sprintf("%s", "[서울특별시 강서구] 선거 주제도")
 
 (ggMapPlot & ggMapPlotTheme ) / (ggFreqPlot | ggTableL1) +
