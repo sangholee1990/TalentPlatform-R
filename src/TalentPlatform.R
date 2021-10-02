@@ -19282,7 +19282,8 @@ prjName = "test"
 # serviceName = "LSH0206"
 # serviceName = "LSH0210"
 # serviceName = "LSH0216"
-serviceName = "LSH0217"
+# serviceName = "LSH0217"
+serviceName = "LSH0218"
 
 contextPath = ifelse(env == "local", ".", getwd())
 
@@ -19405,7 +19406,13 @@ fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0195_일식 식분도 이�
 # sheetInfo = 23
 
 # 시트 24 : 중금온리(2)
-sheetInfo = 24
+# sheetInfo = 24
+
+# 시트 25 : 선금+북송공통(3)
+# sheetInfo = 25
+
+# 시트 26 : 선금+요+공통(1)
+sheetInfo = 26
 
 sheetName = dplyr::case_when(
   sheetInfo == 1 ~ "테스트"
@@ -19433,6 +19440,8 @@ sheetName = dplyr::case_when(
   , sheetInfo == 22 ~ "북원+남송공통(5)"
   , sheetInfo == 23 ~ "후금온리(1)"
   , sheetInfo == 24 ~ "중금온리(2)"
+  , sheetInfo == 25 ~ "선금+북송공통(3)"
+  , sheetInfo == 26 ~ "선금+요+공통(1)"
   , TRUE ~ NA_character_
 )
 
@@ -19538,8 +19547,11 @@ beepr::beep(sound = 8)
 # sheetList = c(20, 23)
 # sheetName = "남송-후금공통(6)+후금온리(1)"
 
-sheetList = c(19, 24)
-sheetName = "남송-중금공통(19)+중금온리(2)"
+# sheetList = c(19, 24)
+# sheetName = "남송-중금공통(19)+중금온리(2)"
+
+sheetList = c(18, 25, 26)
+sheetName = "남송-선금공통(6)+선금-북송공통(3)+선금-요-공통(1)"
 
 dataL3 = tibble()
 for (sheetInfo in sheetList) {
@@ -19605,7 +19617,8 @@ maxData = dataL4[ind, ]
 # setBreak = c(seq(0.39, 0, -0.02), 0.38)
 # setBreak = c(seq(0.44, 0, -0.02), 0.43)
 # setBreak = c(seq(0.44, 0, -0.02))
-setBreak = c(seq(0.44, 0, -0.02)) 
+# setBreak = c(seq(0.44, 0, -0.02))
+setBreak = c(seq(0.64, 0, -0.02))
 
 saveImg = sprintf("%s/%s_%s_%s.png", globalVar$figPath, serviceName, sheetName, "Mean_Color")
 
