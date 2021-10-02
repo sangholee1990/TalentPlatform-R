@@ -33370,6 +33370,131 @@ plotSubTitle = sprintf("%s", "[서울특별시 강서구] 선거 주제도")
 #================================================
 # 요구사항
 #================================================
+# R을 이용한 테이블 합계 도출, ANOVA 및 TukeyHSD 분석 도출
+
+#================================================
+# 초기 환경변수 설정
+#================================================
+# env = "local"   # 로컬 : 원도우 환경, 작업환경 (현재 소스 코드 환경 시 .) 설정
+env = "dev"   # 개발 : 원도우 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+# env = "oper"  # 운영 : 리눅스 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+
+prjName = "test"
+serviceName = "LSH0219"
+contextPath = ifelse(env == "local", ".", getwd())
+
+if (env == "local") {
+  globalVar = list(
+    "inpPath" = contextPath
+    , "figPath" = contextPath
+    , "outPath" = contextPath
+    , "tmpPath" = contextPath
+    , "logPath" = contextPath
+  )
+} else {
+  source(here::here(file.path(contextPath, "src"), "InitConfig.R"), encoding = "UTF-8")
+}
+
+#================================================
+# 비즈니스 로직 수행
+#================================================
+# 라이브러리 읽기
+library(dplyr)
+library(ggplot2)
+library(readr)
+library(psych)
+library(ggpubr)
+library(car)
+library(DescTools)
+library(describedata)
+
+# 파일 읽기
+fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0219_Lab1.csv"))
+Lab1 = read.csv(fileInfo, header = TRUE, fileEncoding = "UTF-8")
+
+#***************************************************
+# 제시된 표에 기술통계값을 완성해서 채우세요. 
+#***************************************************
+# Female, Male
+data = Lab1 %>%
+  dplyr::group_by(Alcohol, Gender) %>%
+  dplyr::summarise(
+    meanVal = mean(Attractiveness, na.rm = TRUE)
+    , sdVal = sd(Attractiveness, na.rm = TRUE)
+    , cnt = n()
+  ) %>% 
+  tidyr::gather(-Alcohol, -Gender, key = "key", value = "val") %>% 
+  tidyr::spread(key = "Alcohol", value = c("val")) %>% 
+  dplyr::mutate(
+    sumVal = rowSums(.[3:5])    
+  )
+
+# 전체
+dataL1 = Lab1 %>%
+  dplyr::group_by(Alcohol) %>%
+  dplyr::summarise(
+    meanVal = mean(Attractiveness, na.rm = TRUE)
+    , sdVal = sd(Attractiveness, na.rm = TRUE)
+    , cnt = n()
+  ) %>% 
+  tidyr::gather(-Alcohol, key = "key", value = "val") %>% 
+  tidyr::spread(key = "Alcohol", value = c("val")) %>% 
+  dplyr::mutate(
+    sumVal = rowSums(.[2:4])    
+  )
+
+#**********************************************************************
+# 3번에서 제시된 내용을 바탕으로 분산분석결과 내용을 기술하세요. 
+#**********************************************************************
+aovRes = aov(Attractiveness ~ Gender + Alcohol + Gender*Alcohol, data = Lab1)
+
+# 타 그룹 (성별, 음주량)에 비해 성별:음주량 P값은 7.9866e-05로서 0.05보다 작기 때문에 
+# 성별 및 음주량에 따른 사람의 매력도 차이가 있다.
+summary(aovRes)
+
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "성별-알코올에 따른 사람의 매력도 그래프")
+
+ggpubr::ggline(Lab1, x = "Alcohol", y = "Attractiveness", color = "Gender"
+               , add = c("mean_se", "dotplot"), palette = c("#00AFBB", "#E7B800")
+) +
+  ggsave(filename = saveImg, width = 6, height = 6, dpi = 600)
+
+Lab1_means = Lab1 %>%
+  dplyr::group_by(Alcohol, Gender) %>%
+  dplyr::summarise(
+    meanVal = mean(Attractiveness, na.rm = TRUE)
+  )
+
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "성별-알코올에 따른 사람의 평균 매력도 그래프")
+
+ggpubr::ggline(Lab1_means, x = "Alcohol", y = "meanVal", color = "Gender", shape = "Gender"
+               , add = c("supp")) +
+  labs(y = "Beer-goggles effect (Jeon Seo Young)") +
+  theme(legend.position = "right") +
+  ggsave(filename = saveImg, width = 8, height = 6, dpi = 600)
+
+
+#**************************************************************************************
+# Tukey HSD를 활용해서 음주량에 따른 매력정도의 차이를  아래의 표에 완성하세요.
+#**************************************************************************************
+# 타 그룹 (4-0 Pints, 4-2 Points)에 비해 2-0 Points의 P값은 0.95로서 통계적으로 유의하지 않다.
+# 즉 2-0 Points의 경우 타 그룹과 차이가 있다.
+TukeyHSD(aovRes)
+
+
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+#================================================
+# 요구사항
+#================================================
 # R을 이용한 머신러닝 기반으로 클러스터링 모형 개발 및 구글 시각화
 
 #================================================
