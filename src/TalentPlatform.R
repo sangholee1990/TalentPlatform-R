@@ -33521,10 +33521,6 @@ if (env == "local") {
 }
 
 #================================================
-# 함수 정의
-#================================================
-
-#================================================
 # 비즈니스 로직 수행
 #================================================
 # 라이브러리 읽기
@@ -33559,6 +33555,7 @@ library(RQuantLib)
 library(mgcViz)
 library(ggmap)
 library(h2o)
+library(grt)
 
 # 로그 설정
 saveLogFile = sprintf("%s/%s_%s_%s_%s.log", globalVar$logPath, Sys.info()["sysname"], Sys.info()["nodename"], prjName, format(Sys.time(), "%Y%m%d"))
@@ -33670,36 +33667,122 @@ for (bldgTypeInfo in bldgTypeList) {
 
 
 #***************************************
-#클러스터링
+# 데이터 전처리
 #***************************************
-dd = data %>%
-  na.omit()
-
+# 결측값 제거 
 dataL2 = na.omit(data)
+# summary(dataL2)
 
-kclust = dataL2 %>% 
-  # dplyr::mutate_if(is.character, as.factor) %>% 
-  dplyr::select(POINT_X, POINT_Y) %>%
+# 임의 변수 선택
+dataL3 = dataL2 %>% 
+  dplyr::select(POINT_X, POINT_Y, Bldg_EffYrBlt, Bldg_ActYrBlt, Bldg_Bedrooms, Bldg_Bathrooms, Bldg_Total_SqFt, Bldg_Heated_SqFt)
+  # purrr::keep(is.numeric)
+
+#***************************************
+# kmeans 클러스터링 (데이터 표준화 X)
+#***************************************
+# 클러스터링 모형
+kcluModel = dataL3 %>% 
+  purrr::keep(is.numeric) %>% 
   kmeans(centers = 4, iter.max = 10, nstart = 5)
 
-
-kclust
-
-
 # Add the cluster number onto to our original data
-point_assignments <- broom::augment(kclust, dataL2) 
+pointAssignments = broom::augment(kcluModel, dataL2) 
+head(pointAssignments)
 
 # Summarize each cluster
-cluster_info <- broom::tidy(kclust)
-
-# Summary stats about our model's fit
-model_stats <- broom::glance(kclust)
-
-head(point_assignments)
-
+clusterInfo = broom::tidy(kcluModel)
 cluster_info
 
+# Summary stats about our model's fit
+modelStats = broom::glance(kcluModel)
 model_stats
+
+# 시각화
+# ggplot() +
+#   geom_point(data = pointAssignments, aes(x = POINT_X , y = POINT_Y, color = .cluster)) + 
+#   geom_point(data = cluster_info, aes(x = POINT_X , y = POINT_Y), size = 4, shape = "x") +
+#   ggplot2::labs(
+#     title = NULL
+#     , subtitle = "Clustered on raw values of depth and magnitude",
+#     , x = NULL
+#     , y = NULL
+#   ) +
+#   theme(
+#     text = element_text(size = 18)
+#     , legend.position = "top"
+#     , axis.line = element_blank()
+#     , axis.text = element_blank()
+#     , axis.ticks = element_blank()
+#     , plot.margin = unit(c(0, 0, 0, 0), 'lines')
+#   ) +
+#   ggsave(filename = saveImg, width = 10, height = 10, dpi = 600)
+
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "Kmeans-Cluster-Default")
+
+ggmap(map, extent = "device") +
+  geom_point(data = pointAssignments, aes(x = POINT_X , y = POINT_Y, color = .cluster)) + 
+  geom_point(data = cluster_info, aes(x = POINT_X , y = POINT_Y), size = 4, shape = "x") +
+  # geom_point(data = dataL1, aes(x = POINT_X, y = POINT_Y, color = Bldg_Style_Desc), shape = 16, alpha = 0.3) +
+  scale_color_manual(
+    name = NULL
+    , na.value = "transparent"
+    , values = c("Manufactured" = ggplotDefaultColor[1], "Multi Family" = ggplotDefaultColor[2], "Single Family" = ggplotDefaultColor[3])
+    , labels = c("Manufactured", "Multi Family", "Single Family")
+  ) +
+  labs(
+    subtitle = NULL
+    , x = NULL
+    , y = NULL
+    , fill = NULL
+    , colour = NULL
+    , title = NULL
+    , size = NULL
+  ) +
+  theme(
+    text = element_text(size = 18)
+    , legend.position = "top"
+    , axis.line = element_blank()
+    , axis.text = element_blank()
+    , axis.ticks = element_blank()
+    , plot.margin = unit(c(0, 0, 0, 0), 'lines')
+  ) +
+  ggsave(filename = saveImg, width = 10, height = 10, dpi = 600)
+
+#***************************************
+# kmeans 클러스터링 (데이터 표준화 O)
+#***************************************
+dataL5 = dataL3 %>% 
+  dplyr::mutate_each(
+    funs(scale)
+    , vars = c(colnames(dataL3))
+  )
+
+# 클러스터링 모형
+kcluModel = dataL5 %>% 
+  purrr::keep(is.numeric) %>% 
+  kmeans(centers = 4, iter.max = 10, nstart = 5)
+
+# Add the cluster number onto to our original data
+pointAssignments = broom::augment(kcluModel, dataL5) %>% 
+    dplyr::mutate_each_(
+      funs(grt::unscale)
+      , vars = colnames(dataL3)
+    )
+head(pointAssignments)
+
+# Summarize each cluster
+clusterInfo = broom::tidy(kcluModel) %>% 
+  dplyr::mutate_each_(
+    funs(grt::unscale)
+    , vars = colnames(dataL3)
+  )
+clusterInfo
+
+
+# Summary stats about our model's fit
+modelStats = broom::glance(kcluModel)
+modelStats
 
 # Visually inspect our clusters
 ggplot2::ggplot() +
@@ -33719,6 +33802,71 @@ ggplot2::ggplot() +
 
 
 
+
+
+# Run analysis with multiple cluster options (can be slow!)
+kclusts <- 
+  dplyr::tibble(n_clusts = 1:12) %>%
+  dplyr::mutate(
+    kclust = purrr::map(
+      n_clusts,
+      ~kmeans(dataL5, centers = .x, iter.max = 10, nstart = 5)
+    ),
+    augmented = purrr::map(kclust, broom::augment, dataL5),
+    tidied = purrr::map(kclust, broom::tidy),
+    glanced = purrr::map(kclust, broom::glance)
+  ) %>%
+  dplyr::select(-kclust)
+
+str(kclusts, max.level = 3)
+
+
+point_assignments <- kclusts %>%
+  dplyr::select(n_clusts, augmented) %>%
+  tidyr::unnest(augmented)
+
+cluster_info <- kclusts %>%
+  dplyr::select(n_clusts, tidied) %>% 
+  tidyr::unnest(tidied)
+
+model_stats <- kclusts %>%
+  dplyr::select(n_clusts, glanced) %>% 
+  tidyr::unnest(glanced)
+
+head(point_assignments)
+
+
+# Show clusters
+ggplot2::ggplot() +
+  ggplot2::geom_point(
+    data = point_assignments, aes(x = POINT_X, y = POINT_Y, color = .cluster)
+  ) + 
+  ggplot2::geom_point(
+    data = cluster_info, aes(x = POINT_X, y = POINT_Y), size = 4, shape = "x"
+  ) +
+  ggplot2::facet_wrap(~n_clusts)
+
+
+
+
+# Elbow chart
+ggplot2::ggplot(data = model_stats, aes(n_clusts, tot.withinss)) +
+  ggplot2::geom_line() +
+  ggplot2::scale_x_continuous(limits = c(1, 12), breaks = seq(1, 12, 1)) +
+  ggplot2::ggtitle("Total within sum of squares, by # clusters")
+
+
+# devtools::session_info()
+
+
+
+
+
+
+
+
+
+# 
 
 
 h2o.init()
