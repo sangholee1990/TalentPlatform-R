@@ -33523,63 +33523,6 @@ if (env == "local") {
 #================================================
 # 함수 정의
 #================================================
-perfEval = function(x, y) {
-  
-  if (length(x) < 1) { return(sprintf("%s", "x 값 없음")) }
-  if (length(y) < 1) { return(sprintf("%s", "y 값 없음")) }
-  
-  slope = coef(lm(y ~ x))[2]
-  interp = coef(lm(y ~ x))[1]
-  xMean = mean(x, na.rm = TRUE)
-  yMean = mean(y, na.rm = TRUE)
-  xSd = sd(x, na.rm = TRUE)
-  ySd = sd(y, na.rm = TRUE)
-  cnt = length(x)
-  bias = mean(x - y, na.rm = TRUE)
-  rBias = (bias / yMean) * 100.0
-  rmse = sqrt(mean((x - y)^2, na.rm = TRUE))
-  rRmse = (rmse / yMean) * 100.0
-  r = cor.test(x, y)$estimate
-  p = cor.test(x, y)$p.value
-  diffMean = mean(x - y, na.rm = TRUE)
-  diffSd = sd(x - y, na.rm = TRUE)
-  # perDiffMean = mean((x - y) / y, na.rm = TRUE) * 100.0
-  
-  return(c(slope, interp, xMean, yMean, xSd, ySd, cnt, bias, rBias, rmse, rRmse, r, p, diffMean, diffSd))
-}
-
-biasCorr = function(actu, pred, minVal, maxVal, interVal, isPlot = FALSE) {
-  
-  factorVal = seq(minVal, maxVal, by = interVal)
-  
-  # RMSE Fitting
-  liResult = lapply(1:length(factorVal), function(i) Metrics::rmse(actu, pred * factorVal[i])) %>%
-    unlist()
-  
-  ind = which(liResult == min(liResult, na.rm = TRUE))
-  
-  if (isPlot == TRUE) {
-    plot(liResult)
-  }
-  
-  # Best Factor Index
-  ind = which(liResult == min(liResult, na.rm = TRUE))
-  
-  calibFactor = factorVal[[ind]]
-  calPred = calibFactor * pred
-  
-  meanDiff = mean(actu, na.rm = TRUE) - mean(calPred, na.rm = TRUE)
-  newPred = (calPred) + meanDiff
-  
-  cat(
-    sprintf("%s : %.2f", "[보정 X] RMSE", Metrics::rmse(actu, pred))
-    , sprintf("%s : %.2f", "[보정 O] RMSE", Metrics::rmse(actu, newPred))
-    , "\n"
-  )
-  
-  return(c(newPred))
-}
-
 
 #================================================
 # 비즈니스 로직 수행
@@ -33614,6 +33557,8 @@ library(stringr)
 library(vroom)
 library(RQuantLib)
 library(mgcViz)
+library(ggmap)
+library(h2o)
 
 # 로그 설정
 saveLogFile = sprintf("%s/%s_%s_%s_%s.log", globalVar$logPath, Sys.info()["sysname"], Sys.info()["nodename"], prjName, format(Sys.time(), "%Y%m%d"))
@@ -33622,45 +33567,160 @@ log = log4r::create.logger()
 log4r::logfile(log) = saveLogFile
 log4r::level(log) = "INFO"
 
-log4r::info(log, sprintf("%s", "[START] Main R"))
-
-# 검증 지수 테이블 생성
-# rowNum = 1
-# colNum = 9
-# perfTable = data.frame(matrix(0, nrow = rowNum * colNum, ncol = 15))
-# rownames(perfTable) = c("MLR", "RF", "GAM", "SARIMA", "SVM", "GBM", "EL", "DNN", "AML")
-# # rownames(perfTable) = c(
-# #   paste0("MLR-", 1:rowNum), paste0("RF-", 1:rowNum), paste0("GAM-", 1:rowNum)
-# #   , paste0("SARIMA-", 1:rowNum), paste0("SVM-", 1:rowNum), paste0("DNN-", 1:rowNum)
-# # )
-# colnames(perfTable) = c("slope", "interp", "xMean", "yMean", "xSd", "ySd", "cnt", "bias", "rBias", "rmse", "rRmse", "r", "pVal", "diffMean", "diffSd")
-
-
 # 데이터 읽기
-fileInfo = Sys.glob(paste(globalVar$inpPath, "LSH0208_clustering.csv", sep = "/"))
-
-# ""  ""           ""     ""       
-# ""       ""        ""         ""    
-# ""             ""     ""            ""      
-# ""    ""         ""            ""      
-#  ""         ""              ""              ""          
-# "
-autocluster 
-# 
+fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0208_clustering.csv"))
 
 data = vroom::vroom(
   file = fileInfo
-  , col_select = c(POINT_X, POINT_Y, Bldg_Style_Desc, Bldg_Use_Desc, Bldg_EffYrBlt, Bldg_ActYrBlt, Bldg_Bedrooms, Bldg_Bathrooms, Bldg_Quality
+  , col_select = c(PARCELID, POINT_X, POINT_Y, Bldg_Style_Desc, Bldg_Use_Desc, Bldg_EffYrBlt, Bldg_ActYrBlt, Bldg_Bedrooms, Bldg_Bathrooms, Bldg_Quality
                    , Bldg_AC_Type_Desc, Bldg_Total_SqFt, Bldg_Heated_SqFt, Asphalt, Modular_Metal, Tar_Gravel
                    , other_roofc, other_wall, Cb_Stucco, Cedar.Redwood, Metal, Single_Siding, Carpet, Sheet_Vinyl
                    , Pine.Soft.Wood, Cork_Tile, Marble, other_floor, Gable.Hip, Flat, Shed, Mansard
                    , other_roofs)
   , col_names = TRUE
+  )
+
+#***************************************
+# 전체 구글맵 시각화
+#***************************************
+map = ggmap::get_map(
+  location = c(lon = mean(data$POINT_X, na.rm = TRUE), lat = mean(data$POINT_Y, na.rm = TRUE))
+  , maptype = "hybrid"
+  , zoom = 11
 )
 
-########################################################
 
-library(h2o)
+ggplotDefaultColor = hue_pal()(3)
+
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "BldgStyleDesc-All")
+
+ggmap(map, extent = "device") +
+  geom_point(data = data, aes(x = POINT_X, y = POINT_Y, color = Bldg_Style_Desc), shape = 16, alpha = 0.3) +
+  scale_color_manual(
+    name = NULL
+    , na.value = "transparent"
+    , values = c("Manufactured" = ggplotDefaultColor[1], "Multi Family" = ggplotDefaultColor[2], "Single Family" = ggplotDefaultColor[3])
+    , labels = c("Manufactured", "Multi Family", "Single Family")
+  ) +
+  labs(
+    subtitle = NULL
+    , x = NULL
+    , y = NULL
+    , fill = NULL
+    , colour = NULL
+    , title = NULL
+    , size = NULL
+  ) +
+  theme(
+    text = element_text(size = 18)
+    , legend.position = "top"
+    , axis.line = element_blank()
+    , axis.text = element_blank()
+    , axis.ticks = element_blank()
+    , plot.margin = unit(c(0, 0, 0, 0), 'lines')
+  ) +
+  ggsave(filename = saveImg, width = 10, height = 10, dpi = 600)
+
+
+#***************************************
+# bldgType에 따른 구글맵 시각화
+#***************************************
+bldgTypeList = data$Bldg_Style_Desc %>% unique %>% sort
+
+for (bldgTypeInfo in bldgTypeList) {
+  
+  dataL1 = data %>%
+    dplyr::filter(Bldg_Style_Desc == bldgTypeInfo)
+
+  saveImg = sprintf("%s/%s_%s-%s.png", globalVar$figPath, serviceName, "BldgStyleDesc", bldgTypeInfo)
+
+  tryCatch(
+    expr = {
+      ggmap(map, extent = "device") +
+        geom_point(data = dataL1, aes(x = POINT_X, y = POINT_Y, color = Bldg_Style_Desc), shape = 16, alpha = 0.3) +
+        scale_color_manual(
+          name = NULL
+          , na.value = "transparent"
+          , values = c("Manufactured" = ggplotDefaultColor[1], "Multi Family" = ggplotDefaultColor[2], "Single Family" = ggplotDefaultColor[3])
+          , labels = c("Manufactured", "Multi Family", "Single Family")
+        ) +
+        labs(
+          subtitle = NULL
+          , x = NULL
+          , y = NULL
+          , fill = NULL
+          , colour = NULL
+          , title = NULL
+          , size = NULL
+        ) +
+        theme(
+          text = element_text(size = 18)
+          , legend.position = "top"
+          , axis.line = element_blank()
+          , axis.text = element_blank()
+          , axis.ticks = element_blank()
+          , plot.margin = unit(c(0, 0, 0, 0), 'lines')
+        ) +
+        ggsave(filename = saveImg, width = 10, height = 10, dpi = 600)
+      }
+      , warning = function(warning) { log4r::warn(log, warning) }
+      , error = function(error) { log4r::error(log, error) }
+    )
+}
+
+
+#***************************************
+#클러스터링
+#***************************************
+dd = data %>%
+  na.omit()
+
+dataL2 = na.omit(data)
+
+kclust = dataL2 %>% 
+  # dplyr::mutate_if(is.character, as.factor) %>% 
+  dplyr::select(POINT_X, POINT_Y) %>%
+  kmeans(centers = 4, iter.max = 10, nstart = 5)
+
+
+kclust
+
+
+# Add the cluster number onto to our original data
+point_assignments <- broom::augment(kclust, dataL2) 
+
+# Summarize each cluster
+cluster_info <- broom::tidy(kclust)
+
+# Summary stats about our model's fit
+model_stats <- broom::glance(kclust)
+
+head(point_assignments)
+
+cluster_info
+
+model_stats
+
+# Visually inspect our clusters
+ggplot2::ggplot() +
+  ggplot2::geom_point(
+    data = point_assignments, aes(x = POINT_X , y = POINT_Y, color = .cluster)
+  ) + 
+  ggplot2::geom_point(
+    data = cluster_info, aes(x = POINT_X , y = POINT_Y), size = 4, shape = "x"
+  ) +
+  ggplot2::labs(
+    title = "k-Means analysis of earthquakes near Fiji",
+    subtitle = "Clustered on raw values of depth and magnitude",
+    caption = "Source: Harvard PRIM-H project / 1000 seismic events of MB > 4.0 since 1964",
+    x = "Depth",
+    y = "Magnitude"
+  )
+
+
+
+
+
 h2o.init()
 prostate_path <- system.file("extdata", "prostate.csv", package = "h2o")
 prostate <- h2o.uploadFile(path = prostate_path)
@@ -33668,11 +33728,13 @@ prostate <- h2o.uploadFile(path = prostate_path)
 # standardize=TRUE
 # kmeansModel = h2o::h2o.kmeans(k = 3, training_frame = prostate, estimate_k = FALSE, seed = 1, standardize=TRUE, x = c("AGE", "RACE", "VOL", "GLEASON"))
 
+prostate <- h2o.uploadFile(path = prostate_path)
+
 # library(h2o)
 # h2o.init()
 # prostate_path <- system.file("extdata", "prostate.csv", package = "h2o")
 # prostate <- h2o.uploadFile(path = prostate_path)
-kmeansModel = h2o.kmeans(training_frame = prostate, standardize = TRUE, estimate_k = FALSE, k = 10, nfolds = 5, x = c("AGE", "RACE", "VOL", "GLEASON"))
+kmeansModel = h2o.kmeans(training_frame = prostate, standardize = TRUE, estimate_k = FALSE, k = 10, nfolds = 5)
 h2o.tot_withinss(kmeansModel, xval = TRUE)
 
 
@@ -33978,30 +34040,32 @@ library(lubridate)
 
 # 근데 여기서 가우스 분포대신 GEV 분포를 사용할 예정입니다!
 
+#===============================================
+# GEV
+#===============================================
 library(GEVcdn)
+set.seed(100)
 
 ## Generate synthetic data, quantiles
 x <- as.matrix(seq(0.1, 1, length = 50))
 loc <- x^2
 scl <- x/2
 shp <- seq(-0.1, 0.3, length = length(x))
-set.seed(100)
-y <- as.matrix(rgev(length(x), location = loc, scale = scl,
-                    shape = shp))
-q <- sapply(c(0.1, 0.5, 0.9), qgev, location = loc, scale = scl,
-            shape = shp)
-## Define a hierarchy of models of increasing complexity
+y <- as.matrix(rgev(length(x), location = loc, scale = scl, shape = shp))
+q <- sapply(c(0.1, 0.5, 0.9), qgev, location = loc, scale = scl, shape = shp)
 
+## Define a hierarchy of models of increasing complexity
 models <- vector("list", 4)
+
 # Stationary model
-models[[1]] <- list(Th = gevcdn.identity,
-                    fixed = c("location", "scale", "shape"))
+models[[1]] <- list(Th = gevcdn.identity, fixed = c("location", "scale", "shape"))
 # Linear model
 models[[2]] <- list(Th = gevcdn.identity)
 # Nonlinear, 1 hidden node
 models[[3]] <- list(n.hidden = 1, Th = gevcdn.logistic)
 # Nonlinear, 2 hidden nodes
 models[[4]] <- list(n.hidden = 2, Th = gevcdn.logistic)
+
 ## Fit models
 weights.models <- vector("list", length(models))
 for(i in seq_along(models)){
@@ -34010,6 +34074,7 @@ for(i in seq_along(models)){
                                     Th = models[[i]]$Th,
                                     fixed = models[[i]]$fixed)
 }
+
 ## Select model with minimum AICc
 models.AICc <- sapply(weights.models, attr, which = "AICc")
 weights.best <- weights.models[[which.min(models.AICc)]]
@@ -34019,6 +34084,7 @@ q.best <- sapply(c(0.1, 0.5, 0.9), qgev,
                  location = parms.best[,"location"],
                  scale = parms.best[,"scale"],
                  shape = parms.best[,"shape"])
+
 ## Plot data and quantiles
 matplot(x, cbind(y, q, q.best), type = c("b", rep("l", 6)),
         lty = c(1, rep(c(1, 2, 1), 2)),
@@ -34045,20 +34111,12 @@ p <- (1:9)/10
 pgev(qgev(p, 1, 2, 0.8), 1, 2, 0.8)
 
 
-
-
-
-
+#===============================================
+# BMA
+#===============================================
 library(BMA)
 
-
-
-
-
-
-
 # Loading datasets and required libraries
-#########################################
 set.seed(2011)
 library(MASS)
 data(UScrime); attach(UScrime)
@@ -34069,19 +34127,19 @@ UScrime.log <- cbind(UScrime1,noise)
 X <- UScrime1[,-1]; Y <- UScrime1[,1]
 x <- UScrime.log[,-1]; y <- UScrime.log[,1]
 # Full enumaration of model space (Tables 4 and 5)
-##################################################
 # BMS Package:
 library(BMS)
 bms_enu <- bms(UScrime1, mcmc="enumerate", g="UIP", mprior="uniform",
                user.int=FALSE)
 coef(bms_enu)
-detach("package:BMS")
+# detach("package:BMS")
 # BMA Package:
 library(BMA)
 bma_enu <- iBMA.bicreg(X, Y, thresProbne0 = 5, verbose = TRUE, maxNvar = 30)
 summary(bma_enu)
-detach("package:BMA")
+# detach("package:BMA")
 # BAS Package:
 library(BAS)
 bas_enu<- bas.lm(y~., data=UScrime1, n.models=NULL, prior="ZS-null",
                  modelprior=uniform(), initprobs="Uniform")
+
