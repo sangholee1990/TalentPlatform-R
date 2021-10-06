@@ -33632,10 +33632,11 @@ for (bldgTypeInfo in bldgTypeList) {
   dataL1 = data %>%
     dplyr::filter(Bldg_Style_Desc == bldgTypeInfo)
 
-  saveImg = sprintf("%s/%s_%s-%s.png", globalVar$figPath, serviceName, "BldgStyleDesc", bldgTypeInfo)
-
   tryCatch(
     expr = {
+      
+      saveImg = sprintf("%s/%s_%s-%s.png", globalVar$figPath, serviceName, "BldgStyleDesc", bldgTypeInfo)
+      
       ggmap(map, extent = "device") +
         geom_point(data = dataL1, aes(x = POINT_X, y = POINT_Y, color = Bldg_Style_Desc), shape = 16, alpha = 0.5) +
         scale_color_manual(
@@ -33662,6 +33663,7 @@ for (bldgTypeInfo in bldgTypeList) {
           , plot.margin = unit(c(0, 0, 0, 0), 'lines')
         ) +
         ggsave(filename = saveImg, width = 10, height = 10, dpi = 600)
+      
       }
       , warning = function(warning) { log4r::warn(log, warning) }
       , error = function(error) { log4r::error(log, error) }
@@ -33681,9 +33683,9 @@ dataL3 = dataL2 %>%
   dplyr::select(POINT_X, POINT_Y, Bldg_EffYrBlt, Bldg_ActYrBlt, Bldg_Bedrooms, Bldg_Bathrooms, Bldg_Total_SqFt, Bldg_Heated_SqFt)
   # purrr::keep(is.numeric)
 
-# ***************************************
+# **********************************************
 # kmeans 단일 클러스터링 (데이터 표준화 X)
-# ***************************************
+# **********************************************
 # 클러스터링 모형
 kcluModel = dataL3 %>% 
   purrr::keep(is.numeric) %>% 
@@ -33706,7 +33708,7 @@ saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "Kmeans-Cluste
 
 ggmap(map, extent = "device") +
   geom_point(data = pointAssignments, aes(x = POINT_X , y = POINT_Y, color = .cluster), shape = 16, alpha = 0.5) + 
-  geom_label(data = clusterInfo, aes(x = POINT_X , y = POINT_Y, label = cluster, fill = factor(cluster)), size = 5, colour = "white", fontface = "bold", show.legend = FALSE) +
+  geom_label(data = clusterInfo, aes(x = POINT_X , y = POINT_Y, label = cluster, fill = factor(cluster)), size = 8, colour = "white", fontface = "bold", show.legend = FALSE) +
   labs(
     subtitle = NULL
     , x = NULL
@@ -33726,9 +33728,9 @@ ggmap(map, extent = "device") +
   ) +
   ggsave(filename = saveImg, width = 10, height = 10, dpi = 600)
 
-# ***************************************
+# **********************************************
 # kmeans 단일 클러스터링 (데이터 표준화 O)
-# ***************************************
+# **********************************************
 dataL5 = dataL3 %>% 
   dplyr::mutate_each(
     funs(scale)
