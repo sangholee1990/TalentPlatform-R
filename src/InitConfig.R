@@ -350,9 +350,9 @@ ggmap::register_google(key = globalVar$googleKey)
 #     , stringr::str_detect(face, regex("Regular|Medium"))
 #   )
 
-#******************************
+# ******************************
 # 인코딩으로 인해 오류 발생
-#******************************
+# ******************************
 # # 폰트 추가
 # extrafont::font_import(paths = globalVar$fontPath, pattern = "NewCenturySchoolbook.ttf", prompt = FALSE)
 # extrafont::font_import(paths = globalVar$fontPath, pattern = "pala.ttf", prompt = FALSE)
@@ -360,9 +360,9 @@ ggmap::register_google(key = globalVar$googleKey)
 # # 폰트 확인
 # extrafont::fonts()
 
-#******************************
+# ******************************
 # 인코딩으로 인해 오류 발생
-#******************************
+# ******************************
 # 인터넷 환경에서 구글 폰트 추가
 # font.add.google("Gochi Hand", "gochi")
 

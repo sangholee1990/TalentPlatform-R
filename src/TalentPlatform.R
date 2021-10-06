@@ -33577,9 +33577,9 @@ data = vroom::vroom(
   , col_names = TRUE
   )
 
-#***************************************
+# ***************************************
 # 전체 구글맵 시각화
-#***************************************
+# ***************************************
 map = ggmap::get_map(
   location = c(lon = mean(data$POINT_X, na.rm = TRUE), lat = mean(data$POINT_Y, na.rm = TRUE))
   , maptype = "hybrid"
@@ -33592,7 +33592,7 @@ ggplotDefaultColor = hue_pal()(3)
 saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "BldgStyleDesc-All")
 
 ggmap(map, extent = "device") +
-  geom_point(data = data, aes(x = POINT_X, y = POINT_Y, color = Bldg_Style_Desc), shape = 16, alpha = 0.3) +
+  geom_point(data = data, aes(x = POINT_X, y = POINT_Y, color = Bldg_Style_Desc), shape = 16, alpha = 0.5) +
   scale_color_manual(
     name = NULL
     , na.value = "transparent"
@@ -33619,9 +33619,9 @@ ggmap(map, extent = "device") +
   ggsave(filename = saveImg, width = 10, height = 10, dpi = 600)
 
 
-#***************************************
+# ***************************************
 # bldgType에 따른 구글맵 시각화
-#***************************************
+# ***************************************
 bldgTypeList = data$Bldg_Style_Desc %>% unique %>% sort
 
 for (bldgTypeInfo in bldgTypeList) {
@@ -33634,7 +33634,7 @@ for (bldgTypeInfo in bldgTypeList) {
   tryCatch(
     expr = {
       ggmap(map, extent = "device") +
-        geom_point(data = dataL1, aes(x = POINT_X, y = POINT_Y, color = Bldg_Style_Desc), shape = 16, alpha = 0.3) +
+        geom_point(data = dataL1, aes(x = POINT_X, y = POINT_Y, color = Bldg_Style_Desc), shape = 16, alpha = 0.5) +
         scale_color_manual(
           name = NULL
           , na.value = "transparent"
@@ -33666,9 +33666,9 @@ for (bldgTypeInfo in bldgTypeList) {
 }
 
 
-#***************************************
+# ***************************************
 # 데이터 전처리
-#***************************************
+# ***************************************
 # 결측값 제거 
 dataL2 = na.omit(data)
 # summary(dataL2)
@@ -33678,9 +33678,9 @@ dataL3 = dataL2 %>%
   dplyr::select(POINT_X, POINT_Y, Bldg_EffYrBlt, Bldg_ActYrBlt, Bldg_Bedrooms, Bldg_Bathrooms, Bldg_Total_SqFt, Bldg_Heated_SqFt)
   # purrr::keep(is.numeric)
 
-#***************************************
-# kmeans 클러스터링 (데이터 표준화 X)
-#***************************************
+# ***************************************
+# kmeans 단일 클러스터링 (데이터 표준화 X)
+# ***************************************
 # 클러스터링 모형
 kcluModel = dataL3 %>% 
   purrr::keep(is.numeric) %>% 
@@ -33688,48 +33688,22 @@ kcluModel = dataL3 %>%
 
 # Add the cluster number onto to our original data
 pointAssignments = broom::augment(kcluModel, dataL2) 
-head(pointAssignments)
+# head(pointAssignments)
 
 # Summarize each cluster
 clusterInfo = broom::tidy(kcluModel)
-cluster_info
+clusterInfo
 
 # Summary stats about our model's fit
 modelStats = broom::glance(kcluModel)
-model_stats
+modelStats
 
 # 시각화
-# ggplot() +
-#   geom_point(data = pointAssignments, aes(x = POINT_X , y = POINT_Y, color = .cluster)) + 
-#   geom_point(data = cluster_info, aes(x = POINT_X , y = POINT_Y), size = 4, shape = "x") +
-#   ggplot2::labs(
-#     title = NULL
-#     , subtitle = "Clustered on raw values of depth and magnitude",
-#     , x = NULL
-#     , y = NULL
-#   ) +
-#   theme(
-#     text = element_text(size = 18)
-#     , legend.position = "top"
-#     , axis.line = element_blank()
-#     , axis.text = element_blank()
-#     , axis.ticks = element_blank()
-#     , plot.margin = unit(c(0, 0, 0, 0), 'lines')
-#   ) +
-#   ggsave(filename = saveImg, width = 10, height = 10, dpi = 600)
-
 saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "Kmeans-Cluster-Default")
 
 ggmap(map, extent = "device") +
-  geom_point(data = pointAssignments, aes(x = POINT_X , y = POINT_Y, color = .cluster)) + 
-  geom_point(data = cluster_info, aes(x = POINT_X , y = POINT_Y), size = 4, shape = "x") +
-  # geom_point(data = dataL1, aes(x = POINT_X, y = POINT_Y, color = Bldg_Style_Desc), shape = 16, alpha = 0.3) +
-  scale_color_manual(
-    name = NULL
-    , na.value = "transparent"
-    , values = c("Manufactured" = ggplotDefaultColor[1], "Multi Family" = ggplotDefaultColor[2], "Single Family" = ggplotDefaultColor[3])
-    , labels = c("Manufactured", "Multi Family", "Single Family")
-  ) +
+  geom_point(data = pointAssignments, aes(x = POINT_X , y = POINT_Y, color = .cluster), shape = 16, alpha = 0.5) + 
+  geom_label(data = clusterInfo, aes(x = POINT_X , y = POINT_Y, label = cluster, fill = factor(cluster)), size = 5, colour = "white", fontface = "bold", show.legend = FALSE) +
   labs(
     subtitle = NULL
     , x = NULL
@@ -33749,9 +33723,9 @@ ggmap(map, extent = "device") +
   ) +
   ggsave(filename = saveImg, width = 10, height = 10, dpi = 600)
 
-#***************************************
-# kmeans 클러스터링 (데이터 표준화 O)
-#***************************************
+# ***************************************
+# kmeans 단일 클러스터링 (데이터 표준화 O)
+# ***************************************
 dataL5 = dataL3 %>% 
   dplyr::mutate_each(
     funs(scale)
@@ -33784,347 +33758,111 @@ clusterInfo
 modelStats = broom::glance(kcluModel)
 modelStats
 
-# Visually inspect our clusters
-ggplot2::ggplot() +
-  ggplot2::geom_point(
-    data = point_assignments, aes(x = POINT_X , y = POINT_Y, color = .cluster)
-  ) + 
-  ggplot2::geom_point(
-    data = cluster_info, aes(x = POINT_X , y = POINT_Y), size = 4, shape = "x"
+# 시각화
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "Kmeans-Cluster-Nomal")
+
+ggmap(map, extent = "device") +
+  geom_point(data = pointAssignments, aes(x = POINT_X , y = POINT_Y, color = .cluster), shape = 16, alpha = 0.5) + 
+  geom_label(data = clusterInfo, aes(x = POINT_X , y = POINT_Y, label = cluster, fill = factor(cluster)), size = 8, colour = "white", fontface = "bold", show.legend = FALSE) +
+  labs(
+    subtitle = NULL
+    , x = NULL
+    , y = NULL
+    , fill = NULL
+    , colour = NULL
+    , title = NULL
+    , size = NULL
   ) +
-  ggplot2::labs(
-    title = "k-Means analysis of earthquakes near Fiji",
-    subtitle = "Clustered on raw values of depth and magnitude",
-    caption = "Source: Harvard PRIM-H project / 1000 seismic events of MB > 4.0 since 1964",
-    x = "Depth",
-    y = "Magnitude"
-  )
+  theme(
+    text = element_text(size = 18)
+    , legend.position = "top"
+    , axis.line = element_blank()
+    , axis.text = element_blank()
+    , axis.ticks = element_blank()
+    , plot.margin = unit(c(0, 0, 0, 0), 'lines')
+  ) +
+  ggsave(filename = saveImg, width = 10, height = 10, dpi = 600)
 
 
-
-
-
-# Run analysis with multiple cluster options (can be slow!)
-kclusts <- 
-  dplyr::tibble(n_clusts = 1:12) %>%
+# ****************************************************************
+# kmeans 다중 클러스터링 (데이터 표준화 O)
+# ****************************************************************
+kcluModelList = dplyr::tibble(nClu = 1:12) %>%
   dplyr::mutate(
-    kclust = purrr::map(
-      n_clusts,
-      ~kmeans(dataL5, centers = .x, iter.max = 10, nstart = 5)
-    ),
-    augmented = purrr::map(kclust, broom::augment, dataL5),
-    tidied = purrr::map(kclust, broom::tidy),
-    glanced = purrr::map(kclust, broom::glance)
+    kcluModel = purrr::map(
+      nClus,
+      ~ kmeans(dataL5, centers = .x, iter.max = 10, nstart = 5)
+    )
+    , augmented = purrr::map(kcluModel, broom::augment, dataL5)
+    , tidied = purrr::map(kcluModel, broom::tidy)
+    , glanced = purrr::map(kcluModel, broom::glance)
   ) %>%
-  dplyr::select(-kclust)
+  dplyr::select(-kcluModel)
 
-str(kclusts, max.level = 3)
+# str(kcluModelList, max.level = 3)
 
 
-point_assignments <- kclusts %>%
-  dplyr::select(n_clusts, augmented) %>%
+pointAssignments = kcluModelList %>%
+  dplyr::select(nClus, augmented) %>%
   tidyr::unnest(augmented)
 
-cluster_info <- kclusts %>%
-  dplyr::select(n_clusts, tidied) %>% 
+clusterInfo = kcluModelList %>%
+  dplyr::select(nClus, tidied) %>% 
   tidyr::unnest(tidied)
 
-model_stats <- kclusts %>%
-  dplyr::select(n_clusts, glanced) %>% 
+modelStats = kcluModelList %>%
+  dplyr::select(nClus, glanced) %>% 
   tidyr::unnest(glanced)
-
-head(point_assignments)
 
 
 # Show clusters
-ggplot2::ggplot() +
-  ggplot2::geom_point(
-    data = point_assignments, aes(x = POINT_X, y = POINT_Y, color = .cluster)
-  ) + 
-  ggplot2::geom_point(
-    data = cluster_info, aes(x = POINT_X, y = POINT_Y), size = 4, shape = "x"
+# ggplot2::ggplot() +
+#   ggplot2::geom_point(
+#     data = point_assignments, aes(x = POINT_X, y = POINT_Y, color = .cluster)
+#   ) + 
+#   ggplot2::geom_point(
+#     data = cluster_info, aes(x = POINT_X, y = POINT_Y), size = 4, shape = "x"
+#   ) +
+#   ggplot2::facet_wrap(~n_clusts)
+
+# 시각화
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "Kmeans-Cluster-Multi")
+
+ggmap(map, extent = "device") +
+  geom_point(data = pointAssignments, aes(x = POINT_X , y = POINT_Y, color = .cluster), shape = 16, alpha = 0.5) + 
+  geom_label(data = clusterInfo, aes(x = POINT_X , y = POINT_Y, label = cluster, fill = factor(cluster)), size = 8, colour = "white", fontface = "bold", show.legend = FALSE) +
+  facet_wrap(~nClu) +
+  labs(
+    subtitle = NULL
+    , x = NULL
+    , y = NULL
+    , fill = NULL
+    , colour = NULL
+    , title = NULL
+    , size = NULL
   ) +
-  ggplot2::facet_wrap(~n_clusts)
-
-
-
-
-# Elbow chart
-ggplot2::ggplot(data = model_stats, aes(n_clusts, tot.withinss)) +
-  ggplot2::geom_line() +
-  ggplot2::scale_x_continuous(limits = c(1, 12), breaks = seq(1, 12, 1)) +
-  ggplot2::ggtitle("Total within sum of squares, by # clusters")
-
-
-# devtools::session_info()
-
-
-
-
-
-
-
-
-
-# 
-
-
-h2o.init()
-prostate_path <- system.file("extdata", "prostate.csv", package = "h2o")
-prostate <- h2o.uploadFile(path = prostate_path)
-
-# standardize=TRUE
-# kmeansModel = h2o::h2o.kmeans(k = 3, training_frame = prostate, estimate_k = FALSE, seed = 1, standardize=TRUE, x = c("AGE", "RACE", "VOL", "GLEASON"))
-
-prostate <- h2o.uploadFile(path = prostate_path)
-
-# library(h2o)
-# h2o.init()
-# prostate_path <- system.file("extdata", "prostate.csv", package = "h2o")
-# prostate <- h2o.uploadFile(path = prostate_path)
-kmeansModel = h2o.kmeans(training_frame = prostate, standardize = TRUE, estimate_k = FALSE, k = 10, nfolds = 5)
-h2o.tot_withinss(kmeansModel, xval = TRUE)
-
-
-max_groups <- 5
-wss_h2o <- numeric(max_groups)
-i = 5
-for(i in 1:max_groups){
-  kos_km1 <- h2o.kmeans(training_frame = prostate, x= c("AGE", "RACE", "VOL", "GLEASON"), estimate_k = FALSE, k = i, standardize = FALSE, 
-                        nfolds = 5, max_iterations = 25)   
-  wss_h2o[i] <- h2o.tot_withinss(kos_km1, xval = TRUE) # xval=TRUE means cross validation used
-}
-par(font.main = 1)
-plot(1:max_groups, wss_h2o, type="b", xlab="Number of Clusters",
-     ylab="Within groups sum of squares", bty = "l")
-# grid()
-
-################################################
-p <- h2o.predict(kos_km1, prostate)
-# plot all variable pairs
-plot(as.data.frame(prostate), col = as.vector(p) + 2,
-     main = "H2O k-means",
-     pch = 20, cex = 2)
-
-# k-means: unify cluster labels
-# inspect labels
-df[, "V8"] # actuals
-km1$cluster # base R
-as.vector(p) # h2o
-# decode base R cluster id
-base_r_cluster_id <- km1$cluster
-base_r_cluster <- ifelse(base_r_cluster_id==3, 1,
-                         ifelse(base_r_cluster_id==1, 2, 3))
-# decode H2O cluster id
-h2o_cluster_id <- as.vector(p)
-h2o_cluster <- ifelse(h2o_cluster_id==2, 1,
-                      ifelse(h2o_cluster_id==0, 2, 3))
-
-
-
-
-
-
-kmeansModel
-kmeansModel@model$centers       # The centers for each cluster
-kmeansModel@model$tot.withinss  # total within cluster sum of squares
-kmeansModel@model$cluster       # cluster assignments per observation
-
-km.model@model$params
-
-?h2o.kmeans
-
-
-# print the cluster centers
-h2o.centers(kmeansModel)
-
-# print the centroid statistics
-h2o.centroid_stats(kmeansModel)
-
-
-########################################################
-
-h2o.tot_withinss(kmeanModel, xval = TRUE)
-
-
-predicted = h2o.predict(kmeanModel, prostate)
-# 
-
-ggplot(prostate, aes(Distance_Feature, Speeding_Feature) , color = labels) + 
-  geom_point()
-
-###: The following example shows how to use a range of clusters size to generate results
-for (i in 2:15){
-  estimator = h2o.kmeans(k=i, init="Random", seed=2, standardize=TRUE, x= h2o.colnames(hdf), training_frame = hdf)
-}
-
-
-###: The following example shows how to use estimate_k to find the cluster size
-estimator = h2o.kmeans(k=100, estimate_k = TRUE,  init="Random", seed=2, standardize=TRUE,
-                       x=h2o.colnames(hdf), training_frame = hdf)
-
-
-dd = tkmeans(prostate)
-plot (dd)
-
-dd
-demo(h2o.kmeans)
-
-library(tclust)
-data ("geyser2")
-
-clus <- tkmeans(geyser2, k = 3, alpha = 0.03)
-plot (clus)
-
-
-# library(cluster)
-
-
-# data$Bldg_Use_Desc %>% unique %>% sort
-data$Bldg_Style_Desc %>% unique %>% sort
-
-# PAHourlyCHW = data.table::fread(file = fileInfo)
-# summary(data)
-# summary(PAHourlyCHW)
-
-# RQuantLib::isBusinessDay("UnitedStates/NYSE", seq(from=lubridate::as_date(min(data$YMDH, na.rm = TRUE)), to=lubridate::as_date(max(data$YMDH, na.rm = TRUE)), by=1))
-# data$type2 %>% unique() %>% sort()
-# dataL1$type2 %>% unique() %>% sort()
-
-dataL1 = data %>%
-  dplyr::mutate(
-    isType2 = dplyr::case_when(
-      # type2 %in% c("Education", "Lab", "Lodge", "office ", "public")
-      stringr::str_detect(type2, regex("Education|Lab|Lodge|office|public")) ~ TRUE
-      , TRUE ~ FALSE
-    )
-  ) %>% 
-  dplyr::filter(
-    0.01 < WWR & WWR < 0.9
-    , isType2 == TRUE
-  ) %>%
-  dplyr::mutate(
-    nMonth = lubridate::month(YMDH)
-    , nDay = lubridate::day(YMDH)
-    , nHour = lubridate::hour(YMDH)
-    , refYmd = lubridate::make_date(year = 2000, month = nMonth, day = nDay)
-    
-    #  교호작용 변수
-    , interTerm1 = Uvalue_Wall * WWR
-    , interTerm2 = Uvalue_Window * WWR
-    , interTerm3 = Year.y * AgeAfterRenov
-    
-    , isTrainValid = dplyr::between(lubridate::as_date(YMDH), lubridate::date("2015-07-01"), lubridate::date("2016-07-01"))
-    
-    # 펜실레니아 근처 뉴욕 기준으로 비즈니스 여부 판단
-    # , isBizDay = bizdays::is.bizday(YMDH, "QuantLib/UnitedStates/NYSE")
-    , isBizDay = RQuantLib::isBusinessDay("UnitedStates/NYSE", lubridate::as_date(YMDH))
-    
-    , seasonType = dplyr::case_when(
-      dplyr::between(refYmd, lubridate::date("2000-01-13"), lubridate::date("2000-05-10")) ~ "spring"
-      , dplyr::between(refYmd, lubridate::date("2000-05-11"), lubridate::date("2000-08-25")) ~ "summer"
-      , dplyr::between(refYmd, lubridate::date("2000-08-26"), lubridate::date("2000-12-18")) ~ "fall"
-      , lubridate::date("2000-12-19") <= refYmd | refYmd <= lubridate::date("2000-01-12") ~ "winter"
-    )
-    
-    , isBizDay = RQuantLib::isBusinessDay("UnitedStates/NYSE", lubridate::as_date(YMDH))
-    , bizDayType =  dplyr::case_when(
-      isBizDay == TRUE ~ "Business day"
-      , isBizDay == FALSE ~ "non-business day"
-    )
-    
-    , hourType = dplyr::case_when(
-      dplyr::between(nHour, 7, 17) ~ "working"
-      , 17 < nHour & nHour <= 22 ~ "evening"
-      , 22 < nHour | nHour < 7 ~ "night"
-    )
-  ) %>% 
-  dplyr::mutate_if(is.character, as.factor)
-
-# dplyr::select(YMDH, nMonth, nDay, nHour, WWR, refYmd, hourType, businessDay, seasonType)
-# dplyr::tbl_df(dataL1)
-
-# summary(data)
-summary(dataL1)
-
-
-# saveFile = sprintf("%s/%s_%s.csv", globalVar$outPath, serviceName, "PAhourlyCHW_FNL")
-# readr::write_csv(x = dataL1, file = saveFile)
-# 
-# dataL2 = vroom::vroom(
-#   file = saveFile
-# )
-
-#*******************************************
-# 모형 구성
-#*******************************************
-dataL2 = dataL1 %>% 
-  dplyr::select(-c(YMDH, nMonth, nDay, nHour, refYmd, isTrainValid, isBizDay, isType2))
-
-# 선형회귀분석
-
-
-
-
-
-
-
-
-
-library("ggalt")
-library("tidyr")
-
-# pacman::p_load('dplyr', 'tidyr', 'gapminder',
-#                'ggplot2',  'ggalt',
-#                'forcats', 'R.utils', 'png', 
-#                'grid', 'ggpubr', 'scales',
-#                'bbplot')
-
-#Prepare data
-dumbbell_df <- gapminder %>%
-  filter(year == 1967 | year == 2007) %>%
-  dplyr::select(country, year, lifeExp) %>%
-  spread(year, lifeExp) %>%
-  mutate(gap = `2007` - `1967`) %>%
-  arrange(desc(gap)) %>%
-  head(10)
-
-#Make plot
-ggplot(dumbbell_df, aes(x = `1967`, xend = `2007`, y = reorder(country, gap), group = country)) + 
-  geom_dumbbell(colour = "#dddddd",
-                size = 3,
-                colour_x = "#FAAB18",
-                colour_xend = "#1380A1") +
-  bbplot::bbc_style() +
-  labs(title="We're living longer",
-       subtitle="Biggest life expectancy rise, 1967-2007")
-
-
-
-
-
-library(viridis)
-
-p <- ggplot(studebt, aes(y = pct/100, x = type, fill = Debtrc))
-p + geom_bar(stat = "identity", color = "gray80") +
-  scale_x_discrete(labels = as_labeller(f_labs)) +
-  scale_y_continuous(labels = scales::percent) +
-  scale_fill_viridis(discrete = TRUE) +
-  guides(fill = guide_legend(reverse = TRUE,
-                             title.position = "top",
-                             label.position = "bottom",
-                             keywidth = 3,
-                             nrow = 1)) +
-  labs(x = NULL, y = NULL,
-       fill = "Amount Owed, in thousands of dollars",
-       caption = p_caption,
-       title = p_title,
-       subtitle = p_subtitle) +
-  theme(legend.position = "top",
-        axis.text.y = element_text(face = "bold", hjust = 1, size = 12),
-        axis.ticks.length = unit(0, "cm"),
-        panel.grid.major.y = element_blank()) +
-  coord_flip()
+  theme(
+    text = element_text(size = 18)
+    , legend.position = "top"
+    , axis.line = element_blank()
+    , axis.text = element_blank()
+    , axis.ticks = element_blank()
+    , plot.margin = unit(c(0, 0, 0, 0), 'lines')
+  ) +
+  ggsave(filename = saveImg, width = 10, height = 10, dpi = 600)
+
+
+# 시각화
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "Kmeans-Cluster-ElbowChart")
+
+ggplot(data = modelStats, aes(nClu, tot.withinss)) +
+  geom_line() +
+  scale_x_continuous(limits = c(1, 12), breaks = seq(1, 12, 1)) +
+  theme(
+    text = element_text(size = 18)
+    , legend.position = "top"
+  ) +
+  ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
 
 
 #===============================================================================================
