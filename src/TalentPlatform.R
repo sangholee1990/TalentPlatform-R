@@ -33556,6 +33556,10 @@ library(mgcViz)
 library(ggmap)
 library(h2o)
 library(grt)
+library(ggmap)
+
+# 구글 파일키 등록
+# ggmap::register_google(key = "")
 
 # 로그 설정
 saveLogFile = sprintf("%s/%s_%s_%s_%s.log", globalVar$logPath, Sys.info()["sysname"], Sys.info()["nodename"], prjName, format(Sys.time(), "%Y%m%d"))
@@ -33585,7 +33589,6 @@ map = ggmap::get_map(
   , maptype = "hybrid"
   , zoom = 11
 )
-
 
 ggplotDefaultColor = hue_pal()(3)
 
@@ -33790,7 +33793,7 @@ ggmap(map, extent = "device") +
 kcluModelList = dplyr::tibble(nClu = 1:12) %>%
   dplyr::mutate(
     kcluModel = purrr::map(
-      nClus,
+      nClu,
       ~ kmeans(dataL5, centers = .x, iter.max = 10, nstart = 5)
     )
     , augmented = purrr::map(kcluModel, broom::augment, dataL5)
@@ -33803,35 +33806,25 @@ kcluModelList = dplyr::tibble(nClu = 1:12) %>%
 
 
 pointAssignments = kcluModelList %>%
-  dplyr::select(nClus, augmented) %>%
+  dplyr::select(nClu, augmented) %>%
   tidyr::unnest(augmented)
 
 clusterInfo = kcluModelList %>%
-  dplyr::select(nClus, tidied) %>% 
+  dplyr::select(nClu, tidied) %>% 
   tidyr::unnest(tidied)
 
 modelStats = kcluModelList %>%
-  dplyr::select(nClus, glanced) %>% 
+  dplyr::select(nClu, glanced) %>% 
   tidyr::unnest(glanced)
-
-
-# Show clusters
-# ggplot2::ggplot() +
-#   ggplot2::geom_point(
-#     data = point_assignments, aes(x = POINT_X, y = POINT_Y, color = .cluster)
-#   ) + 
-#   ggplot2::geom_point(
-#     data = cluster_info, aes(x = POINT_X, y = POINT_Y), size = 4, shape = "x"
-#   ) +
-#   ggplot2::facet_wrap(~n_clusts)
 
 # 시각화
 saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "Kmeans-Cluster-Multi")
 
 ggmap(map, extent = "device") +
   geom_point(data = pointAssignments, aes(x = POINT_X , y = POINT_Y, color = .cluster), shape = 16, alpha = 0.5) + 
-  geom_label(data = clusterInfo, aes(x = POINT_X , y = POINT_Y, label = cluster, fill = factor(cluster)), size = 8, colour = "white", fontface = "bold", show.legend = FALSE) +
-  facet_wrap(~nClu) +
+  geom_label(data = clusterInfo, aes(x = POINT_X , y = POINT_Y, label = cluster, fill = factor(cluster)), size = 3, colour = "white", fontface = "bold", show.legend = FALSE) +
+  guides(color = guide_legend(nrow = 1)) +
+  facet_wrap(~ nClu) +
   labs(
     subtitle = NULL
     , x = NULL
@@ -33844,6 +33837,7 @@ ggmap(map, extent = "device") +
   theme(
     text = element_text(size = 18)
     , legend.position = "top"
+    , legend.box = "horizontal"
     , axis.line = element_blank()
     , axis.text = element_blank()
     , axis.ticks = element_blank()
