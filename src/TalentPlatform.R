@@ -19283,7 +19283,8 @@ prjName = "test"
 # serviceName = "LSH0210"
 # serviceName = "LSH0216"
 # serviceName = "LSH0217"
-serviceName = "LSH0218"
+# serviceName = "LSH0218"
+serviceName = "LSH0221"
 
 contextPath = ifelse(env == "local", ".", getwd())
 
@@ -19333,9 +19334,9 @@ gridData = noncompliance::expand.grid.DT(
 # fileInfo = Sys.glob(file.path(globalVar$inpPath, "mapImageToData.xlsx"))
 fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0195_일식 식분도 이미지 데이터 추출.xlsx"))
 
-#**************************************************
+# **************************************************
 # 시트 선택
-#**************************************************
+# **************************************************
 # 시트 1 : 테스트
 # sheetInfo = 1
 
@@ -19412,7 +19413,13 @@ fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0195_일식 식분도 이�
 # sheetInfo = 25
 
 # 시트 26 : 선금+요+공통(1)
-sheetInfo = 26
+# sheetInfo = 26
+
+# 시트 27 : 북송+요+공통(17)
+# sheetInfo = 27
+
+# 시트 28 : 북송온리(49)
+sheetInfo = 28
 
 sheetName = dplyr::case_when(
   sheetInfo == 1 ~ "테스트"
@@ -19442,18 +19449,21 @@ sheetName = dplyr::case_when(
   , sheetInfo == 24 ~ "중금온리(2)"
   , sheetInfo == 25 ~ "선금+북송공통(3)"
   , sheetInfo == 26 ~ "선금+요+공통(1)"
+  , sheetInfo == 27 ~ "북송+요+공통(17)"
+  , sheetInfo == 28 ~ "북송온리(49)"
   , TRUE ~ NA_character_
 )
 
-#**************************************************
+
+# **************************************************
 # 단일 이미지 테스트
-#**************************************************
+# **************************************************
 data = openxlsx::read.xlsx(fileInfo, sheet = sheetInfo) %>%
   as.tibble()
 
 typeList = data$type %>% unique %>% sort
 
-selTypeList = typeList[1]
+selTypeList = typeList[14]
 
 for (typeInfo in selTypeList) {
 # for (typeInfo in typeList) {
@@ -19517,9 +19527,10 @@ for (typeInfo in selTypeList) {
 # 마리오 알람 소리
 beepr::beep(sound = 8)
 
-#**************************************************
+
+# **************************************************
 # 시트에 따른 데이터 병합
-#**************************************************
+# **************************************************
 # sheetList = c(7, 8)
 # sheetName = "청온리(18)+청-조선공통(92)"
 
