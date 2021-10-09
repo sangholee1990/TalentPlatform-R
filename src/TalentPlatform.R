@@ -19463,7 +19463,7 @@ data = openxlsx::read.xlsx(fileInfo, sheet = sheetInfo) %>%
 
 typeList = data$type %>% unique %>% sort
 
-selTypeList = typeList[14]
+selTypeList = typeList[35]
 
 for (typeInfo in selTypeList) {
 # for (typeInfo in typeList) {
@@ -19561,8 +19561,11 @@ beepr::beep(sound = 8)
 # sheetList = c(19, 24)
 # sheetName = "남송-중금공통(19)+중금온리(2)"
 
-sheetList = c(18, 25, 26)
-sheetName = "남송-선금공통(6)+선금-북송공통(3)+선금-요-공통(1)"
+# sheetList = c(18, 25, 26)
+# sheetName = "남송-선금공통(6)+선금-북송공통(3)+선금-요-공통(1)"
+
+sheetList = c(25, 27, 28)
+sheetName = "선금-북송공통(3)+북송-요-공통(17)+북송온리(49)"
 
 dataL3 = tibble()
 for (sheetInfo in sheetList) {
@@ -19600,9 +19603,9 @@ for (sheetInfo in sheetList) {
 }
 
 
-#**************************************************
+# **************************************************
 # 공간 평균
-#**************************************************
+# **************************************************
 cat(
   sprintf("%s : %s", "Type Length : ", dataL3$type %>% unique %>% length)
   , "\n"
@@ -19629,7 +19632,10 @@ maxData = dataL4[ind, ]
 # setBreak = c(seq(0.44, 0, -0.02), 0.43)
 # setBreak = c(seq(0.44, 0, -0.02))
 # setBreak = c(seq(0.44, 0, -0.02))
-setBreak = c(seq(0.64, 0, -0.02))
+# setBreak = c(seq(0.64, 0, -0.02))
+setBreak = c(seq(0.37, 0, -0.02))
+
+# 0.3739765  
 
 saveImg = sprintf("%s/%s_%s_%s.png", globalVar$figPath, serviceName, sheetName, "Mean_Color")
 
