@@ -19284,7 +19284,8 @@ prjName = "test"
 # serviceName = "LSH0216"
 # serviceName = "LSH0217"
 # serviceName = "LSH0218"
-serviceName = "LSH0221"
+# serviceName = "LSH0221"
+serviceName = "LSH0222"
 
 contextPath = ifelse(env == "local", ".", getwd())
 
@@ -19419,7 +19420,13 @@ fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0195_일식 식분도 이�
 # sheetInfo = 27
 
 # 시트 28 : 북송온리(49)
-sheetInfo = 28
+# sheetInfo = 28
+
+# 시트 29 : 요+후당공통(2)
+# sheetInfo = 29
+
+# 시트 30 : 요온리(7)
+sheetInfo = 30
 
 sheetName = dplyr::case_when(
   sheetInfo == 1 ~ "테스트"
@@ -19451,6 +19458,8 @@ sheetName = dplyr::case_when(
   , sheetInfo == 26 ~ "선금+요+공통(1)"
   , sheetInfo == 27 ~ "북송+요+공통(17)"
   , sheetInfo == 28 ~ "북송온리(49)"
+  , sheetInfo == 29 ~ "요+후당공통(2)"
+  , sheetInfo == 30 ~ "요온리(7)"
   , TRUE ~ NA_character_
 )
 
@@ -19463,7 +19472,7 @@ data = openxlsx::read.xlsx(fileInfo, sheet = sheetInfo) %>%
 
 typeList = data$type %>% unique %>% sort
 
-selTypeList = typeList[35]
+selTypeList = typeList[1]
 
 for (typeInfo in selTypeList) {
 # for (typeInfo in typeList) {
@@ -19500,6 +19509,7 @@ for (typeInfo in selTypeList) {
     # geom_tile() +
     scale_fill_gradientn(colours = cbMatlab, limits = c(0.0, 1.01), breaks = c(0, 0.3, 0.5, 0.7, 0.9), na.value = NA) +
     # metR::geom_contour2(color = "black", alpha = 1.0, breaks = seq(0.3, 0.9, 0.2), show.legend = FALSE) +
+    geom_sf(data = mapGlobal, aes(x = NULL, y = NULL, fill = NULL, z = NULL), color = "black", fill = NA) +
     metR::geom_contour2(color = "black", alpha = 1.0, breaks = 0, show.legend = FALSE, size = 0.1) +
     metR::geom_contour2(color = "black", alpha = 1.0, breaks = 0.3, show.legend = FALSE, size = 0.5) +
     metR::geom_contour2(color = "black", alpha = 1.0, breaks = 0.5, show.legend = FALSE, size = 1) +
@@ -19508,7 +19518,6 @@ for (typeInfo in selTypeList) {
     geom_point(data = tmpData, aes(x = lon, y = lat, colour = factor(val), fill = NULL, z = NULL)) +
     geom_point(data = maxData, aes(x = xAxis, y = yAxis, colour = meanVal, fill = NULL, z = NULL), color = "red") +
     metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, skip = 0, breaks = c(0, 0.3, 0.5, 0.7, 0.9), rotate = TRUE, na.rm = TRUE, size = 5) +
-    geom_sf(data = mapGlobal, aes(x = NULL, y = NULL, fill = NULL, z = NULL), color = "black", fill = NA) +
     metR::scale_x_longitude(breaks = seq(90, 150, 10), limits = c(90, 150), expand = c(0, 0)) +
     metR::scale_y_latitude(breaks = seq(10, 60, 10), limits = c(10, 60), expand = c(0, 0)) +
     labs(
@@ -19564,8 +19573,14 @@ beepr::beep(sound = 8)
 # sheetList = c(18, 25, 26)
 # sheetName = "남송-선금공통(6)+선금-북송공통(3)+선금-요-공통(1)"
 
-sheetList = c(25, 27, 28)
-sheetName = "선금-북송공통(3)+북송-요-공통(17)+북송온리(49)"
+# sheetList = c(25, 27, 28)
+# sheetName = "선금-북송공통(3)+북송-요-공통(17)+북송온리(49)"
+
+# sheetList = c(25, 27, 28)
+# sheetName = "선금-북송공통(3)+북송-요-공통(17)+북송온리(49)"
+
+sheetList = c(26, 27, 29, 30)
+sheetName = "선금-요-통(1)+북송-요-공통(17)+요-후당공통(2)+요온리(7)"
 
 dataL3 = tibble()
 for (sheetInfo in sheetList) {
@@ -19633,9 +19648,10 @@ maxData = dataL4[ind, ]
 # setBreak = c(seq(0.44, 0, -0.02))
 # setBreak = c(seq(0.44, 0, -0.02))
 # setBreak = c(seq(0.64, 0, -0.02))
-setBreak = c(seq(0.37, 0, -0.02))
+# setBreak = c(seq(0.37, 0, -0.02), 0.36)
+setBreak = c(seq(0.48, 0, -0.02), 0.47)
 
-# 0.3739765  
+# 0.4835  
 
 saveImg = sprintf("%s/%s_%s_%s.png", globalVar$figPath, serviceName, sheetName, "Mean_Color")
 
@@ -19643,9 +19659,9 @@ ggplot(data = dataL4, aes(x = xAxis, y = yAxis, fill = meanVal, z = meanVal)) +
   geom_raster(interpolate = TRUE, na.rm = TRUE) +
   scale_fill_gradientn(colours = cbMatlab, limits = c(0, 1.0), breaks = seq(0, 1.0, 0.2), na.value = NA) +
   # metR::geom_contour_fill(na.fill = TRUE, kriging = TRUE)
+  geom_sf(data = mapGlobal, aes(x = NULL, y = NULL, fill = NULL, z = NULL), color = "black", fill = NA) +
   metR::geom_contour2(color = "black", alpha = 1.0, breaks = setBreak, show.legend = FALSE, size = 0.5) +
   metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, skip = 0, breaks = setBreak, rotate = TRUE, na.rm = TRUE, size = 5) +
-  geom_sf(data = mapGlobal, aes(x = NULL, y = NULL, fill = NULL, z = NULL), color = "black", fill = NA) +
   geom_point(data = maxData, aes(x = xAxis, y = yAxis, colour = meanVal, fill = NULL, z = NULL), color = "red") +
   metR::scale_x_longitude(breaks = seq(90, 150, 10), limits = c(90, 150), expand = c(0, 0)) +
   metR::scale_y_latitude(breaks = seq(10, 60, 10), limits = c(10, 60), expand = c(0, 0)) +
@@ -19666,9 +19682,9 @@ ggplot(data = dataL4, aes(x = xAxis, y = yAxis, fill = meanVal, z = meanVal)) +
   # geom_raster(interpolate = TRUE, na.rm = TRUE) +
   # scale_fill_gradientn(colours = cbMatlab, limits = c(0, 1.0), breaks = seq(0, 1.0, 0.2), na.value = NA) +
   # metR::geom_contour_fill(na.fill = TRUE, kriging = TRUE)
+  geom_sf(data = mapGlobal, aes(x = NULL, y = NULL, fill = NULL, z = NULL), color = "black", fill = NA) +
   metR::geom_contour2(color = "black", alpha = 1.0, breaks = setBreak, show.legend = FALSE, size = 0.5) +
   metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, skip = 0, breaks = setBreak, rotate = TRUE, na.rm = TRUE, size = 5) +
-  geom_sf(data = mapGlobal, aes(x = NULL, y = NULL, fill = NULL, z = NULL), color = "black", fill = NA) +
   geom_point(data = maxData, aes(x = xAxis, y = yAxis, colour = meanVal, fill = NULL, z = NULL), color = "red") +
   metR::scale_x_longitude(breaks = seq(90, 150, 10), limits = c(90, 150), expand = c(0, 0)) +
   metR::scale_y_latitude(breaks = seq(10, 60, 10), limits = c(10, 60), expand = c(0, 0)) +
@@ -34042,3 +34058,176 @@ library(BAS)
 bas_enu<- bas.lm(y~., data=UScrime1, n.models=NULL, prior="ZS-null",
                  modelprior=uniform(), initprobs="Uniform")
 
+
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+#================================================
+# 요구사항
+#================================================
+# R을 이용한 기초 통계량 도출, 시각화, 부연 설명
+
+#================================================
+# 초기 환경변수 설정
+#================================================
+# env = "local"   # 로컬 : 원도우 환경, 작업환경 (현재 소스 코드 환경 시 .) 설정
+env = "dev"   # 개발 : 원도우 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+# env = "oper"  # 운영 : 리눅스 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+
+prjName = "test"
+serviceName = "LSH0223"
+contextPath = ifelse(env == "local", ".", getwd())
+
+if (env == "local") {
+  globalVar = list(
+    "inpPath" = contextPath
+    , "figPath" = contextPath
+    , "outPath" = contextPath
+    , "tmpPath" = contextPath
+    , "logPath" = contextPath
+  )
+} else {
+  source(here::here(file.path(contextPath, "src"), "InitConfig.R"), encoding = "UTF-8")
+}
+
+#================================================
+# 비즈니스 로직 수행
+#================================================
+fileInfo = Sys.glob(file.path(globalVar$inpPath, "hweight.csv"))
+data = read.csv(fileInfo, header = TRUE)
+
+# 과제Ⅰ. [R 익히기] 배포자료 hweight.csv를 사용하여 다음을 답하라. 
+# 1. 자료 ‘hweight’에 있는 여자들의 키에 대한 기본측도들을 계산하라.
+# (1) 자료의 개수는? 694개
+length(data$height)
+
+# (2) 표본평균과 중앙값은 각각 얼마인가? 각각 166.5, 166.5
+mean(data$height, na.rm = TRUE)
+median(data$height, na.rm = TRUE)
+
+# (3) 표본분산과 표본표준편차는 각각 얼마인가? 각각 71.95359654, 8.482546584
+var(data$height, na.rm = TRUE)
+sd(data$height, na.rm = TRUE)
+
+# (4) 표본평균의 표준오차는 얼마인가? 0.05074610346
+sd(data$height, na.rm = TRUE) / mean(data$height, na.rm = TRUE)
+
+# 2. 자료 ‘hweight’에 있는 20∼24세 여자들의 키와 몸무게에 대하여
+# (1) 히스토그램을 작성하라 (R의 hist() 함수를 사용할 것).
+dataL1 = subset(data, gender == "F")
+
+hist(dataL1$height, main = "20-24세 여자들의 키")
+
+hist(dataL1$weight, main = "20-24세 여자들의 몸무게")
+
+# (2) 작성한 히스토그램을 참조하여 여자들의 키와 몸무게의 분포의 특성을 각각 설명하라.
+# 키의 경우 범위 (147.3 - 177.80)를 지니며 특히 평균값 (160.69)은 중간값 (160.60)보다 우측으로 치우친 정규분포를 띤다.
+# 반면에 몸무게에서는 범위 (34.95 - 71.66)를 지니며 특히 평균값 (53.50)은 중간값 (54.07)보다 좌측 정규분포를 나타난다.
+summary(dataL1$height)
+summary(dataL1$weight)
+
+# 2. 자료 ‘hweight’에 있는 20∼24세 남녀별 몸무게와 키에 대하여
+# (1) 기본 함수인 plot()을 사용하여 전체 자료에 대해 키를 수평축, 몸무게를 수직축으로 하는 산점도를 작성하라. 
+# (참고: plot() 함수에서 col 인자를 지정하면 남녀별 관측값을 다른 색으로 구별하여 표시하라)
+plot(data$height, data$weight, col = factor(data$gender), main = "20∼24세 남녀별 몸무게/키에 대한 산포도 (적색: 남, 흑색: 여)")
+
+# (2) 남녀별 분포를 비교 설명하여라.
+# 남/여의 경우 키가 클수록 몸무게가 증가하는 일반적인 선형 관계를 띤다.
+# 특히 남자는 여자보다 몸무게 및 키가 높으나 상이한 범위 차이를 보인다.
+# 즉 여자의 경우 키/몸무게의 범위 (최대값-최소값) 차이 (30.5, 36.71)이나 남자의 경우 키/몸무게 (36.4, 60.62)로서 몸무게에서 상당한 차이를 나타낸다.
+
+aggregate(data$height, list(data$gender), FUN = summary)
+aggregate(data$weight, list(data$gender), FUN = summary)
+
+# (3) boxplot() 함수를 사용하여 남녀별 몸무게에 대한 상자그림을 작성하라.
+boxplot(weight ~ gender, data = data, main = "남녀별 몸무게에 대한 상자그림")
+
+# (4) 몸무게의 분포를 남녀별로 비교 설명하라. 
+# 1) 중심위치는 어느 집단이 큰가?
+# 남자
+
+# 2) 남자와 여자들의 산포도가 차이가 나는가? 
+# 남/녀에 대한 산포를 알기위해서 최소값 및 최대값의 차이를 파악해야 한다.
+# 즉 여자의 범위 (최대값 - 최소값) 경우 36.71 (71.66 - 34.95)로 분포하는 반면 
+# 남자에서는 60.62 (101.88 - 41.26)로 높은 산포를 지닌다.
+
+# 3) 특이값은 존재하는가?
+# 남자의 경우 100 이상에서 1개 존재
+
+# (5) cor() 함수를 사용하여 여자들의 키와 몸무게에 대한 상관계수를 추정하여라. 0.4420539692
+cor(dataL1$weight, dataL1$height)
+
+# 과제 Ⅱ. [R 익히기] 배포된 자료 data2018.csv와 자료설명 data2018.pdf를 사용하여 다음을 답하라.
+fileInfo = Sys.glob(file.path(globalVar$inpPath, "data2018.csv"))
+data2 = read.csv(fileInfo, header = TRUE)
+
+# 1. Data2018에서 제조업에 종사하는 근로자들을 대상으로 다음 각 문항에 답하라.
+# (1) 정규직 근로자(“regular”=1)의 비중은 얼마인가? 63.89 %
+(table(data2$regular) / length(data2$regular)) * 100.0
+
+# (2) “income”의 분포를 히스토그램을 사용하여 시각화하라.
+hist(data2$income, main = "2018년의 경제활동인구조사 (월급여)")
+
+# (3) “income”에 대한 관찰치들의 비중을 계산하라.
+# 그리고 그 결과가 경험의 법칙과 부합하는지 설명하라.
+hist(data2$income, main = "2018년의 경제활동인구조사 (월급여)")
+
+freq = hist(data2$income, freq = FALSE)
+round((freq$counts / length(data2$income)) * 100, 2)
+
+# ● 이는 2018년 임금근로일자리 소득 (뉴스케이프 서진솔 기자)를 비교한 결과 중위소득 (220만원)이 상당히 유사한 것으로 파악됩니다.
+
+# 2. Data2018의 근로자들을 나이에 따라 청년(), 중년(), 노년() 등 세 개의 집단으로 분류하고, 
+# “income”의 분포에 관한 다음의 각 문항에 답하라.
+# (1) 히스토그램과 상자그림을 사용하여 각 집단에서 “income”의 분포를 시각화하라.
+# 나이에 따라 집단 분류
+idx = which(data2$age < 30)
+data2[idx, "type"]= "청년"
+
+idx = which(30 <= data2$age & data2$age < 60)
+data2[idx, "type"] = "중년"
+
+idx = which(60 <= data2$age)
+data2[idx, "type"] = "노년"
+
+data2L1 = subset(data2, type == "청년")
+data2L2 = subset(data2, type == "중년")
+data2L3 = subset(data2, type == "노년")
+
+hist(data2L1$income, main = "2018년의 경제활동인구조사 (청년에 따른 월급여)")
+hist(data2L2$income, main = "2018년의 경제활동인구조사 (중년에 따른 월급여)")
+hist(data2L3$income, main = "2018년의 경제활동인구조사 (노년에 따른 월급여)")
+
+boxplot(data2$income ~ data2$type, main = "2018년의 경제활동인구조사 (그룹에 따른 월급여)")
+
+# (2) 노년 근로자 집단에서 평균과 중앙값의 크기를 비교하고, 이 결과가 앞의 그림과 부합하는지 설명하라.
+mean(data2L3$income, na.rm = TRUE)
+median(data2L3$income, na.rm = TRUE)
+
+# (3) 청년 근로자 집단에서 특이값의 범위를 도출하라. 이 집단에서 몇 명이 특이값에 해당하는 급여를 받는가? 202명
+boxplotOutInfo = boxplot.stats(data2L1$income)$out
+summary(boxplotOutInfo)
+mean(boxplotOutInfo, na.rm = TRUE)
+
+# 3. Data2018의 근로자들을 직업(“occ”)에 따라 9가지로 분류하고, 
+# 각 직업별로 “income”의 평균과 중앙값, 전문대 이상의 고등교육을 받은 학력자(“edu” > 3)의 비중,
+# 그리고 정규직 근로자(“regular”=1)의 비중을 도출하라.
+
+# 각 직업별로 income의 평균
+round(aggregate(data2$income, list(data2$occ), FUN = mean), 2)
+
+# 각 직업별로 income의 중앙값
+aggregate(data2$income, list(data2$occ), FUN = median)
+
+# 전문대 이상의 고등교육을 받은 학력자의 비중
+round((table(data2$edu > 3, data2$occ)[2, ] / length(data2$edu)) * 100, 2)
+
+# 정규직 근로자 비중
+round((table(data2$regular == 1, data2$occ)[2, ] / length(data2$regular)) * 100, 2)
