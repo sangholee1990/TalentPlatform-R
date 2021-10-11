@@ -33590,6 +33590,7 @@ library(ggmap)
 library(h2o)
 library(grt)
 library(ggmap)
+library(amap)
 
 # 구글 파일키 등록
 # ggmap::register_google(key = "")
@@ -33602,17 +33603,70 @@ log4r::logfile(log) = saveLogFile
 log4r::level(log) = "INFO"
 
 # 데이터 읽기
-fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0208_clustering.csv"))
+# fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0208_clustering.csv"))
 
-data = vroom::vroom(
-  file = fileInfo
-  , col_select = c(PARCELID, POINT_X, POINT_Y, Bldg_Style_Desc, Bldg_Use_Desc, Bldg_EffYrBlt, Bldg_ActYrBlt, Bldg_Bedrooms, Bldg_Bathrooms, Bldg_Quality
-                   , Bldg_AC_Type_Desc, Bldg_Total_SqFt, Bldg_Heated_SqFt, Asphalt, Modular_Metal, Tar_Gravel
-                   , other_roofc, other_wall, Cb_Stucco, Cedar.Redwood, Metal, Single_Siding, Carpet, Sheet_Vinyl
-                   , Pine.Soft.Wood, Cork_Tile, Marble, other_floor, Gable.Hip, Flat, Shed, Mansard
-                   , other_roofs)
-  , col_names = TRUE
+fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0208_GNVdfgas_LEE.csv"))
+fileInfo2 = Sys.glob(file.path(globalVar$inpPath, "LSH0208_GNVdfelc_LEE.csv"))
+
+oriData = vroom::vroom(file = fileInfo, col_names = TRUE)
+oriData2 = vroom::vroom(file = fileInfo2, col_names = TRUE) %>% 
+  dplyr::mutate(Therm.Consumption = 0)
+
+data = dplyr::bind_rows(oriData, oriData2) %>% 
+  dplyr::select(-c("...1"))
+
+# 신규 변수 추가
+dataL1 = data %>%
+  dplyr::mutate(
+    
+    R-wall = dplyr::case_when(
+      Bldg_ActYrBlt <= 1979 ~ 8
+      , 1980 <= Bldg_ActYrBlt & Bldg_ActYrBlt <= 1985 ~ 11
+      , 1986 <= Bldg_ActYrBlt & Bldg_ActYrBlt <= 2000 ~ 19
+      , 2001 <= Bldg_ActYrBlt & Bldg_ActYrBlt <= 2006 ~ 11
+      , 2007 <= Bldg_ActYrBlt ~ 13
+    )
+    
+    , U-window = dplyr::case_when(
+      Bldg_ActYrBlt <= 1983 ~ 1.3
+      , 1980 <= Bldg_ActYrBlt & Bldg_ActYrBlt <= 1985 ~ 0.87
+      , 1986 <= Bldg_ActYrBlt & Bldg_ActYrBlt <= 2005 ~ 0.5
+      , 2006 <= Bldg_ActYrBlt & Bldg_ActYrBlt <= 2014 ~ 0.75
+      , 2015 <= Bldg_ActYrBlt & Bldg_ActYrBlt <= 2016 ~ 0.65
+      , 2017 <= Bldg_ActYrBlt ~ 0.4
+    )
+    
+    , SHGC = dplyr::case_when(
+      Bldg_ActYrBlt <= 1985 ~ 0.75
+      , 1986 <= Bldg_ActYrBlt & Bldg_ActYrBlt <= 2000 ~ 0.66
+      , 2001 <= Bldg_ActYrBlt & Bldg_ActYrBlt <= 2009 ~ 0.40
+      , 2010 <= Bldg_ActYrBlt & Bldg_ActYrBlt <= 2011 ~ 0.30
+      , 2012 <= Bldg_ActYrBlt & Bldg_ActYrBlt <= 2013 ~ 0.25
+      , 2014 == Bldg_ActYrBlt ~ 0.30
+      , 2015 <= Bldg_ActYrBlt ~ 0.25
+    )
+    
+    , U-roof = dplyr::case_when(
+      Bldg_ActYrBlt <= 1981 ~ 17.2
+      , 1982 <= Bldg_ActYrBlt & Bldg_ActYrBlt <= 1985 ~ 19.0
+      , 1986 <= Bldg_ActYrBlt & Bldg_ActYrBlt <= 2011 ~ 30.0
+      , 2012 <= Bldg_ActYrBlt & Bldg_ActYrBlt <= 2013 ~ 38.0
+      , Bldg_ActYrBlt == 2014 ~ 30.0
+      , 2015 <= Bldg_ActYrBlt & Bldg_ActYrBlt <= 2016 ~ 38.0
+      , 2017 <= Bldg_ActYrBlt ~ 25
+    )
+    
+    , COP = dplyr::case_when(
+      Bldg_ActYrBlt <= 1979 ~ 1.76
+      , 1980 <= Bldg_ActYrBlt & Bldg_ActYrBlt <= 1985 ~ 2.01
+      , 1986 <= Bldg_ActYrBlt & Bldg_ActYrBlt <= 1991 ~ 2.25
+      , 1986 <= Bldg_ActYrBlt & Bldg_ActYrBlt <= 2005 ~ 2.90
+      , 2006 <= Bldg_ActYrBlt & Bldg_ActYrBlt <= 2014 ~ 3.28
+      , 2015 <= Bldg_ActYrBlt ~ 3.45
+    )
   )
+
+
 
 # ***************************************
 # 전체 구글맵 시각화
@@ -33708,13 +33762,14 @@ for (bldgTypeInfo in bldgTypeList) {
 # 데이터 전처리
 # ***************************************
 # 결측값 제거 
-dataL2 = na.omit(data)
+dataL2 = na.omit(dataL1)
 # summary(dataL2)
 
 # 임의 변수 선택
 dataL3 = dataL2 %>% 
   dplyr::select(POINT_X, POINT_Y, Bldg_EffYrBlt, Bldg_ActYrBlt, Bldg_Bedrooms, Bldg_Bathrooms, Bldg_Total_SqFt, Bldg_Heated_SqFt)
   # purrr::keep(is.numeric)
+  # dplyr::mutate_if(is.character, as.factor)
 
 # **********************************************
 # kmeans 단일 클러스터링 (데이터 표준화 X)
@@ -33722,7 +33777,9 @@ dataL3 = dataL2 %>%
 # 클러스터링 모형
 kcluModel = dataL3 %>% 
   purrr::keep(is.numeric) %>% 
-  kmeans(centers = 4, iter.max = 10, nstart = 5)
+  amap::Kmeans(centers = 4, iter.max = 10, nstart = 5, method = "euclidean")
+  # kmeans(centers = 4, iter.max = 10, nstart = 5)
+
 
 # Add the cluster number onto to our original data
 pointAssignments = broom::augment(kcluModel, dataL2) 
@@ -33773,7 +33830,8 @@ dataL5 = dataL3 %>%
 # 클러스터링 모형
 kcluModel = dataL5 %>% 
   purrr::keep(is.numeric) %>% 
-  kmeans(centers = 4, iter.max = 10, nstart = 5)
+  amap::Kmeans(centers = 4, iter.max = 10, nstart = 5, method = "euclidean")
+  # kmeans(centers = 4, iter.max = 10, nstart = 5)
 
 # Add the cluster number onto to our original data
 pointAssignments = broom::augment(kcluModel, dataL5) %>% 
@@ -33829,7 +33887,8 @@ kcluModelList = dplyr::tibble(nClu = 1:12) %>%
   dplyr::mutate(
     kcluModel = purrr::map(
       nClu,
-      ~ kmeans(dataL5, centers = .x, iter.max = 10, nstart = 5)
+      ~ amap::Kmeans(dataL5, centers = .x, iter.max = 10, nstart = 5, method = "euclidean")
+      # ~ kmeans(dataL5, centers = .x, iter.max = 10, nstart = 5)
     )
     , augmented = purrr::map(kcluModel, broom::augment, dataL5)
     , tidied = purrr::map(kcluModel, broom::tidy)

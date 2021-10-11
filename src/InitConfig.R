@@ -550,14 +550,14 @@ cbPlasma = rev(viridis::plasma(11))
 
 # perfTable[1, ] = round(perfEval(yHat, yObs), 2)
 
-#************************************************
+# ************************************************
 # [openxlsx] Read
-#************************************************
+# ************************************************
 # data = openxlsx::read.xlsx(fileList, sheet = 1)
 
-#************************************************
+# ************************************************
 # [openxlsx] Write
-#************************************************
+# ************************************************
 # wb = openxlsx::createWorkbook()
 # 
 # openxlsx::addWorksheet(wb, "ggData")
@@ -565,9 +565,9 @@ cbPlasma = rev(viridis::plasma(11))
 
 # openxlsx::saveWorkbook(wb, file = paste0(globalVar$outPath, "/Survery_LSH0078.xlsx"), overwrite = TRUE)
 
-#************************************************
+# ************************************************
 # File Info
-#************************************************
+# ************************************************
 # fileInfo = Sys.glob(paste(globalVar$inpPath, "play.csv", sep = "/"))
 # data = readr::read_csv(file = fileInfo, locale = locale("ko", encoding = "UTF-8"))
 
@@ -584,9 +584,9 @@ cbPlasma = rev(viridis::plasma(11))
 # isFile = file.exists(path = saveFile)
 # if (isFile == TRUE) { file.remove(path = saveFile) }
 
-#************************************************
+# ************************************************
 # Data Info
-#************************************************
+# ************************************************
 # dplyr::mutate(
 #   backColor = dplyr::case_when(
 #     stringr::str_detect(sigungu_name, regex("태안군|서산시|당진시")) ~ "1"
@@ -594,9 +594,9 @@ cbPlasma = rev(viridis::plasma(11))
 #   )
 # )
 
-#************************************************
+# ************************************************
 # cat sprintf
-#************************************************
+# ************************************************
 # cat(sprintf(
 #   "dtDate : %10s | code : %5s"
 #   , dtDateList[i]
