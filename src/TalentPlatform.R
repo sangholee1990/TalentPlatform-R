@@ -19285,7 +19285,9 @@ prjName = "test"
 # serviceName = "LSH0217"
 # serviceName = "LSH0218"
 # serviceName = "LSH0221"
-serviceName = "LSH0222"
+# serviceName = "LSH0222"
+# serviceName = "LSH0224"
+serviceName = "LSH0226"
 
 contextPath = ifelse(env == "local", ".", getwd())
 
@@ -19426,7 +19428,13 @@ fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0195_일식 식분도 이�
 # sheetInfo = 29
 
 # 시트 30 : 요온리(7)
-sheetInfo = 30
+# sheetInfo = 30
+
+# 시트 31 : 후진온리(8)
+# sheetInfo = 31
+
+# 시트 32 : 후당온리(4)
+sheetInfo = 32
 
 sheetName = dplyr::case_when(
   sheetInfo == 1 ~ "테스트"
@@ -19460,6 +19468,8 @@ sheetName = dplyr::case_when(
   , sheetInfo == 28 ~ "북송온리(49)"
   , sheetInfo == 29 ~ "요+후당공통(2)"
   , sheetInfo == 30 ~ "요온리(7)"
+  , sheetInfo == 31 ~ "후진온리(8)"
+  , sheetInfo == 32 ~ "후당온리(4)"
   , TRUE ~ NA_character_
 )
 
@@ -19472,7 +19482,7 @@ data = openxlsx::read.xlsx(fileInfo, sheet = sheetInfo) %>%
 
 typeList = data$type %>% unique %>% sort
 
-selTypeList = typeList[1]
+selTypeList = typeList[4]
 
 for (typeInfo in selTypeList) {
 # for (typeInfo in typeList) {
@@ -19579,8 +19589,14 @@ beepr::beep(sound = 8)
 # sheetList = c(25, 27, 28)
 # sheetName = "선금-북송공통(3)+북송-요-공통(17)+북송온리(49)"
 
-sheetList = c(26, 27, 29, 30)
-sheetName = "선금-요-통(1)+북송-요-공통(17)+요-후당공통(2)+요온리(7)"
+# sheetList = c(26, 27, 29, 30)
+# sheetName = "선금-요-통(1)+북송-요-공통(17)+요-후당공통(2)+요온리(7)"
+
+# sheetList = c(31)
+# sheetName = "후진온리(8)"
+
+sheetList = c(29, 32)
+sheetName = "요-후당공통(2)+후당온리(4)"
 
 dataL3 = tibble()
 for (sheetInfo in sheetList) {
@@ -19634,8 +19650,8 @@ dataL4 = dataL3 %>%
 
 summary(dataL4)
 
-ind = which(dataL4$meanVal == max(dataL4$meanVal, na.rm = TRUE))
-maxData = dataL4[ind, ]
+idx = which(dataL4$meanVal == max(dataL4$meanVal, na.rm = TRUE))
+maxData = dataL4[idx, ]
 
 # setBreak = c(seq(0.42, 0, -0.02), 0.41, seq(0.42, 0.43, 0.001))
 # setBreak = c(seq(0.55, 0, -0.02), 0.555)
@@ -19649,9 +19665,11 @@ maxData = dataL4[ind, ]
 # setBreak = c(seq(0.44, 0, -0.02))
 # setBreak = c(seq(0.64, 0, -0.02))
 # setBreak = c(seq(0.37, 0, -0.02), 0.36)
-setBreak = c(seq(0.48, 0, -0.02), 0.47)
+# setBreak = c(seq(0.48, 0, -0.02), 0.47)
+# setBreak = c(seq(0.48, 0, -0.02), 0.47)
+setBreak = c(seq(0.47, 0, -0.02), 0.46)
 
-# 0.4835  
+# 0.4760 
 
 saveImg = sprintf("%s/%s_%s_%s.png", globalVar$figPath, serviceName, sheetName, "Mean_Color")
 
@@ -33507,9 +33525,9 @@ ggpubr::ggline(Lab1_means, x = "Alcohol", y = "meanVal", color = "Gender", shape
   ggsave(filename = saveImg, width = 8, height = 6, dpi = 600)
 
 
-#**************************************************************************************
+# **************************************************************************************
 # Tukey HSD를 활용해서 음주량에 따른 매력정도의 차이를  아래의 표에 완성하세요.
-#**************************************************************************************
+# **************************************************************************************
 # 타 그룹 (4-0 Pints, 4-2 Points)에 비해 2-0 Points의 P값은 0.95로서 통계적으로 유의하지 않다.
 # 즉 2-0 Points의 경우 타 그룹과 차이가 있다.
 TukeyHSD(aovRes)
@@ -33618,16 +33636,15 @@ data = dplyr::bind_rows(oriData, oriData2) %>%
 # 신규 변수 추가
 dataL1 = data %>%
   dplyr::mutate(
-    
-    R-wall = dplyr::case_when(
+    Rwall = dplyr::case_when(
       Bldg_ActYrBlt <= 1979 ~ 8
       , 1980 <= Bldg_ActYrBlt & Bldg_ActYrBlt <= 1985 ~ 11
       , 1986 <= Bldg_ActYrBlt & Bldg_ActYrBlt <= 2000 ~ 19
       , 2001 <= Bldg_ActYrBlt & Bldg_ActYrBlt <= 2006 ~ 11
       , 2007 <= Bldg_ActYrBlt ~ 13
-    )
+     )
     
-    , U-window = dplyr::case_when(
+    , Uwindow = dplyr::case_when(
       Bldg_ActYrBlt <= 1983 ~ 1.3
       , 1980 <= Bldg_ActYrBlt & Bldg_ActYrBlt <= 1985 ~ 0.87
       , 1986 <= Bldg_ActYrBlt & Bldg_ActYrBlt <= 2005 ~ 0.5
@@ -33646,7 +33663,7 @@ dataL1 = data %>%
       , 2015 <= Bldg_ActYrBlt ~ 0.25
     )
     
-    , U-roof = dplyr::case_when(
+    , Uroof = dplyr::case_when(
       Bldg_ActYrBlt <= 1981 ~ 17.2
       , 1982 <= Bldg_ActYrBlt & Bldg_ActYrBlt <= 1985 ~ 19.0
       , 1986 <= Bldg_ActYrBlt & Bldg_ActYrBlt <= 2011 ~ 30.0
@@ -33663,7 +33680,7 @@ dataL1 = data %>%
       , 1986 <= Bldg_ActYrBlt & Bldg_ActYrBlt <= 2005 ~ 2.90
       , 2006 <= Bldg_ActYrBlt & Bldg_ActYrBlt <= 2014 ~ 3.28
       , 2015 <= Bldg_ActYrBlt ~ 3.45
-    )
+      )
   )
 
 
@@ -33671,10 +33688,15 @@ dataL1 = data %>%
 # ***************************************
 # 전체 구글맵 시각화
 # ***************************************
+ggData = dataL1 %>% 
+  dplyr::select(Longitude, Latitude, Bldg_Style_Desc) %>% 
+  dplyr::distinct()
+
 map = ggmap::get_map(
-  location = c(lon = mean(data$POINT_X, na.rm = TRUE), lat = mean(data$POINT_Y, na.rm = TRUE))
-  , maptype = "hybrid"
+  location = c(lon = mean(ggData$Longitude, na.rm = TRUE), lat = mean(ggData$Latitude, na.rm = TRUE))
   , zoom = 11
+  , maptype = "roadmap"
+  # , maptype = "hybrid"
 )
 
 ggplotDefaultColor = hue_pal()(3)
@@ -33682,7 +33704,7 @@ ggplotDefaultColor = hue_pal()(3)
 saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "BldgStyleDesc-All")
 
 ggmap(map, extent = "device") +
-  geom_point(data = data, aes(x = POINT_X, y = POINT_Y, color = Bldg_Style_Desc), shape = 16, alpha = 0.5) +
+  geom_point(data = ggData, aes(x = Longitude, y = Latitude, color = Bldg_Style_Desc), shape = 16, alpha = 0.5) +
   scale_color_manual(
     name = NULL
     , na.value = "transparent"
@@ -33712,11 +33734,11 @@ ggmap(map, extent = "device") +
 # ***************************************
 # bldgType에 따른 구글맵 시각화
 # ***************************************
-bldgTypeList = data$Bldg_Style_Desc %>% unique %>% sort
+bldgTypeList = ggData$Bldg_Style_Desc %>% unique %>% sort
 
 for (bldgTypeInfo in bldgTypeList) {
   
-  dataL1 = data %>%
+  ggDataL1 = ggData %>%
     dplyr::filter(Bldg_Style_Desc == bldgTypeInfo)
 
   tryCatch(
@@ -33725,7 +33747,7 @@ for (bldgTypeInfo in bldgTypeList) {
       saveImg = sprintf("%s/%s_%s-%s.png", globalVar$figPath, serviceName, "BldgStyleDesc", bldgTypeInfo)
       
       ggmap(map, extent = "device") +
-        geom_point(data = dataL1, aes(x = POINT_X, y = POINT_Y, color = Bldg_Style_Desc), shape = 16, alpha = 0.5) +
+        geom_point(data = ggDataL1, aes(x = Longitude, y = Latitude, color = Bldg_Style_Desc), shape = 16, alpha = 0.5) +
         scale_color_manual(
           name = NULL
           , na.value = "transparent"
@@ -33761,15 +33783,23 @@ for (bldgTypeInfo in bldgTypeList) {
 # ***************************************
 # 데이터 전처리
 # ***************************************
-# 결측값 제거 
-dataL2 = na.omit(dataL1)
-# summary(dataL2)
-
 # 임의 변수 선택
-dataL3 = dataL2 %>% 
-  dplyr::select(POINT_X, POINT_Y, Bldg_EffYrBlt, Bldg_ActYrBlt, Bldg_Bedrooms, Bldg_Bathrooms, Bldg_Total_SqFt, Bldg_Heated_SqFt)
+dataL2 = dataL1 %>%
+  dplyr::select(Longitude, Latitude, Bldg_Total_SqFt, Bldg_ActYrBlt, Rwall, Uwindow, SHGC, Uroof, COP) 
+  # dplyr::select(Longitude, Latitude, Bldg_Total_SqFt, KWH.Consumption)
+  # dplyr::select(Longitude, Latitude, Bldg_EffYrBlt, Bldg_ActYrBlt, Bldg_Bedrooms, Bldg_Bathrooms, Bldg_Total_SqFt, Bldg_Heated_SqFt)
   # purrr::keep(is.numeric)
   # dplyr::mutate_if(is.character, as.factor)
+
+# 결측값 및 중복 제거 
+dataL3 = na.omit(dataL2) %>% 
+  dplyr::distinct()
+
+# 테스트 용도
+# dataL3 = dataL3 %>% 
+#   dplyr::sample_n(20000)
+
+summary(dataL3)
 
 # **********************************************
 # kmeans 단일 클러스터링 (데이터 표준화 X)
@@ -33777,28 +33807,44 @@ dataL3 = dataL2 %>%
 # 클러스터링 모형
 kcluModel = dataL3 %>% 
   purrr::keep(is.numeric) %>% 
-  amap::Kmeans(centers = 4, iter.max = 10, nstart = 5, method = "euclidean")
+  amap::Kmeans(centers = 4, method = "euclidean")
   # kmeans(centers = 4, iter.max = 10, nstart = 5)
 
+# 클러스터링 요약
+# summary(kcluModel)
 
-# Add the cluster number onto to our original data
-pointAssignments = broom::augment(kcluModel, dataL2) 
-# head(pointAssignments)
+# Length  Class  Mode   
+# cluster  2053265 -none- numeric (각 지점에 대한 정보 포함)
+# centers       44 -none- numeric (클러스터링 결과)
+# withinss       4 -none- numeric (클러스터링 오차)
+# size           4 -none- numeric (클러스터링 크기)
 
-# Summarize each cluster
+# 각 지점에 대한 정보 포함
+# kcluModel$cluster
+
+# 클러스터링 결과
+# kcluModel$centers
+
+# 클러스터링 오차
+# kcluModel$withinss
+
+# 클러스터링 크기
+# kcluModel$size
+
+# 원시 데이터+ 클러스터링 결과 
+pointAssignments = broom::augment(kcluModel, dataL3) 
+pointAssignments
+
+# 클러스터링 결과
 clusterInfo = broom::tidy(kcluModel)
 clusterInfo
-
-# Summary stats about our model's fit
-modelStats = broom::glance(kcluModel)
-modelStats
 
 # 시각화
 saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "Kmeans-Cluster-Default")
 
 ggmap(map, extent = "device") +
-  geom_point(data = pointAssignments, aes(x = POINT_X , y = POINT_Y, color = .cluster), shape = 16, alpha = 0.5) + 
-  geom_label(data = clusterInfo, aes(x = POINT_X , y = POINT_Y, label = cluster, fill = factor(cluster)), size = 8, colour = "white", fontface = "bold", show.legend = FALSE) +
+  geom_point(data = pointAssignments, aes(x = Longitude, y = Latitude, color = .cluster), shape = 16, alpha = 0.5) + 
+  geom_label(data = clusterInfo, aes(x = Longitude , y = Latitude, label = cluster, fill = factor(cluster)), size = 8, colour = "white", fontface = "bold", show.legend = FALSE) +
   labs(
     subtitle = NULL
     , x = NULL
@@ -33830,18 +33876,18 @@ dataL5 = dataL3 %>%
 # 클러스터링 모형
 kcluModel = dataL5 %>% 
   purrr::keep(is.numeric) %>% 
-  amap::Kmeans(centers = 4, iter.max = 10, nstart = 5, method = "euclidean")
+  amap::Kmeans(centers = 4, method = "euclidean")
   # kmeans(centers = 4, iter.max = 10, nstart = 5)
 
-# Add the cluster number onto to our original data
+# 원시 데이터+ 클러스터링 결과
 pointAssignments = broom::augment(kcluModel, dataL5) %>% 
     dplyr::mutate_each_(
       funs(grt::unscale)
       , vars = colnames(dataL3)
     )
-head(pointAssignments)
+pointAssignments
 
-# Summarize each cluster
+# 클러스터링 결과
 clusterInfo = broom::tidy(kcluModel) %>% 
   dplyr::mutate_each_(
     funs(grt::unscale)
@@ -33849,17 +33895,12 @@ clusterInfo = broom::tidy(kcluModel) %>%
   )
 clusterInfo
 
-
-# Summary stats about our model's fit
-modelStats = broom::glance(kcluModel)
-modelStats
-
 # 시각화
 saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "Kmeans-Cluster-Nomal")
 
 ggmap(map, extent = "device") +
-  geom_point(data = pointAssignments, aes(x = POINT_X , y = POINT_Y, color = .cluster), shape = 16, alpha = 0.5) + 
-  geom_label(data = clusterInfo, aes(x = POINT_X , y = POINT_Y, label = cluster, fill = factor(cluster)), size = 8, colour = "white", fontface = "bold", show.legend = FALSE) +
+  geom_point(data = pointAssignments, aes(x = Longitude , y = Latitude, color = .cluster), shape = 16, alpha = 0.5) + 
+  geom_label(data = clusterInfo, aes(x = Longitude , y = Latitude, label = cluster, fill = factor(cluster)), size = 8, colour = "white", fontface = "bold", show.legend = FALSE) +
   labs(
     subtitle = NULL
     , x = NULL
@@ -33883,40 +33924,39 @@ ggmap(map, extent = "device") +
 # ****************************************************************
 # kmeans 다중 클러스터링 (데이터 표준화 O)
 # ****************************************************************
-kcluModelList = dplyr::tibble(nClu = 1:12) %>%
+kcluModelList = dplyr::tibble(nClu = 1:2) %>%
   dplyr::mutate(
     kcluModel = purrr::map(
       nClu,
-      ~ amap::Kmeans(dataL5, centers = .x, iter.max = 10, nstart = 5, method = "euclidean")
-      # ~ kmeans(dataL5, centers = .x, iter.max = 10, nstart = 5)
+      ~ amap::Kmeans(dataL5, centers = .x, method = "euclidean")
+      # ~ kmeans(dataL5, centers = .x)
     )
     , augmented = purrr::map(kcluModel, broom::augment, dataL5)
     , tidied = purrr::map(kcluModel, broom::tidy)
-    , glanced = purrr::map(kcluModel, broom::glance)
-  ) %>%
-  dplyr::select(-kcluModel)
+    # , glanced = purrr::map(kcluModel, .)
+  ) #  %>%
+  # dplyr::select(-kcluModel)
 
-# str(kcluModelList, max.level = 3)
-
-
+# 원시 데이터+ 클러스터링 결과 
 pointAssignments = kcluModelList %>%
   dplyr::select(nClu, augmented) %>%
   tidyr::unnest(augmented)
+
+# 클러스터링 결과
+clusterInfo = kcluModelList %>%
+  dplyr::select(nClu, tidied) %>% 
+  tidyr::unnest(tidied)
 
 clusterInfo = kcluModelList %>%
   dplyr::select(nClu, tidied) %>% 
   tidyr::unnest(tidied)
 
-modelStats = kcluModelList %>%
-  dplyr::select(nClu, glanced) %>% 
-  tidyr::unnest(glanced)
-
 # 시각화
 saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "Kmeans-Cluster-Multi")
 
 ggmap(map, extent = "device") +
-  geom_point(data = pointAssignments, aes(x = POINT_X , y = POINT_Y, color = .cluster), shape = 16, alpha = 0.5) + 
-  geom_label(data = clusterInfo, aes(x = POINT_X , y = POINT_Y, label = cluster, fill = factor(cluster)), size = 3, colour = "white", fontface = "bold", show.legend = FALSE) +
+  geom_point(data = pointAssignments, aes(x = Longitude , y = Latitude, color = .cluster), shape = 16, alpha = 0.5) + 
+  geom_label(data = clusterInfo, aes(x = Longitude , y = Latitude, label = cluster, fill = factor(cluster)), size = 3, colour = "white", fontface = "bold", show.legend = FALSE) +
   guides(color = guide_legend(nrow = 1)) +
   facet_wrap(~ nClu) +
   labs(
@@ -33940,8 +33980,12 @@ ggmap(map, extent = "device") +
   ggsave(filename = saveImg, width = 10, height = 10, dpi = 600)
 
 
-# 시각화
+# ****************************************************************
+# 클러스터링 오차 시각화
+# ****************************************************************
 saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "Kmeans-Cluster-ElbowChart")
+
+modelStats = kcluModelList
 
 ggplot(data = modelStats, aes(nClu, tot.withinss)) +
   geom_line() +
@@ -34241,7 +34285,7 @@ hist(data2$income, main = "2018년의 경제활동인구조사 (월급여)")
 freq = hist(data2$income, freq = FALSE)
 round((freq$counts / length(data2$income)) * 100, 2)
 
-# ● 이는 2018년 임금근로일자리 소득 (뉴스케이프 서진솔 기자)를 비교한 결과 중위소득 (220만원)이 상당히 유사한 것으로 파악됩니다.
+# 이는 2018년 임금근로일자리 소득 (뉴스케이프 서진솔 기자)를 비교한 결과 중위소득 (220만원)이 상당히 유사한 것으로 파악됩니다.
 
 # 2. Data2018의 근로자들을 나이에 따라 청년(), 중년(), 노년() 등 세 개의 집단으로 분류하고, 
 # “income”의 분포에 관한 다음의 각 문항에 답하라.
@@ -34290,3 +34334,95 @@ round((table(data2$edu > 3, data2$occ)[2, ] / length(data2$edu)) * 100, 2)
 
 # 정규직 근로자 비중
 round((table(data2$regular == 1, data2$occ)[2, ] / length(data2$regular)) * 100, 2)
+
+
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+#================================================
+# 요구사항
+#================================================
+# R을 이용한 파이차트, 그룹형 바차트, 워드클라우드 시각화
+
+#================================================
+# 초기 환경변수 설정
+#================================================
+# env = "local"   # 로컬 : 원도우 환경, 작업환경 (현재 소스 코드 환경 시 .) 설정
+env = "dev"   # 개발 : 원도우 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+# env = "oper"  # 운영 : 리눅스 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+
+prjName = "test"
+serviceName = "LSH0225"
+contextPath = ifelse(env == "local", ".", getwd())
+
+if (env == "local") {
+  globalVar = list(
+    "inpPath" = contextPath
+    , "figPath" = contextPath
+    , "outPath" = contextPath
+    , "tmpPath" = contextPath
+    , "logPath" = contextPath
+  )
+} else {
+  source(here::here(file.path(contextPath, "src"), "InitConfig.R"), encoding = "UTF-8")
+}
+
+showtext::showtext_opts(dpi = 100)
+showtext::showtext.auto()
+
+#================================================
+# 비즈니스 로직 수행
+#================================================
+# 라이브러리 읽기
+library(RColorBrewer)
+library(tidyverse)
+library(readr)
+
+fileInfo = Sys.glob(file.path(globalVar$inpPath, "car.csv"))
+data = readr::read_csv(file = fileInfo, locale = locale("ko", encoding = "EUC-KR"))
+
+# 파이차트 작성
+dataL1 = data %>%
+  dplyr::filter(사고유형대분류 == "차대차") %>% 
+  dplyr::select(사고유형대분류, 사고유형, 사고건수)
+
+colorTable = RColorBrewer::brewer.pal(length(dataL1$사고유형), "Set2")
+label = paste0(dataL1$사고유형, " ", round((dataL1$사고건수 / sum(dataL1$사고건수, na.rm = TRUE) * 100)), "%")
+pie(dataL1$사고건수, labels = label, col = colorTable, main = "차대차 교통사고 유형별 사고건수")
+
+# 바차트 작성
+dataL2 = data %>%
+  dplyr::mutate(
+    부상자수 = 중상자수 + 경상자수
+  ) %>% 
+  dplyr::group_by(사고유형대분류) %>%
+  dplyr::summarise(
+    사망자수 = sum(사망자수, na.rm = TRUE)
+    , 부상자수 = sum(부상자수, na.rm = TRUE)
+    )
+
+matData = dataL2 %>% 
+  dplyr::select(사망자수, 부상자수) %>% 
+  data.matrix() %>% 
+  t()
+
+colnames(matData) = dataL2$사고유형대분류
+
+colorTable = terrain.colors(5)
+barplot(matData, main = "사고형대분류통계", xlab="사고유형대분류이름", ylab="사람수"
+        , col=colorTable[c(1, 3)], beside=TRUE, font.axis=2, legend = TRUE)
+
+# 워드클라우드 작성
+fileInfo = Sys.glob(file.path(globalVar$inpPath, "covidnews8.csv"))
+data2 = readr::read_csv(file = fileInfo, locale = locale("ko", encoding = "EUC-KR"))
+
+data2$본문
+
+
