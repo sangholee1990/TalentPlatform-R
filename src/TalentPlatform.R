@@ -33752,7 +33752,7 @@ for (bldgTypeInfo in bldgTypeList) {
     dplyr::filter(Bldg_Style_Desc == bldgTypeInfo)
 
   saveImg = sprintf("%s/%s_%s-%s.png", globalVar$figPath, serviceName, "BldgStyleDesc", bldgTypeInfo)
-  
+    
   ggmap(map, extent = "device") +
     geom_point(data = ggDataL1, aes(x = Longitude, y = Latitude, color = Bldg_Style_Desc), shape = 16, alpha = 0.5) +
     scale_color_manual(
@@ -33779,7 +33779,7 @@ for (bldgTypeInfo in bldgTypeList) {
       , plot.margin = unit(c(0, 0, 0, 0), 'lines')
     ) +
     ggsave(filename = saveImg, width = 10, height = 10, dpi = 600)
-  
+    
     Sys.sleep(2)
 }
 
