@@ -19287,7 +19287,8 @@ prjName = "test"
 # serviceName = "LSH0221"
 # serviceName = "LSH0222"
 # serviceName = "LSH0224"
-serviceName = "LSH0226"
+# serviceName = "LSH0226"
+serviceName = "LSH0227"
 
 contextPath = ifelse(env == "local", ".", getwd())
 
@@ -19434,7 +19435,10 @@ fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0195_일식 식분도 이�
 # sheetInfo = 31
 
 # 시트 32 : 후당온리(4)
-sheetInfo = 32
+# sheetInfo = 32
+
+# 시트 33 : 후한온리(3)
+sheetInfo = 33
 
 sheetName = dplyr::case_when(
   sheetInfo == 1 ~ "테스트"
@@ -19470,6 +19474,7 @@ sheetName = dplyr::case_when(
   , sheetInfo == 30 ~ "요온리(7)"
   , sheetInfo == 31 ~ "후진온리(8)"
   , sheetInfo == 32 ~ "후당온리(4)"
+  , sheetInfo == 33 ~ "후한온리(3)"
   , TRUE ~ NA_character_
 )
 
@@ -19482,7 +19487,7 @@ data = openxlsx::read.xlsx(fileInfo, sheet = sheetInfo) %>%
 
 typeList = data$type %>% unique %>% sort
 
-selTypeList = typeList[4]
+selTypeList = typeList[3]
 
 for (typeInfo in selTypeList) {
 # for (typeInfo in typeList) {
@@ -19595,8 +19600,11 @@ beepr::beep(sound = 8)
 # sheetList = c(31)
 # sheetName = "후진온리(8)"
 
-sheetList = c(29, 32)
-sheetName = "요-후당공통(2)+후당온리(4)"
+# sheetList = c(29, 32)
+# # sheetName = "요-후당공통(2)+후당온리(4)"
+
+sheetList = c(33)
+sheetName = "후한온리(3)"
 
 dataL3 = tibble()
 for (sheetInfo in sheetList) {
@@ -19667,19 +19675,21 @@ maxData = dataL4[idx, ]
 # setBreak = c(seq(0.37, 0, -0.02), 0.36)
 # setBreak = c(seq(0.48, 0, -0.02), 0.47)
 # setBreak = c(seq(0.48, 0, -0.02), 0.47)
-setBreak = c(seq(0.47, 0, -0.02), 0.46)
+# setBreak = c(seq(0.47, 0, -0.02), 0.46)
+setBreak = c(seq(0.85, 0, -0.05))
+setBreak2 = c(seq(0.85, 0.1, -0.05))
 
-# 0.4760 
+# 0.8515
 
 saveImg = sprintf("%s/%s_%s_%s.png", globalVar$figPath, serviceName, sheetName, "Mean_Color")
 
 ggplot(data = dataL4, aes(x = xAxis, y = yAxis, fill = meanVal, z = meanVal)) +
   geom_raster(interpolate = TRUE, na.rm = TRUE) +
+  # metR::geom_contour_fill(na.fill = TRUE, kriging = TRUE) +
   scale_fill_gradientn(colours = cbMatlab, limits = c(0, 1.0), breaks = seq(0, 1.0, 0.2), na.value = NA) +
-  # metR::geom_contour_fill(na.fill = TRUE, kriging = TRUE)
   geom_sf(data = mapGlobal, aes(x = NULL, y = NULL, fill = NULL, z = NULL), color = "black", fill = NA) +
   metR::geom_contour2(color = "black", alpha = 1.0, breaks = setBreak, show.legend = FALSE, size = 0.5) +
-  metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, skip = 0, breaks = setBreak, rotate = TRUE, na.rm = TRUE, size = 5) +
+  metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, skip = 0, breaks = setBreak2, rotate = TRUE, na.rm = TRUE, size = 5) +
   geom_point(data = maxData, aes(x = xAxis, y = yAxis, colour = meanVal, fill = NULL, z = NULL), color = "red") +
   metR::scale_x_longitude(breaks = seq(90, 150, 10), limits = c(90, 150), expand = c(0, 0)) +
   metR::scale_y_latitude(breaks = seq(10, 60, 10), limits = c(10, 60), expand = c(0, 0)) +
@@ -19702,7 +19712,7 @@ ggplot(data = dataL4, aes(x = xAxis, y = yAxis, fill = meanVal, z = meanVal)) +
   # metR::geom_contour_fill(na.fill = TRUE, kriging = TRUE)
   geom_sf(data = mapGlobal, aes(x = NULL, y = NULL, fill = NULL, z = NULL), color = "black", fill = NA) +
   metR::geom_contour2(color = "black", alpha = 1.0, breaks = setBreak, show.legend = FALSE, size = 0.5) +
-  metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, skip = 0, breaks = setBreak, rotate = TRUE, na.rm = TRUE, size = 5) +
+  metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, skip = 0, breaks = setBreak2, rotate = TRUE, na.rm = TRUE, size = 5) +
   geom_point(data = maxData, aes(x = xAxis, y = yAxis, colour = meanVal, fill = NULL, z = NULL), color = "red") +
   metR::scale_x_longitude(breaks = seq(90, 150, 10), limits = c(90, 150), expand = c(0, 0)) +
   metR::scale_y_latitude(breaks = seq(10, 60, 10), limits = c(10, 60), expand = c(0, 0)) +
@@ -34374,8 +34384,6 @@ if (env == "local") {
   source(here::here(file.path(contextPath, "src"), "InitConfig.R"), encoding = "UTF-8")
 }
 
-showtext::showtext_opts(dpi = 100)
-showtext::showtext.auto()
 
 #================================================
 # 비즈니스 로직 수행
@@ -34384,20 +34392,37 @@ showtext::showtext.auto()
 library(RColorBrewer)
 library(tidyverse)
 library(readr)
+library(RmecabKo)
+library(stringr)
+library(wordcloud2)
+library(htmlwidget)
+
+# 명사 추출을 위한 메타 정보
+RmecabKo::install_mecab("c:/mecab")
 
 fileInfo = Sys.glob(file.path(globalVar$inpPath, "car.csv"))
 data = readr::read_csv(file = fileInfo, locale = locale("ko", encoding = "EUC-KR"))
 
+# ****************************************
 # 파이차트 작성
+# ****************************************
 dataL1 = data %>%
   dplyr::filter(사고유형대분류 == "차대차") %>% 
   dplyr::select(사고유형대분류, 사고유형, 사고건수)
 
 colorTable = RColorBrewer::brewer.pal(length(dataL1$사고유형), "Set2")
 label = paste0(dataL1$사고유형, " ", round((dataL1$사고건수 / sum(dataL1$사고건수, na.rm = TRUE) * 100)), "%")
-pie(dataL1$사고건수, labels = label, col = colorTable, main = "차대차 교통사고 유형별 사고건수")
 
+mainName = "차대차 교통사고 유형별 사고건수"
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, mainName)
+
+png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
+pie(dataL1$사고건수, labels = label, col = colorTable, main = mainName)
+dev.off()
+
+# ****************************************
 # 바차트 작성
+# ****************************************
 dataL2 = data %>%
   dplyr::mutate(
     부상자수 = 중상자수 + 경상자수
@@ -34416,13 +34441,50 @@ matData = dataL2 %>%
 colnames(matData) = dataL2$사고유형대분류
 
 colorTable = terrain.colors(5)
-barplot(matData, main = "사고형대분류통계", xlab="사고유형대분류이름", ylab="사람수"
-        , col=colorTable[c(1, 3)], beside=TRUE, font.axis=2, legend = TRUE)
 
+mainName = "사고형대분류통계"
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, mainName)
+
+png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
+barplot(matData, main = mainName, xlab="사고유형대분류이름", ylab="사람수"
+        , col=colorTable[c(1, 3)], beside=TRUE, font.axis=2, legend = TRUE)
+dev.off()
+
+# ****************************************
 # 워드클라우드 작성
+# ****************************************
 fileInfo = Sys.glob(file.path(globalVar$inpPath, "covidnews8.csv"))
 data2 = readr::read_csv(file = fileInfo, locale = locale("ko", encoding = "EUC-KR"))
 
-data2$본문
+data2L1 = data.frame()
+for (i in 1:nrow(data2)) {
+  
+  tmpData = RcppMeCab::pos(utf8::as_utf8(data2$data[i]), format = "data.frame") %>%
+    dplyr::filter(pos == "NNG") %>%
+    dplyr::select(token)
+  
+  data2L1 = dplyr::bind_rows(tmpData, data2L1)
+}
+
+
+#==================================================
+# 키워드 빈도에 따른 시각화
+#==================================================
+keywordData = data2L1 %>%
+  
+  dplyr::group_by(token) %>%
+  dplyr::summarise(freq = n()) %>%
+  dplyr::arrange(desc(freq)) %>%
+  as.data.frame() %>%
+  dplyr::top_n(n = 100)
+
+fig = wordcloud2::wordcloud2(data = keywordData)
+
+# html 저장
+htmlwidgets::saveWidget(fig, "fig.html", selfcontained = FALSE)
+
+# html에서 png로 저장
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "워드 클라우드")
+webshot::webshot("fig.html", saveImg, vwidth = 800, vheight = 600, delay = 10)
 
 
