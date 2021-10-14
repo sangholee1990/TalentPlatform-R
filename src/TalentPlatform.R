@@ -33704,7 +33704,7 @@ ggData = dataL1 %>%
 
 map = ggmap::get_map(
   location = c(lon = mean(ggData$Longitude, na.rm = TRUE), lat = mean(ggData$Latitude, na.rm = TRUE))
-  , zoom = 11
+  , zoom = 12
   , maptype = "roadmap"
   # , maptype = "hybrid"
 )
@@ -33751,42 +33751,36 @@ for (bldgTypeInfo in bldgTypeList) {
   ggDataL1 = ggData %>%
     dplyr::filter(Bldg_Style_Desc == bldgTypeInfo)
 
-  tryCatch(
-    expr = {
-      
-      saveImg = sprintf("%s/%s_%s-%s.png", globalVar$figPath, serviceName, "BldgStyleDesc", bldgTypeInfo)
-      
-      ggmap(map, extent = "device") +
-        geom_point(data = ggDataL1, aes(x = Longitude, y = Latitude, color = Bldg_Style_Desc), shape = 16, alpha = 0.5) +
-        scale_color_manual(
-          name = NULL
-          , na.value = "transparent"
-          , values = c("Manufactured" = ggplotDefaultColor[1], "Multi Family" = ggplotDefaultColor[2], "Single Family" = ggplotDefaultColor[3])
-          , labels = c("Manufactured", "Multi Family", "Single Family")
-        ) +
-        labs(
-          subtitle = NULL
-          , x = NULL
-          , y = NULL
-          , fill = NULL
-          , colour = NULL
-          , title = NULL
-          , size = NULL
-        ) +
-        theme(
-          text = element_text(size = 18)
-          , legend.position = "top"
-          , axis.line = element_blank()
-          , axis.text = element_blank()
-          , axis.ticks = element_blank()
-          , plot.margin = unit(c(0, 0, 0, 0), 'lines')
-        ) +
-        ggsave(filename = saveImg, width = 10, height = 10, dpi = 600)
-      
-      }
-      , warning = function(warning) { log4r::warn(log, warning) }
-      , error = function(error) { log4r::error(log, error) }
-    )
+  saveImg = sprintf("%s/%s_%s-%s.png", globalVar$figPath, serviceName, "BldgStyleDesc", bldgTypeInfo)
+  
+  ggmap(map, extent = "device") +
+    geom_point(data = ggDataL1, aes(x = Longitude, y = Latitude, color = Bldg_Style_Desc), shape = 16, alpha = 0.5) +
+    scale_color_manual(
+      name = NULL
+      , na.value = "transparent"
+      , values = c("Manufactured" = ggplotDefaultColor[1], "Multi Family" = ggplotDefaultColor[2], "Single Family" = ggplotDefaultColor[3])
+      , labels = c("Manufactured", "Multi Family", "Single Family")
+    ) +
+    labs(
+      subtitle = NULL
+      , x = NULL
+      , y = NULL
+      , fill = NULL
+      , colour = NULL
+      , title = NULL
+      , size = NULL
+    ) +
+    theme(
+      text = element_text(size = 18)
+      , legend.position = "top"
+      , axis.line = element_blank()
+      , axis.text = element_blank()
+      , axis.ticks = element_blank()
+      , plot.margin = unit(c(0, 0, 0, 0), 'lines')
+    ) +
+    ggsave(filename = saveImg, width = 10, height = 10, dpi = 600)
+  
+    Sys.sleep(2)
 }
 
 
@@ -33849,6 +33843,11 @@ pointAssignments
 clusterInfo = broom::tidy(kcluModel)
 clusterInfo
 
+# 클러스터링 통계 결과 (amap::Kmean 라이브러리 이용 시 불가)
+# totWithinss = sum(kcluModel$withinss, na.rm = TRUE)
+# modelStats = broom::glance(kcluModel)
+# modelStats
+
 # 시각화
 saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "Kmeans-Cluster-Default")
 
@@ -33905,6 +33904,12 @@ clusterInfo = broom::tidy(kcluModel) %>%
   )
 clusterInfo
 
+# 클러스터링 통계 결과 (amap::Kmean 라이브러리 이용 시 불가)
+totWithinss = sum(kcluModel$withinss, na.rm = TRUE)
+# modelStats = kcluModelList %>%
+#   dplyr::select(nClu, glanced) %>% 
+#   tidyr::unnest(glanced)
+
 # 시각화
 saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "Kmeans-Cluster-Nomal")
 
@@ -33934,18 +33939,20 @@ ggmap(map, extent = "device") +
 # ****************************************************************
 # kmeans 다중 클러스터링 (데이터 표준화 O)
 # ****************************************************************
-kcluModelList = dplyr::tibble(nClu = 1:2) %>%
+kcluModelList = dplyr::tibble(nClu = 1:12) %>%
   dplyr::mutate(
     kcluModel = purrr::map(
-      nClu,
-      ~ amap::Kmeans(dataL5, centers = .x, method = "euclidean")
-      # ~ kmeans(dataL5, centers = .x)
+      nClu
+      , ~ amap::Kmeans(dataL5, centers = .x, method = "euclidean")
+      # , ~ kmeans(dataL5, centers = .x)
     )
     , augmented = purrr::map(kcluModel, broom::augment, dataL5)
     , tidied = purrr::map(kcluModel, broom::tidy)
-    # , glanced = purrr::map(kcluModel, .)
-  ) #  %>%
-  # dplyr::select(-kcluModel)
+    # 클러스터링 통계 결과 (amap::Kmean 라이브러리 이용 시 불가)
+    # , glanced = purrr::map(kcluModel, broom::glance)
+    , tot.withinss = purrr::map(kcluModel, ~ sum(.x$withinss, na.rm = TRUE))
+  ) 
+
 
 # 원시 데이터+ 클러스터링 결과 
 pointAssignments = kcluModelList %>%
@@ -33957,15 +33964,22 @@ clusterInfo = kcluModelList %>%
   dplyr::select(nClu, tidied) %>% 
   tidyr::unnest(tidied)
 
-clusterInfo = kcluModelList %>%
-  dplyr::select(nClu, tidied) %>% 
-  tidyr::unnest(tidied)
+# 클러스터링 통계 결과 (amap::Kmean 라이브러리 이용 시 불가)
+# modelStats = kcluModelList %>%
+#   dplyr::select(nClu, glanced) %>%
+#   tidyr::unnest(glanced)
+
+# 클러스터링 통계 결과 (amap::Kmean 라이브러리 이용 시 대체)
+# totWithinss : 클러스터링 내부 데이터의 분산 정도
+modelStats = kcluModelList %>%
+  dplyr::select(nClu, tot.withinss) %>%
+  tidyr::unnest(tot.withinss)
 
 # 시각화
 saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "Kmeans-Cluster-Multi")
 
 ggmap(map, extent = "device") +
-  geom_point(data = pointAssignments, aes(x = Longitude , y = Latitude, color = .cluster), shape = 16, alpha = 0.5) + 
+  geom_point(data = pointAssignments, aes(x = Longitude , y = Latitude, color = .cluster), size = 0.2, shape = 16, alpha = 0.5) + 
   geom_label(data = clusterInfo, aes(x = Longitude , y = Latitude, label = cluster, fill = factor(cluster)), size = 3, colour = "white", fontface = "bold", show.legend = FALSE) +
   guides(color = guide_legend(nrow = 1)) +
   facet_wrap(~ nClu) +
@@ -33994,8 +34008,6 @@ ggmap(map, extent = "device") +
 # 클러스터링 오차 시각화
 # ****************************************************************
 saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "Kmeans-Cluster-ElbowChart")
-
-modelStats = kcluModelList
 
 ggplot(data = modelStats, aes(nClu, tot.withinss)) +
   geom_line() +
