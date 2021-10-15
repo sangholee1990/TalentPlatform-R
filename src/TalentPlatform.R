@@ -34396,7 +34396,6 @@ if (env == "local") {
   source(here::here(file.path(contextPath, "src"), "InitConfig.R"), encoding = "UTF-8")
 }
 
-
 #================================================
 # 비즈니스 로직 수행
 #================================================
@@ -34471,24 +34470,28 @@ data2 = readr::read_csv(file = fileInfo, locale = locale("ko", encoding = "EUC-K
 data2L1 = data.frame()
 for (i in 1:nrow(data2)) {
   
-  tmpData = RcppMeCab::pos(utf8::as_utf8(data2$data[i]), format = "data.frame") %>%
+  tmpData = RcppMeCab::pos(utf8::as_utf8(data2$본문[i]), format = "data.frame") %>%
     dplyr::filter(pos == "NNG") %>%
     dplyr::select(token)
   
   data2L1 = dplyr::bind_rows(tmpData, data2L1)
 }
 
-
 #==================================================
 # 키워드 빈도에 따른 시각화
 #==================================================
 keywordData = data2L1 %>%
-  
+  dplyr::mutate(
+    token = replace(token, stringr::str_detect(token, regex("코로나")), "코로나19"))
+  ) %>% 
   dplyr::group_by(token) %>%
   dplyr::summarise(freq = n()) %>%
-  dplyr::arrange(desc(freq)) %>%
-  as.data.frame() %>%
-  dplyr::top_n(n = 100)
+  dplyr::mutate(len = stringr::str_length(token)) %>% 
+  dplyr::filter(
+    freq >= 2
+    , len >= 2
+  ) %>% 
+  dplyr::arrange(desc(freq))
 
 fig = wordcloud2::wordcloud2(data = keywordData)
 
@@ -34496,7 +34499,5 @@ fig = wordcloud2::wordcloud2(data = keywordData)
 htmlwidgets::saveWidget(fig, "fig.html", selfcontained = FALSE)
 
 # html에서 png로 저장
-saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "워드 클라우드")
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "워드클라우드")
 webshot::webshot("fig.html", saveImg, vwidth = 800, vheight = 600, delay = 10)
-
-
