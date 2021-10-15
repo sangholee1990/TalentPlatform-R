@@ -32423,9 +32423,9 @@ perfTable["EL", ] = perfEval(
   round(2)
 
 
-#**********************************************************
+# **********************************************************
 # 딥러닝
-#**********************************************************
+# **********************************************************
 
 #+++++++++++++++++++++++++++++++++++++++++++
 # 11. Deep Neural Network (DNN)
@@ -33173,6 +33173,7 @@ library(scales)
 library(raster)
 library(cowplot)
 library(patchwork)
+library(scatterpie)
 
 # 선거 데이터 읽기
 fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0214_선거분석(강서병).xlsx"))
@@ -33223,9 +33224,9 @@ dataL4$key = forcats::fct_relevel(dataL4$key, c("자유한국당", "더불어민
 selData = dataL1 %>% dplyr::filter(종류 == "광역단체장")
 dataL4$투표구 = forcats::fct_relevel(dataL4$투표구, rev(selData$투표구))
 
-#************************************************
+# ************************************************
 # 선거 빈도분포
-#************************************************
+# ************************************************
 saveImg1 = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "서울특별시_강서구_선거_빈도분포")
 
 ggplot(dataL4, aes(x = 투표구, y = val, fill = key, group = key, label = round(val, 0))) +
@@ -33312,11 +33313,11 @@ dataL5 = mapGlobal %>%
 #   , maptype = "hybrid"
 # )
 
-#************************************************
+# ************************************************
 # 선거 주제도
-#************************************************
+# ************************************************
 saveImg2 = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "서울특별시_강서구_선거_주제도")
-plotSubTitle = sprintf("=%s", "서울특별시 강서구 선거 주제도")
+plotSubTitle = sprintf("%s", "서울특별시 강서구 선거 주제도")
 
 ggplotDefaultColor = hue_pal()(3)
 
@@ -33325,7 +33326,7 @@ ggplot() +
   coord_fixed(ratio = 1) +
   geom_sf(data = dataL4, aes(fill = factor(val)), inherit.aes = FALSE) +
   geom_sf_text(data = dataL4, aes(label = 읍면동명칭)) +
-  ggrepel::geom_label_repel(data = dataL4, aes(label = 읍면동명칭)) +
+  # ggrepel::geom_label_repel(data = dataL4, aes(label = 읍면동명칭)) +
   scale_fill_manual(
     name = NULL
     , na.value = "transparent"
@@ -33352,9 +33353,9 @@ ggplot() +
 
 
 
-#************************************************
+# ************************************************
 # 스토리 보드
-#************************************************
+# ************************************************
 # 테이블
 ggTable = dataL3 %>% 
   dplyr::select(투표구, 자유한국당, 더불어민주당, 기타야당) %>%
@@ -33417,6 +33418,278 @@ plotSubTitle = sprintf("%s", "[서울특별시 강서구] 선거 주제도")
   patchwork::plot_layout(heights = c(3, 1)) +
   ggsave(filename = saveImgMerge, width = 10, height = 10, dpi = 600)
 
+
+
+#=================================================
+# 충청남도 아산시 인구현황
+#=================================================
+# 선거 데이터 읽기
+fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0214_선거분석(강서병).xlsx"))
+data = openxlsx::read.xlsx(fileInfo, sheet = 5)
+
+dataL1 = data %>%
+  as.tibble() %>%
+  na.omit() %>%
+  readr::type_convert()
+
+statData = dataL1 %>% 
+  dplyr::group_by(투표구) %>% 
+  dplyr::summarise(
+    sumVal = sum(투표수, na.rm = TRUE) 
+  )
+
+
+dataL2 = dataL1 %>% 
+  dplyr::left_join(statData, by = c("투표구" = "투표구")) %>% 
+  # dplyr::mutate(
+  #   perVal = (투표수 / sumVal) * 100.0
+  # ) %>% 
+  tidyr::spread(key = "나이", value = "투표수")
+
+# dataL2 = dataL1 %>% 
+#   tidyr::gather(-c(투표구, 나이), key = "key", value = "val") %>% 
+#   dplyr::left_join(statData, by = c("투표구" = "투표구")) %>%
+#   dplyr::group_by(투표구, key) %>% 
+#   dplyr::summarise(
+#     meanVal = mean(val, na.rm = TRUE)
+#   ) %>% 
+#   dplyr::ungroup() %>% 
+#   tidyr::spread(key = "key", value = "meanVal")
+
+# dataL3 = dataL2 %>% 
+#   rowwise(투표구) %>% 
+#   dplyr::mutate(
+#     sumVal = sum(더불어민주당, 자유한국당, 기타야당, na.rm = TRUE)
+#     , maxVal = max(더불어민주당, 자유한국당, 기타야당, na.rm = TRUE)
+#     , meanVal = (더불어민주당 / sumVal) * 100
+#     , meanVal2 = (자유한국당 / sumVal) * 100
+#     , meanVal3 = (기타야당 / sumVal) * 100
+#     , val = dplyr::case_when(
+#       자유한국당 == maxVal ~ 1
+#       , 더불어민주당 == maxVal ~ 2
+#       , 기타야당 == maxVal ~ 3
+#     )
+#   )
+# 
+# dataL4 = dataL3 %>%
+#   dplyr::select(-c(더불어민주당, 자유한국당, 기타야당, sumVal, val, maxVal)) %>%
+#   # dplyr::select(-c(meanVal, meanVal2, meanVal3, sumVal, val, maxVal)) %>%
+#   dplyr::rename(
+#     더불어민주당 = meanVal
+#     , 자유한국당 = meanVal2
+#     , 기타야당 = meanVal3
+#   ) %>% 
+#   tidyr::gather(-c(투표구), key = "key", value = "val")
+
+
+# 
+# saveImg1 = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "서울특별시_강서구_선거_빈도분포")
+# 
+# ggplot(dataL4, aes(x = 투표구, y = val, fill = key, group = key, label = round(val, 0))) +
+#   # geom_bar(position = "dodge", stat = "identity") +
+#   geom_bar(position = position_stack(), stat = "identity") +
+#   # geom_text(size = 5, vjust = 1.6, hjust = 0.5, color = "white") +
+#   geom_text(position = position_stack(vjust = 0.5), size = 5, color = "white") +
+#   coord_flip() +
+#   scale_y_continuous(labels = scales::percent_format(accuracy = 1, scale = 1)) +
+#   labs(x = "투표구", y = "비율", fill = NULL, subtitle = "서울특별시 강서구 선거 빈도분포") +
+#   # scale_x_continuous(breaks = seq(1, 11, 1)) +
+#   theme(
+#     text = element_text(size = 16)
+#     # , axis.text.x = element_text(angle = 45, hjust = 1)
+#     , legend.position = "top"
+#   ) +
+#   # facet_wrap(~종류, scale = "free", ncol = 3) +
+#   ggsave(filename = saveImg1, width = 12, height = 10, dpi = 600)
+
+
+# 읍면동 지도 읽기
+mapInfo = Sys.glob(file.path(globalVar$mapPath, "koreaInfo/bnd_dong_00_2019_2019_2Q.shp"))
+
+# shp 파일 읽기 (2)
+mapGlobal = sf::st_read(mapInfo, quiet = TRUE, options = "ENCODING=EUC-KR") %>% 
+  sf::st_transform(CRS("+proj=longlat"))
+
+# st_coordinates() extracts the lon/lat values as a data frame with X and Y columns
+# mapGlobalL1 = st_coordinates(mapGlobal)
+
+# mapGlobalL1 = dplyr::bind_cols(mapGlobal, st_coordinates(mapGlobal))
+
+# ncc = sf::st_centroid(mapGlobal)
+# ncc$geometry
+# 
+# s1 = st_coordinates(ncc)
+# s2 = st_geometry(ncc)
+# 
+# 
+# f = st_point_on_surface(mapGlobal)
+# ncc = sf::st_centroid(dataL5$geometry) %>% 
+  # sf::st_coordinates()
+
+# g = st_centroid(mapGlobal)
+
+# 법정동 코드 읽기 (2)
+codeInfo = Sys.glob(file.path(globalVar$mapPath, "admCode/admCode.xlsx"))
+codeData = openxlsx::read.xlsx(codeInfo, sheet = 1, startRow = 2)
+
+codeDataL1 = codeData %>%
+  dplyr::filter(
+    stringr::str_detect(시도명칭, regex("충청남도"))
+    , stringr::str_detect(시군구명칭, regex("아산시"))
+  ) 
+
+
+# 통합 데이터셋
+dataL5 = mapGlobal %>%
+  dplyr::inner_join(codeDataL1, by = c("adm_dr_cd" = "읍면동코드")) %>%
+  dplyr::left_join(dataL2, by = c("adm_dr_nm" = "투표구")) 
+
+# 중심 위/경도 반환
+posData = sf::st_centroid(dataL5$geometry) %>% 
+  sf::st_coordinates() %>% 
+  as.tibble() %>% 
+  dplyr::rename(
+   "lon" = "X"
+    , "lat" = "Y"
+  )
+
+dataL6 = dplyr::bind_cols(dataL5, posData)
+
+# st_coordinates() extracts the lon/lat values as a data frame with X and Y columns
+# g = st_coordinates(dataL5$geometry)
+
+
+
+#>           X         Y
+#> 1 1764804.7  643907.8
+#> 2  498908.3  698100.5
+#> 3 1329260.8  446475.9
+#> 4 1147033.0 -454520.0
+
+# Bind the coordinates to the full data frame
+# events_transformed_with_lat_lon <- cbind(events_transformed, st_coordinates(events_transformed))
+
+# The X and Y points are now extracted!
+# events_transformed_with_lat_lon
+
+
+# 
+# 
+# ggplot(mapGlobal) +
+#   geom_sf()
+# 
+# bb<-st_bbox(st_buffer(gps,0.2))
+# 
+# st_crop(world,xmin=bb$xmin[[1]],ymin=bb$ymin[[1]],xmax=bb$xmax[[1]],ymax=bb$ymax[[1]]) ->fond
+# 
+# 
+# g2<-ggplot(gps) + 
+#   geom_sf(color='red',cex=0.2)+geom_sf(data=fond)
+
+
+# ggplot() +
+#   # geom_sf(data = whatever_shapefile_youre_using) +
+#   geom_point(data = events_transformed_with_lat_lon, aes(x = X, y = Y), size = 4) +
+#   coord_sf(crs = 102003)
+
+
+
+# ************************************************
+# 선거 주제도
+# ************************************************
+dataL7 = na.omit(dataL6)
+
+dataL8 = dataL7 %>% 
+  as.tibble() %>% 
+  dplyr::mutate(
+    geometry = NULL
+  )
+
+plotSubTitle = sprintf("%s", "충청남도 아산시 전체 인구현황")
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, plotSubTitle)
+
+ggplot() +
+  theme_bw() +
+  coord_fixed(ratio = 1) +
+  geom_sf(data = dataL6, fill = NA, inherit.aes = FALSE) +
+  geom_sf_text(data = dataL6, aes(label = 읍면동명칭)) +
+  scatterpie::geom_scatterpie(
+    aes(x = lon, y = lat, group = factor(읍면동명칭))
+    , cols=c("18-20세", "21-30세", "31-40세", "41-50세", "51-60세", "61-70세", "71세 이상")
+    , data = dataL8, color = NA, alpha = 0.75) +
+  labs(
+    x = NULL
+    , y = NULL
+    , color = NULL
+    , fill = NULL
+    , subtitle = plotSubTitle
+  ) +
+  theme(
+    text = element_text(size = 14)
+    , panel.grid.major.x = element_blank()
+    , panel.grid.major.y = element_blank()
+    , panel.grid.minor.x = element_blank()
+    , panel.grid.minor.y = element_blank()
+    , axis.text.x = element_blank()
+    , axis.ticks.x = element_blank()
+    , axis.title.x = element_blank()
+    , axis.text.y = element_blank()
+    , axis.ticks.y = element_blank()
+    , axis.title.y = element_blank()
+    , plot.subtitle = element_text(hjust = 1)
+    , legend.position = "top"
+  ) +
+  ggsave(filename = saveImg, width = 12, height = 8, dpi = 600)
+
+
+plotSubTitle2 = sprintf("%s", "충청남도 아산시 일부 인구현황 (크기 비율 O)")
+plotSubTitle2 = sprintf("%s", "충청남도 아산시 일부 인구현황 (크기 비율 X)")
+saveImg2 = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, plotSubTitle2)
+
+ggplot() +
+  theme_bw() +
+  # coord_fixed(ratio) +
+  coord_fixed(ratio = 1) +
+  geom_sf(data = dataL7, fill = NA, inherit.aes = FALSE) +
+  geom_sf_text(data = dataL7, aes(label = 읍면동명칭)) +
+  # scatterpie::geom_scatterpie(
+  #   aes(x = lon, y = lat, group = factor(읍면동명칭))
+  #   , cols=c("18-20세", "21-30세", "31-40세", "41-50세", "51-60세", "61-70세", "71세 이상")
+  #   , data = dataL8, color = NA, alpha = 0.75
+  #   ) +
+  scatterpie::geom_scatterpie(
+    aes(x = lon, y = lat, group = factor(읍면동명칭), r = sumVal/2000000)
+    , cols=c("18-20세", "21-30세", "31-40세", "41-50세", "51-60세", "61-70세", "71세 이상")
+    , data = dataL8, color = NA, alpha = 0.75
+  ) +
+  # scatterpie::geom_scatterpie_legend(dataL8$sumVal/2000000, x = 126.84, y = 36.70) +
+  labs(
+    x = NULL
+    , y = NULL
+    , color = NULL
+    , fill = NULL
+    , subtitle = plotSubTitle2
+  ) +
+  theme(
+    text = element_text(size = 14)
+    , panel.grid.major.x = element_blank()
+    , panel.grid.major.y = element_blank()
+    , panel.grid.minor.x = element_blank()
+    , panel.grid.minor.y = element_blank()
+    , axis.text.x = element_blank()
+    , axis.ticks.x = element_blank()
+    , axis.title.x = element_blank()
+    , axis.text.y = element_blank()
+    , axis.ticks.y = element_blank()
+    , axis.title.y = element_blank()
+    # , plot.subtitle = element_text(hjust = 1)
+    , legend.position = "top"
+    , legend.box = "horizontal"
+    , plot.margin = unit(c(0, 0, 0, 0), 'lines')
+  ) +
+  ggsave(filename = saveImg2, width = 12, height = 8, dpi = 600)
+  
+  
 
 #===============================================================================================
 # Routine : Main R program
@@ -34482,7 +34755,7 @@ for (i in 1:nrow(data2)) {
 #==================================================
 keywordData = data2L1 %>%
   dplyr::mutate(
-    token = replace(token, stringr::str_detect(token, regex("코로나")), "코로나19"))
+    token = replace(token, stringr::str_detect(token, regex("코로나")), "코로나19")
   ) %>% 
   dplyr::group_by(token) %>%
   dplyr::summarise(freq = n()) %>%
