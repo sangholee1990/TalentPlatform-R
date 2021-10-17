@@ -33614,9 +33614,11 @@ ggplot() +
   geom_sf(data = dataL6, fill = NA, inherit.aes = FALSE) +
   geom_sf_text(data = dataL6, aes(label = 읍면동명칭)) +
   scatterpie::geom_scatterpie(
-    aes(x = lon, y = lat, group = factor(읍면동명칭))
+    aes(x = lon, y = lat, group = factor(읍면동명칭), r = 0.015)
     , cols=c("18-20세", "21-30세", "31-40세", "41-50세", "51-60세", "61-70세", "71세 이상")
-    , data = dataL8, color = NA, alpha = 0.75) +
+    , data = dataL8, color = NA, alpha = 0.75
+  ) +
+  scatterpie::geom_scatterpie_legend(dataL8$sumVal/1500000, x = 126.85, y = 36.67) +
   labs(
     x = NULL
     , y = NULL
@@ -33636,14 +33638,16 @@ ggplot() +
     , axis.text.y = element_blank()
     , axis.ticks.y = element_blank()
     , axis.title.y = element_blank()
-    , plot.subtitle = element_text(hjust = 1)
     , legend.position = "top"
+    , legend.box = "horizontal"
+    , plot.margin = unit(c(0, 0, 0, 0), 'lines')
   ) +
   ggsave(filename = saveImg, width = 12, height = 8, dpi = 600)
 
 
-plotSubTitle2 = sprintf("%s", "충청남도 아산시 일부 인구현황 (크기 비율 O)")
+
 plotSubTitle2 = sprintf("%s", "충청남도 아산시 일부 인구현황 (크기 비율 X)")
+plotSubTitle2 = sprintf("%s", "충청남도 아산시 일부 인구현황 (크기 비율 O)")
 saveImg2 = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, plotSubTitle2)
 
 ggplot() +
@@ -33653,7 +33657,7 @@ ggplot() +
   geom_sf(data = dataL7, fill = NA, inherit.aes = FALSE) +
   geom_sf_text(data = dataL7, aes(label = 읍면동명칭)) +
   # scatterpie::geom_scatterpie(
-  #   aes(x = lon, y = lat, group = factor(읍면동명칭))
+  #   aes(x = lon, y = lat, group = factor(읍면동명칭), r = 0.01)
   #   , cols=c("18-20세", "21-30세", "31-40세", "41-50세", "51-60세", "61-70세", "71세 이상")
   #   , data = dataL8, color = NA, alpha = 0.75
   #   ) +
@@ -33662,7 +33666,7 @@ ggplot() +
     , cols=c("18-20세", "21-30세", "31-40세", "41-50세", "51-60세", "61-70세", "71세 이상")
     , data = dataL8, color = NA, alpha = 0.75
   ) +
-  # scatterpie::geom_scatterpie_legend(dataL8$sumVal/2000000, x = 126.84, y = 36.70) +
+  scatterpie::geom_scatterpie_legend(dataL8$sumVal/1500000, x = 126.84, y = 36.72) +
   labs(
     x = NULL
     , y = NULL
@@ -33682,13 +33686,11 @@ ggplot() +
     , axis.text.y = element_blank()
     , axis.ticks.y = element_blank()
     , axis.title.y = element_blank()
-    # , plot.subtitle = element_text(hjust = 1)
     , legend.position = "top"
     , legend.box = "horizontal"
     , plot.margin = unit(c(0, 0, 0, 0), 'lines')
   ) +
   ggsave(filename = saveImg2, width = 12, height = 8, dpi = 600)
-  
   
 
 #===============================================================================================
@@ -34774,3 +34776,99 @@ htmlwidgets::saveWidget(fig, "fig.html", selfcontained = FALSE)
 # html에서 png로 저장
 saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "워드클라우드")
 webshot::webshot("fig.html", saveImg, vwidth = 800, vheight = 600, delay = 10)
+
+
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+#================================================
+# 요구사항
+#================================================
+# R을 이용한 시계열 N등분 평균 및 시각화
+
+#================================================
+# 초기 환경변수 설정
+#================================================
+# env = "local"   # 로컬 : 원도우 환경, 작업환경 (현재 소스 코드 환경 시 .) 설정
+env = "dev"   # 개발 : 원도우 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+# env = "oper"  # 운영 : 리눅스 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+
+prjName = "test"
+serviceName = "LSH0229"
+contextPath = ifelse(env == "local", ".", getwd())
+
+if (env == "local") {
+  globalVar = list(
+    "inpPath" = contextPath
+    , "figPath" = contextPath
+    , "outPath" = contextPath
+    , "tmpPath" = contextPath
+    , "logPath" = contextPath
+  )
+} else {
+  source(here::here(file.path(contextPath, "src"), "InitConfig.R"), encoding = "UTF-8")
+}
+
+#================================================
+# 비즈니스 로직 수행
+#================================================
+# 라이브러리 읽기
+library(tidyverse)
+library(readr)
+library(stringr)
+library(vroom)
+library(ggplot2)
+
+fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0229_meas_plotter_20211007_1646462bluecopy.txt"))
+data = vroom::vroom(file = fileInfo, delim = "; ", col_names = FALSE, col_types = c("n", "n"))
+
+# 평균을 위한 등분 (예시: 30 등분)
+setNum = 30
+
+idxList = seq(from = 1, to = nrow(data), length.out = setNum + 1) %>% 
+  as.integer()
+
+# 등분 (grpId) 설정 
+dataL1 = data
+
+for (i in 1:length(idxList)) {
+  if (i == length(idxList)) next
+  
+  dataL1[idxList[i]:idxList[i+1], "grpId"] = i
+}
+
+summary(dataL1)
+
+# 등분에 따른 평균 수행 
+dataL2 = dataL1 %>% 
+  dplyr::group_by(grpId) %>% 
+  dplyr::summarise(
+    meanX = mean(X1, na.rm = TRUE)
+    , meanY = mean(X2, na.rm = TRUE)
+  )
+
+summary(dataL2)
+
+# 시각화
+mainName = "차대차 교통사고 유형별 사고건수"
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, mainName)
+
+ggplot() +
+  geom_point(data = dataL1, aes(x = X1, y = X2, group = grpId, fill = grpId)) +
+  geom_point(data = dataL2, aes(x = meanX, y = meanY, group = grpId, fill = grpId)) +
+  theme(
+    text = element_text(size = 18)
+    , legend.position = "top"
+  ) +
+  theme_bw() +
+  ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
+  
+
+
