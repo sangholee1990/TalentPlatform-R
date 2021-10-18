@@ -19288,7 +19288,8 @@ prjName = "test"
 # serviceName = "LSH0222"
 # serviceName = "LSH0224"
 # serviceName = "LSH0226"
-serviceName = "LSH0227"
+# serviceName = "LSH0227"
+serviceName = "LSH0228"
 
 contextPath = ifelse(env == "local", ".", getwd())
 
@@ -19438,7 +19439,10 @@ fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0195_일식 식분도 이�
 # sheetInfo = 32
 
 # 시트 33 : 후한온리(3)
-sheetInfo = 33
+# sheetInfo = 33
+# 
+# 시트 34 : 낙양당온리(11)
+sheetInfo = 34
 
 sheetName = dplyr::case_when(
   sheetInfo == 1 ~ "테스트"
@@ -19475,6 +19479,7 @@ sheetName = dplyr::case_when(
   , sheetInfo == 31 ~ "후진온리(8)"
   , sheetInfo == 32 ~ "후당온리(4)"
   , sheetInfo == 33 ~ "후한온리(3)"
+  , sheetInfo == 34 ~ "낙양당온리(11)"
   , TRUE ~ NA_character_
 )
 
@@ -19487,7 +19492,7 @@ data = openxlsx::read.xlsx(fileInfo, sheet = sheetInfo) %>%
 
 typeList = data$type %>% unique %>% sort
 
-selTypeList = typeList[3]
+selTypeList = typeList[11]
 
 for (typeInfo in selTypeList) {
 # for (typeInfo in typeList) {
@@ -19601,10 +19606,13 @@ beepr::beep(sound = 8)
 # sheetName = "후진온리(8)"
 
 # sheetList = c(29, 32)
-# # sheetName = "요-후당공통(2)+후당온리(4)"
+# sheetName = "요-후당공통(2)+후당온리(4)"
 
-sheetList = c(33)
-sheetName = "후한온리(3)"
+# sheetList = c(33)
+# sheetName = "후한온리(3)"
+
+sheetList = c(34)
+sheetName = "낙양당온리(11)"
 
 dataL3 = tibble()
 for (sheetInfo in sheetList) {
@@ -19676,8 +19684,8 @@ maxData = dataL4[idx, ]
 # setBreak = c(seq(0.48, 0, -0.02), 0.47)
 # setBreak = c(seq(0.48, 0, -0.02), 0.47)
 # setBreak = c(seq(0.47, 0, -0.02), 0.46)
-setBreak = c(seq(0.85, 0, -0.05))
-setBreak2 = c(seq(0.85, 0.1, -0.05))
+# setBreak = c(seq(0.85, 0, -0.05))
+setBreak = c(seq(0.68, 0, -0.02))
 
 # 0.8515
 
@@ -19689,7 +19697,7 @@ ggplot(data = dataL4, aes(x = xAxis, y = yAxis, fill = meanVal, z = meanVal)) +
   scale_fill_gradientn(colours = cbMatlab, limits = c(0, 1.0), breaks = seq(0, 1.0, 0.2), na.value = NA) +
   geom_sf(data = mapGlobal, aes(x = NULL, y = NULL, fill = NULL, z = NULL), color = "black", fill = NA) +
   metR::geom_contour2(color = "black", alpha = 1.0, breaks = setBreak, show.legend = FALSE, size = 0.5) +
-  metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, skip = 0, breaks = setBreak2, rotate = TRUE, na.rm = TRUE, size = 5) +
+  metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, skip = 0, breaks = setBreak, rotate = TRUE, na.rm = TRUE, size = 5) +
   geom_point(data = maxData, aes(x = xAxis, y = yAxis, colour = meanVal, fill = NULL, z = NULL), color = "red") +
   metR::scale_x_longitude(breaks = seq(90, 150, 10), limits = c(90, 150), expand = c(0, 0)) +
   metR::scale_y_latitude(breaks = seq(10, 60, 10), limits = c(10, 60), expand = c(0, 0)) +
@@ -19712,7 +19720,7 @@ ggplot(data = dataL4, aes(x = xAxis, y = yAxis, fill = meanVal, z = meanVal)) +
   # metR::geom_contour_fill(na.fill = TRUE, kriging = TRUE)
   geom_sf(data = mapGlobal, aes(x = NULL, y = NULL, fill = NULL, z = NULL), color = "black", fill = NA) +
   metR::geom_contour2(color = "black", alpha = 1.0, breaks = setBreak, show.legend = FALSE, size = 0.5) +
-  metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, skip = 0, breaks = setBreak2, rotate = TRUE, na.rm = TRUE, size = 5) +
+  metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, skip = 0, breaks = setBreak, rotate = TRUE, na.rm = TRUE, size = 5) +
   geom_point(data = maxData, aes(x = xAxis, y = yAxis, colour = meanVal, fill = NULL, z = NULL), color = "red") +
   metR::scale_x_longitude(breaks = seq(90, 150, 10), limits = c(90, 150), expand = c(0, 0)) +
   metR::scale_y_latitude(breaks = seq(10, 60, 10), limits = c(10, 60), expand = c(0, 0)) +
