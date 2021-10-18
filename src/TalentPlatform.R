@@ -12157,7 +12157,7 @@ remDr$open()
 # sentence = list(string)
 #
 # webElem2 = remDr$findElement(using = 'class',
-#                               value = 'txt_gray') #이 렇게 하면 textgray가 정의가 된것임(ㅋㄹ래스 옆에tx그레이있음)
+#                               value = 'txt_gray') #이 렇게 하면 textgray가 정의가 된것임(클래스 옆에tx그레이있음)
 #
 #
 # webElem2$highlightElement() #여기가 맞는지확인
@@ -34791,7 +34791,7 @@ webshot::webshot("fig.html", saveImg, vwidth = 800, vheight = 600, delay = 10)
 #================================================
 # 요구사항
 #================================================
-# R을 이용한 시계열 N등분 평균 및 시각화
+# R을 이용한 N 등분에 따른 평균 시계열 및 시각화
 
 #================================================
 # 초기 환경변수 설정
@@ -34830,7 +34830,9 @@ fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0229_meas_plotter_20211007_
 data = vroom::vroom(file = fileInfo, delim = "; ", col_names = FALSE, col_types = c("n", "n"))
 
 # 평균을 위한 등분 (예시: 30 등분)
-setNum = 30
+# setNum = 30
+# setNum = 1000
+setNum = 10000
 
 idxList = seq(from = 1, to = nrow(data), length.out = setNum + 1) %>% 
   as.integer()
@@ -34857,18 +34859,27 @@ dataL2 = dataL1 %>%
 summary(dataL2)
 
 # 시각화
-mainName = "차대차 교통사고 유형별 사고건수"
+mainName = sprintf("%s 등분에 따른 평균 시계열", setNum)
 saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, mainName)
 
 ggplot() +
-  geom_point(data = dataL1, aes(x = X1, y = X2, group = grpId, fill = grpId)) +
-  geom_point(data = dataL2, aes(x = meanX, y = meanY, group = grpId, fill = grpId)) +
+  theme_bw() +
+  geom_point(data = dataL1, aes(x = X1, y = X2), shape = 16, color = "black", alpha = 0.1, size = 0.1) +
+  # geom_point(data = dataL2, aes(x = meanX, y = meanY, color = grpId), size = 4) +
+  # geom_point(data = dataL2, aes(x = meanX, y = meanY, color = grpId), size = 2) +
+  geom_point(data = dataL2, aes(x = meanX, y = meanY, color = grpId), size = 0.5) +
+  scale_color_gradientn(colours = rainbow(10)) +
+  labs(
+    subtitle = mainName
+    , x = NULL
+    , y = NULL
+    , fill = NULL
+    , colour = NULL
+    , title = NULL
+    , size = NULL
+  ) +
   theme(
     text = element_text(size = 18)
-    , legend.position = "top"
+    # , legend.position = "top"
   ) +
-  theme_bw() +
-  ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
-  
-
-
+  ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
