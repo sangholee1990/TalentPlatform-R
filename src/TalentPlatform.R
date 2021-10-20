@@ -19685,9 +19685,10 @@ maxData = dataL4[idx, ]
 # setBreak = c(seq(0.48, 0, -0.02), 0.47)
 # setBreak = c(seq(0.47, 0, -0.02), 0.46)
 # setBreak = c(seq(0.85, 0, -0.05))
-setBreak = c(seq(0.68, 0, -0.02))
+setBreak = c(seq(0.68, 0.60, -0.02), seq(0.58, 0, -0.04))
+# setBreak2 = c(seq(0.68, 0.60, -0.02), seq(0.58, 0.1, -0.04))
 
-# 0.8515
+# 0.6802
 
 saveImg = sprintf("%s/%s_%s_%s.png", globalVar$figPath, serviceName, sheetName, "Mean_Color")
 
@@ -34839,8 +34840,8 @@ data = vroom::vroom(file = fileInfo, delim = "; ", col_names = FALSE, col_types 
 
 # 평균을 위한 등분 (예시: 30 등분)
 # setNum = 30
-# setNum = 1000
-setNum = 10000
+setNum = 1000
+# setNum = 10000
 
 idxList = seq(from = 1, to = nrow(data), length.out = setNum + 1) %>% 
   as.integer()
