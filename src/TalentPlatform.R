@@ -34858,14 +34858,19 @@ for (i in 1:length(idxList)) {
 summary(dataL1)
 
 # 등분에 따른 평균 수행 
-dataL2 = dataL1 %>% 
+dataL2 = dataL1 %>%
   dplyr::group_by(grpId) %>% 
   dplyr::summarise(
     meanX = mean(X1, na.rm = TRUE)
     , meanY = mean(X2, na.rm = TRUE)
-  )
+  ) %>% 
+  dplyr::filter(
+    meanX >= -200
+    )
 
 summary(dataL2)
+
+
 
 # 시각화
 mainName = sprintf("%s 등분에 따른 평균 시계열", setNum)
@@ -34875,8 +34880,8 @@ ggplot() +
   theme_bw() +
   geom_point(data = dataL1, aes(x = X1, y = X2), shape = 16, color = "black", alpha = 0.1, size = 0.1) +
   # geom_point(data = dataL2, aes(x = meanX, y = meanY, color = grpId), size = 4) +
-  # geom_point(data = dataL2, aes(x = meanX, y = meanY, color = grpId), size = 2) +
-  geom_point(data = dataL2, aes(x = meanX, y = meanY, color = grpId), size = 0.5) +
+  geom_point(data = dataL2, aes(x = meanX, y = meanY, color = grpId), size = 2) +
+  # geom_point(data = dataL2, aes(x = meanX, y = meanY, color = grpId), size = 0.5) +
   scale_color_gradientn(colours = rainbow(10)) +
   labs(
     subtitle = mainName
@@ -34892,3 +34897,144 @@ ggplot() +
     # , legend.position = "top"
   ) +
   ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
+
+
+# **********************************************
+# kmeans 단일 클러스터링 (데이터 표준화 X)
+# **********************************************
+dataL2
+dataL3 = dataL2 %>% 
+  dplyr::select(meanX, meanY)
+
+# 클러스터링 모형
+kcluModel = dataL3 %>% 
+  purrr::keep(is.numeric) %>% 
+  # kmeans(centers = 30, iter.max = 10, nstart = 5)
+  amap::Kmeans(centers = 30, method = "euclidean")
+
+
+# 클러스터링 요약
+summary(kcluModel)
+
+# Length  Class  Mode   
+# cluster  2053265 -none- numeric (각 지점에 대한 정보 포함)
+# centers       44 -none- numeric (클러스터링 결과)
+# withinss       4 -none- numeric (클러스터링 오차)
+# size           4 -none- numeric (클러스터링 크기)
+
+# 각 지점에 대한 정보 포함
+# kcluModel$cluster
+
+# 클러스터링 결과
+# kcluModel$centers
+
+# 클러스터링 오차
+# kcluModel$withinss
+
+# 클러스터링 크기
+# kcluModel$size
+
+# 원시 데이터+ 클러스터링 결과 
+pointAssignments = broom::augment(kcluModel, dataL3) 
+pointAssignments
+
+# 클러스터링 결과
+clusterInfo = broom::tidy(kcluModel)
+clusterInfo
+
+# 클러스터링 통계 결과 (amap::Kmean 라이브러리 이용 시 불가)
+# totWithinss = sum(kcluModel$withinss, na.rm = TRUE)
+modelStats = broom::glance(kcluModel)
+modelStats
+
+# 시각화
+mainName = sprintf("%s 등분에 따른 kmeans 시계열", setNum)
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, mainName)
+
+ggplot() +
+  theme_bw() +
+  geom_point(data = pointAssignments, aes(x = meanX, y = meanY, color = .cluster), shape = 16, alpha = 0.5) + 
+  geom_label(data = clusterInfo, aes(x = meanX , y = meanY, label = cluster, fill = factor(cluster)), size = 8, colour = "white", fontface = "bold", show.legend = FALSE) +
+  labs(
+    subtitle = NULL
+    , x = NULL
+    , y = NULL
+    , fill = NULL
+    , colour = NULL
+    , title = NULL
+    , size = NULL
+  ) +
+  theme(
+    text = element_text(size = 18)
+    , legend.position = "top"
+    , axis.line = element_blank()
+    , axis.text = element_blank()
+    , axis.ticks = element_blank()
+    , plot.margin = unit(c(0, 0, 0, 0), 'lines')
+  ) +
+  ggsave(filename = saveImg, width = 10, height = 10, dpi = 600)
+
+# **********************************************
+# kmeans 단일 클러스터링 (데이터 표준화 O)
+# **********************************************
+dataL5 = dataL3 %>% 
+  dplyr::mutate_each(
+    funs(scale)
+    , vars = c(colnames(dataL3))
+  )
+
+# 클러스터링 모형
+kcluModel = dataL5 %>% 
+  purrr::keep(is.numeric) %>% 
+  # kmeans(centers = 30, iter.max = 10, nstart = 5)
+  amap::Kmeans(centers = 30, method = "euclidean")
+
+
+# 원시 데이터+ 클러스터링 결과
+pointAssignments = broom::augment(kcluModel, dataL5) %>% 
+  dplyr::mutate_each_(
+    funs(grt::unscale)
+    , vars = colnames(dataL3)
+  )
+pointAssignments
+
+# 클러스터링 결과
+clusterInfo = broom::tidy(kcluModel) %>% 
+  dplyr::mutate_each_(
+    funs(grt::unscale)
+    , vars = colnames(dataL3)
+  )
+clusterInfo
+
+# 클러스터링 통계 결과 (amap::Kmean 라이브러리 이용 시 불가)
+# totWithinss = sum(kcluModel$withinss, na.rm = TRUE)
+modelStats = kcluModelList %>%
+  dplyr::select(nClu, glanced) %>%
+  tidyr::unnest(glanced)
+
+# 시각화
+mainName = sprintf("%s 등분에 따른 kmeans-Nomal 시계열", setNum)
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, mainName)
+
+ggplot() +
+  theme_bw() +
+  geom_point(data = pointAssignments, aes(x = meanX , y = meanY, color = .cluster), shape = 16, alpha = 0.5) + 
+  geom_label(data = clusterInfo, aes(x = meanX , y = meanY, label = cluster, fill = factor(cluster)), size = 8, colour = "white", fontface = "bold", show.legend = FALSE) +
+  labs(
+    subtitle = NULL
+    , x = NULL
+    , y = NULL
+    , fill = NULL
+    , colour = NULL
+    , title = NULL
+    , size = NULL
+  ) +
+  theme(
+    text = element_text(size = 18)
+    , legend.position = "top"
+    , axis.line = element_blank()
+    , axis.text = element_blank()
+    , axis.ticks = element_blank()
+    , plot.margin = unit(c(0, 0, 0, 0), 'lines')
+  ) +
+  ggsave(filename = saveImg, width = 10, height = 10, dpi = 600)
