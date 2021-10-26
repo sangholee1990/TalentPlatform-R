@@ -35142,3 +35142,206 @@ ggplot() +
     , plot.margin = unit(c(0, 0, 0, 0), 'lines')
   ) +
   ggsave(filename = saveImg, width = 10, height = 10, dpi = 600)
+
+
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+#================================================
+# 요구사항
+#================================================
+# R을 이용한 2018년 사회조사 데이터 전처리
+
+# 제목 : 2018년 사회조사 데이터 전처리
+# 저자 :
+# 제작 시기 : 2021-10-27
+# 기능 : 원본 CSV 파일 읽기, 코드 정보에 대한 범주형 변환, 정제 파일 저장
+
+#================================================
+# 초기 환경변수 설정
+#================================================
+# env = "local"   # 로컬 : 원도우 환경, 작업환경 (현재 소스 코드 환경 시 .) 설정
+env = "dev"   # 개발 : 원도우 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+# env = "oper"  # 운영 : 리눅스 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+
+prjName = "test"
+serviceName = "LSH0234"
+contextPath = ifelse(env == "local", ".", getwd())
+
+if (env == "local") {
+  globalVar = list(
+    "inpPath" = contextPath
+    , "figPath" = contextPath
+    , "outPath" = contextPath
+    , "tmpPath" = contextPath
+    , "logPath" = contextPath
+  )
+} else {
+  source(here::here(file.path(contextPath, "src"), "InitConfig.R"), encoding = "UTF-8")
+}
+
+#================================================
+# 비즈니스 로직 수행
+#================================================
+# 라이브러리 읽기
+library(tidyverse)
+library(readr)
+
+# 파일 찾기
+fileInfo = Sys.glob(file.path(globalVar$inpPath, "보건_교육_안전_가족_환경_2018.csv"))
+
+# ******************************************************
+# 데이터 정제 (원본 CSV 파일 읽기, 7종 컬럼명 설정)
+# ******************************************************
+# 가구번호 : hshldNm
+# 가구원번호 : hshldMmsNm
+# 만연령 : age
+# 가구주관계코드: hshldRlCd
+# 교육정보코드 : edctnInCd
+# 재학상태코드 : stdntStCd
+# 재학학년코드 : gradeCd
+data = readr::read_csv(file = fileInfo, col_names = c("hshldNm", "hshldMmsNm", "age", "hshldRlCd", "edctnInCd", "stdntStCd", "gradeCd"))
+
+# 범주형 변수 (즉 컬럼명 맨 끝에 Cd가 포함된 경우) 변환
+dataL1 = data %>% 
+  dplyr::mutate_at(dplyr::vars(dplyr::ends_with("Cd")), as.factor)
+
+# 정제된 파일 저장
+saveFile = sprintf("%s/%s.csv", globalVar$outPath, "보건_교육_안전_가족_환경_2018_정제")
+readr::write_csv(x = dataL1, file = saveFile)
+
+# ******************************************************
+# 요약 통계
+# ******************************************************
+summary(dataL1)
+
+# > summary(dataL1)
+# hshldNm           hshldMmsNm             age              hshldRlCd    
+# Min.   :    1.000   Length:42550       Min.   :  0.00000   01     :18546  
+# 1st Qu.: 4557.000   Class :character   1st Qu.: 25.00000   03     :11393  
+# Median : 8871.000   Mode  :character   Median : 45.00000   02     :10534  
+# Mean   : 9096.633                      Mean   : 43.23217   06     :  996  
+# 3rd Qu.:13626.000                      3rd Qu.: 60.00000   05     :  328  
+# Max.   :18546.000                      Max.   :104.00000   04     :  313  
+
+# edctnInCd     stdntStCd    gradeCd     
+# 3      :11893   1   :  107   1   :  585  
+# 5      : 8259   2   :  718   2   : 3678  
+# 4      : 5648   3   : 6238   3   : 3702  
+# 2      : 4469   4   :  717   4   :  518  
+# 1      : 3981   5   :  877   5   :   54  
+# 0      : 1596   NA's:33893   6   :   13  
+# 6      : 1267                NA's:34000  
+# 7      : 348 
+# NA's   : 5089
+
+
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+#================================================
+# 요구사항
+#================================================
+# R을 이용한 독립표본 T검정, 일원배치 분산분석
+
+#================================================
+# 초기 환경변수 설정
+#================================================
+# env = "local"   # 로컬 : 원도우 환경, 작업환경 (현재 소스 코드 환경 시 .) 설정
+env = "dev"   # 개발 : 원도우 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+# env = "oper"  # 운영 : 리눅스 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+
+prjName = "test"
+serviceName = "LSH0235"
+contextPath = ifelse(env == "local", ".", getwd())
+
+if (env == "local") {
+  globalVar = list(
+    "inpPath" = contextPath
+    , "figPath" = contextPath
+    , "outPath" = contextPath
+    , "tmpPath" = contextPath
+    , "logPath" = contextPath
+  )
+} else {
+  source(here::here(file.path(contextPath, "src"), "InitConfig.R"), encoding = "UTF-8")
+}
+
+#================================================
+# 비즈니스 로직 수행
+#================================================
+# 라이브러리 읽기
+library(tidyverse)
+library(readr)
+
+# 파일 찾기
+fileInfo = Sys.glob(file.path(globalVar$inpPath, "kdc_csv.csv"))
+data = readr::read_csv(file = fileInfo)
+
+# 3. KDC 데이터를 이용해 다음 조건에 맞게 독립표본 t검정을 할 수 있는 R코드 및 검정결과를 쓰세요.
+# 2) 소양인과 소음인의 키 차이가 있는지 검정하세요.
+
+teData = data[data$FINALDIAGNOSIS == 1, ]
+seData = data[data$FINALDIAGNOSIS == 2, ]
+syData = data[data$FINALDIAGNOSIS == 3, ]
+
+dataL1 = dplyr::bind_rows(
+  data.frame(value = seData$HEIGHT, type = "se")
+  , data.frame(value = syData$HEIGHT, type = "sy")
+)
+
+# P값이 0.65으로서 귀무가설 기각하지 못함 (두 그룹의 분산 차이가 없다)
+# 따라서 등분산 조건 (var.equal = TRUE)
+fTest = var.test(value ~ type, data = dataL1)
+fTest
+
+# P값이 0.48로서 귀무가설 기각하지 못함 (두 그룹의 키 차이가 없다)
+tTest = t.test(value ~ type, data = dataL1, var.equal = TRUE)
+tTest
+
+
+# 4. KDC데이터를 이용해서 다음 조건에 맞게 일원배치 분산분석을 할 수 있는 R코드 및 검정결과를 쓰세요.
+# 1) 태음인, 소양인, 소음인에 따른 몸무게 평균의 차이가 있는지 검정하세요.
+
+dataL1 = dplyr::bind_rows(
+  data.frame(value = seData$WEIGHT, type = "se")
+  , data.frame(value = syData$WEIGHT, type = "sy")
+  , data.frame(value = teData$WEIGHT, type = "te")
+)
+
+# onewayRes에서 P값은 2.2204e-16로서 0.05보다 작기 때문에 세 그룹에 따른 몸무게 평균의 차이가 있다.
+onewayRes = oneway.test(value ~ type, data = dataL1)
+onewayRes
+
+
+# 2) 태음인, 소양인, 소음인에 따른 총 콜레스테롤의 평균과 표준편차를 구하고 평균의 차이가 있는지 검정하세요.
+dataL1 = dplyr::bind_rows(
+  data.frame(value = seData$T_CHOL, type = "se")
+  , data.frame(value = syData$T_CHOL, type = "sy")
+  , data.frame(value = teData$T_CHOL, type = "te")
+)
+
+dataL2 = dataL1 %>% 
+  dplyr::group_by(type) %>% 
+  dplyr::summarise(
+    meanVal = mean(value, na.rm = TRUE) # 평균
+    , sdVal = sd(value, na.rm = TRUE) # 표준편차
+  ) 
+
+# onewayRes에서 P값은 0.871505로서 0.05보다 크기 때문에 세 그룹에 따른 총 콜레스테롤 평균의 차이가 없다.
+onewayRes = oneway.test(value ~ type, data = dataL1)
+onewayRes
