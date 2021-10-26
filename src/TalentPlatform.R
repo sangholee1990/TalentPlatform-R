@@ -33447,70 +33447,9 @@ statData = dataL1 %>%
     sumVal = sum(투표수, na.rm = TRUE) 
   )
 
-
 dataL2 = dataL1 %>% 
   dplyr::left_join(statData, by = c("투표구" = "투표구")) %>% 
-  # dplyr::mutate(
-  #   perVal = (투표수 / sumVal) * 100.0
-  # ) %>% 
   tidyr::spread(key = "나이", value = "투표수")
-
-# dataL2 = dataL1 %>% 
-#   tidyr::gather(-c(투표구, 나이), key = "key", value = "val") %>% 
-#   dplyr::left_join(statData, by = c("투표구" = "투표구")) %>%
-#   dplyr::group_by(투표구, key) %>% 
-#   dplyr::summarise(
-#     meanVal = mean(val, na.rm = TRUE)
-#   ) %>% 
-#   dplyr::ungroup() %>% 
-#   tidyr::spread(key = "key", value = "meanVal")
-
-# dataL3 = dataL2 %>% 
-#   rowwise(투표구) %>% 
-#   dplyr::mutate(
-#     sumVal = sum(더불어민주당, 자유한국당, 기타야당, na.rm = TRUE)
-#     , maxVal = max(더불어민주당, 자유한국당, 기타야당, na.rm = TRUE)
-#     , meanVal = (더불어민주당 / sumVal) * 100
-#     , meanVal2 = (자유한국당 / sumVal) * 100
-#     , meanVal3 = (기타야당 / sumVal) * 100
-#     , val = dplyr::case_when(
-#       자유한국당 == maxVal ~ 1
-#       , 더불어민주당 == maxVal ~ 2
-#       , 기타야당 == maxVal ~ 3
-#     )
-#   )
-# 
-# dataL4 = dataL3 %>%
-#   dplyr::select(-c(더불어민주당, 자유한국당, 기타야당, sumVal, val, maxVal)) %>%
-#   # dplyr::select(-c(meanVal, meanVal2, meanVal3, sumVal, val, maxVal)) %>%
-#   dplyr::rename(
-#     더불어민주당 = meanVal
-#     , 자유한국당 = meanVal2
-#     , 기타야당 = meanVal3
-#   ) %>% 
-#   tidyr::gather(-c(투표구), key = "key", value = "val")
-
-
-# 
-# saveImg1 = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "서울특별시_강서구_선거_빈도분포")
-# 
-# ggplot(dataL4, aes(x = 투표구, y = val, fill = key, group = key, label = round(val, 0))) +
-#   # geom_bar(position = "dodge", stat = "identity") +
-#   geom_bar(position = position_stack(), stat = "identity") +
-#   # geom_text(size = 5, vjust = 1.6, hjust = 0.5, color = "white") +
-#   geom_text(position = position_stack(vjust = 0.5), size = 5, color = "white") +
-#   coord_flip() +
-#   scale_y_continuous(labels = scales::percent_format(accuracy = 1, scale = 1)) +
-#   labs(x = "투표구", y = "비율", fill = NULL, subtitle = "서울특별시 강서구 선거 빈도분포") +
-#   # scale_x_continuous(breaks = seq(1, 11, 1)) +
-#   theme(
-#     text = element_text(size = 16)
-#     # , axis.text.x = element_text(angle = 45, hjust = 1)
-#     , legend.position = "top"
-#   ) +
-#   # facet_wrap(~종류, scale = "free", ncol = 3) +
-#   ggsave(filename = saveImg1, width = 12, height = 10, dpi = 600)
-
 
 # 읍면동 지도 읽기
 mapInfo = Sys.glob(file.path(globalVar$mapPath, "koreaInfo/bnd_dong_00_2019_2019_2Q.shp"))
@@ -33518,24 +33457,6 @@ mapInfo = Sys.glob(file.path(globalVar$mapPath, "koreaInfo/bnd_dong_00_2019_2019
 # shp 파일 읽기 (2)
 mapGlobal = sf::st_read(mapInfo, quiet = TRUE, options = "ENCODING=EUC-KR") %>% 
   sf::st_transform(CRS("+proj=longlat"))
-
-# st_coordinates() extracts the lon/lat values as a data frame with X and Y columns
-# mapGlobalL1 = st_coordinates(mapGlobal)
-
-# mapGlobalL1 = dplyr::bind_cols(mapGlobal, st_coordinates(mapGlobal))
-
-# ncc = sf::st_centroid(mapGlobal)
-# ncc$geometry
-# 
-# s1 = st_coordinates(ncc)
-# s2 = st_geometry(ncc)
-# 
-# 
-# f = st_point_on_surface(mapGlobal)
-# ncc = sf::st_centroid(dataL5$geometry) %>% 
-  # sf::st_coordinates()
-
-# g = st_centroid(mapGlobal)
 
 # 법정동 코드 읽기 (2)
 codeInfo = Sys.glob(file.path(globalVar$mapPath, "admCode/admCode.xlsx"))
@@ -33563,45 +33484,6 @@ posData = sf::st_centroid(dataL5$geometry) %>%
   )
 
 dataL6 = dplyr::bind_cols(dataL5, posData)
-
-# st_coordinates() extracts the lon/lat values as a data frame with X and Y columns
-# g = st_coordinates(dataL5$geometry)
-
-
-
-#>           X         Y
-#> 1 1764804.7  643907.8
-#> 2  498908.3  698100.5
-#> 3 1329260.8  446475.9
-#> 4 1147033.0 -454520.0
-
-# Bind the coordinates to the full data frame
-# events_transformed_with_lat_lon <- cbind(events_transformed, st_coordinates(events_transformed))
-
-# The X and Y points are now extracted!
-# events_transformed_with_lat_lon
-
-
-# 
-# 
-# ggplot(mapGlobal) +
-#   geom_sf()
-# 
-# bb<-st_bbox(st_buffer(gps,0.2))
-# 
-# st_crop(world,xmin=bb$xmin[[1]],ymin=bb$ymin[[1]],xmax=bb$xmax[[1]],ymax=bb$ymax[[1]]) ->fond
-# 
-# 
-# g2<-ggplot(gps) + 
-#   geom_sf(color='red',cex=0.2)+geom_sf(data=fond)
-
-
-# ggplot() +
-#   # geom_sf(data = whatever_shapefile_youre_using) +
-#   geom_point(data = events_transformed_with_lat_lon, aes(x = X, y = Y), size = 4) +
-#   coord_sf(crs = 102003)
-
-
 
 # ************************************************
 # 선거 주제도
@@ -33701,6 +33583,228 @@ ggplot() +
   ) +
   ggsave(filename = saveImg2, width = 12, height = 8, dpi = 600)
   
+
+#=================================================
+# 충청남도 아산시 세부 주제도
+#=================================================
+# 선거 데이터 읽기
+fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0214_선거분석(강서병).xlsx"))
+data = openxlsx::read.xlsx(fileInfo, sheet = 6)
+dataGeo = openxlsx::read.xlsx(fileInfo, sheet = 7)
+
+# 세부 투표구에 대한 위/경도 반환
+dataGeoL1 = dataGeo %>% 
+  dplyr::mutate(
+    addr = stringr::str_c(주소, 건물명, sep = " ")
+  )
+
+addrList = dataGeoL1$addr%>% unique %>% sort %>%
+  as.tibble()
+
+saveFile = sprintf("%s/%s_%s.csv", globalVar$outPath, serviceName, "충남 아산시 투표구 정보")
+
+# 각 주소에 따라 위/경도 반환
+# for (i in 1:nrow(addrList)) {
+#   
+#   # 구글 API 하루 제한
+#   addrData = ggmap::mutate_geocode(addrList[i, 'value'], value, source = "google")
+# 
+#   if (nrow(addrData) < 1) { next }
+# 
+#   readr::write_csv(x = addrData, file = saveFile, append = TRUE)
+# }
+
+addrData =  readr::read_csv(file = saveFile, col_names = c("value", "lon", "lat"))
+
+dataGeoL2 = dataGeoL1 %>% 
+  dplyr::left_join(addrData, by = c("addr" = "value"))
+
+# summary(dataGeoL2)
+
+dataL1 = data %>%
+  as.tibble() %>%
+  na.omit() %>%
+  readr::type_convert()
+
+dataL2 = dataL1 %>% 
+  tidyr::gather(-c(투표구, 세부투표구, 종류), key = "key", value = "val") %>% 
+  dplyr::group_by(투표구, key) %>% 
+  dplyr::summarise(
+    meanVal = mean(val, na.rm = TRUE)
+  ) %>% 
+  dplyr::ungroup() %>% 
+  tidyr::spread(key = "key", value = "meanVal")
+
+dataL3 = dataL2 %>% 
+  rowwise(투표구) %>% 
+  dplyr::mutate(
+    sumVal = sum(더불어민주당, 자유한국당, 국민의당, na.rm = TRUE)
+    , maxVal = max(더불어민주당, 자유한국당, 국민의당, na.rm = TRUE)
+    , meanVal = (더불어민주당 / sumVal) * 100
+    , meanVal2 = (자유한국당 / sumVal) * 100
+    , meanVal3 = (국민의당 / sumVal) * 100
+    , val = dplyr::case_when(
+      자유한국당 == maxVal ~ 1
+      , 더불어민주당 == maxVal ~ 2
+      , 국민의당 == maxVal ~ 3
+    )
+  )
+
+dataDtlL2 = dataL1 %>% 
+  tidyr::gather(-c(투표구, 세부투표구, 종류), key = "key", value = "val") %>% 
+  dplyr::group_by(세부투표구, key) %>% 
+  dplyr::summarise(
+    meanVal = mean(val, na.rm = TRUE)
+  ) %>% 
+  dplyr::ungroup() %>% 
+  tidyr::spread(key = "key", value = "meanVal")
+
+dataDtlL3 = dataDtlL2 %>% 
+  rowwise(세부투표구) %>% 
+  dplyr::mutate(
+    sumVal = sum(더불어민주당, 자유한국당, 국민의당, na.rm = TRUE)
+    , maxVal = max(더불어민주당, 자유한국당, 국민의당, na.rm = TRUE)
+    , meanVal = (더불어민주당 / sumVal) * 100
+    , meanVal2 = (자유한국당 / sumVal) * 100
+    , meanVal3 = (국민의당 / sumVal) * 100
+    , val = dplyr::case_when(
+      자유한국당 == maxVal ~ 1
+      , 더불어민주당 == maxVal ~ 2
+      , 국민의당 == maxVal ~ 3
+    )
+  ) %>% 
+  dplyr::left_join(dataGeoL2, by = c("세부투표구" = "세부투표구")) %>% 
+  dplyr::mutate(
+    label = str_match_all(세부투표구, "제[[:digit:]]+투") %>% unlist()
+  )
+
+# 읍면동 지도 읽기
+mapInfo = Sys.glob(file.path(globalVar$mapPath, "koreaInfo/bnd_dong_00_2019_2019_2Q.shp"))
+
+# shp 파일 읽기 (2)
+mapGlobal = sf::st_read(mapInfo, quiet = TRUE, options = "ENCODING=EUC-KR") %>% 
+  sf::st_transform(CRS("+proj=longlat"))
+
+# 법정동 코드 읽기 (2)
+codeInfo = Sys.glob(file.path(globalVar$mapPath, "admCode/admCode.xlsx"))
+codeData = openxlsx::read.xlsx(codeInfo, sheet = 1, startRow = 2)
+
+codeDataL1 = codeData %>%
+  dplyr::filter(
+    stringr::str_detect(시도명칭, regex("충청남도"))
+    , stringr::str_detect(시군구명칭, regex("아산시"))
+  ) 
+
+# 통합 데이터셋
+dataL5 = mapGlobal %>%
+  dplyr::inner_join(codeDataL1, by = c("adm_dr_cd" = "읍면동코드")) %>%
+  dplyr::left_join(dataL3, by = c("adm_dr_nm" = "투표구")) 
+
+
+# ************************************************
+# 선거 주제도
+# ************************************************
+plotSubTitle = sprintf("%s", "충청남도 아산시 선거 주제도")
+saveImg2 = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, plotSubTitle)
+
+ggplotDefaultColor = hue_pal()(3)
+
+ggplot() +
+  theme_bw() +
+  coord_fixed(ratio = 1) +
+  geom_sf(data = dataL5, aes(fill = factor(val)), inherit.aes = FALSE, alpha = 0.3) +
+  geom_sf_text(data = dataL5, aes(label = 읍면동명칭)) +
+  geom_point(data = dataDtlL3, aes(x = lon, y = lat, color = factor(val)), shape = 16, show.legend = FALSE) +
+  ggrepel::geom_label_repel(
+    data = dataDtlL3
+    , aes(x = lon, y = lat, fill = factor(val), label = label)
+    , color = "white"
+    , segment.color = "black"
+    , show.legend = FALSE
+    , segment.size = 0.2
+    , size = 3
+    ) +
+  scale_fill_manual(
+    name = NULL
+    , na.value = "transparent"
+    , values = c("1" = ggplotDefaultColor[1], "2" = ggplotDefaultColor[2], "3" = ggplotDefaultColor[3])
+    , labels = c("자유한국당", "더불어민주당", "기타야당")
+  ) +
+  scale_color_manual(
+    name = NULL
+    , na.value = "transparent"
+    , values = c("1" = ggplotDefaultColor[1], "2" = ggplotDefaultColor[2], "3" = ggplotDefaultColor[3])
+    , labels = c("자유한국당", "더불어민주당", "기타야당")
+  ) +
+  labs(title = plotSubTitle, x = NULL, y = NULL, colour = NULL, fill = NULL, subtitle = NULL) +
+  theme(
+    text = element_text(size = 16)
+    , panel.grid.major.x = element_blank()
+    , panel.grid.major.y = element_blank()
+    , panel.grid.minor.x = element_blank()
+    , panel.grid.minor.y = element_blank()
+    , axis.text.x = element_blank()
+    , axis.ticks.x = element_blank()
+    , axis.title.x = element_blank()
+    , axis.text.y = element_blank()
+    , axis.ticks.y = element_blank()
+    , axis.title.y = element_blank()
+    , plot.subtitle = element_text(hjust = 1)
+    , legend.position = "top"
+  ) +
+  ggsave(filename = saveImg2, width = 12, height = 8, dpi = 600)
+
+
+dataDtlL4 = dataDtlL3 %>%
+  dplyr::select(-c(더불어민주당, 자유한국당, 국민의당, sumVal, val, maxVal, 건물명, 주소, addr, lon, lat, label)) %>%
+  dplyr::rename(
+    더불어민주당 = meanVal
+    , 자유한국당 = meanVal2
+    , 국민의당 = meanVal3
+  ) %>% 
+  tidyr::gather(-c(세부투표구), key = "key", value = "val") %>% 
+  dplyr::mutate(
+    label = str_match_all(세부투표구, "제[[:digit:]]+투") %>% unlist()
+    , 투표구 = str_replace_all(세부투표구, pattern = "제[[:digit:]]+투", replacement = "")
+  ) %>% 
+  dplyr::na_if(0)
+
+# 정당에 따른 정렬
+dataDtlL4$key = forcats::fct_relevel(dataDtlL4$key, c("자유한국당", "더불어민주당", "국민의당"))
+
+selLabel = paste0("제", c(1:99), "투")
+dataDtlL4$label = forcats::fct_relevel(dataDtlL4$label, selLabel)
+# dataDtlL4$label = forcats::fct_relevel(dataDtlL4$label, rev(selLabel))
+
+# ************************************************
+# 선거 빈도분포
+# ************************************************
+plotSubTitle = sprintf("%s", "충청남도 아산시 선거 빈도분포")
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, plotSubTitle)
+
+ggplot(dataDtlL4, aes(x = label, y = val, fill = key, group = key, label = round(val, 0))) +
+  # geom_bar(position = "dodge", stat = "identity") +
+  geom_bar(position = position_stack(), stat = "identity") +
+  # geom_text(size = 5, vjust = 1.6, hjust = 0.5, color = "white") +
+  geom_text(position = position_stack(vjust = 0.5), size = 4, color = "white") +
+  coord_flip() +
+  # scale_y_continuous(labels = scales::percent_format(accuracy = 1, scale = 1)) +
+  labs(x = "세부 투표구", y = "비율", fill = NULL, subtitle = plotSubTitle) +
+  # scale_x_continuous(breaks = seq(1, 11, 1)) +
+  theme(
+    text = element_text(size = 14)
+    # , axis.text.x = element_text(angle = 45, hjust = 1)
+    , legend.position = "top"
+    , axis.ticks.x = element_blank()
+    , axis.text.x = element_blank()
+  ) +
+  # facet_wrap(~투표구, scale = "free", ncol = 3) +
+  facet_wrap(~투표구, scale = "free", ncol = 4) +
+  # facet_wrap(~투표구, scale = "free", space = "free", ncol = 5) +
+  # scale_x_discrete(drop = FALSE) +
+  ggsave(filename = saveImg, width = 12, height = 10, dpi = 600)
+
+
 
 #===============================================================================================
 # Routine : Main R program
