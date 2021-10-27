@@ -19497,7 +19497,7 @@ data = openxlsx::read.xlsx(fileInfo, sheet = sheetInfo) %>%
 
 typeList = data$type %>% unique %>% sort
 
-selTypeList = typeList[22]
+selTypeList = typeList[56]
 
 for (typeInfo in selTypeList) {
 # for (typeInfo in typeList) {
@@ -19532,7 +19532,7 @@ for (typeInfo in selTypeList) {
     geom_raster(interpolate = TRUE, na.rm = TRUE) +
     # metR::geom_contour_fill(na.fill = TRUE, kriging = TRUE) +.
     # geom_tile() +
-    scale_fill_gradientn(colours = cbMatlab, limits = c(0.0, 1.01), breaks = c(0, 0.3, 0.5, 0.7, 0.9), na.value = NA) +
+    scale_fill_gradientn(colours = cbMatlab, limits = c(0, 1.1), breaks = c(0, 0.3, 0.5, 0.7, 0.9), na.value = NA) +
     # metR::geom_contour2(color = "black", alpha = 1.0, breaks = seq(0.3, 0.9, 0.2), show.legend = FALSE) +
     geom_sf(data = mapGlobal, aes(x = NULL, y = NULL, fill = NULL, z = NULL), color = "black", fill = NA) +
     metR::geom_contour2(color = "black", alpha = 1.0, breaks = 0, show.legend = FALSE, size = 0.1) +
@@ -35350,3 +35350,239 @@ dataL2 = dataL1 %>%
 # onewayRes에서 P값은 0.871505로서 0.05보다 크기 때문에 세 그룹에 따른 총 콜레스테롤 평균의 차이가 없다.
 onewayRes = oneway.test(value ~ type, data = dataL1)
 onewayRes
+
+
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+#================================================
+# 요구사항
+#================================================
+# R을 이용한 학생 정보 및 학점 데이터 그룹핑 평균 처리
+
+#================================================
+# 세부 요구사항
+#================================================
+# <코드 작성 요구 사항>
+# 함수 subset, aegregate, merge, mean, max, Drow 등을 사용하여 코딩하며 중간 결과 저 장 위해서 변수 사용 가능.
+# 각 문제의 최종 결과만 Console 창에 출력
+# Console 창에 최종 결과와 함께 출력되는 왼쪽 편의 행 번호는 제거할 필요가 없음.
+# student_basic_info.csy Entrance_year, Number_of_semester, Total_course_credits의 내용(값)은 달라질 수 있다는 가정하고 코딩.
+# student_course_info.csv의 Grade, Course_semester 의 내용(값)은 달라질 수 있다는 가 정하고 코딩.
+# Student_num, Major, Name, Course_taken은 변경되지 않음.
+
+#================================================
+# 초기 환경변수 설정
+#================================================
+# env = "local"   # 로컬 : 원도우 환경, 작업환경 (현재 소스 코드 환경 시 .) 설정
+env = "dev"   # 개발 : 원도우 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+# env = "oper"  # 운영 : 리눅스 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+
+prjName = "test"
+serviceName = "LSH0236"
+contextPath = ifelse(env == "local", ".", getwd())
+
+if (env == "local") {
+  globalVar = list(
+    "inpPath" = contextPath
+    , "figPath" = contextPath
+    , "outPath" = contextPath
+    , "tmpPath" = contextPath
+    , "logPath" = contextPath
+  )
+} else {
+  source(here::here(file.path(contextPath, "src"), "InitConfig.R"), encoding = "UTF-8")
+}
+
+#================================================
+# 비즈니스 로직 수행
+#================================================
+# 라이브러리 읽기
+library(tidyverse)
+library(readr)
+
+# 파일 찾기 및 CSV 파일 읽기
+fileInfo = Sys.glob(file.path(globalVar$inpPath, "student_basic_info.csv"))
+stuBasInfoData = readr::read_csv(file = fileInfo)
+
+fileInfo2 = Sys.glob(file.path(globalVar$inpPath, "student_course_info.csv"))
+stuCouInfoData = readr::read_csv(file = fileInfo2)
+
+# Student_num, Name 컬럼을 기준으로 좌측 조인
+data = stuBasInfoData %>% 
+  dplyr::left_join(stuCouInfoData, by = c("Student_num" = "Student_num", "Name" = "Name"))
+
+# A tibble: 30 x 9
+# Student_num Major       Name   Entrance_year Number_of_semes~ Total_course_cr~
+#   <dbl> <chr>       <chr>          <dbl>            <dbl>            <dbl>
+# 1   143211001 Physics     Mike            2011                7               30
+# 2   143211002 Mathematics Robert          2012                6               51
+# 3   143211003 Chemistry   Sophia          2013                5               15
+# 4   143211004 Biology     James           2013                4               27
+# 5   143211005 Mathematics Jacob           2015                3               12
+# 6   143211006 Chemistry   Austin          2011                6               33
+# 7   143211007 Biology     Olivia          2013                4               18
+# 8   143211008 Physics     Danial          2012                5               12
+# 9   143211009 Mathematics Colin           2014                4               36
+# 10   143211010 Chemistry   Amelia          2015                5               48
+# ... with 20 more rows, and 3 more variables: Course_taken <chr>,
+#   Grade <dbl>, Course_semester <chr>
+
+# ********************************************************************************************
+# Q1. 전공(Major)이 Chemistry인 모든 학생들의 Student_num, Major, Name, Entrance_year, 
+# Number_of_semester, Total_course_credits을 Console 창에 출력하는 코드 작성하시오.
+# ********************************************************************************************
+data %>% 
+  dplyr::filter(Major %in% c("Chemistry")) %>% 
+  dplyr::select(Student_num, Major, Name, Entrance_year, Number_of_semester, Total_course_credits) 
+
+# A tibble: 8 x 6
+# Student_num Major     Name    Entrance_year Number_of_semes~ Total_course_cr~
+#   <dbl> <chr>     <chr>           <dbl>            <dbl>            <dbl>
+# 1   143211003 Chemistry Sophia           2013                5               15
+# 2   143211006 Chemistry Austin           2011                6               33
+# 3   143211010 Chemistry Amelia           2015                5               48
+# 4   143211012 Chemistry Henry            2014                5               36
+# 5   143211016 Chemistry Eliana           2015                6               69
+# 6   143211019 Chemistry Eric             2011                8               78
+# 7   143211021 Chemistry Michael          2015                5               51
+# 8   143211027 Chemistry Anna             2014                2               48
+  
+
+# ********************************************************************************************
+# Q2. 입학년도(Entrance_year)가 2013년을 포함하며 그리고 2013년 이후에 입학한 모든 학생들의 
+# Student_num, Major, Name, Entrance_year. Number_of_semester, Total_course_credits 
+# Console 창에 출력하는 코드 작성하시오..
+# ********************************************************************************************
+data %>% 
+  dplyr::filter(Entrance_year >= 2013) %>% 
+  dplyr::select(Student_num, Major, Name, Entrance_year, Number_of_semester, Total_course_credits) 
+
+# A tibble: 18 x 6
+# Student_num Major       Name      Entrance_year Number_of_semes~ Total_course_cr~
+#   <dbl> <chr>       <chr>             <dbl>            <dbl>            <dbl>
+# 1   143211003 Chemistry   Sophia             2013                5               15
+# 2   143211004 Biology     James              2013                4               27
+# 3   143211005 Mathematics Jacob              2015                3               12
+# 4   143211007 Biology     Olivia             2013                4               18
+# 5   143211009 Mathematics Colin              2014                4               36
+# 6   143211010 Chemistry   Amelia             2015                5               48
+# 7   143211012 Chemistry   Henry              2014                5               36
+# 8   143211013 Biology     Justin             2013                3               51
+# 9   143211015 Mathematics Brandon            2013                4               60
+# 10   143211016 Chemistry   Eliana             2015                6               69
+# 11   143211018 Physics     Kevin              2014                6               81
+# 12   143211021 Chemistry   Michael            2015                5               51
+# 13   143211022 Mathematics Nick               2013                5               51
+# 14   143211024 Biology     Elizabeth          2014                5               12
+# 15   143211025 Physics     Dilan              2015                2               24
+# 16   143211027 Chemistry   Anna               2014                2               48
+# 17   143211029 Physics     Audrey             2013                3               51
+# 18   143211030 Biology     Tony               2015                2               81
+
+
+# ********************************************************************************************
+# Q3. 수강한 과목(Course_taken)으로 Major_course 를 수강한 모든 학생들의 
+# Student_num, Major. Name. Course_taken. Grade, Course_semester를 
+# Console 창에 출력하는 코드 작성 하시오..
+# ********************************************************************************************
+data %>% 
+  dplyr::filter(Course_taken %in% c("Major_course")) %>% 
+  dplyr::select(Student_num, Major, Name, Course_taken, Grade, Course_semester) 
+
+# A tibble: 7 x 6
+# Student_num Major       Name   Course_taken Grade Course_semester
+# <dbl> <chr>       <chr>  <chr>        <dbl> <chr>          
+# 1   143211002 Mathematics Robert Major_course  4.21 Fall           
+# 2   143211006 Chemistry   Austin Major_course  4.37 Spring         
+# 3   143211011 Mathematics Floyd  Major_course  2.74 Spring         
+# 4   143211019 Chemistry   Eric   Major_course  3.82 Fall           
+# 5   143211023 Biology     Paul   Major_course  3.55 Spring         
+# 6   143211025 Physics     Dilan  Major_course  2.92 Fall           
+# 7   143211028 Biology     Mark   Major_course  3.76 Spring   
+
+# ********************************************************************************************
+# Q4. 수강한 과목(Course_taken)으로 기초과목(Basic_course)을 수강한 학생들 중에서 
+# 입학년도(Entrance_year)가 2013년을 포함하며 그리고 
+# 2013년 이후에 입학한 학생들의 전공 (Major)별 총 이수학점 (Total_course_credits) 평균을 
+# Console 창에 출력하는 코드 작성하시
+# ********************************************************************************************
+data %>% 
+  dplyr::filter(
+    Course_taken %in% c("Basic_course")
+    , Entrance_year >= 2013
+    ) %>% 
+  dplyr::group_by(Major) %>% 
+  dplyr::summarise(
+    meanTotCouCre = mean(Total_course_credits, na.rm = TRUE)
+  )
+
+# A tibble: 4 x 2
+# Major       meanTotCouCre
+# <chr>               <dbl>
+# 1 Biology              34.5
+# 2 Chemistry            51  
+# 3 Mathematics          36  
+# 4 Physics              81  
+
+
+# ********************************************************************************************
+# Q5. 봄(Spring)에 수강한 모든 학생들의 전공(Major)별 학점 (Grade) 평균을 구한 후에 
+# 전공(Major) 학점 (Grade) 평균이 두 번째로 높은 전공(Major)을 
+# Console 창에 출력하는 코드 작성하시오.
+# ********************************************************************************************
+data %>% 
+  dplyr::filter(
+    Course_semester %in% c("Spring")
+  ) %>% 
+  dplyr::group_by(Major) %>% 
+  dplyr::summarise(
+    meanGrade = mean(Grade, na.rm = TRUE)
+  ) %>% 
+  dplyr::arrange(desc(meanGrade)) %>% 
+  dplyr::slice(2)
+
+# A tibble: 1 x 2
+# Major   meanGrade
+# <chr>       <dbl>
+# 1 Physics      3.52
+
+
+# ********************************************************************************************
+# Q6. 기초과목 (Basic_course)에서 최고 학점 (Grade)을 받은 학생이 속한 전공 (Major)의 
+# 소속 학생들 중에서 교양과목 (Liberal_arts_course)을 수강한 학생들의 학점 (Grade) 평균 
+# Consale 창에 출력하는 코드 작성하시오..
+# ********************************************************************************************
+tmpData = data %>% 
+  dplyr::filter(
+    Course_taken %in% c("Basic_course")
+  ) %>% 
+  dplyr::filter(
+    Grade == max(Grade, na.rm = TRUE)
+  )
+
+# A tibble: 1 x 9
+# Student_num Major     Name  Entrance_year Number_of_semester Total_course_credits
+# <dbl> <chr>     <chr>         <dbl>              <dbl>                <dbl>
+# 1   143211027 Chemistry Anna           2014                  2                   48
+
+data %>% 
+  dplyr::filter(
+    Major %in% c(tmpData$Major)
+    , Course_taken %in% c("Liberal_arts_course")
+  ) %>% 
+  dplyr::summarise(
+    meanGrade = mean(Grade, na.rm = TRUE)
+  )
+
+# A tibble: 1 x 1
+# meanGrade
+# <dbl>
+# 1      3.49
