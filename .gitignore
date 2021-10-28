@@ -6,10 +6,16 @@ InitResources/
 resources/
 .RDataFiles/
 .idea/
+fig_files/
+testSys/
+
 # 특정 파일
 .Rproj.user
 .Rhistory
 .RData*
+info_parallel.log
+fig.html
+
 # 하위 파일 전체
 *.cfg
 *.ttf
@@ -20,6 +26,7 @@ resources/
 *.o
 *.exe
 .RData*
+
 #=========================================
 # 캐시 지우기
 #=========================================
@@ -29,7 +36,3 @@ resources/
 # git rm --cached .RData*
 # 폴더
 # git rm --cached .idea/ -r
-fig.html
-fig_files
-info_parallel.log
-testSys
