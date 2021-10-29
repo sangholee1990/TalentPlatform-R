@@ -19497,7 +19497,7 @@ data = openxlsx::read.xlsx(fileInfo, sheet = sheetInfo) %>%
 
 typeList = data$type %>% unique %>% sort
 
-selTypeList = typeList[56]
+selTypeList = typeList[67]
 
 for (typeInfo in selTypeList) {
 # for (typeInfo in typeList) {
@@ -19616,8 +19616,11 @@ beepr::beep(sound = 8)
 # sheetList = c(33)
 # sheetName = "후한온리(3)"
 
-sheetList = c(34)
-sheetName = "낙양당온리(11)"
+# sheetList = c(34)
+# sheetName = "낙양당온리(11)"
+
+sheetList = c(35)
+sheetName = "시안당온리(67)"
 
 dataL3 = tibble()
 for (sheetInfo in sheetList) {
@@ -19690,10 +19693,11 @@ maxData = dataL4[idx, ]
 # setBreak = c(seq(0.48, 0, -0.02), 0.47)
 # setBreak = c(seq(0.47, 0, -0.02), 0.46)
 # setBreak = c(seq(0.85, 0, -0.05))
-setBreak = c(seq(0.68, 0.60, -0.02), seq(0.58, 0, -0.04))
-# setBreak2 = c(seq(0.68, 0.60, -0.02), seq(0.58, 0.1, -0.04))
+# setBreak = c(seq(0.68, 0.60, -0.02), seq(0.58, 0, -0.04))
+# setBreak = c(seq(0.68, 0.60, -0.02), seq(0.58, 0, -0.04))
+setBreak = c(seq(0.44, 0, -0.02))
 
-# 0.6802
+# 0.4455
 
 saveImg = sprintf("%s/%s_%s_%s.png", globalVar$figPath, serviceName, sheetName, "Mean_Color")
 
