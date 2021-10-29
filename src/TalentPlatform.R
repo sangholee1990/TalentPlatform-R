@@ -19290,7 +19290,8 @@ prjName = "test"
 # serviceName = "LSH0226"
 # serviceName = "LSH0227"
 # serviceName = "LSH0228"
-serviceName = "LSH0233"
+# serviceName = "LSH0233"
+serviceName = "LSH0237"
 
 contextPath = ifelse(env == "local", ".", getwd())
 
@@ -19446,7 +19447,13 @@ fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0195_일식 식분도 이�
 # sheetInfo = 34
 
 # 시트 35 : 시안당온리(67)
-sheetInfo = 35
+# sheetInfo = 35
+
+# 시트 36 : 진+수+공통(1)
+# sheetInfo = 36
+
+# 시트 37 : 수온리(3)
+sheetInfo = 37
 
 sheetName = dplyr::case_when(
   sheetInfo == 1 ~ "테스트"
@@ -19485,6 +19492,8 @@ sheetName = dplyr::case_when(
   , sheetInfo == 33 ~ "후한온리(3)"
   , sheetInfo == 34 ~ "낙양당온리(11)"
   , sheetInfo == 35 ~ "시안당온리(67)"
+  , sheetInfo == 36 ~ "진+수+공통(1)"
+  , sheetInfo == 37 ~ "수온리(3)"
   , TRUE ~ NA_character_
 )
 
@@ -19497,7 +19506,7 @@ data = openxlsx::read.xlsx(fileInfo, sheet = sheetInfo) %>%
 
 typeList = data$type %>% unique %>% sort
 
-selTypeList = typeList[67]
+selTypeList = typeList[3]
 
 for (typeInfo in selTypeList) {
 # for (typeInfo in typeList) {
@@ -19619,8 +19628,11 @@ beepr::beep(sound = 8)
 # sheetList = c(34)
 # sheetName = "낙양당온리(11)"
 
-sheetList = c(35)
-sheetName = "시안당온리(67)"
+# sheetList = c(35)
+# sheetName = "시안당온리(67)"
+
+sheetList = c(36, 37)
+sheetName = "진-수-공통(1)+수온리(3)"
 
 dataL3 = tibble()
 for (sheetInfo in sheetList) {
@@ -19695,9 +19707,12 @@ maxData = dataL4[idx, ]
 # setBreak = c(seq(0.85, 0, -0.05))
 # setBreak = c(seq(0.68, 0.60, -0.02), seq(0.58, 0, -0.04))
 # setBreak = c(seq(0.68, 0.60, -0.02), seq(0.58, 0, -0.04))
-setBreak = c(seq(0.44, 0, -0.02))
+# setBreak = c(seq(0.44, 0, -0.02))
 
-# 0.4455
+setBreakCont = c(seq(0.64, 0, -0.02))
+setBreakText = c(seq(0.64, 0.10, -0.02))
+
+# 0.6478
 
 saveImg = sprintf("%s/%s_%s_%s.png", globalVar$figPath, serviceName, sheetName, "Mean_Color")
 
@@ -19706,8 +19721,8 @@ ggplot(data = dataL4, aes(x = xAxis, y = yAxis, fill = meanVal, z = meanVal)) +
   # metR::geom_contour_fill(na.fill = TRUE, kriging = TRUE) +
   scale_fill_gradientn(colours = cbMatlab, limits = c(0, 1.0), breaks = seq(0, 1.0, 0.2), na.value = NA) +
   geom_sf(data = mapGlobal, aes(x = NULL, y = NULL, fill = NULL, z = NULL), color = "black", fill = NA) +
-  metR::geom_contour2(color = "black", alpha = 1.0, breaks = setBreak, show.legend = FALSE, size = 0.5) +
-  metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, skip = 0, breaks = setBreak, rotate = TRUE, na.rm = TRUE, size = 5) +
+  metR::geom_contour2(color = "black", alpha = 1.0, breaks = setBreakCont, show.legend = FALSE, size = 0.5) +
+  metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, skip = 0, breaks = setBreakText, rotate = TRUE, na.rm = TRUE, size = 5) +
   geom_point(data = maxData, aes(x = xAxis, y = yAxis, colour = meanVal, fill = NULL, z = NULL), color = "red") +
   metR::scale_x_longitude(breaks = seq(90, 150, 10), limits = c(90, 150), expand = c(0, 0)) +
   metR::scale_y_latitude(breaks = seq(10, 60, 10), limits = c(10, 60), expand = c(0, 0)) +
@@ -19729,8 +19744,8 @@ ggplot(data = dataL4, aes(x = xAxis, y = yAxis, fill = meanVal, z = meanVal)) +
   # scale_fill_gradientn(colours = cbMatlab, limits = c(0, 1.0), breaks = seq(0, 1.0, 0.2), na.value = NA) +
   # metR::geom_contour_fill(na.fill = TRUE, kriging = TRUE)
   geom_sf(data = mapGlobal, aes(x = NULL, y = NULL, fill = NULL, z = NULL), color = "black", fill = NA) +
-  metR::geom_contour2(color = "black", alpha = 1.0, breaks = setBreak, show.legend = FALSE, size = 0.5) +
-  metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, skip = 0, breaks = setBreak, rotate = TRUE, na.rm = TRUE, size = 5) +
+  metR::geom_contour2(color = "black", alpha = 1.0, breaks = setBreakCont, show.legend = FALSE, size = 0.5) +
+  metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, skip = 0, breaks = setBreakText, rotate = TRUE, na.rm = TRUE, size = 5) +
   geom_point(data = maxData, aes(x = xAxis, y = yAxis, colour = meanVal, fill = NULL, z = NULL), color = "red") +
   metR::scale_x_longitude(breaks = seq(90, 150, 10), limits = c(90, 150), expand = c(0, 0)) +
   metR::scale_y_latitude(breaks = seq(10, 60, 10), limits = c(10, 60), expand = c(0, 0)) +
