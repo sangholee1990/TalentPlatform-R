@@ -35605,3 +35605,435 @@ data %>%
 # meanGrade
 # <dbl>
 # 1      3.49
+
+
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+#================================================
+# 요구사항
+#================================================
+# R을 이용한 비지도 학습 (주성분 분석, 군집 분석, Moran EigenVector Spatial Filtering)
+
+#================================================
+# 초기 환경변수 설정
+#================================================
+# env = "local"   # 로컬 : 원도우 환경, 작업환경 (현재 소스 코드 환경 시 .) 설정
+env = "dev"   # 개발 : 원도우 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+# env = "oper"  # 운영 : 리눅스 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+
+prjName = "test"
+serviceName = "LSH0232"
+contextPath = ifelse(env == "local", ".", getwd())
+
+if (env == "local") {
+  globalVar = list(
+    "inpPath" = contextPath
+    , "figPath" = contextPath
+    , "outPath" = contextPath
+    , "tmpPath" = contextPath
+    , "logPath" = contextPath
+  )
+} else {
+  source(here::here(file.path(contextPath, "src"), "InitConfig.R"), encoding = "UTF-8")
+}
+
+#================================================
+# 비즈니스 로직 수행
+#================================================
+# 라이브러리 읽기
+library(tidyverse)
+library(readr)
+library(raster)
+library(rgeos)
+library(maptools)
+library(rgdal)
+library(ggcorrplot)
+library(GGally)
+library(factoextra)
+
+# 파일 찾기
+fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "Seoul_grid.shp"))
+
+# shp 파일 읽기
+mapData = sf::st_read(fileInfo, quiet = TRUE, options = "ENCODING=EUC-KR") %>% 
+  sf::st_transform(CRS("+proj=longlat"))
+
+mapDataL1 = mapData %>% 
+  as.tibble() %>% 
+  dplyr::select(-c("grid_id", "geometry"))
+
+# ******************************************************************************
+# 1. 모든 변수 간의 상관관계 행렬(correlation matrix)를 계산하시오.
+# 특히 높은 상관관계를 보이는 변수쌍(절댓값 > 0.3)을 굵게 표시하고, 
+# 해당 변수들 간의 관계를 간략히 설명하시오. 
+# ******************************************************************************
+# 상관관계 행렬에서 아파트 단위면적당 매매가를 기준으로
+# 음의 관계 (지하철역 접근성, 노후 연수, 대학 진학률)을 보인 반면
+# 특목/자립고 진학 비율에서는 양의 관계를 보인다.
+# 특히 주요 편의 시설 관련 변수 (병원-공원-문화시설-공원시설 접근성)들은 서로 간의 상관성이 높음을 수 확인할 수 있다.
+
+# 상관계수 (1)
+corRes = cor(mapDataL1)
+pvalRes = ggcorrplot::cor_pmat(mapDataL1)    
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "상관계수 행렬 (1)")
+
+ggcorrplot::ggcorrplot(
+  corRes
+  , outline.col = "white"
+  , lab = TRUE
+  , p.mat = pvalRes
+  , sig.level = 0.05
+  , colors = c("#6D9EC1", "white", "#E46726")
+) +
+  ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
+
+# 상관계수 (2)
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "상관계수 행렬 (2)")
+
+GGally::ggcorr(corRes, geom = "blank", label = TRUE, hjust = 0.75, label_size = 5) +
+  geom_point(size = 14, aes(color = coefficient > 0, alpha = abs(coefficient) > 0.3)) +
+  scale_alpha_manual(values = c("TRUE" = 0.25, "FALSE" = 0)) +
+  guides(color = FALSE, alpha = FALSE) +
+  ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
+
+
+# ******************************************************************************
+# 2. 주성분분석을 실행하시오. 전체 변수의 분산을 적절히 요약하기 위해 
+# 적합한 수의 주성분을 선택하고, 선정 이유를 설명하시오. 
+# 더불어 각 주성분이 전체 분산에서 설명하는 비율을 나타내시오.
+# ******************************************************************************
+# 변수 표준화 과정없이 주성분분석을 수행한 결과 제1성분 및 제2성분만으로도 충분히 설명 가능할 것으로 판단된다.
+# 즉 1-2 성분에 대한 누적 분산은 0.9978로서 전체 분산의 99.78%를 설명할 수 임을 알 수 있다.
+
+# 표준화 O
+mapDataL1Scale = scale(mapDataL1)
+
+# 표준화 X + 상관계수 X
+# pcaRes = princomp(mapDataL1, cor = FALSE)
+
+# 표준화 O + 상관계수 O
+pcaRes = princomp(mapDataL1Scale, cor = TRUE)
+
+summary(pcaRes)
+
+pcaResVar = factoextra::get_eig(pcaRes)$variance.percent
+pcaResCumVar = factoextra::get_eig(pcaRes)$cumulative.variance.percent
+cnt = nrow(factoextra::get_eig(pcaRes))
+
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "주성분에 따른 설명력")
+
+factoextra::fviz_screeplot(pcaRes, addlabels = TRUE, title=  NULL, x="Principal  Components", y="Percentage  of  Variance  [%]", ncp = cnt) +
+  geom_point(aes(y=pcaResCumVar), col='red') + 
+  geom_line(aes(y=pcaResCumVar), col='red') +
+  theme_bw(base_size = 18) +
+  ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
+
+# ******************************************************************************
+# 3. 성분 부하량(loading)을 이용하여 선택된 주성분과 변수 간의 관계를 설명하시오. 
+# ******************************************************************************
+pcaResLoading = pcaRes$loadings
+
+# 각 성분에 따라 주요 영향을 미치는 변수 특성을 파악할 수 있다.
+# 즉 제1성분의 경우 아파트 단위면적당 매매가 영향이 큼을 확인할 수 있고
+# 또한 제2성분에서는 아파트 매매건수가 주요 영향임을 알수 있다.
+# 이는 앞서 언급한 바와 같이 데이터 표준화를 처리하지 않아서 
+# 데이터 큰 범위에 주성분분석에 영향을 끼치는 것으로 파악된다.
+
+
+# ******************************************************************************
+# 4. 두 번째 주성분의 성분 점수(scores)를 지도화하고, 그 패턴을 앞의 
+# 성분 부하량과 연관지어 해석하시오. 
+# Hint: 지도화를 위하여 MESF.R에 있는 mapping.seq함수를 이용할 수 있다
+# (필요 패키지: library(RColorBrewer); library(classInt)).
+# ******************************************************************************
+
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "주성분에 따른 분산 기여도")
+
+# Contributions of variables to PC1
+fviz_contrib(pcaRes, choice = "var", axes = 2, top = 10) +
+  theme_bw(base_size = 18) +
+  ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
+
+
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "주성분에 따른 성분부하량")
+
+fviz_pca_biplot(pcaRes, repel = TRUE, gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07")) +
+  theme_bw(base_size = 18) +
+  ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
+
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "주성분에 따른 성분부하량 (2)")
+
+fviz_pca_ind(pcaRes, col.ind = "cos2",
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+             repel = TRUE # Avoid text overlapping (slow if many points)
+) +
+  theme_bw(base_size = 18) +
+  ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
+
+
+
+
+
+
+# EOF = princomp(mapDataL1, cor = TRUE)
+EOF
+## scale = FALSE , center = FALSE : 공분산 행렬   (아노말리 미고려)
+## scale = FALSE , center = TRUR  : 공분산 행렬   (아노말리 고려)
+## scale = TRUE  , center = FALSE : 상관계수 행렬 (아노말리 미고려)
+## scale = TRUE  , center = TRUE  : 상관계수 행렬 (아노말리 고려)
+names(EOF)
+Eigen_value = EOF$sdev^2      ;  Eigen_value         # 고유근
+Eigen_vector = EOF$loadings   ;  Eigen_vector        # 고유벡터
+EOF_data = data.frame(EOF$scores)  ;  EOF_data            # Principal Components
+summary(EOF)
+
+screeplot(EOF, type = "l")   # 떨어지는 각도가 완만해지는 2까지 주성분으로 선택.
+
+## Eigen_value Test
+sum(diag(COV))        # 공분산의 대각선 합
+sum(Eigen_value)      # 고유근의 합
+PC_var = get_eig(EOF)$variance.percent
+pcaResCumVar = get_eig(EOF)$cumulative.variance.percent
+
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "주성분에 따른 설명력")
+# 
+# factoextra::fviz_screeplot(EOF, addlabels = TRUE, title=  NULL, x="Principal  Components", y="Percentage  of  Variance  [%]", ncp = nrow(get_eig(EOF))) +
+#   geom_point(aes(y=pcaResCumVar), col='red') + 
+#   geom_line(aes(y=pcaResCumVar), col='red') +
+#   theme_bw(base_size = 18) +
+#   ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
+
+# 성분 부하량
+Eigen_vector
+
+# Eigenvalues
+eig.val <- factoextra::get_eigenvalue(EOF)
+eig.val
+
+# Results for Variables
+res.var <- factoextra::get_pca_var(EOF)
+res.var$coord          # Coordinates
+res.var$contrib        # Contributions to the PCs
+res.var$cos2           # Quality of representation 
+res.var$cor
+
+# Results for individuals
+res.ind <- factoextra::get_pca_ind(EOF)
+res.ind$coord          # Coordinates
+res.ind$contrib        # Contributions to the PCs
+res.ind$cos2           # Quality of representation 
+
+# fviz_ca_row(EOF, repel = TRUE)
+
+# Color by cos2 values: quality on the factor map
+# fviz_ca_row(EOF, col.row = "cos2",
+#             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+#             repel = TRUE)
+
+# 분산 기여도
+fviz_pca_var(EOF, col.var="contrib",
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+             repel = TRUE # Avoid text overlapping
+)
+
+# Contributions of variables to PC1
+fviz_contrib(EOF, choice = "var", axes = 2, top = 10)
+
+
+
+
+# fviz_pca_biplot(EOF, repel = TRUE)
+
+# fviz_pca_ind(EOF, repel = TRUE)
+
+# res.ca <- CA(housetasks, graph = FALSE)
+# fviz_pca_ind(EOF,
+#              label = "none", # hide individual labels
+#              # habillage = iris$Species, # color by groups
+#              palette = c("#00AFBB", "#E7B800", "#FC4E07"),
+#              addEllipses = TRUE # Concentration ellipses
+# )
+
+# biplot(EOF,cex=0.8)
+
+library(classInt)  
+
+
+coords <- as.matrix(cbind(SPDF$x, SPDF$y))
+scaled.spdf <- SpatialPointsDataFrame(coords, as.data.frame(data.scaled ))
+
+bw.gw.pca <- bw.gwpca(scaled.spdf, 
+                      vars = colnames(scaled.spdf@data),
+                      k = 5,
+                      robust = FALSE, 
+                      adaptive = TRUE)
+
+
+
+
+
+#=================================================
+# Part 2: Cluster analysis
+#=================================================
+
+mapDataL2 = mapDataL1 %>% 
+  dplyr::select(-grid_id, -geometry)
+
+# 중심 위/경도 반환
+posData = sf::st_centroid(mapDataL1$geometry) %>% 
+  sf::st_coordinates() %>% 
+  as.tibble() %>% 
+  dplyr::rename(
+    "lon" = "X"
+    , "lat" = "Y"
+  )
+
+# ****************************************************************
+# kmeans 클러스터링 (데이터 표준화 X)
+# ****************************************************************
+mapDataL3 = dplyr::bind_cols(posData, mapDataL2)
+
+kcluModel = mapDataL3 %>% 
+  purrr::keep(is.numeric) %>% 
+  kmeans(centers = 8, iter.max = 10, nstart = 5)
+
+# 원시 데이터+ 클러스터링 결과
+pointAssignments = broom::augment(kcluModel, mapDataL3)
+pointAssignments
+
+# 클러스터링 결과
+clusterInfo = broom::tidy(kcluModel)
+clusterInfo
+
+# 클러스터링 통계 결과 (amap::Kmean 라이브러리 이용 시 불가)
+modelStats = broom::glance(kcluModel)
+modelStats
+
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "Kmeans-Cluster")
+
+ggplot() +
+  geom_sf(data = mapData, aes(x = NULL, y = NULL, fill = NULL, z = NULL), color = "grey50", fill = NA) +
+  geom_point(data = pointAssignments, aes(x = lon , y = lat, color = .cluster), shape = 15, size=5, alpha = 0.5) +
+  # geom_point(data = pointAssignments, aes(x = lon , y = lat, color = .cluster), shape = 16, size=5, alpha = 0.5) +
+  geom_label(data = clusterInfo, aes(x = lon , y = lat, label = cluster, fill = factor(cluster)), size = 8, colour = "white", fontface = "bold", show.legend = FALSE) +
+  labs(
+    subtitle = NULL
+    , x = NULL
+    , y = NULL
+    , fill = NULL
+    , colour = NULL
+    , title = NULL
+    , size = NULL
+  ) +
+  theme(
+    text = element_text(size = 18)
+    , legend.position = "top"
+    , axis.line = element_blank()
+    , axis.text = element_blank()
+    , axis.ticks = element_blank()
+    , plot.margin = unit(c(0, 0, 0, 0), 'lines')
+  ) +
+  ggsave(filename = saveImg, width = 10, height = 10, dpi = 600)
+
+# ****************************************************************
+# kmeans 클러스터링 (데이터 표준화 O)
+# ****************************************************************
+mapDataL3 = dplyr::bind_cols(posData, mapDataL2) %>% 
+  dplyr::mutate_each(
+    funs(scale)
+    , vars = c(colnames(mapDataL2))
+  )
+
+kcluModel = mapDataL3 %>% 
+  purrr::keep(is.numeric) %>% 
+  kmeans(centers = 8, iter.max = 10, nstart = 5)
+
+
+# 원시 데이터+ 클러스터링 결과
+pointAssignments = broom::augment(kcluModel, mapDataL3) %>% 
+  dplyr::mutate_each_(
+    funs(grt::unscale)
+    , vars = colnames(mapDataL3)
+  )
+pointAssignments
+
+# 클러스터링 결과
+clusterInfo = broom::tidy(kcluModel) %>% 
+  dplyr::mutate_each_(
+    funs(grt::unscale)
+    , vars = colnames(mapDataL3)
+  )
+clusterInfo
+
+# 클러스터링 통계 결과 (amap::Kmean 라이브러리 이용 시 불가)
+modelStats = broom::glance(kcluModel)
+modelStats
+
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "Kmeans-Cluster-Nomal")
+
+ggplot() +
+  geom_sf(data = mapData, aes(x = NULL, y = NULL, fill = NULL, z = NULL), color = "grey50", fill = NA) +
+  geom_point(data = pointAssignments, aes(x = lon , y = lat, color = .cluster), shape = 15, size=5, alpha = 0.5) +
+  # geom_point(data = pointAssignments, aes(x = lon , y = lat, color = .cluster), shape = 16, size=5, alpha = 0.5) +
+  geom_label(data = clusterInfo, aes(x = lon , y = lat, label = cluster, fill = factor(cluster)), size = 8, colour = "white", fontface = "bold", show.legend = FALSE) +
+  labs(
+    subtitle = NULL
+    , x = NULL
+    , y = NULL
+    , fill = NULL
+    , colour = NULL
+    , title = NULL
+    , size = NULL
+  ) +
+  theme(
+    text = element_text(size = 18)
+    , legend.position = "top"
+    , axis.line = element_blank()
+    , axis.text = element_blank()
+    , axis.ticks = element_blank()
+    , plot.margin = unit(c(0, 0, 0, 0), 'lines')
+  ) +
+  ggsave(filename = saveImg, width = 10, height = 10, dpi = 600)
+
+
+# ****************************************************************
+# kmeans 다중 클러스터링 (데이터 표준화 O)
+# ****************************************************************
+kcluModelList = dplyr::tibble(nClu = 1:12) %>%
+  dplyr::mutate(
+    kcluModel = purrr::map(
+      nClu
+      , ~ kmeans(mapDataL3, centers = .x)
+    )
+    , augmented = purrr::map(kcluModel, broom::augment, mapDataL3)
+    , tidied = purrr::map(kcluModel, broom::tidy)
+    # 클러스터링 통계 결과 (amap::Kmean 라이브러리 이용 시 불가)
+    , tot.withinss = purrr::map(kcluModel, ~ sum(.x$withinss, na.rm = TRUE))
+  ) 
+
+modelStats = kcluModelList %>%
+  dplyr::select(nClu, tot.withinss) %>%
+  tidyr::unnest(tot.withinss)
+
+# ****************************************************************
+# 클러스터링 오차 시각화
+# ****************************************************************
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "Kmeans-Cluster-ElbowChart")
+
+ggplot(data = modelStats, aes(nClu, tot.withinss)) +
+  geom_line() +
+  geom_point() +
+  scale_x_continuous(limits = c(1, 12), breaks = seq(1, 12, 1)) +
+  theme(
+    text = element_text(size = 18)
+    , legend.position = "top"
+  ) +
+  ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
