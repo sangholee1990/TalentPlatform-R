@@ -478,14 +478,13 @@ library(readr)
 library(RColorBrewer)
 library(tidyverse)
 library(readr)
-library(RmecabKo)
 library(stringr)
 library(wordcloud2)
-library(htmlwidget)
+library(RcppMeCab)
+library(RmecabKo)
 
 # 명사 추출을 위한 메타 정보
 RmecabKo::install_mecab("c:/mecab")
-
 
 # *************************************************************
 # 유튜브 댓글 수집
@@ -618,7 +617,6 @@ data = readr::read_delim(fileInfo, delim = "\t", locale = locale("ko", encoding 
 
 dataL1 = data.frame()
 for (i in 1:nrow(data)) {
-  
   tmpData = RcppMeCab::pos(utf8::as_utf8(data$x[i]), format = "data.frame") %>%
     dplyr::filter(pos == "NNG") %>%
     dplyr::select(token)
@@ -626,8 +624,8 @@ for (i in 1:nrow(data)) {
   dataL1 = dplyr::bind_rows(tmpData, dataL1)
 }
 
-
 # 키워드 빈도에 따른 시각화
+# 빈도수 2 이상 및 2글자 이상
 keywordData = dataL1 %>%
   dplyr::group_by(token) %>%
   dplyr::summarise(freq = n()) %>%
