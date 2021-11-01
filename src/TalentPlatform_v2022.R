@@ -587,26 +587,7 @@ RmecabKo::install_mecab("c:/mecab")
 #             sep=".",
 #             row.names=FALSE,
 #             quote = FALSE)
-# 
-# install.packages ( "tm") # 텍스트 처리를 할 수있게 도와주는 패키지
-# install.packages ( "stringr") # 문자열 처리를 할 수있게 도와주는 패키지
-# install.packages ( "wordcloud") # 문자들을 제공 할 수있게 도와주는 패키지
-# install.packages ( "NLP") # 영어 텍스트에 특화된 패키지
-# install.packages("KoNLP") # 한글 텍스트에  특화된 패키지 
-# install.packages ( "RColorBrewer") # 색상을 다양하게 표현할 수있게 도와주는 패키지
-# install.packages("sp")
-# 
-# library(sp)
-# library(stringr)
-# library(wordcloud)
-# library(tm)
-# library(KoLNP)
-# 
-# #옆에 페키지 KoLNP 체크하기
-# 
-# getwd()
-# 
-# setwd("C:/r-selenium/결과물") #경로가 맞지 않을 경우 변경
+
 
 # *************************************************************
 # 명사 추출 및 시각화 (1) : 신규
@@ -649,6 +630,94 @@ webshot::webshot("fig.html", saveImg, vwidth = 800, vheight = 600, delay = 10)
 # *************************************************************
 # 명사 추출 및 시각화 (2) : 기존
 # *************************************************************
+
+#=====================================================
+# KoNLP 라이브러리 (국문) 설치
+#=====================================================
+# 1. R Stduido 작업환경 설정
+# - 바탕화면에서 Test 작업환경 구축
+#
+# 2. Java 설치 확인
+# - cmd 창에서 java 버전 확인 (java -version)
+#
+# 3. Java 환경변수 확인
+# - 현재 미 설정
+# - 일반적으로 KoNLP 라이브러리 경우 java 1.8에서 수행 가능
+# - 따라서 Java 다운로드 수행
+#
+# 4. Java 1.8 다운로드
+# - https://www.oracle.com/java/technologies/javase/javase-jdk8-downloads.html
+# - jdk-8u261-windows-x64.exe
+# - Open JRE가 아니라 Oracle Java 사용 권장
+# - 관리자 권한으로 실행
+# - JRE 및 JDK를 순차적으로 설치
+# - cmd 창에서 java 버전 확인 (java -version)
+# C:\Users\inu>java -version
+# java version "1.8.0_261"
+# Java(TM) SE Runtime Environment (build 1.8.0_261-b12)
+# Java HotSpot(TM) 64-Bit Server VM (build 25.261-b12, mixed mode)
+
+# 5. Java 환경변수 설정
+# - JAVA_HOME : C:\Program Files\Java\jdk1.8.0_261
+# - PATH : C:\Program Files\Java\jdk1.8.0_261\bin
+# - cmd창에서 환경변수 확인 (echo %JAVA_HOME%)
+
+# 6. Github에서 설치할 수 있는 라이브러리 설치 및 읽기
+# - # install.packages("remotes")
+# - library(remotes)
+
+# 7. 의존성 라이브러리 설치
+# - install.packages(c("stringr", "hash", "tau", "Sejong", "RSQLite", "devtools"), type = "binary")
+# - # install.packages("remotes")
+# - library(remotes)
+# - library(devtools)
+# - # install.packages("rmarkdown")
+# - library(rmarkdown)
+# - # install.packages("RSQLite")
+# - library(RSQLite)
+
+# 8. rJava 읽기
+# - library(rJava)
+
+# 9. KoNLP 설치 및 읽기
+# - # remotes::install_github('haven-jeon/KoNLP', upgrade = "never", INSTALL_opts=c("--no-multiarch"))
+# - library(KoNLP)
+
+# 10. useNIADic() 읽기
+# - # devtools::install_github('haven-jeon/NIADic/NIADic', build_vignettes = TRUE, force = TRUE)
+# - useNIADic()
+
+# 11. 설치 완료
+
+#=====================================================
+# KoNLP 라이브러리 (국문) 설치
+#=====================================================
+# 7-11번 에러 발생 시 조치 방법
+# 1) 7-10행 1회 수행
+# 2) Rstudio 종료 후 Test.Rproj 재 실행
+# 3) 7-11행까지 정상적으로 수행
+
+# install.packages ( "tm") # 텍스트 처리를 할 수있게 도와주는 패키지
+# install.packages ( "stringr") # 문자열 처리를 할 수있게 도와주는 패키지
+# install.packages ( "wordcloud") # 문자들을 제공 할 수있게 도와주는 패키지
+# install.packages ( "NLP") # 영어 텍스트에 특화된 패키지
+# install.packages("KoNLP") # 한글 텍스트에  특화된 패키지
+# install.packages ( "RColorBrewer") # 색상을 다양하게 표현할 수있게 도와주는 패키지
+# install.packages("sp")
+# # 
+library(sp)
+library(stringr)
+library(wordcloud)
+library(tm)
+library(KoNLP)
+library(tm)
+# 
+# #옆에 페키지 KoLNP 체크하기
+# 
+# getwd()
+# 
+# setwd("C:/r-selenium/결과물") #경로가 맞지 않을 경우 변경
+
 # readLines("youtube_comments1.txt") #텍스트문서를 읽는 함수
 # 
 # myEtext<-readLines("youtube_comments1.txt")
@@ -658,122 +727,165 @@ webshot::webshot("fig.html", saveImg, vwidth = 800, vheight = 600, delay = 10)
 # paste(readLines("youtube_comments1.txt"),collapse = " ")#7개의 라인을 1개로 만듦
 # 
 # myEtext2<-paste(readLines("youtube_comments1.txt"),collapse = " ")
-# 
-# myEtext2 
-# 
-# myEtext3<-gsub(pattern = "\n", replace=" ",myEtext2) #gsub(찾을것, 바꿀것, 해당열), \W은 영어구두점을 의미하는 것임
-# 
+
+fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0239_youtube_comments1.txt"))
+data = readr::read_delim(fileInfo, delim = "\t", locale = locale("ko", encoding = "EUC-KR"))
+
+
+myEtext2 = paste(data$x, collapse = " ")
+
+myEtext3<-gsub(pattern = "\n", replace=" ",myEtext2) #gsub(찾을것, 바꿀것, 해당열), \W은 영어구두점을 의미하는 것임
+
 # myEtext3
-# 
+
 # tolower(myEtext3) #모두 소문자로 처리
-# 
-# myEtext4<-tolower(myEtext3)
-# 
+
+myEtext4<-tolower(myEtext3)
+
 # myEtext4
-# 
+
+
 # stopwords() #텍스트내의 불용어
-# 
 # removeWords(myEtext4,stopwords())
-# 
-# myEtext5<-removeWords(myEtext4,stopwords()) #불용어 삭제
-# 
+myEtext5<-removeWords(myEtext4, tm::stopwords()) #불용어 삭제
+
 # stripWhitespace(myEtext5)
-# 
-# myEtext6<-stripWhitespace(myEtext5) #쓸데 없는 공란 제거
-# 
+myEtext6<-stripWhitespace(myEtext5) #쓸데 없는 공란 제거
 # myEtext6
-# 
-# myEtext6 <- gsub("\\^", "", myEtext6)
-# myEtext6 <- gsub("ㅎ", "", myEtext6)
-# myEtext6 <- gsub("ㅋ", "", myEtext6)
-# myEtext6 <- gsub("ㅠ", "", myEtext6)
-# myEtext6 <- gsub("ㅜ", "", myEtext6)
-# myEtext6 <- gsub("진짜", "", myEtext6)
-# myEtext6 <- gsub("너무", "", myEtext6)
-# myEtext6 <- gsub("구독", "", myEtext6)
-# myEtext6 <- gsub("님", "", myEtext6)
-# myEtext6 <- gsub("언니", "", myEtext6)
-# myEtext6 <- gsub("누나", "", myEtext6)
-# myEtext6 <- gsub("영상", "", myEtext6)
-# myEtext6 <- gsub("여", "", myEtext6)
-# myEtext6 <- gsub("요", "", myEtext6)
-# myEtext6 <- gsub("저", "", myEtext6)
-# myEtext6 <- gsub("것", "", myEtext6)
-# myEtext6 <- gsub("1", "", myEtext6)
-# myEtext6 <- gsub("2", "", myEtext6)
-# myEtext6 <- gsub("3", "", myEtext6)
-# myEtext6 <- gsub("4", "", myEtext6)
-# myEtext6 <- gsub("5", "", myEtext6)
-# myEtext6 <- gsub("6", "", myEtext6)
-# myEtext6 <- gsub("7", "", myEtext6)
-# myEtext6 <- gsub("8", "", myEtext6)
-# myEtext6 <- gsub("9", "", myEtext6)
-# myEtext6 <- gsub("0", "", myEtext6)
-# myEtext6 <- gsub("한", "", myEtext6)
-# myEtext6 <- gsub("이", "", myEtext6)
-# myEtext6 <- gsub("스", "", myEtext6)
-# myEtext6 <- gsub("개", "", myEtext6)
-# myEtext6 <- gsub("분", "", myEtext6)
-# myEtext6 <- gsub("부", "", myEtext6)
-# myEtext6 <- gsub("뭐", "", myEtext6)
-# myEtext6 <- gsub("분", "", myEtext6)
-# myEtext6 <- gsub("세", "", myEtext6)
-# myEtext6 <- gsub("뭐", "", myEtext6)
-# myEtext6 <- gsub("수", "", myEtext6)
-# myEtext6 <- gsub("번", "", myEtext6)
-# myEtext6 <- gsub("들", "", myEtext6)
-# myEtext6 <- gsub("것", "", myEtext6)
-# myEtext6 <- gsub("렇게", "", myEtext6)
-# myEtext6 <- gsub("적", "", myEtext6)
-# myEtext6 <- gsub("데", "", myEtext6)
-# myEtext6 <- gsub("국", "", myEtext6)
-# myEtext6 <- gsub("기", "", myEtext6)
-# myEtext6 <- gsub("진", "", myEtext6)
-# myEtext6 <- gsub("제", "", myEtext6)
-# myEtext6 <- gsub("라", "", myEtext6)
-# myEtext6 <- gsub("을", "", myEtext6)
-# myEtext6 <- gsub("미", "", myEtext6)
-# myEtext6 <- gsub("전", "", myEtext6)
-# myEtext6 <- gsub("보", "", myEtext6)
-# myEtext6 <- gsub("때", "", myEtext6)
-# myEtext6 <- gsub("도", "", myEtext6)
-# myEtext6 <- gsub("듯", "", myEtext6)
-# myEtext6 <- gsub("은", "", myEtext6)
-# myEtext6 <- gsub("저", "", myEtext6)
-# myEtext6 <- gsub("지", "", myEtext6)
-# myEtext6 <- gsub("나", "", myEtext6)
-# myEtext6 <- gsub("많", "", myEtext6)
-# myEtext6 <- gsub("같", "", myEtext6)
-# myEtext6 <- gsub("의", "", myEtext6)
-# myEtext6 <- gsub("일", "", myEtext6)
-# myEtext6 <- gsub("u", "", myEtext6)
-# myEtext6 <- gsub("f", "", myEtext6)
-# myEtext6 <- gsub("d", "", myEtext6)
-# myEtext6 <- gsub("\\+", "", myEtext6)
-# myEtext6 <- gsub("\\<", "", myEtext6)
-# myEtext6 <- gsub("\\>", "", myEtext6)
-# 
-# 
-# myEtext7 <- extractNoun(myEtext6)
-# myEtext7
-# 
+
+myEtext6 <- gsub("\\^", "", myEtext6)
+myEtext6 <- gsub("ㅎ", "", myEtext6)
+myEtext6 <- gsub("ㅋ", "", myEtext6)
+myEtext6 <- gsub("ㅠ", "", myEtext6)
+myEtext6 <- gsub("ㅜ", "", myEtext6)
+myEtext6 <- gsub("진짜", "", myEtext6)
+myEtext6 <- gsub("너무", "", myEtext6)
+myEtext6 <- gsub("구독", "", myEtext6)
+myEtext6 <- gsub("님", "", myEtext6)
+myEtext6 <- gsub("언니", "", myEtext6)
+myEtext6 <- gsub("누나", "", myEtext6)
+myEtext6 <- gsub("영상", "", myEtext6)
+myEtext6 <- gsub("여", "", myEtext6)
+myEtext6 <- gsub("요", "", myEtext6)
+myEtext6 <- gsub("저", "", myEtext6)
+myEtext6 <- gsub("것", "", myEtext6)
+myEtext6 <- gsub("1", "", myEtext6)
+myEtext6 <- gsub("2", "", myEtext6)
+myEtext6 <- gsub("3", "", myEtext6)
+myEtext6 <- gsub("4", "", myEtext6)
+myEtext6 <- gsub("5", "", myEtext6)
+myEtext6 <- gsub("6", "", myEtext6)
+myEtext6 <- gsub("7", "", myEtext6)
+myEtext6 <- gsub("8", "", myEtext6)
+myEtext6 <- gsub("9", "", myEtext6)
+myEtext6 <- gsub("0", "", myEtext6)
+myEtext6 <- gsub("한", "", myEtext6)
+myEtext6 <- gsub("이", "", myEtext6)
+myEtext6 <- gsub("스", "", myEtext6)
+myEtext6 <- gsub("개", "", myEtext6)
+myEtext6 <- gsub("분", "", myEtext6)
+myEtext6 <- gsub("부", "", myEtext6)
+myEtext6 <- gsub("뭐", "", myEtext6)
+myEtext6 <- gsub("분", "", myEtext6)
+myEtext6 <- gsub("세", "", myEtext6)
+myEtext6 <- gsub("뭐", "", myEtext6)
+myEtext6 <- gsub("수", "", myEtext6)
+myEtext6 <- gsub("번", "", myEtext6)
+myEtext6 <- gsub("들", "", myEtext6)
+myEtext6 <- gsub("것", "", myEtext6)
+myEtext6 <- gsub("렇게", "", myEtext6)
+myEtext6 <- gsub("적", "", myEtext6)
+myEtext6 <- gsub("데", "", myEtext6)
+myEtext6 <- gsub("국", "", myEtext6)
+myEtext6 <- gsub("기", "", myEtext6)
+myEtext6 <- gsub("진", "", myEtext6)
+myEtext6 <- gsub("제", "", myEtext6)
+myEtext6 <- gsub("라", "", myEtext6)
+myEtext6 <- gsub("을", "", myEtext6)
+myEtext6 <- gsub("미", "", myEtext6)
+myEtext6 <- gsub("전", "", myEtext6)
+myEtext6 <- gsub("보", "", myEtext6)
+myEtext6 <- gsub("때", "", myEtext6)
+myEtext6 <- gsub("도", "", myEtext6)
+myEtext6 <- gsub("듯", "", myEtext6)
+myEtext6 <- gsub("은", "", myEtext6)
+myEtext6 <- gsub("저", "", myEtext6)
+myEtext6 <- gsub("지", "", myEtext6)
+myEtext6 <- gsub("나", "", myEtext6)
+myEtext6 <- gsub("많", "", myEtext6)
+myEtext6 <- gsub("같", "", myEtext6)
+myEtext6 <- gsub("의", "", myEtext6)
+myEtext6 <- gsub("일", "", myEtext6)
+myEtext6 <- gsub("u", "", myEtext6)
+myEtext6 <- gsub("f", "", myEtext6)
+myEtext6 <- gsub("d", "", myEtext6)
+myEtext6 <- gsub("\\+", "", myEtext6)
+myEtext6 <- gsub("\\<", "", myEtext6)
+myEtext6 <- gsub("\\>", "", myEtext6)
+
+
+myEtext7 <- extractNoun(myEtext6)
+myEtext7
+
+# 텍스트 추출
+sent = myEtext7 %>%
+  str_replace_all("[0-9]+", " ") %>%
+  str_replace_all("\\s+", " ") %>%
+  str_replace_all("http[a-zA-Z0-9]+", "") %>%
+  str_replace_all('\n', ' ') %>%
+  str_replace_all('\t', ' ') %>%
+  str_replace_all("[[:punct:]]", '') %>%
+  str_replace_all("[\\$,]", '') %>%
+  str_replace_all('<b>', '') %>%
+  str_replace_all('</b>', '') %>%
+  str_replace_all('\\(', '') %>%
+  str_replace_all('\\)', '') %>%
+  str_replace_all('\\)', '') %>%
+  str_replace_all('shuttlekakaomobilitycomshuttles', '') %>%
+  str_replace_all('zip', '')
+
+# 별도로 처리
 # myEtext8 <- myEtext7[nchar(myEtext7)<5]
 # myEtext8 <- myEtext8[nchar(myEtext8)>1]
-# 
 # myEtext8 <- sort(table(myEtext7), decreasing = T)
 # myEtext8
-# 
 # myEtext9 <- head(myEtext8, 300)
-# 
-# myEtextbag<-unlist(myEtext9) #리스트를 벡터로 바꿔주는 함수
-# 
+# myEtextbag<-unlist(myEtext8) #리스트를 벡터로 바꿔주는 함수
 # class(myEtextbag)
-# 
 # myEtextbag
-# 
 # str(myEtextbag)
-# 
+
 # install.packages("wordcloud2")
-# library(wordcloud2)
-# 
-# wordcloud2(myEtext9, size = 0.8)
+library(wordcloud2)
+
+# 텍스트 분석을 위한 말뭉치 (Corpus) 생성
+text = tm::Corpus(VectorSource(sent)) #
+
+# TermDocumentMatrix (용어-문서 행렬) 생성
+tdm = tm::TermDocumentMatrix(text)
+
+# 키워드별 등장 빈도
+data = data.frame(
+  word = rownames(as.matrix(tdm))
+  , freq = rowSums(as.matrix(tdm))
+)
+
+# 상위 100개
+keywordData = data %>%
+  dplyr::mutate(len = stringr::str_length(word)) %>%
+  dplyr::filter(
+    dplyr::between(len, 2, 4)
+  ) %>% 
+  dplyr::arrange(desc(freq)) %>%
+  dplyr::top_n(100)
+  
+# 워드 클라우드
+fig = wordcloud2::wordcloud2(data = keywordData)
+
+# html 저장
+htmlwidgets::saveWidget(fig, "fig.html", selfcontained = FALSE)
+
+# html에서 png로 저장
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "워드클라우드_KoNLP")
+webshot::webshot("fig.html", saveImg, vwidth = 800, vheight = 600, delay = 10)
+
