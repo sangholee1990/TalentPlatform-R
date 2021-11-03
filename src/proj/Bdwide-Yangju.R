@@ -56,44 +56,125 @@ library(RmecabKo)
 # 명사 추출을 위한 메타 정보
 RmecabKo::install_mecab("c:/mecab")
 
-for (variable in vector) {
+fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "MetaData.tsv"))
+
+metaData = readr::read_tsv(file = fileInfo, locale = locale("ko", encoding = "UTF-8")) %>% 
+  dplyr::filter(
+    type2 == "양주뉴스"
+    , ! is.na(sttCsvName)
+  )
+
+# i = 1
+# i = 150
+# i = 1000
+
+dataL3 = tibble::tibble()
+
+for (i in seq(1, 1000, 1)) {
   
+  fileKey = paste0("제", i, "호")
+  fileKey2 = paste0("식", i, "호")
+
+  if (i > 135) {
+    filePattern = paste0("*", fileKey2, "*", ".xlsx")
+  } else {
+    filePattern = paste0("*", fileKey, "*", ".xlsx")
+  }
+  
+  fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, filePattern)) %>% 
+    dplyr::last()
+  
+  if (is.na(fileInfo) || length(fileInfo) < 1) { next }
+  
+  # *******************************************************
+  # 네이버 클로바 STT 파일 읽기
+  # *******************************************************
+  data = openxlsx::read.xlsx(fileInfo, sheet = 1)
+  
+  dataL1 = data %>%
+    as.tibble() %>% 
+    dplyr::filter(
+      Modification == "수정결과"
+      , ! is.na(Script)
+    ) %>% 
+    dplyr::select(-c("Index", "Modification")) %>% 
+    tibble::rowid_to_column() %>% 
+    magrittr::set_colnames(c("index", "speaker", "startTime", "endTime", "content"))
+  
+  
+  # *******************************************************
+  # 키워드 추출
+  # *******************************************************
+  contentAll = paste(dataL1$content, collapse = " ")
+  
+  dataL2 = RcppMeCab::pos(utf8::as_utf8(contentAll), format = "data.frame") %>%
+    dplyr::filter(pos == "NNG") %>%
+    dplyr::select(token)
+  
+  keywordData = dataL2 %>%
+    dplyr::group_by(token) %>%
+    dplyr::summarise(freq = n()) %>%
+    dplyr::mutate(len = stringr::str_length(token)) %>% 
+    dplyr::filter(
+      freq >= 2
+      , len >= 2
+    ) %>%
+    dplyr::arrange(desc(freq)) %>% 
+    dplyr::slice(1:10)
+  
+  keywordTop10 = stringr::str_c(keywordData$token, collapse = '+')
+  keywordTop5= stringr::str_c(keywordData$token[1:5], collapse = '+')
+  keywordTop2= stringr::str_c(keywordData$token[1:2], collapse = '+')
+  
+  # *******************************************************
+  # 메타 파일 읽기
+  # *******************************************************
+  metaDataL1 = metaData %>% 
+    dplyr::filter(
+      stringr::str_detect(sttCsvName, regex(fileKey))
+    )
+
+  if (nrow(metaDataL1) < 1) { next }
+  
+  newFileName = stringr::str_c(
+    metaDataL1$year
+    , metaDataL1$id
+    , metaDataL1$type2
+    , metaDataL1$title
+    , keywordTop2
+    , sep = "_" 
+    ) %>% 
+    stringr::str_replace_all(pattern = "-", replacement = " ") %>% 
+    stringr::str_replace_all(pattern = "\\+", replacement = ",")
+
+  tmpData = tibble::tibble(
+    fileName = newFileName
+    , keywordTop5 = keywordTop5
+    , keywordTop10 = keywordTop10
+    , content = paste(dataL1$content, collapse = "\r\n")
+  )
+  
+  dataL3 = dplyr::bind_rows(dataL3, tmpData)
+    
+  saveXlsxFile = sprintf("%s/%s/%s.xlsx", globalVar$outPath, serviceName, newFileName)
+  
+  wb = openxlsx::createWorkbook()
+  openxlsx::addWorksheet(wb, "Sheet1")
+  openxlsx::writeData(wb, "Sheet1", dataL1, startRow = 1, startCol = 1, colNames = TRUE, rowNames = FALSE)
+  openxlsx::saveWorkbook(wb, file = saveXlsxFile, overwrite = TRUE)
 }
 
-filePattern = paste0("*", "제", 1, "호", "*" ,".xlsx")
-fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, filePattern))
 
-# fileInfo = fileList[3]
-data = openxlsx::read.xlsx(fileInfo, sheet = 1)
+saveXlsxFile = sprintf("%s/%s/%s.xlsx", globalVar$outPath, serviceName, "공공데이터포털_STT")
 
-dataL1 = data %>%
-  as.tibble() %>% 
-  dplyr::filter(
-    Modification == "수정결과"
-    , ! is.na(Script)
-    ) %>% 
-  dplyr::select(-c("Index", "Modification")) %>% 
-  tibble::rowid_to_column() %>% 
-  magrittr::set_colnames(c("index", "speaker", "startTime", "endTime", "content"))
+wb = openxlsx::createWorkbook()
+openxlsx::addWorksheet(wb, "Sheet1")
+openxlsx::writeData(wb, "Sheet1", dataL3, startRow = 1, startCol = 1, colNames = TRUE, rowNames = FALSE)
+openxlsx::saveWorkbook(wb, file = saveXlsxFile, overwrite = TRUE)
 
 
-# *******************************************************
-# 키워드 추출
-# *******************************************************
-contentAll = paste(dataL1$content, collapse = "\n\r")
+dataL4 = dataL3 %>% 
+  dplyr::select(-c("keywordTop5", "keywordTop10"))
 
-dataL2 = RcppMeCab::pos(utf8::as_utf8(contentAll), format = "data.frame") %>%
-  dplyr::filter(pos == "NNG") %>%
-  dplyr::select(token)
-
-keywordData = dataL2 %>%
-  dplyr::group_by(token) %>%
-  dplyr::summarise(freq = n()) %>%
-  dplyr::mutate(len = stringr::str_length(token)) %>% 
-  dplyr::filter(
-    freq >= 2
-    , len >= 2
-  ) %>%
-  dplyr::arrange(desc(freq))
-
-
+saveCsvFile = sprintf("%s/%s/%s.csv", globalVar$outPath, serviceName, "공공데이터포털_STT")
+readr::write_csv(dataL4, file = saveCsvFile)
