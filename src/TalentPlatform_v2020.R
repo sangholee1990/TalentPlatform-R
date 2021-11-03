@@ -33105,9 +33105,9 @@ dataCHWL3 %>%
   # dplyr::filter(dtDate == lubridate::ymd_h("2047-01-01 01"))
   dplyr::filter(YMDH == lubridate::ymd_h("2047-01-01 01"))
 
-#****************************************
+# ****************************************
 # 시각화
-#****************************************
+# ****************************************
 saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "CHW prediction by building types in 2047 and 2053")
 
 # [ADD]
@@ -33134,700 +33134,6 @@ ggplot(dataCHWL3, aes(x = YMDH, y = pred, color = type2)) +
     , legend.position = "bottom"
   ) +
   ggsave(filename = saveImg, width = 12, height = 8, dpi = 600)
-
-
-#===============================================================================================
-# Routine : Main R program
-#
-# Purpose : 재능상품 오투잡
-#
-# Author : 해솔
-#
-# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
-#===============================================================================================
-
-#================================================
-# 요구사항
-#================================================
-# R을 이용한 선거 동별 시각화 및 도표 삽입
-
-#================================================
-# 초기 환경변수 설정
-#================================================
-# env = "local"   # 로컬 : 원도우 환경, 작업환경 (현재 소스 코드 환경 시 .) 설정
-env = "dev"   # 개발 : 원도우 환경, 작업환경 (사용자 환경 시 contextPath) 설정
-# env = "oper"  # 운영 : 리눅스 환경, 작업환경 (사용자 환경 시 contextPath) 설정
-
-prjName = "test"
-serviceName = "LSH0214"
-contextPath = ifelse(env == "local", ".", getwd())
-
-if (env == "local") {
-  globalVar = list(
-    "inpPath" = contextPath
-    , "figPath" = contextPath
-    , "outPath" = contextPath
-    , "tmpPath" = contextPath
-    , "logPath" = contextPath
-  )
-} else {
-  source(here::here(file.path(contextPath, "src"), "InitConfig.R"), encoding = "UTF-8")
-}
-
-#================================================
-# 비즈니스 로직 수행
-#================================================
-# 라이브러리 읽기
-library(readxl)
-library(tidyverse)
-library(ggplot2)
-library(ggmap)
-library(lubridate)
-library(tidyverse)
-library(ggplot2)
-library(lubridate)
-library(openxlsx)
-library(fs)
-library(openxlsx)
-library(readxl)
-library(tidyverse)
-library(ggplot2)
-library(ggmap)
-library(ggplot2)
-library(lubridate)
-library(raster)
-library(rgeos)
-library(maptools)
-library(rgdal)
-library(sf)
-library(ggmap)
-library(ggcharts)
-library(scales)
-library(raster)
-library(cowplot)
-library(patchwork)
-library(scatterpie)
-
-# 선거 데이터 읽기
-fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0214_선거분석(강서병).xlsx"))
-data = openxlsx::read.xlsx(fileInfo, sheet = 3)
-
-dataL1 = data %>%
-  as.tibble() %>%
-  na.omit() %>%
-  readr::type_convert()
-
-dataL2 = dataL1 %>% 
-  tidyr::gather(-c(투표구, 종류), key = "key", value = "val") %>% 
-  dplyr::group_by(투표구, key) %>% 
-  dplyr::summarise(
-    meanVal = mean(val, na.rm = TRUE)
-  ) %>% 
-  dplyr::ungroup() %>% 
-  tidyr::spread(key = "key", value = "meanVal")
-
-dataL3 = dataL2 %>% 
-  rowwise(투표구) %>% 
-  dplyr::mutate(
-    sumVal = sum(더불어민주당, 자유한국당, 기타야당, na.rm = TRUE)
-    , maxVal = max(더불어민주당, 자유한국당, 기타야당, na.rm = TRUE)
-    , meanVal = (더불어민주당 / sumVal) * 100
-    , meanVal2 = (자유한국당 / sumVal) * 100
-    , meanVal3 = (기타야당 / sumVal) * 100
-    , val = dplyr::case_when(
-      자유한국당 == maxVal ~ 1
-      , 더불어민주당 == maxVal ~ 2
-      , 기타야당 == maxVal ~ 3
-      )
-    )
-
-dataL4 = dataL3 %>%
-  dplyr::select(-c(더불어민주당, 자유한국당, 기타야당, sumVal, val, maxVal)) %>%
-  # dplyr::select(-c(meanVal, meanVal2, meanVal3, sumVal, val, maxVal)) %>%
-  dplyr::rename(
-    더불어민주당 = meanVal
-    , 자유한국당 = meanVal2
-    , 기타야당 = meanVal3
-  ) %>% 
-  tidyr::gather(-c(투표구), key = "key", value = "val")
-
-# 정당에 따른 정렬
-dataL4$key = forcats::fct_relevel(dataL4$key, c("자유한국당", "더불어민주당", "기타야당"))
-
-selData = dataL1 %>% dplyr::filter(종류 == "광역단체장")
-dataL4$투표구 = forcats::fct_relevel(dataL4$투표구, rev(selData$투표구))
-
-# ************************************************
-# 선거 빈도분포
-# ************************************************
-saveImg1 = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "서울특별시_강서구_선거_빈도분포")
-
-ggplot(dataL4, aes(x = 투표구, y = val, fill = key, group = key, label = round(val, 0))) +
-  # geom_bar(position = "dodge", stat = "identity") +
-  geom_bar(position = position_stack(), stat = "identity") +
-  # geom_text(size = 5, vjust = 1.6, hjust = 0.5, color = "white") +
-  geom_text(position = position_stack(vjust = 0.5), size = 5, color = "white") +
-  coord_flip() +
-  scale_y_continuous(labels = scales::percent_format(accuracy = 1, scale = 1)) +
-  labs(x = "투표구", y = "비율", fill = NULL, subtitle = "서울특별시 강서구 선거 빈도분포") +
-  # scale_x_continuous(breaks = seq(1, 11, 1)) +
-  theme(
-    text = element_text(size = 16)
-    # , axis.text.x = element_text(angle = 45, hjust = 1)
-    , legend.position = "top"
-  ) +
-  # facet_wrap(~종류, scale = "free", ncol = 3) +
-  ggsave(filename = saveImg1, width = 12, height = 10, dpi = 600)
-
-
-# 읍면동 지도 읽기
-mapInfo = Sys.glob(file.path(globalVar$mapPath, "koreaInfo/bnd_dong_00_2019_2019_2Q.shp"))
-# mapInfo = Sys.glob(file.path(globalVar$mapPath, "LSMD_ADM_SECT_UMD_서울/LSMD_ADM_SECT_UMD_11.shp"))
-# mapInfo = Sys.glob(file.path(globalVar$mapPath, "LSMD_CONT_LDREG_서울_강서구/LSMD_CONT_LDREG_11500.shp"))
-# mapInfo = Sys.glob(file.path(globalVar$mapPath, "읍면동/EMD_202101/TL_SCCO_EMD.shp"))
-
-# shp 파일 읽기 (1)
-# mapData = raster::shapefile(mapInfo, encoding = "UTF-8")
-# geoData = sp::spTransform(mapData, CRS("+proj=longlat"))
-# mapGeoData = ggplot2::fortify(geoData, region = "EMD_CD", region2 = "EMD_KOR_NM")
-
-# shp 파일 읽기 (2)
-mapGlobal = sf::st_read(mapInfo, quiet = TRUE, options = "ENCODING=EUC-KR") %>% 
-  sf::st_transform(CRS("+proj=longlat"))
-
-st_crs(mapGlobal)
-
-# 법정동 코드 읽기 (1)
-# codeInfo = Sys.glob(file.path(globalVar$mapPath, "admCode/법정동코드_전체자료.txt"))
-# codeData = utils::read.table(codeInfo, sep = "\t", header = TRUE, colClasses = "character", fileEncoding = "EUC-KR") %>%
-#   as.tibble() %>%
-#   magrittr::set_colnames(c("EMD_CD", "addr", "isUse"))
-
-# codeDataL1 = codeData %>%
-#   tidyr::separate(col = "addr", into = c("addr1", "addr2", "addr3", "addr4", "addr5"), sep = " ") %>%
-#   # dplyr::select(-addr4, -addr5) %>%
-#   dplyr::filter(
-#     stringr::str_detect(addr1, regex("서울특별시"))
-#     , stringr::str_detect(addr2, regex("강서구"))
-#     # , isUse == "존재"
-#   ) %>%
-#   # dplyr::filter(
-#   #   !is.na(addr1)
-#   #   , !is.na(addr2)
-#   #   , !is.na(addr3)
-#   # ) %>%
-#   dplyr::mutate(
-#     id = stringr::str_sub(EMD_CD, 1, 8)
-#   )
-
-
-# 법정도 코드 읽기 (2)
-codeInfo = Sys.glob(file.path(globalVar$mapPath, "admCode/admCode.xlsx"))
-codeData = openxlsx::read.xlsx(codeInfo, sheet = 1, startRow = 2)
-
-codeDataL1 = codeData %>%
-  dplyr::select("시도코드", "시도명칭", "시군구코드", "시군구명칭", "읍면동코드", "읍면동명칭") %>% 
-  dplyr::filter(
-    stringr::str_detect(시도명칭, regex("서울특별시"))
-    , stringr::str_detect(시군구명칭, regex("강서구"))
-  ) 
-
-
-# 통합 데이터셋
-dataL5 = mapGlobal %>%
-  dplyr::inner_join(codeDataL1, by = c("adm_dr_cd" = "읍면동코드")) %>%
-  dplyr::left_join(dataL3, by = c("adm_dr_nm" = "투표구"))
-  # dplyr::inner_join(codeDataL1, by = c("EMD_CD" = "id")) # %>%
-  
-# 서울 강서구
-# mapData = ggmap::get_map(
-#   location = c(lon = 126.822838, lat = 37.560797)
-#   , zoom = 13
-#   , maptype = "hybrid"
-# )
-
-# ************************************************
-# 선거 주제도
-# ************************************************
-saveImg2 = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "서울특별시_강서구_선거_주제도")
-plotSubTitle = sprintf("%s", "서울특별시 강서구 선거 주제도")
-
-ggplotDefaultColor = hue_pal()(3)
-
-ggplot() +
-  theme_bw() +
-  coord_fixed(ratio = 1) +
-  geom_sf(data = dataL4, aes(fill = factor(val)), inherit.aes = FALSE) +
-  geom_sf_text(data = dataL4, aes(label = 읍면동명칭)) +
-  # ggrepel::geom_label_repel(data = dataL4, aes(label = 읍면동명칭)) +
-  scale_fill_manual(
-    name = NULL
-    , na.value = "transparent"
-    , values = c("1" = ggplotDefaultColor[1], "2" = ggplotDefaultColor[2], "3" = ggplotDefaultColor[3])
-    , labels = c("자유한국당", "더불어민주당", "기타야당")
-  ) +
-  labs(title = plotSubTitle, x = NULL, y = NULL, colour = NULL, fill = NULL, subtitle = NULL) +
-  theme(
-    text = element_text(size = 16)
-    , panel.grid.major.x = element_blank()
-    , panel.grid.major.y = element_blank()
-    , panel.grid.minor.x = element_blank()
-    , panel.grid.minor.y = element_blank()
-    , axis.text.x = element_blank()
-    , axis.ticks.x = element_blank()
-    , axis.title.x = element_blank()
-    , axis.text.y = element_blank()
-    , axis.ticks.y = element_blank()
-    , axis.title.y = element_blank()
-    , plot.subtitle = element_text(hjust = 1)
-    , legend.position = "top"
-  ) +
-  ggsave(filename = saveImg2, width = 12, height = 8, dpi = 600)
-
-
-
-# ************************************************
-# 스토리 보드
-# ************************************************
-# 테이블
-ggTable = dataL3 %>% 
-  dplyr::select(투표구, 자유한국당, 더불어민주당, 기타야당) %>%
-  dplyr::mutate(
-    자유한국당 = scales::comma(자유한국당)
-    , 더불어민주당 = scales::comma(더불어민주당)
-    , 기타야당 = scales::comma(기타야당)
-  ) %>% 
-  dplyr::arrange(factor(투표구, levels = selData$투표구))
-
-ggTableL1 = ggpubr::ggtexttable(ggTable, rows = NULL)
-
-# 빈도분포
-ggFreqPlot = ggplot(dataL4, aes(x = 투표구, y = val, fill = key, group = key, label = round(val, 0))) +
-  geom_bar(position = position_stack(), stat = "identity") +
-  geom_text(position = position_stack(vjust = 0.5), size = 5, color = "white") +
-  coord_flip() +
-  scale_y_continuous(labels = scales::percent_format(accuracy = 1, scale = 1)) +
-  labs(x = NULL, y = NULL, fill = NULL, subtitle = "선거 빈도분포") +
-  theme(
-    text = element_text(size = 16)
-    , legend.position = "top"
-  )
-
-# 지도
-ggMapPlot = ggplot() +
-  theme_bw() +
-  coord_fixed(ratio = 1) +
-  geom_sf(data = dataL5, aes(fill = factor(val)), inherit.aes = FALSE) +
-  geom_sf_text(data = dataL5, aes(label = 읍면동명칭)) +
-  # ggrepel::geom_text_repel(data = dataL5, aes(label = 읍면동명칭, geometry = geometry), stat = "sf_coordinates") +
-  scale_fill_manual(
-    name = NULL
-    , na.value = "transparent"
-    , values = c("1" = ggplotDefaultColor[1], "2" = ggplotDefaultColor[2], "3" = ggplotDefaultColor[3])
-    , labels = c("자유한국당", "더불어민주당", "기타야당")
-  ) +
-  labs(title = plotSubTitle, x = NULL, y = NULL, colour = NULL, fill = NULL, subtitle = NULL)
-
-ggMapPlotTheme = theme(
-  text = element_text(size = 14)
-  , panel.grid.major.x = element_blank()
-  , panel.grid.major.y = element_blank()
-  , panel.grid.minor.x = element_blank()
-  , panel.grid.minor.y = element_blank()
-  , axis.text.x = element_blank()
-  , axis.ticks.x = element_blank()
-  , axis.title.x = element_blank()
-  , axis.text.y = element_blank()
-  , axis.ticks.y = element_blank()
-  , axis.title.y = element_blank()
-  , plot.subtitle = element_text(hjust = 1)
-  , legend.position = "none"
-)
-
-saveImgMerge = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "서울특별시_강서구_선거_통합")
-plotSubTitle = sprintf("%s", "[서울특별시 강서구] 선거 주제도")
-
-(ggMapPlot & ggMapPlotTheme ) / (ggFreqPlot | ggTableL1) +
-  patchwork::plot_layout(heights = c(3, 1)) +
-  ggsave(filename = saveImgMerge, width = 10, height = 10, dpi = 600)
-
-
-
-#=================================================
-# 충청남도 아산시 인구현황
-#=================================================
-# 선거 데이터 읽기
-fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0214_선거분석(강서병).xlsx"))
-data = openxlsx::read.xlsx(fileInfo, sheet = 5)
-
-dataL1 = data %>%
-  as.tibble() %>%
-  na.omit() %>%
-  readr::type_convert()
-
-statData = dataL1 %>% 
-  dplyr::group_by(투표구) %>% 
-  dplyr::summarise(
-    sumVal = sum(투표수, na.rm = TRUE) 
-  )
-
-dataL2 = dataL1 %>% 
-  dplyr::left_join(statData, by = c("투표구" = "투표구")) %>% 
-  tidyr::spread(key = "나이", value = "투표수")
-
-# 읍면동 지도 읽기
-mapInfo = Sys.glob(file.path(globalVar$mapPath, "koreaInfo/bnd_dong_00_2019_2019_2Q.shp"))
-
-# shp 파일 읽기 (2)
-mapGlobal = sf::st_read(mapInfo, quiet = TRUE, options = "ENCODING=EUC-KR") %>% 
-  sf::st_transform(CRS("+proj=longlat"))
-
-# 법정동 코드 읽기 (2)
-codeInfo = Sys.glob(file.path(globalVar$mapPath, "admCode/admCode.xlsx"))
-codeData = openxlsx::read.xlsx(codeInfo, sheet = 1, startRow = 2)
-
-codeDataL1 = codeData %>%
-  dplyr::filter(
-    stringr::str_detect(시도명칭, regex("충청남도"))
-    , stringr::str_detect(시군구명칭, regex("아산시"))
-  ) 
-
-
-# 통합 데이터셋
-dataL5 = mapGlobal %>%
-  dplyr::inner_join(codeDataL1, by = c("adm_dr_cd" = "읍면동코드")) %>%
-  dplyr::left_join(dataL2, by = c("adm_dr_nm" = "투표구")) 
-
-# 중심 위/경도 반환
-posData = sf::st_centroid(dataL5$geometry) %>% 
-  sf::st_coordinates() %>% 
-  as.tibble() %>% 
-  dplyr::rename(
-   "lon" = "X"
-    , "lat" = "Y"
-  )
-
-dataL6 = dplyr::bind_cols(dataL5, posData)
-
-# ************************************************
-# 선거 주제도
-# ************************************************
-dataL7 = na.omit(dataL6)
-
-dataL8 = dataL7 %>% 
-  as.tibble() %>% 
-  dplyr::mutate(
-    geometry = NULL
-  )
-
-plotSubTitle = sprintf("%s", "충청남도 아산시 전체 인구현황")
-saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, plotSubTitle)
-
-ggplot() +
-  theme_bw() +
-  coord_fixed(ratio = 1) +
-  geom_sf(data = dataL6, fill = NA, inherit.aes = FALSE) +
-  geom_sf_text(data = dataL6, aes(label = 읍면동명칭)) +
-  scatterpie::geom_scatterpie(
-    aes(x = lon, y = lat, group = factor(읍면동명칭), r = 0.015)
-    , cols=c("18-20세", "21-30세", "31-40세", "41-50세", "51-60세", "61-70세", "71세 이상")
-    , data = dataL8, color = NA, alpha = 0.75
-  ) +
-  scatterpie::geom_scatterpie_legend(dataL8$sumVal/1500000, x = 126.85, y = 36.67) +
-  labs(
-    x = NULL
-    , y = NULL
-    , color = NULL
-    , fill = NULL
-    , subtitle = plotSubTitle
-  ) +
-  theme(
-    text = element_text(size = 14)
-    , panel.grid.major.x = element_blank()
-    , panel.grid.major.y = element_blank()
-    , panel.grid.minor.x = element_blank()
-    , panel.grid.minor.y = element_blank()
-    , axis.text.x = element_blank()
-    , axis.ticks.x = element_blank()
-    , axis.title.x = element_blank()
-    , axis.text.y = element_blank()
-    , axis.ticks.y = element_blank()
-    , axis.title.y = element_blank()
-    , legend.position = "top"
-    , legend.box = "horizontal"
-    , plot.margin = unit(c(0, 0, 0, 0), 'lines')
-  ) +
-  ggsave(filename = saveImg, width = 12, height = 8, dpi = 600)
-
-
-
-plotSubTitle2 = sprintf("%s", "충청남도 아산시 일부 인구현황 (크기 비율 X)")
-plotSubTitle2 = sprintf("%s", "충청남도 아산시 일부 인구현황 (크기 비율 O)")
-saveImg2 = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, plotSubTitle2)
-
-ggplot() +
-  theme_bw() +
-  # coord_fixed(ratio) +
-  coord_fixed(ratio = 1) +
-  geom_sf(data = dataL7, fill = NA, inherit.aes = FALSE) +
-  geom_sf_text(data = dataL7, aes(label = 읍면동명칭)) +
-  # scatterpie::geom_scatterpie(
-  #   aes(x = lon, y = lat, group = factor(읍면동명칭), r = 0.01)
-  #   , cols=c("18-20세", "21-30세", "31-40세", "41-50세", "51-60세", "61-70세", "71세 이상")
-  #   , data = dataL8, color = NA, alpha = 0.75
-  #   ) +
-  scatterpie::geom_scatterpie(
-    aes(x = lon, y = lat, group = factor(읍면동명칭), r = sumVal/2000000)
-    , cols=c("18-20세", "21-30세", "31-40세", "41-50세", "51-60세", "61-70세", "71세 이상")
-    , data = dataL8, color = NA, alpha = 0.75
-  ) +
-  scatterpie::geom_scatterpie_legend(dataL8$sumVal/1500000, x = 126.84, y = 36.72) +
-  labs(
-    x = NULL
-    , y = NULL
-    , color = NULL
-    , fill = NULL
-    , subtitle = plotSubTitle2
-  ) +
-  theme(
-    text = element_text(size = 14)
-    , panel.grid.major.x = element_blank()
-    , panel.grid.major.y = element_blank()
-    , panel.grid.minor.x = element_blank()
-    , panel.grid.minor.y = element_blank()
-    , axis.text.x = element_blank()
-    , axis.ticks.x = element_blank()
-    , axis.title.x = element_blank()
-    , axis.text.y = element_blank()
-    , axis.ticks.y = element_blank()
-    , axis.title.y = element_blank()
-    , legend.position = "top"
-    , legend.box = "horizontal"
-    , plot.margin = unit(c(0, 0, 0, 0), 'lines')
-  ) +
-  ggsave(filename = saveImg2, width = 12, height = 8, dpi = 600)
-  
-
-#=================================================
-# 충청남도 아산시 세부 주제도
-#=================================================
-# 선거 데이터 읽기
-fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0214_선거분석(강서병).xlsx"))
-data = openxlsx::read.xlsx(fileInfo, sheet = 6)
-dataGeo = openxlsx::read.xlsx(fileInfo, sheet = 7)
-
-# 세부 투표구에 대한 위/경도 반환
-dataGeoL1 = dataGeo %>% 
-  dplyr::mutate(
-    addr = stringr::str_c(주소, 건물명, sep = " ")
-  )
-
-addrList = dataGeoL1$addr%>% unique %>% sort %>%
-  as.tibble()
-
-saveFile = sprintf("%s/%s_%s.csv", globalVar$outPath, serviceName, "충남 아산시 투표구 정보")
-
-# 각 주소에 따라 위/경도 반환
-# for (i in 1:nrow(addrList)) {
-#   
-#   # 구글 API 하루 제한
-#   addrData = ggmap::mutate_geocode(addrList[i, 'value'], value, source = "google")
-# 
-#   if (nrow(addrData) < 1) { next }
-# 
-#   readr::write_csv(x = addrData, file = saveFile, append = TRUE)
-# }
-
-addrData =  readr::read_csv(file = saveFile, col_names = c("value", "lon", "lat"))
-
-dataGeoL2 = dataGeoL1 %>% 
-  dplyr::left_join(addrData, by = c("addr" = "value"))
-
-# summary(dataGeoL2)
-
-dataL1 = data %>%
-  as.tibble() %>%
-  na.omit() %>%
-  readr::type_convert()
-
-dataL2 = dataL1 %>% 
-  tidyr::gather(-c(투표구, 세부투표구, 종류), key = "key", value = "val") %>% 
-  dplyr::group_by(투표구, key) %>% 
-  dplyr::summarise(
-    meanVal = mean(val, na.rm = TRUE)
-  ) %>% 
-  dplyr::ungroup() %>% 
-  tidyr::spread(key = "key", value = "meanVal")
-
-dataL3 = dataL2 %>% 
-  rowwise(투표구) %>% 
-  dplyr::mutate(
-    sumVal = sum(더불어민주당, 자유한국당, 국민의당, na.rm = TRUE)
-    , maxVal = max(더불어민주당, 자유한국당, 국민의당, na.rm = TRUE)
-    , meanVal = (더불어민주당 / sumVal) * 100
-    , meanVal2 = (자유한국당 / sumVal) * 100
-    , meanVal3 = (국민의당 / sumVal) * 100
-    , val = dplyr::case_when(
-      자유한국당 == maxVal ~ 1
-      , 더불어민주당 == maxVal ~ 2
-      , 국민의당 == maxVal ~ 3
-    )
-  )
-
-dataDtlL2 = dataL1 %>% 
-  tidyr::gather(-c(투표구, 세부투표구, 종류), key = "key", value = "val") %>% 
-  dplyr::group_by(세부투표구, key) %>% 
-  dplyr::summarise(
-    meanVal = mean(val, na.rm = TRUE)
-  ) %>% 
-  dplyr::ungroup() %>% 
-  tidyr::spread(key = "key", value = "meanVal")
-
-dataDtlL3 = dataDtlL2 %>% 
-  rowwise(세부투표구) %>% 
-  dplyr::mutate(
-    sumVal = sum(더불어민주당, 자유한국당, 국민의당, na.rm = TRUE)
-    , maxVal = max(더불어민주당, 자유한국당, 국민의당, na.rm = TRUE)
-    , meanVal = (더불어민주당 / sumVal) * 100
-    , meanVal2 = (자유한국당 / sumVal) * 100
-    , meanVal3 = (국민의당 / sumVal) * 100
-    , val = dplyr::case_when(
-      자유한국당 == maxVal ~ 1
-      , 더불어민주당 == maxVal ~ 2
-      , 국민의당 == maxVal ~ 3
-    )
-  ) %>% 
-  dplyr::left_join(dataGeoL2, by = c("세부투표구" = "세부투표구")) %>% 
-  dplyr::mutate(
-    label = str_match_all(세부투표구, "제[[:digit:]]+투") %>% unlist()
-  )
-
-# 읍면동 지도 읽기
-mapInfo = Sys.glob(file.path(globalVar$mapPath, "koreaInfo/bnd_dong_00_2019_2019_2Q.shp"))
-
-# shp 파일 읽기 (2)
-mapGlobal = sf::st_read(mapInfo, quiet = TRUE, options = "ENCODING=EUC-KR") %>% 
-  sf::st_transform(CRS("+proj=longlat"))
-
-# 법정동 코드 읽기 (2)
-codeInfo = Sys.glob(file.path(globalVar$mapPath, "admCode/admCode.xlsx"))
-codeData = openxlsx::read.xlsx(codeInfo, sheet = 1, startRow = 2)
-
-codeDataL1 = codeData %>%
-  dplyr::filter(
-    stringr::str_detect(시도명칭, regex("충청남도"))
-    , stringr::str_detect(시군구명칭, regex("아산시"))
-  ) 
-
-# 통합 데이터셋
-dataL5 = mapGlobal %>%
-  dplyr::inner_join(codeDataL1, by = c("adm_dr_cd" = "읍면동코드")) %>%
-  dplyr::left_join(dataL3, by = c("adm_dr_nm" = "투표구")) 
-
-
-# ************************************************
-# 선거 주제도
-# ************************************************
-plotSubTitle = sprintf("%s", "충청남도 아산시 선거 주제도")
-saveImg2 = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, plotSubTitle)
-
-ggplotDefaultColor = hue_pal()(3)
-
-ggplot() +
-  theme_bw() +
-  coord_fixed(ratio = 1) +
-  geom_sf(data = dataL5, aes(fill = factor(val)), inherit.aes = FALSE, alpha = 0.3) +
-  geom_sf_text(data = dataL5, aes(label = 읍면동명칭)) +
-  geom_point(data = dataDtlL3, aes(x = lon, y = lat, color = factor(val)), shape = 16, show.legend = FALSE) +
-  ggrepel::geom_label_repel(
-    data = dataDtlL3
-    , aes(x = lon, y = lat, fill = factor(val), label = label)
-    , color = "white"
-    , segment.color = "black"
-    , show.legend = FALSE
-    , segment.size = 0.2
-    , size = 3
-    ) +
-  scale_fill_manual(
-    name = NULL
-    , na.value = "transparent"
-    , values = c("1" = ggplotDefaultColor[1], "2" = ggplotDefaultColor[2], "3" = ggplotDefaultColor[3])
-    , labels = c("자유한국당", "더불어민주당", "기타야당")
-  ) +
-  scale_color_manual(
-    name = NULL
-    , na.value = "transparent"
-    , values = c("1" = ggplotDefaultColor[1], "2" = ggplotDefaultColor[2], "3" = ggplotDefaultColor[3])
-    , labels = c("자유한국당", "더불어민주당", "기타야당")
-  ) +
-  labs(title = plotSubTitle, x = NULL, y = NULL, colour = NULL, fill = NULL, subtitle = NULL) +
-  theme(
-    text = element_text(size = 16)
-    , panel.grid.major.x = element_blank()
-    , panel.grid.major.y = element_blank()
-    , panel.grid.minor.x = element_blank()
-    , panel.grid.minor.y = element_blank()
-    , axis.text.x = element_blank()
-    , axis.ticks.x = element_blank()
-    , axis.title.x = element_blank()
-    , axis.text.y = element_blank()
-    , axis.ticks.y = element_blank()
-    , axis.title.y = element_blank()
-    , plot.subtitle = element_text(hjust = 1)
-    , legend.position = "top"
-  ) +
-  ggsave(filename = saveImg2, width = 12, height = 8, dpi = 600)
-
-
-dataDtlL4 = dataDtlL3 %>%
-  dplyr::select(-c(더불어민주당, 자유한국당, 국민의당, sumVal, val, maxVal, 건물명, 주소, addr, lon, lat, label)) %>%
-  dplyr::rename(
-    더불어민주당 = meanVal
-    , 자유한국당 = meanVal2
-    , 국민의당 = meanVal3
-  ) %>% 
-  tidyr::gather(-c(세부투표구), key = "key", value = "val") %>% 
-  dplyr::mutate(
-    label = str_match_all(세부투표구, "제[[:digit:]]+투") %>% unlist()
-    , 투표구 = str_replace_all(세부투표구, pattern = "제[[:digit:]]+투", replacement = "")
-  ) %>% 
-  dplyr::na_if(0)
-
-# 정당에 따른 정렬
-dataDtlL4$key = forcats::fct_relevel(dataDtlL4$key, c("자유한국당", "더불어민주당", "국민의당"))
-
-selLabel = paste0("제", c(1:99), "투")
-dataDtlL4$label = forcats::fct_relevel(dataDtlL4$label, selLabel)
-# dataDtlL4$label = forcats::fct_relevel(dataDtlL4$label, rev(selLabel))
-
-# ************************************************
-# 선거 빈도분포
-# ************************************************
-plotSubTitle = sprintf("%s", "충청남도 아산시 선거 빈도분포")
-saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, plotSubTitle)
-
-ggplot(dataDtlL4, aes(x = label, y = val, fill = key, group = key, label = round(val, 0))) +
-  # geom_bar(position = "dodge", stat = "identity") +
-  geom_bar(position = position_stack(), stat = "identity") +
-  # geom_text(size = 5, vjust = 1.6, hjust = 0.5, color = "white") +
-  geom_text(position = position_stack(vjust = 0.5), size = 4, color = "white") +
-  coord_flip() +
-  # scale_y_continuous(labels = scales::percent_format(accuracy = 1, scale = 1)) +
-  labs(x = "세부 투표구", y = "비율", fill = NULL, subtitle = plotSubTitle) +
-  # scale_x_continuous(breaks = seq(1, 11, 1)) +
-  theme(
-    text = element_text(size = 14)
-    # , axis.text.x = element_text(angle = 45, hjust = 1)
-    , legend.position = "top"
-    , axis.ticks.x = element_blank()
-    , axis.text.x = element_blank()
-  ) +
-  # facet_wrap(~투표구, scale = "free", ncol = 3) +
-  facet_wrap(~투표구, scale = "free", ncol = 4) +
-  # facet_wrap(~투표구, scale = "free", space = "free", ncol = 5) +
-  # scale_x_discrete(drop = FALSE) +
-  ggsave(filename = saveImg, width = 12, height = 10, dpi = 600)
-
 
 
 #===============================================================================================
@@ -35606,3 +34912,199 @@ data %>%
 # meanGrade
 # <dbl>
 # 1      3.49
+
+
+#=============================================
+# 기본 문법
+#=============================================
+
+# CSV 파일 읽기
+stuBasInfoData = read.csv("student_basic_info.csv")
+
+# CSV 파일 읽기
+stuCouInfoData = read.csv("student_course_info.csv")
+
+
+# Student_num, Name 컬럼을 기준으로 좌측 조인
+data = merge(stuBasInfoData, stuCouInfoData, by = c("Student_num" = "Student_num", "Name" = "Name"))
+
+# 5행 출력
+head(data)
+# Student_num   Name       Major Entrance_year Number_of_semester
+# 1   143211001   Mike     Physics          2011                  7
+# 2   143211002 Robert Mathematics          2012                  6
+# 3   143211003 Sophia   Chemistry          2013                  5
+# 4   143211004  James     Biology          2013                  4
+# 5   143211005  Jacob Mathematics          2015                  3
+# 6   143211006 Austin   Chemistry          2011                  6
+# Total_course_credits        Course_taken Grade Course_semester
+# 1                   30        Basic_course  3.52          Spring
+# 2                   51        Major_course  4.21            Fall
+# 3                   15 Liberal_arts_course  2.83            Fall
+# 4                   27        Basic_course  3.75          Spring
+# 5                   12 Liberal_arts_course  3.28            Fall
+# 6                   33        Major_course  4.37          Spring
+
+# ********************************************************************************************
+# Q1. 전공(Major)이 Chemistry인 모든 학생들의 Student_num, Major, Name, Entrance_year, 
+# Number_of_semester, Total_course_credits을 Console 창에 출력하는 코드 작성하시오.
+# ********************************************************************************************
+# 전공(Major)이 Chemistry인 학생만 선택
+dataL1 = subset(data, Major %in% c("Chemistry"))
+
+# 컬럼 선택 (Student_num, Major, Name, Entrance_year, Number_of_semester, Total_course_credits)
+dataL2 = subset(dataL1, select = c(Student_num, Major, Name, Entrance_year, Number_of_semester, Total_course_credits))
+
+# Student_num     Major    Name Entrance_year Number_of_semester
+# 3    143211003 Chemistry  Sophia          2013                  5
+# 6    143211006 Chemistry  Austin          2011                  6
+# 10   143211010 Chemistry  Amelia          2015                  5
+# 12   143211012 Chemistry   Henry          2014                  5
+# 16   143211016 Chemistry  Eliana          2015                  6
+# 19   143211019 Chemistry    Eric          2011                  8
+# 21   143211021 Chemistry Michael          2015                  5
+# 27   143211027 Chemistry    Anna          2014                  2
+# Total_course_credits
+# 3                    15
+# 6                    33
+# 10                   48
+# 12                   36
+# 16                   69
+# 19                   78
+# 21                   51
+# 27                   48
+
+# ********************************************************************************************
+# Q2. 입학년도(Entrance_year)가 2013년을 포함하며 그리고 2013년 이후에 입학한 모든 학생들의 
+# Student_num, Major, Name, Entrance_year. Number_of_semester, Total_course_credits 
+# Console 창에 출력하는 코드 작성하시오..
+# ********************************************************************************************
+# 입학년도(Entrance_year)가 2013년 이상인 경우
+dataL1 = subset(data, Entrance_year >= 2013)
+
+# 컬럼 선택 (Student_num, Major, Name, Entrance_year. Number_of_semester, Total_course_credits)
+dataL2 = subset(dataL1, select = c(Student_num, Major, Name, Entrance_year, Number_of_semester, Total_course_credits))
+
+# Student_num       Major      Name Entrance_year Number_of_semester
+# 3    143211003   Chemistry    Sophia          2013                  5
+# 4    143211004     Biology     James          2013                  4
+# 5    143211005 Mathematics     Jacob          2015                  3
+# 7    143211007     Biology    Olivia          2013                  4
+# 9    143211009 Mathematics     Colin          2014                  4
+# 10   143211010   Chemistry    Amelia          2015                  5
+# 12   143211012   Chemistry     Henry          2014                  5
+# 13   143211013     Biology    Justin          2013                  3
+# 15   143211015 Mathematics   Brandon          2013                  4
+# 16   143211016   Chemistry    Eliana          2015                  6
+# 18   143211018     Physics     Kevin          2014                  6
+# 21   143211021   Chemistry   Michael          2015                  5
+# 22   143211022 Mathematics      Nick          2013                  5
+# 24   143211024     Biology Elizabeth          2014                  5
+# 25   143211025     Physics     Dilan          2015                  2
+# 27   143211027   Chemistry      Anna          2014                  2
+# 29   143211029     Physics    Audrey          2013                  3
+# 30   143211030     Biology      Tony          2015                  2
+# Total_course_credits
+# 3                    15
+# 4                    27
+# 5                    12
+# 7                    18
+# 9                    36
+# 10                   48
+# 12                   36
+# 13                   51
+# 15                   60
+# 16                   69
+# 18                   81
+# 21                   51
+# 22                   51
+# 24                   12
+# 25                   24
+# 27                   48
+# 29                   51
+# 30                   81
+
+
+# ********************************************************************************************
+# Q3. 수강한 과목(Course_taken)으로 Major_course 를 수강한 모든 학생들의 
+# Student_num, Major. Name. Course_taken. Grade, Course_semester를 
+# Console 창에 출력하는 코드 작성 하시오..
+# ********************************************************************************************
+# 수강한 과목(Course_taken)으로 Major_course인 경우만 선택
+dataL1 = subset(data, Course_taken %in% c("Major_course"))
+
+# 컬럼 선택 (Student_num, Major. Name. Course_taken. Grade, Course_semester)
+dataL2 = subset(dataL1, select = c(Student_num, Major, Name, Course_taken, Grade, Course_semester))
+
+# Student_num       Major   Name Course_taken Grade Course_semester
+# 2    143211002 Mathematics Robert Major_course  4.21            Fall
+# 6    143211006   Chemistry Austin Major_course  4.37          Spring
+# 11   143211011 Mathematics  Floyd Major_course  2.74          Spring
+# 19   143211019   Chemistry   Eric Major_course  3.82            Fall
+# 23   143211023     Biology   Paul Major_course  3.55          Spring
+# 25   143211025     Physics  Dilan Major_course  2.92            Fall
+# 28   143211028     Biology   Mark Major_course  3.76          Spring
+
+# ********************************************************************************************
+# Q4. 수강한 과목(Course_taken)으로 기초과목(Basic_course)을 수강한 학생들 중에서 
+# 입학년도(Entrance_year)가 2013년을 포함하며 그리고 
+# 2013년 이후에 입학한 학생들의 전공 (Major)별 총 이수학점 (Total_course_credits) 평균을 
+# Console 창에 출력하는 코드 작성하시
+# ********************************************************************************************
+# 수강한 과목(Course_taken)으로 기초과목(Basic_course)을 수강 그리고 입학년도(Entrance_year)가 2013년을 포함한 경우만 선택
+dataL1 = subset(data, Course_taken %in% c("Basic_course") & Entrance_year >= 2013)
+
+# 학생들의 전공 (Major)별 총 이수학점 (Total_course_credits) 평균 수행
+dataL2 = aggregate(dataL1$Total_course_credits, list(dataL1$Major), FUN = mean)
+
+# Group.1    x
+# 1     Biology 34.5
+# 2   Chemistry 51.0
+# 3 Mathematics 36.0
+# 4     Physics 81.0
+
+
+# ********************************************************************************************
+# Q5. 봄(Spring)에 수강한 모든 학생들의 전공(Major)별 학점 (Grade) 평균을 구한 후에 
+# 전공(Major) 학점 (Grade) 평균이 두 번째로 높은 전공(Major)을 
+# Console 창에 출력하는 코드 작성하시오.
+# ********************************************************************************************
+# 봄(Spring)에 수강한 경우만 선택
+dataL1 = subset(data, Course_semester %in% c("Spring"))
+
+# 전공(Major)별 평균 학점 (Grade) 계산
+dataL2 = aggregate(dataL1$Grade, list(dataL1$Major), FUN = mean)
+
+# 그 결과 2번째로 높은 전공 선택
+dataL3 = dataL2[order(dataL2$x, decreasing = TRUE), ][2, ]
+
+# Group.1     x
+# 4 Physics 3.524
+
+
+# ********************************************************************************************
+# Q6. 기초과목 (Basic_course)에서 최고 학점 (Grade)을 받은 학생이 속한 전공 (Major)의 
+# 소속 학생들 중에서 교양과목 (Liberal_arts_course)을 수강한 학생들의 학점 (Grade) 평균 
+# Consale 창에 출력하는 코드 작성하시오..
+# ********************************************************************************************
+# ********************************************************************************************
+# 기초과목 (Basic_course)인 경우만 선택
+dataL1 = subset(data, Course_taken %in% c("Basic_course"))
+
+# 최대 학점 계산
+maxGrade = max(dataL1$Grade, na.rm = TRUE)
+
+# 기초과목 (Basic_course) 이고 최대 학점인 경우만 선택
+dataL2 = subset(data, Course_taken %in% c("Basic_course") & Grade == maxGrade)
+#    Student_num Name     Major Entrance_year Number_of_semester Total_course_credits
+# 27   143211027 Anna Chemistry          2014                  2                   48
+# Course_taken Grade Course_semester
+# 27 Basic_course  4.35            Fall
+
+# 최대 학점인 전공 및 교양과목 (Liberal_arts_course)인 경우만 선택
+dataL3 = subset(data, Major %in% c(dataL2$Major) & Course_taken %in% c("Liberal_arts_course"))
+
+# 평균 학점 계산
+meanGrade = mean(dataL3$Grade, na.rm = TRUE)
+# > meanGrade
+# [1] 3.49
