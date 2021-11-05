@@ -1207,7 +1207,6 @@ plotSubTitle = sprintf("%s", "[서울특별시 강서구] 선거 주제도")
   ggsave(filename = saveImgMerge, width = 10, height = 10, dpi = 600)
 
 
-
 #=================================================
 # 충청남도 아산시 인구현황
 #=================================================
@@ -1417,15 +1416,15 @@ dataL2 = dataL1 %>%
 dataL3 = dataL2 %>% 
   rowwise(투표구) %>% 
   dplyr::mutate(
-    sumVal = sum(더불어민주당, 자유한국당, 국민의당, na.rm = TRUE)
-    , maxVal = max(더불어민주당, 자유한국당, 국민의당, na.rm = TRUE)
+    sumVal = sum(더불어민주당, 자유한국당, 중도층, na.rm = TRUE)
+    , maxVal = max(더불어민주당, 자유한국당, 중도층, na.rm = TRUE)
     , meanVal = (더불어민주당 / sumVal) * 100
     , meanVal2 = (자유한국당 / sumVal) * 100
-    , meanVal3 = (국민의당 / sumVal) * 100
+    , meanVal3 = (중도층 / sumVal) * 100
     , val = dplyr::case_when(
       자유한국당 == maxVal ~ 1
       , 더불어민주당 == maxVal ~ 2
-      , 국민의당 == maxVal ~ 3
+      , 중도층 == maxVal ~ 3
     )
   )
 
@@ -1441,15 +1440,15 @@ dataDtlL2 = dataL1 %>%
 dataDtlL3 = dataDtlL2 %>% 
   rowwise(세부투표구) %>% 
   dplyr::mutate(
-    sumVal = sum(더불어민주당, 자유한국당, 국민의당, na.rm = TRUE)
-    , maxVal = max(더불어민주당, 자유한국당, 국민의당, na.rm = TRUE)
+    sumVal = sum(더불어민주당, 자유한국당, 중도층, na.rm = TRUE)
+    , maxVal = max(더불어민주당, 자유한국당, 중도층, na.rm = TRUE)
     , meanVal = (더불어민주당 / sumVal) * 100
     , meanVal2 = (자유한국당 / sumVal) * 100
-    , meanVal3 = (국민의당 / sumVal) * 100
+    , meanVal3 = (중도층 / sumVal) * 100
     , val = dplyr::case_when(
       자유한국당 == maxVal ~ 1
       , 더불어민주당 == maxVal ~ 2
-      , 국민의당 == maxVal ~ 3
+      , 중도층 == maxVal ~ 3
     )
   ) %>% 
   dplyr::left_join(dataGeoL2, by = c("세부투표구" = "세부투표구")) %>% 
@@ -1493,26 +1492,26 @@ ggplot() +
   coord_fixed(ratio = 1) +
   geom_sf(data = dataL5, aes(fill = factor(val)), inherit.aes = FALSE, alpha = 0.3) +
   geom_sf_text(data = dataL5, aes(label = 읍면동명칭)) +
-  geom_point(data = dataDtlL3, aes(x = lon, y = lat, color = factor(val)), shape = 16, show.legend = FALSE) +
-  ggrepel::geom_label_repel(
-    data = dataDtlL3
-    , aes(x = lon, y = lat, fill = factor(val), label = label)
-    , color = "white"
-    , segment.color = "black"
-    , show.legend = FALSE
-    , segment.size = 0.2
-    , size = 3
-  ) +
+  # geom_point(data = dataDtlL3, aes(x = lon, y = lat, color = factor(val)), shape = 16, show.legend = FALSE) +
+  # ggrepel::geom_label_repel(
+  #   data = dataDtlL3
+  #   , aes(x = lon, y = lat, fill = factor(val), label = label)
+  #   , color = "white"
+  #   , segment.color = "black"
+  #   , show.legend = FALSE
+  #   , segment.size = 0.2
+  #   , size = 3
+  # ) +
   scale_fill_manual(
     name = NULL
     , na.value = "transparent"
-    , values = c("1" = ggplotDefaultColor[1], "2" = ggplotDefaultColor[2], "3" = ggplotDefaultColor[3])
-    , labels = c("자유한국당", "더불어민주당", "기타야당")
+    , values = c("1" = ggplotDefaultColor[1], "2" = ggplotDefaultColor[3], "3" = "gray")
+    , labels = c("자유한국당", "더불어민주당", "중도층")
   ) +
   scale_color_manual(
     name = NULL
     , na.value = "transparent"
-    , values = c("1" = ggplotDefaultColor[1], "2" = ggplotDefaultColor[2], "3" = ggplotDefaultColor[3])
+    , values = c("1" = ggplotDefaultColor[1], "2" = ggplotDefaultColor[3], "3" = "gray")
     , labels = c("자유한국당", "더불어민주당", "기타야당")
   ) +
   labs(title = plotSubTitle, x = NULL, y = NULL, colour = NULL, fill = NULL, subtitle = NULL) +
@@ -1531,15 +1530,15 @@ ggplot() +
     , plot.subtitle = element_text(hjust = 1)
     , legend.position = "top"
   ) +
-  ggsave(filename = saveImg2, width = 12, height = 8, dpi = 600)
+  ggsave(filename = saveImg2, width = 8, height = 10, dpi = 600)
 
 
 dataDtlL4 = dataDtlL3 %>%
-  dplyr::select(-c(더불어민주당, 자유한국당, 국민의당, sumVal, val, maxVal, 건물명, 주소, addr, lon, lat, label)) %>%
+  dplyr::select(-c(더불어민주당, 자유한국당, 중도층, sumVal, val, maxVal, 건물명, 주소, addr, lon, lat, label)) %>%
   dplyr::rename(
     더불어민주당 = meanVal
     , 자유한국당 = meanVal2
-    , 국민의당 = meanVal3
+    , 중도층 = meanVal3
   ) %>% 
   tidyr::gather(-c(세부투표구), key = "key", value = "val") %>% 
   dplyr::mutate(
@@ -1549,7 +1548,7 @@ dataDtlL4 = dataDtlL3 %>%
   dplyr::na_if(0)
 
 # 정당에 따른 정렬
-dataDtlL4$key = forcats::fct_relevel(dataDtlL4$key, c("자유한국당", "더불어민주당", "국민의당"))
+dataDtlL4$key = forcats::fct_relevel(dataDtlL4$key, rev(c("자유한국당", "더불어민주당", "중도층")))
 
 selLabel = paste0("제", c(1:99), "투")
 dataDtlL4$label = forcats::fct_relevel(dataDtlL4$label, selLabel)
@@ -1562,20 +1561,21 @@ plotSubTitle = sprintf("%s", "충청남도 아산시 선거 빈도분포")
 saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, plotSubTitle)
 
 ggplot(dataDtlL4, aes(x = label, y = val, fill = key, group = key, label = round(val, 0))) +
-  # geom_bar(position = "dodge", stat = "identity") +
   geom_bar(position = position_stack(), stat = "identity") +
-  # geom_text(size = 5, vjust = 1.6, hjust = 0.5, color = "white") +
   geom_text(position = position_stack(vjust = 0.5), size = 4, color = "white") +
   coord_flip() +
-  # scale_y_continuous(labels = scales::percent_format(accuracy = 1, scale = 1)) +
   labs(x = "세부 투표구", y = "비율", fill = NULL, subtitle = plotSubTitle) +
-  # scale_x_continuous(breaks = seq(1, 11, 1)) +
   theme(
     text = element_text(size = 14)
-    # , axis.text.x = element_text(angle = 45, hjust = 1)
     , legend.position = "top"
     , axis.ticks.x = element_blank()
     , axis.text.x = element_blank()
+  ) +
+  scale_fill_manual(
+    name = NULL
+    , na.value = "transparent"
+    , values = c("자유한국당" = ggplotDefaultColor[1], "더불어민주당" = ggplotDefaultColor[3], "중도층" = "gray")
+    , labels = c("자유한국당", "더불어민주당", "중도층")
   ) +
   # facet_wrap(~투표구, scale = "free", ncol = 3) +
   facet_wrap(~투표구, scale = "free", ncol = 5) +
@@ -1600,6 +1600,12 @@ ggFreqPlot = ggplot(dataDtlL4, aes(x = label, y = val, fill = key, group = key, 
     , axis.ticks.x = element_blank()
     , axis.text.x = element_blank()
   ) +
+  scale_fill_manual(
+    name = NULL
+    , na.value = "transparent"
+    , values = c("자유한국당" = ggplotDefaultColor[1], "더불어민주당" = ggplotDefaultColor[3], "중도층" = "gray")
+    , labels = c("자유한국당", "더불어민주당", "중도층")
+  ) +
   facet_wrap(~투표구, scale = "free", ncol = 4)
 
 
@@ -1609,26 +1615,26 @@ ggMapPlot = ggplot() +
   coord_fixed(ratio = 1) +
   geom_sf(data = dataL5, aes(fill = factor(val)), inherit.aes = FALSE, alpha = 0.3) +
   geom_sf_text(data = dataL5, aes(label = 읍면동명칭)) +
-  geom_point(data = dataDtlL3, aes(x = lon, y = lat, color = factor(val)), shape = 16, show.legend = FALSE) +
-  ggrepel::geom_label_repel(
-    data = dataDtlL3
-    , aes(x = lon, y = lat, fill = factor(val), label = label)
-    , color = "white"
-    , segment.color = "black"
-    , show.legend = FALSE
-    , segment.size = 0.2
-    , size = 3
-  ) +
+  # geom_point(data = dataDtlL3, aes(x = lon, y = lat, color = factor(val)), shape = 16, show.legend = FALSE) +
+  # ggrepel::geom_label_repel(
+  #   data = dataDtlL3
+  #   , aes(x = lon, y = lat, fill = factor(val), label = label)
+  #   , color = "white"
+  #   , segment.color = "black"
+  #   , show.legend = FALSE
+  #   , segment.size = 0.2
+  #   , size = 3
+  # ) +
   scale_fill_manual(
     name = NULL
     , na.value = "transparent"
-    , values = c("1" = ggplotDefaultColor[1], "2" = ggplotDefaultColor[2], "3" = ggplotDefaultColor[3])
-    , labels = c("자유한국당", "더불어민주당", "기타야당")
+    , values = c("1" = ggplotDefaultColor[1], "2" = ggplotDefaultColor[3], "3" = "gray")
+    , labels = c("자유한국당", "더불어민주당", "중도층")
   ) +
   scale_color_manual(
     name = NULL
     , na.value = "transparent"
-    , values = c("1" = ggplotDefaultColor[1], "2" = ggplotDefaultColor[2], "3" = ggplotDefaultColor[3])
+    , values = c("1" = ggplotDefaultColor[1], "2" = ggplotDefaultColor[3], "3" = "gray")
     , labels = c("자유한국당", "더불어민주당", "기타야당")
   ) +
   labs(title = plotSubTitle, x = NULL, y = NULL, colour = NULL, fill = NULL, subtitle = NULL)
