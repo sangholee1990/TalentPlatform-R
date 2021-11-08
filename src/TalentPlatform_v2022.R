@@ -2223,3 +2223,201 @@ l2=predict(bms_da,TT)
 write.csv(l2, "F:/R/tu/tttt/tut/GCM/Water quality quantity/Baysian/SSP2-4.5 Markov BMA historical BMA.csv")
 
 
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+#================================================
+# 요구사항
+#================================================
+# R을 이용한 2018년 사회조사 데이터 탐색 및 분석
+
+# 제목 : 2018년 사회조사 데이터 전처리
+# 저자 : 김건우
+# 제작 시기 : 2021-11-12
+# 기능 : 원본 CSV 파일 읽기, 코드 정보에 대한 범주형 변환, 정제 파일 저장
+
+#================================================
+# 초기 환경변수 설정
+#================================================
+# env = "local"   # 로컬 : 원도우 환경, 작업환경 (현재 소스 코드 환경 시 .) 설정
+env = "dev"   # 개발 : 원도우 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+# env = "oper"  # 운영 : 리눅스 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+
+prjName = "test"
+serviceName = "LSH0244"
+contextPath = ifelse(env == "local", ".", getwd())
+
+if (env == "local") {
+  globalVar = list(
+    "inpPath" = contextPath
+    , "figPath" = contextPath
+    , "outPath" = contextPath
+    , "tmpPath" = contextPath
+    , "logPath" = contextPath
+  )
+} else {
+  source(here::here(file.path(contextPath, "src"), "InitConfig.R"), encoding = "UTF-8")
+}
+
+#================================================
+# 비즈니스 로직 수행
+#================================================
+# 라이브러리 읽기
+library(tidyverse)
+library(readr)
+library(treemap)
+library(gmodels)
+library(corrplot)
+
+# 파일 찾기
+fileInfo = Sys.glob(file.path(globalVar$inpPath, "보건_교육_안전_가족_환경_2018.csv"))
+
+# ******************************************************
+# 데이터 정제 (원본 CSV 파일 읽기, 7종 컬럼명 설정)
+# ******************************************************
+# 가구번호 : hshldNm
+# 가구원번호 : hshldMmsNm
+# 만연령 : age
+# 가구주관계코드: hshldRlCd
+# 교육정보코드 : edctnInCd
+# 재학상태코드 : stdntStCd
+# 재학학년코드 : gradeCd
+data = readr::read_csv(file = fileInfo, col_names = c("hshldNm", "hshldMmsNm", "age", "hshldRlCd", "edctnInCd", "stdntStCd", "gradeCd"))
+
+# 범주형 변수 (즉 컬럼명 맨 끝에 Cd가 포함된 경우) 변환
+dataL1 = data %>% 
+  dplyr::mutate_at(dplyr::vars(dplyr::ends_with("Cd")), as.factor)
+
+# ******************************************************
+# 요약 통계
+# ******************************************************
+summary(dataL1)
+
+# > summary(dataL1)
+# hshldNm           hshldMmsNm             age              hshldRlCd    
+# Min.   :    1.000   Length:42550       Min.   :  0.00000   01     :18546  
+# 1st Qu.: 4557.000   Class :character   1st Qu.: 25.00000   03     :11393  
+# Median : 8871.000   Mode  :character   Median : 45.00000   02     :10534  
+# Mean   : 9096.633                      Mean   : 43.23217   06     :  996  
+# 3rd Qu.:13626.000                      3rd Qu.: 60.00000   05     :  328  
+# Max.   :18546.000                      Max.   :104.00000   04     :  313  
+
+# edctnInCd     stdntStCd    gradeCd     
+# 3      :11893   1   :  107   1   :  585  
+# 5      : 8259   2   :  718   2   : 3678  
+# 4      : 5648   3   : 6238   3   : 3702  
+# 2      : 4469   4   :  717   4   :  518  
+# 1      : 3981   5   :  877   5   :   54  
+# 0      : 1596   NA's:33893   6   :   13  
+# 6      : 1267                NA's:34000  
+# 7      : 348 
+# NA's   : 5089               
+
+
+# ******************************************************
+# 데이터 탐색
+# ******************************************************
+# 탐색 목적: 과제의 주제와 관련하여 데이터 시각화 탐색을 통해 확인하고자 하는 사항을 간단히 기술
+# 데이터 시각화 탐색: 수업시간에 배운 그래프들(점 그래프, 막대 그래프, 누적 막대 그래프, 
+# 선 그래프, 파이 차트, 박스 플롯, 트리맵)에서 서로 다른 유형의 그래프 2가지 이상을 사용하여 시각화. 
+# 수집된 데이터의 항목 중에서 분석과 관련된 항목들을 포함하여 시각화
+# 시각화한 그래프들에서 각 그래프가 나타내고 있는 의미/특징 설명.
+# 예를 들어, 항목별 응답 분포, 유사 항목의 응답 분포 비교 등 데이터가 포함하고 있는 특징 설명
+
+# 결측값 제거
+dataL2 = na.omit(dataL1)
+
+# 교육정도 이름 부여
+dataL2[ , "edctnInNm"] = NA_character_
+dataL2[which(dataL2$stdntStCd == 0), "edctnInNm"] = "안 받았음"
+dataL2[which(dataL2$stdntStCd == 1), "edctnInNm"] = "초등학교"
+dataL2[which(dataL2$stdntStCd == 2), "edctnInNm"] = "중학교"
+dataL2[which(dataL2$stdntStCd == 3), "edctnInNm"] = "고등학교"
+dataL2[which(dataL2$stdntStCd == 4), "edctnInNm"] = "대학(4년제 미만)"
+dataL2[which(dataL2$stdntStCd == 5), "edctnInNm"] = "대학교(4년제 이상)"
+dataL2[which(dataL2$stdntStCd == 6), "edctnInNm"] = "대학원 석사과정"
+dataL2[which(dataL2$stdntStCd == 7), "edctnInNm"] = "대학원 박사 과정"
+
+# 재학상태 이름 부여
+dataL2[ , "stdntStNm"] = NA_character_
+dataL2[which(dataL2$stdntStCd == 1), "stdntStNm"] = "졸업"
+dataL2[which(dataL2$stdntStCd == 2), "stdntStNm"] = "재학"
+dataL2[which(dataL2$stdntStCd == 3), "stdntStNm"] = "수료"
+dataL2[which(dataL2$stdntStCd == 4), "stdntStNm"] = "휴학"
+dataL2[which(dataL2$stdntStCd == 5), "stdntStNm"] = "중퇴"
+
+# 재학학년 이름 부여
+dataL2[ , "gradeNm"] = NA_character_
+dataL2[which(dataL2$gradeCd == 1), "gradeNm"] = "1학년"
+dataL2[which(dataL2$gradeCd == 2), "gradeNm"] = "2학년"
+dataL2[which(dataL2$gradeCd == 3), "gradeNm"] = "3학년"
+dataL2[which(dataL2$gradeCd == 4), "gradeNm"] = "4학년"
+dataL2[which(dataL2$gradeCd == 5), "gradeNm"] = "5학년"
+dataL2[which(dataL2$gradeCd == 6), "gradeNm"] = "6학년"
+
+# 빈도
+table(dataL2$stdntStNm)
+
+# %상대 빈도
+(table(dataL2$stdntStNm) / length(dataL2$stdntStNm)) * 100
+
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# 막대 그래프
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# 재학상태에 따른 빈도분석을 통해 시각화하였다.
+# 그 결과 수료, 중퇴, 재학, 휴학의 빈도는 6238, 877, 718, 717 순으로 수료가 가장 많았다.
+# 무엇보다도 높은 중퇴 비율은  해외유학, 검정고시, 공무원 등 자발적 의지 학업 중단으로 판단된다.
+
+ggplot(dataL2, aes(x = stdntStNm, fill = stdntStNm)) +
+  geom_bar() +
+  labs(x = "재학상태", fill = "재학상태", y = "빈도")
+
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# 트리맵
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# 재학학년에 따른 상대 빈도분석을 통해 시각화하였다.
+# 그 결과 3학년, 2학년, 1학년, 4학년, 5학년, 6학년 순으로 상대빈도가 낮았고 특히 고핵년 (5-6학년)의 비율이 가장 낮았다.
+# 이는 앞서 설명한 바와 같이 초-중학교 학업 중단 1위인 해외 유학으로 인해 판단된다.
+
+getFreq = as.data.frame(table(dataL2$gradeNm))
+getFreq$RelFreq = (getFreq$Freq / sum(getFreq$Freq, na.rm = TRUE)) * 100
+colnames(getFreq) = c("재학학년", "빈도", "상대빈도")
+
+treemap::treemap(getFreq, index=c("재학학년"), vSize="상대빈도", vColor="상대빈도", type = "value")
+
+# ******************************************************
+# 데이터 분석
+# ******************************************************
+# 과제 주제에 따라 수집된 데이터를 데이터 분석 기법 (교차분석이나 상관분석)으로 분석
+# 서로 다른 3개 (또는 3개 이상의) 가설을 설정하고 각 가설에 대해 분석 (교차분석이나 상관분석)을 수행하며,
+# 각 분석 결과가 가지는 의미 설명.
+
+# 교육정보 및 재학상태에 따른 주제
+dataL2$hshldRlCd = as.numeric(dataL2$hshldRlCd)
+dataL2$edctnInCd = as.numeric(dataL2$edctnInCd)
+dataL2$stdntStCd = as.numeric(dataL2$stdntStCd)
+dataL2$gradeCd = as.numeric(dataL2$gradeCd)
+
+dataL3 = dataL2[ , c("age", "edctnInCd", "stdntStCd", "gradeCd")]
+
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# 상관분석
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# 나이 및 학업 (교육정도, 재학상태, 재학학년) 관련하여 상관분석을 통해 시각화하였다.
+# 그 결과 나이가 많을수록 교육정도, 재학상태, 재학학년과의 낮은 상관관계를 갖으나
+# 반면에 교육정도와 재학상태의 상관계수는 0.25로서 양의 관계를 지닌다.
+# 이는 고학력자일수록 수료-휴학-중퇴할 가능성이 크다는 것을 나타낸다.
+
+# 상관계수  그래프
+corrplot::corrplot(cor(dataL3), method = "number")
+
+# 산점도  그래프
+pairs(dataL3, panel = panel.smooth)
+

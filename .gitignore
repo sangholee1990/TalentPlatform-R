@@ -8,14 +8,12 @@ resources/
 .idea/
 fig_files/
 testSys/
-
 # 특정 파일
 .Rproj.user
 .Rhistory
 .RData*
 info_parallel.log
 fig.html
-
 # 하위 파일 전체
 *.cfg
 *.ttf
@@ -26,7 +24,6 @@ fig.html
 *.o
 *.exe
 .RData*
-
 #=========================================
 # 캐시 지우기
 #=========================================
@@ -36,3 +33,4 @@ fig.html
 # git rm --cached .RData*
 # 폴더
 # git rm --cached .idea/ -r
+testSys.zip

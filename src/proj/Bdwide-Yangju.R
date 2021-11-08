@@ -65,6 +65,7 @@ metaData = readr::read_tsv(file = fileInfo, locale = locale("ko", encoding = "UT
   )
 
 # i = 1
+# i = 3
 # i = 150
 # i = 1000
 
