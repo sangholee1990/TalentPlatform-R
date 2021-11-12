@@ -2037,7 +2037,6 @@ library(stringr)
 #===============================================
 # GEV
 #===============================================
-
 set.seed(100)
 
 library(lmom)
@@ -2154,15 +2153,14 @@ qgumbel <- function(p,a,b) a-b*log(-log(p))
    
    
    
-   
-
-fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0240_Historical.csv"))
+fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0240_Song_Final+Historical-Ensemble+result.csv"))
+# fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0240_Historical.csv"))
 da = readr::read_csv(file = fileInfo, locale = locale("ko", encoding = "EUC-KR"))
 
 # da <- read.csv('F:/R/tu/tttt/tut/GCM/Water quality quantity/Baysian/Song_Final Historical-Ensemble result.csv.csv')
 pdf <- data.frame(da$극락교)
 cdf <- data.frame(da$극락교)
-
+# i = 2
 for (i in 2:3){
   name = colnames(da)[i]
   path <- 'F:/R/tu/tttt/tut/GCM/Water quality quantity/Baysian/'
@@ -2421,3 +2419,120 @@ corrplot::corrplot(cor(dataL3), method = "number")
 # 산점도  그래프
 pairs(dataL3, panel = panel.smooth)
 
+
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+#================================================
+# 요구사항
+#================================================
+# R을 이용한 파이차트, 그룹형 바차트, 워드클라우드 시각화
+
+#================================================
+# 초기 환경변수 설정
+#================================================
+env = "local"   # 로컬 : 원도우 환경, 작업환경 (현재 소스 코드 환경 시 .) 설정
+# env = "dev"   # 개발 : 원도우 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+# env = "oper"  # 운영 : 리눅스 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+
+prjName = "test"
+serviceName = "LSH0248"
+contextPath = ifelse(env == "local", ".", getwd())
+
+if (env == "local") {
+  globalVar = list(
+    "inpPath" = contextPath
+    , "figPath" = contextPath
+    , "outPath" = contextPath
+    , "tmpPath" = contextPath
+    , "logPath" = contextPath
+  )
+} else {
+  source(here::here(file.path(contextPath, "src"), "InitConfig.R"), encoding = "UTF-8")
+}
+
+#================================================
+# 비즈니스 로직 수행
+#================================================
+# 라이브러리 읽기
+library(RColorBrewer)
+library(tidyverse)
+library(readr)
+library(RmecabKo)
+library(stringr)
+library(wordcloud2)
+library(htmlwidget)
+
+# 명사 추출을 위한 메타 정보
+RmecabKo::install_mecab()
+
+# ****************************************
+# 파이차트 작성
+# ****************************************
+carData = read.csv(file = "car.csv")
+
+carDataL1 = subset(carData, 사고유형대분류 %in% c("차대차"))
+carDataL2 = subset(carDataL1, select = c(사고유형대분류, 사고유형, 사고건수))
+
+label = paste0(carDataL2$사고유형, " ", round((carDataL2$사고건수 / sum(carDataL2$사고건수, na.rm = TRUE) * 100)), "%")
+
+png(file = "차대차 교통사고 유형별 사고건수.png", width = 10, height = 8, units = "in", res = 600)
+pie(carDataL2$사고건수, labels = label, col = RColorBrewer::brewer.pal(5, "Set2"), main = "차대차 교통사고 유형별 사고건수")
+dev.off()
+
+# ****************************************
+# 바차트 작성
+# ****************************************
+barData = carData
+barData[, "부상자수"] =  barData[, "중상자수"] + barData[, "경상자수"]
+
+tmpData1 = tapply(barData$사망자수, barData$사고유형대분류, FUN=sum)
+tmpData2 = tapply(barData$부상자수, barData$사고유형대분류, FUN=sum)
+tmpData = data.frame(tmpData1, tmpData2)
+
+barDataL1 = t(data.matrix(tmpData))
+row.names(barDataL1) = c("사망자수", "부상자수")
+
+png(file = "사고형대분류통계.png", width = 10, height = 8, units = "in", res = 600)
+barplot(barDataL1, main = "사고형대분류통계", xlab="사고유형대분류이름", ylab="사람수"
+        , col=RColorBrewer::brewer.pal(3, "Set2"), beside=TRUE, font.axis=2, legend = TRUE)
+dev.off()
+
+# ****************************************
+# 워드클라우드 작성
+# ****************************************
+covidData = read.csv(file = "covidnews8.csv")
+
+covidDataTextAll = paste(covidData$본문, collapse = " ")
+
+covidDataL1 = RcppMeCab::pos(utf8::as_utf8(covidDataTextAll), format = "data.frame")
+covidDataL2 = subset(covidDataL1, pos %in% c("NNG"))
+covidDataL3 = subset(covidDataL2, select = c(token))
+
+# 키워드 빈도에 따른 시각화
+covidDataL3$token = replace(covidDataL3$token, stringr::str_detect(covidDataL3$token, regex("코로나")), "코로나19")
+
+keywordData = covidDataL3 %>%
+  group_by(token) %>%
+  summarise(freq = n()) %>%
+  mutate(len = stringr::str_length(token)) %>% 
+  filter(
+    freq >= 2
+    , len >= 2
+  ) %>% 
+  arrange(desc(freq))
+
+fig = wordcloud2::wordcloud2(data = keywordData)
+
+# html 저장
+htmlwidgets::saveWidget(fig, "fig.html", selfcontained = FALSE)
+
+# html에서 png로 저장
+webshot::webshot("fig.html", "워드클라우드.png", vwidth = 800, vheight = 600, delay = 10)

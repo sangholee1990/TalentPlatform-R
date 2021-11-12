@@ -19291,7 +19291,10 @@ prjName = "test"
 # serviceName = "LSH0227"
 # serviceName = "LSH0228"
 # serviceName = "LSH0233"
-serviceName = "LSH0237"
+# serviceName = "LSH0237"
+# serviceName = "LSH0245"
+# serviceName = "LSH0246"
+serviceName = "LSH0247"
 
 contextPath = ifelse(env == "local", ".", getwd())
 
@@ -19453,7 +19456,19 @@ fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0195_일식 식분도 이�
 # sheetInfo = 36
 
 # 시트 37 : 수온리(3)
-sheetInfo = 37
+# sheetInfo = 37
+
+# 시트 38 : 진+북주+공통(7)
+# sheetInfo = 38
+
+# 시트 39 : 진온리(1)
+# sheetInfo = 39
+
+# 시트 40 : 양+동위+공통(3)
+# sheetInfo = 40
+
+# 시트 41 : 동위온리(1)
+sheetInfo = 41
 
 sheetName = dplyr::case_when(
   sheetInfo == 1 ~ "테스트"
@@ -19494,6 +19509,10 @@ sheetName = dplyr::case_when(
   , sheetInfo == 35 ~ "시안당온리(67)"
   , sheetInfo == 36 ~ "진+수+공통(1)"
   , sheetInfo == 37 ~ "수온리(3)"
+  , sheetInfo == 38 ~ "진+북주+공통(7)"
+  , sheetInfo == 39 ~ "진온리(1)"
+  , sheetInfo == 40 ~ "양+동위+공통(3)"
+  , sheetInfo == 41 ~ "동위온리(1)"
   , TRUE ~ NA_character_
 )
 
@@ -19506,7 +19525,7 @@ data = openxlsx::read.xlsx(fileInfo, sheet = sheetInfo) %>%
 
 typeList = data$type %>% unique %>% sort
 
-selTypeList = typeList[3]
+selTypeList = typeList[1]
 
 for (typeInfo in selTypeList) {
 # for (typeInfo in typeList) {
@@ -19571,7 +19590,7 @@ for (typeInfo in selTypeList) {
 beepr::beep(sound = 8)
 
 
- # **************************************************
+# **************************************************
 # 시트에 따른 데이터 병합
 # **************************************************
 # sheetList = c(7, 8)
@@ -19631,8 +19650,17 @@ beepr::beep(sound = 8)
 # sheetList = c(35)
 # sheetName = "시안당온리(67)"
 
-sheetList = c(36, 37)
-sheetName = "진-수-공통(1)+수온리(3)"
+# sheetList = c(36, 37)
+# sheetName = "진-수-공통(1)+수온리(3)"
+
+# sheetList = c(38)
+# sheetName = "진-북주-공통(7)"
+
+# sheetList = c(36, 38, 39)
+# sheetName = "진-수-공통(1)+진-북주-공통(7)+진온리(1)"
+
+sheetList = c(40, 41)
+sheetName = "양-동위-공통(3)+동위온리(1)"
 
 dataL3 = tibble()
 for (sheetInfo in sheetList) {
@@ -19709,10 +19737,22 @@ maxData = dataL4[idx, ]
 # setBreak = c(seq(0.68, 0.60, -0.02), seq(0.58, 0, -0.04))
 # setBreak = c(seq(0.44, 0, -0.02))
 
-setBreakCont = c(seq(0.64, 0, -0.02))
-setBreakText = c(seq(0.64, 0.10, -0.02))
+# setBreakCont = c(seq(0.64, 0, -0.02))
+# setBreakText = c(seq(0.64, 0.10, -0.02))
 
-# 0.6478
+# setBreakCont = c(seq(0.54, 0, -0.02), 0.53)
+# setBreakText = c(seq(0.54, 0.10, -0.02), 0.53)
+
+# setBreakCont = c(seq(0.56, 0, -0.02), 0.55)
+# setBreakText = c(seq(0.56, 0.10, -0.02), 0.55)
+
+# setBreakCont = c(seq(0.52, 0, -0.02))
+# setBreakText = c(seq(0.52, 0.10, -0.02))
+
+setBreakCont = c(seq(0.50, 0, -0.04))
+setBreakText = c(seq(0.50, 0.10, -0.04))
+
+# 0.5217
 
 saveImg = sprintf("%s/%s_%s_%s.png", globalVar$figPath, serviceName, sheetName, "Mean_Color")
 
