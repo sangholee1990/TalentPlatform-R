@@ -1670,7 +1670,7 @@ saveImgMerge = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, plotSubTi
 # 선거 데이터 읽기
 fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0214_선거분석(강서병).xlsx"))
 data = openxlsx::read.xlsx(fileInfo, sheet = 8)
-dataGeo = openxlsx::read.xlsx(fileInfo, sheet = 9)
+dataGeo = openxlsx::read.xlsx(fileInfo, sheet = 10)
 
 # 세부 투표구에 대한 위/경도 반환
 dataGeoL1 = dataGeo %>% 
@@ -1703,14 +1703,16 @@ dataGeoL2 = dataGeoL1 %>%
 
 dataL1 = data %>%
   as.tibble() %>%
-  na.omit() %>%
   readr::type_convert()
 
 dataL2 = dataL1 %>% 
+  dplyr::filter(세부투표구 %in% c("소계")) %>% 
+  rowwise() %>% 
   dplyr::mutate(
-    중도층 = 중도층1 + 중도층2
+    중도층 = sum(c(중도층1, 중도층2, 중도층3, 중도층4, 중도층5, 중도층6, 중도층7, 중도층8, 중도층9, 중도층10, 중도층11, 중도층12, 중도층13, 중도층14, 중도층15, 중도층16, 중도층17, 중도층18, 중도층19), na.rm = TRUE)
   ) %>% 
-  dplyr::select(-c(중도층1, 중도층2)) %>% 
+  dplyr::select(-c(중도층1, 중도층2, 중도층3, 중도층4, 중도층5, 중도층6, 중도층7, 중도층8, 중도층9, 중도층10, 중도층11, 중도층12, 중도층13, 중도층14, 중도층15, 중도층16, 중도층17, 중도층18, 중도층19)) %>% 
+  dplyr::select(-c(종류)) %>% 
   tidyr::gather(-c(투표구, 세부투표구), key = "key", value = "val") %>% 
   dplyr::group_by(투표구, key) %>% 
   dplyr::summarise(
@@ -1732,13 +1734,25 @@ dataL3 = dataL2 %>%
       , 더불어민주당 == maxVal ~ 2
       , 중도층 == maxVal ~ 3
     )
+    , 투표구2 = dplyr::case_when(
+        stringr::str_detect(투표구, regex("가양제3동")) ~ "가양3동"
+        , stringr::str_detect(투표구, regex("등촌제1동")) ~ "등촌1동"
+        , stringr::str_detect(투표구, regex("등촌제2동")) ~ "등촌2동"
+        , stringr::str_detect(투표구, regex("화곡제4동")) ~ "화곡4동"
+        , stringr::str_detect(투표구, regex("화곡제6동")) ~ "화곡6동"
+        , stringr::str_detect(투표구, regex("염창동")) ~ "염창동"
+        , stringr::str_detect(투표구, regex("화곡본동")) ~ "화곡본동"
+      )
   )
 
 dataDtlL2 = dataL1 %>% 
+  dplyr::filter(! 세부투표구 %in% c("소계", "관내사전투표", "선거일투표")) %>% 
+  rowwise() %>%
   dplyr::mutate(
-    중도층 = 중도층1 + 중도층2
+    중도층 = sum(c(중도층1, 중도층2, 중도층3, 중도층4, 중도층5, 중도층6, 중도층7, 중도층8, 중도층9, 중도층10, 중도층11, 중도층12, 중도층13, 중도층14, 중도층15, 중도층16, 중도층17, 중도층18, 중도층19), na.rm = TRUE)
   ) %>% 
-  dplyr::select(-c(중도층1, 중도층2)) %>% 
+  dplyr::select(-c(중도층1, 중도층2, 중도층3, 중도층4, 중도층5, 중도층6, 중도층7, 중도층8, 중도층9, 중도층10, 중도층11, 중도층12, 중도층13, 중도층14, 중도층15, 중도층16, 중도층17, 중도층18, 중도층19)) %>% 
+  dplyr::select(-c(종류)) %>%
   tidyr::gather(-c(투표구, 세부투표구), key = "key", value = "val") %>% 
   dplyr::group_by(세부투표구, key) %>% 
   dplyr::summarise(
@@ -1786,7 +1800,7 @@ codeDataL1 = codeData %>%
 # 통합 데이터셋
 dataL5 = mapGlobal %>%
   dplyr::inner_join(codeDataL1, by = c("adm_dr_cd" = "읍면동코드")) %>%
-  dplyr::left_join(dataL3, by = c("adm_dr_nm" = "투표구")) 
+  dplyr::left_join(dataL3, by = c("adm_dr_nm" = "투표구2")) 
 
 
 # ************************************************
@@ -1842,7 +1856,6 @@ ggplot() +
   ) +
   ggsave(filename = saveImg2, width = 8, height = 10, dpi = 600)
 
-
 dataDtlL4 = dataDtlL3 %>%
   dplyr::select(-c(더불어민주당, 자유한국당, 중도층, sumVal, val, maxVal, 건물명, 주소, addr, lon, lat, label)) %>%
   dplyr::rename(
@@ -1854,6 +1867,15 @@ dataDtlL4 = dataDtlL3 %>%
   dplyr::mutate(
     label = str_match_all(세부투표구, "제[[:digit:]]+투") %>% unlist()
     , 투표구 = str_replace_all(세부투표구, pattern = "제[[:digit:]]+투", replacement = "")
+    , 투표구2 = dplyr::case_when(
+      stringr::str_detect(투표구, regex("가양제3동")) ~ "가양3동"
+      , stringr::str_detect(투표구, regex("등촌제1동")) ~ "등촌1동"
+      , stringr::str_detect(투표구, regex("등촌제2동")) ~ "등촌2동"
+      , stringr::str_detect(투표구, regex("화곡제4동")) ~ "화곡4동"
+      , stringr::str_detect(투표구, regex("화곡제6동")) ~ "화곡6동"
+      , stringr::str_detect(투표구, regex("염창동")) ~ "염창동"
+      , stringr::str_detect(투표구, regex("화곡본동")) ~ "화곡본동"
+    )
   ) %>% 
   dplyr::na_if(0)
 
@@ -1887,7 +1909,7 @@ ggplot(dataDtlL4, aes(x = label, y = val, fill = key, group = key, label = round
     , values = c("자유한국당" = ggplotDefaultColor[1], "더불어민주당" = ggplotDefaultColor[3], "중도층" = "gray")
     , labels = c("자유한국당", "더불어민주당", "중도층")
   ) +
-  facet_wrap(~투표구, scale = "free", ncol = 3) +
+  facet_wrap(~투표구2, scale = "free", ncol = 3) +
   # facet_wrap(~투표구, scale = "free", ncol = 5) +
   # facet_grid(~ 투표구, space = "free") +
   # facet_wrap(~투표구, scale = "free", space = "free", ncol = 5) +
@@ -1972,6 +1994,172 @@ saveImgMerge = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, plotSubTi
 (ggMapPlot & ggMapPlotTheme ) / (ggFreqPlot) +
   patchwork::plot_layout(heights = c(2, 1)) +
   ggsave(filename = saveImgMerge, width = 10, height = 20, dpi = 600)
+
+
+#=================================================
+# 서울특별시 강서구 인구현황
+#=================================================
+# 선거 데이터 읽기
+fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0214_선거분석(강서병).xlsx"))
+# data = openxlsx::read.xlsx(fileInfo, sheet = 5)
+data = openxlsx::read.xlsx(fileInfo, sheet = 9)
+
+dataL1 = data %>%
+  as.tibble() %>%
+  na.omit() %>%
+  readr::type_convert()
+
+dataL2 = dataL1 %>%
+  dplyr::mutate(
+    투표구 = stringr::str_trim(투표구)
+    , 나이 = stringr::str_trim(나이)
+    , 투표수 = as.numeric(투표수)
+  ) %>% 
+  dplyr::filter(! 나이 %in% c("합계", "평균연령", "중위연령", "65세이상", "85세이상", "100세이상", "15세미만")) %>%
+  dplyr::mutate(
+    age = strsplit(나이, "세") %>% unlist() %>% as.numeric()
+  ) %>% 
+  dplyr::mutate(
+    type = dplyr::case_when(
+      18 <= age & age <= 20 ~ "18-20세"
+      , 21 <= age & age <= 30 ~ "21-30세"
+      , 31 <= age & age <= 40 ~ "31-40세"
+      , 41 <= age & age <= 50 ~ "41-50세"
+      , 51 <= age & age <= 60 ~ "51-60세"
+      , 61 <= age & age <= 70 ~ "61-70세"
+      , 71 <= age ~ "71세 이상"
+    )
+  ) %>% 
+  dplyr::filter(
+    ! is.na(age)
+    , ! is.na(type)
+  ) %>% 
+  dplyr::select(-나이, -age)
+
+statData = dataL2 %>% 
+  dplyr::group_by(투표구, type) %>% 
+  dplyr::summarise(
+    sumKeyVal = sum(투표수, na.rm = TRUE) 
+  )
+
+statDataL2 = dataL2 %>% 
+  dplyr::group_by(투표구) %>% 
+  dplyr::summarise(
+    sumVal = sum(투표수, na.rm = TRUE) 
+  )
+
+# dataL2$투표구 %>% unique() %>% sort()
+# [1] "가양1동"  "가양2동"  "가양3동"  "강서구"   "공항동"   "등촌1동"  "등촌2동" 
+# [8] "등촌3동"  "발산1동"  "방화1동"  "방화2동"  "방화3동"  "염창동"   "우장산동"
+# [15] "화곡1동"  "화곡2동"  "화곡3동"  "화곡4동"  "화곡6동"  "화곡8동"  "화곡본동"
+
+# codeDataL1$읍면동명칭 %>% unique() %>% sort()
+# [1] "가양1동"  "가양2동"  "가양3동"  "공항동"   "등촌1동"  "등촌2동"  "등촌3동" 
+# [8] "발산1동"  "방화1동"  "방화2동"  "방화3동"  "염창동"   "우장산동" "화곡1동" 
+# [15] "화곡2동"  "화곡3동"  "화곡4동"  "화곡6동"  "화곡8동"  "화곡본동"
+
+dataL3 = statData %>% 
+  dplyr::left_join(statDataL2, by = c("투표구" = "투표구")) %>% 
+  tidyr::spread(key = "type", value = "sumKeyVal")
+
+# dataL3 = dataL1 %>%
+#   dplyr::left_join(statData, by = c("투표구" = "투표구", "type" = "type")) %>%
+#   tidyr::spread(key = "type", value = "투표수")
+#   # tidyr::spread(key = "나이", value = "투표수")
+
+# 읍면동 지도 읽기
+mapInfo = Sys.glob(file.path(globalVar$mapPath, "koreaInfo/bnd_dong_00_2019_2019_2Q.shp"))
+
+# shp 파일 읽기 (2)
+mapGlobal = sf::st_read(mapInfo, quiet = TRUE, options = "ENCODING=EUC-KR") %>% 
+  sf::st_transform(CRS("+proj=longlat"))
+
+# 법정동 코드 읽기 (2)
+codeInfo = Sys.glob(file.path(globalVar$mapPath, "admCode/admCode.xlsx"))
+codeData = openxlsx::read.xlsx(codeInfo, sheet = 1, startRow = 2)
+
+codeDataL1 = codeData %>%
+  dplyr::filter(
+    stringr::str_detect(시도명칭, regex("서울특별시"))
+    , stringr::str_detect(시군구명칭, regex("강서구"))
+  ) 
+
+# 통합 데이터셋
+dataL5 = mapGlobal %>%
+  dplyr::inner_join(codeDataL1, by = c("adm_dr_cd" = "읍면동코드")) %>%
+  dplyr::left_join(dataL3, by = c("adm_dr_nm" = "투표구")) 
+
+# 중심 위/경도 반환
+posData = sf::st_centroid(dataL5$geometry) %>% 
+  sf::st_coordinates() %>% 
+  as.tibble() %>% 
+  dplyr::rename(
+    "lon" = "X"
+    , "lat" = "Y"
+  )
+
+dataL6 = dplyr::bind_cols(dataL5, posData)
+
+# ************************************************
+# 선거 주제도
+# ************************************************
+dataL7 = na.omit(dataL6)
+
+dataL8 = dataL7 %>% 
+  as.tibble() %>% 
+  dplyr::mutate(
+    geometry = NULL
+  )
+
+# plotSubTitle2 = sprintf("%s", "서울특별시 강서구 선거 인구현황 (크기 비율 X)")
+plotSubTitle2 = sprintf("%s", "서울특별시 강서구 선거 인구현황 (크기 비율 O)")
+saveImg2 = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, plotSubTitle2)
+
+ggplot() +
+  theme_bw() +
+  # coord_fixed(ratio) +
+  coord_fixed(ratio = 1) +
+  geom_sf(data = dataL7, fill = NA, inherit.aes = FALSE) +
+  geom_sf_text(data = dataL7, aes(label = 읍면동명칭)) +
+  # scatterpie::geom_scatterpie(
+  #   aes(x = lon, y = lat, group = factor(읍면동명칭), r = 0.005)
+  #   , cols=c("18-20세", "21-30세", "31-40세", "41-50세", "51-60세", "61-70세", "71세 이상")
+  #   , data = dataL8, color = NA, alpha = 0.75
+  #   ) +
+  scatterpie::geom_scatterpie(
+    aes(x = lon, y = lat, group = factor(읍면동명칭), r = sumVal/5000000)
+    , cols=c("18-20세", "21-30세", "31-40세", "41-50세", "51-60세", "61-70세", "71세 이상")
+    , data = dataL8, color = NA, alpha = 0.75
+  ) +
+  scatterpie::geom_scatterpie_legend(
+    dataL8$sumVal/5000000
+    , x =  min(posData$lon, na.rm = TRUE) - 0.02
+    , y = min(posData$lat, na.rm = TRUE)
+    ) +
+  labs(
+    x = NULL
+    , y = NULL
+    , color = NULL
+    , fill = NULL
+    , subtitle = plotSubTitle2
+  ) +
+  theme(
+    text = element_text(size = 14)
+    , panel.grid.major.x = element_blank()
+    , panel.grid.major.y = element_blank()
+    , panel.grid.minor.x = element_blank()
+    , panel.grid.minor.y = element_blank()
+    , axis.text.x = element_blank()
+    , axis.ticks.x = element_blank()
+    , axis.title.x = element_blank()
+    , axis.text.y = element_blank()
+    , axis.ticks.y = element_blank()
+    , axis.title.y = element_blank()
+    , legend.position = "top"
+    , legend.box = "horizontal"
+    , plot.margin = unit(c(0.2, 0, 0, 0), 'lines')
+  ) +
+  ggsave(filename = saveImg2, width = 10, height = 8, dpi = 600)
 
 #===============================================================================================
 # Routine : Main R program
