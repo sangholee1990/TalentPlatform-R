@@ -166,7 +166,7 @@ for (i in seq(1, 1000, 1)) {
 }
 
 
-saveXlsxFile = sprintf("%s/%s/%s.xlsx", globalVar$outPath, serviceName, "공공데이터포털_STT")
+saveXlsxFile = sprintf("%s/%s/%s.xlsx", globalVar$outPath, serviceName, "MetaData")
 
 wb = openxlsx::createWorkbook()
 openxlsx::addWorksheet(wb, "Sheet1")
@@ -179,3 +179,11 @@ dataL4 = dataL3 %>%
 
 saveCsvFile = sprintf("%s/%s/%s.csv", globalVar$outPath, serviceName, "공공데이터포털_STT")
 readr::write_csv(dataL4, file = saveCsvFile)
+
+
+saveXlsxFile = sprintf("%s/%s/%s.xlsx", globalVar$outPath, serviceName, "공공데이터포털_STT")
+
+wb = openxlsx::createWorkbook()
+openxlsx::addWorksheet(wb, "Sheet1")
+openxlsx::writeData(wb, "Sheet1", dataL4, startRow = 1, startCol = 1, colNames = TRUE, rowNames = FALSE)
+openxlsx::saveWorkbook(wb, file = saveXlsxFile, overwrite = TRUE)
