@@ -170,11 +170,6 @@ fviz_pca_ind(pcaRes, col.ind = "cos2",
   theme_bw(base_size = 18) +
   ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
 
-
-
-
-
-
 # EOF = princomp(mapDataL1, cor = TRUE)
 EOF
 ## scale = FALSE , center = FALSE : 공분산 행렬   (아노말리 미고려)
@@ -2176,11 +2171,19 @@ ggplot() +
 #================================================
 # R을 이용한 GEV 분포에 대한 CDF 및 PDF 시각화
 
+# GEV 분포
 # 1. GEV 분포를 작성하였으며 GEVcdn이 아닌 lmom의 함수로 구하고 싶습니다.
 # 2. GEV cdf를 적분을 적용하여 pdf로 변환하여 pdf값도 산정하고 싶습니다.
 # 3. 95분위수 값의 결과를 보고싶습니다!
 # 4.산정된 분포에따른 데이터 값을 확인하고 싶습니다.
 # 5. cdf와 pdf의 플럿을 그리고싶습니다.
+
+# BMS
+# # 네! 검토사항은 BMA가 가우시안분포로 잘돌아가는지에 대한 검토입니다!
+# 확인해주셔야될부분은
+# 1. 모델이 가우시안이 적용이되는 것과, MCMC가 잘적용되었는지가 궁금합니다.
+# (mcmc='enumeration'에서 enumeration가 MCMC 방법이 맞는지가 궁금합니다.)
+# 2. 분산과 표준편차가 잘산정되는지와 예측결과가 다음과같이 산정되는 것이 맞는지 결과가 괜찮은지에 대한 것입니다!
 
 #================================================
 # 초기 환경변수 설정
@@ -2214,199 +2217,192 @@ library(readr)
 library(tidyverse)
 library(readr)
 library(stringr)
+library(lmom)
+library(BMS)
+
+#===============================================
+# GEV 분포
+#===============================================
+set.seed(100)
+
+# fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0240_Song_Final+Historical-Ensemble+result.csv"))
+# # fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0240_Historical.csv"))
+# da = readr::read_csv(file = fileInfo, locale = locale("ko", encoding = "EUC-KR"))
+# 
+# # da <- read.csv('F:/R/tu/tttt/tut/GCM/Water quality quantity/Baysian/Song_Final Historical-Ensemble result.csv.csv')
+# pdf <- data.frame(da$극락교)
+# cdf <- data.frame(da$극락교)
+# # i = 2
+# for (i in 2:3){
+#   name = colnames(da)[i]
+#   path <- 'F:/R/tu/tttt/tut/GCM/Water quality quantity/Baysian/'
+#   path <- paste0(path,name,'_param.csv')
+#   dataset <- as.data.frame(da[,i])[,1]
+#   lmompara = lmom::pelgev(lmom::samlmu(dataset,nmom= 20))
+#   lmr_gev_param = lmom::lmrgev(lmompara,nmom=20)
+#   
+#  
+#   
+#   paramdf = data.frame(c(lmompara,lmr_gev_param))
+#   colnames(paramdf) <- 'value'
+#   # write.csv(paramdf, path)
+#   
+#   pd <- GEVcdn::dgev(dataset,location=lmompara[1],scale=lmompara[2],shape=lmompara[3])
+#   cd <- GEVcdn::pgev(dataset,location=lmompara[1],scale=lmompara[2],shape=lmompara[3])
+#   
+#   
+#   pdf <- data.frame(pdf,pd)
+#   cdf <- data.frame(cdf,cd)
+# }
+# 
+# c1=cdfgev(da$극락교,lmompara)
+# 
+# plot(da$극락교,c1)
+# 
+# pdf <- pdf[,-1]
+# cdf <- cdf[,-1]
+# colnames(pdf) <- colnames(da)[c(-1)]
+# colnames(cdf) <- colnames(da)[c(-1)]
+# write.csv(pdf,'F:/R/tu/tttt/tut/GCM/Water quality quantity/Baysian/Ensemble pdf.csv')
+# write.csv(cdf,'F:/R/tu/tttt/tut/GCM/Water quality quantity/Baysian/Ensemble cdf.csv')
 
 
+# ******************************************************************************
 # 1. GEV 분포를 작성하였으며 GEVcdn이 아닌 lmom의 함수로 구하고 싶습니다.
 # 2. GEV cdf를 적분을 적용하여 pdf로 변환하여 pdf값도 산정하고 싶습니다.
 # 3. 95분위수 값의 결과를 보고싶습니다!
 # 4.산정된 분포에따른 데이터 값을 확인하고 싶습니다.
 # 5. cdf와 pdf의 플럿을 그리고싶습니다.
-
-#===============================================
-# GEV
-#===============================================
-set.seed(100)
-
-library(lmom)
-
-lmom::quagev(runif(100), c(0,1,-0.5))
-x = runif(100)
-
-# 일반화된 극단값 분포 (xi, 모수, 스케일, 알파)
-b = lmom::cdfgev(x, para = c(0, 1, -0.5))
-
-plot(data$x, data$b)
-
-data = data.frame(x, b) %>% 
-  dplyr::arrange(x) %>% 
-  dplyr::mutate(
-    c = cumsum(b)
-  )
-
-
-# cdf
-fx <- function(x, dx) {
-  cumsum(fx(x)*dx)
-}
-
-fx <- Vectorize(fx)
-# dx <- 0.01
-# x <- seq(0, 10, dx)
-x = runif(100)
-df <- rbind(data.frame(x, value=fx(x), func='pdf'), 
-            data.frame(x, value=Fx(x, dx), func='cdf'))
-library(ggplot2)
-library(gofMC)
-ggplot(df, aes(x, value, col=func)) + 
-  geom_point() + geom_line() + ylim(0, 1) 
-
-
-pdf1 <- function(x) dnorm(x, mean = 100, sd = 5) # pdf
-qdf1 <- function(x) qnorm(x, mean = 100, sd = 5) # qf
-cdf1 <- function(x) pnorm(x, mean = 100, sd = 5) # cdf
-
-library(plotpdf)
-plotpdf(pdf1, qdf1)
-plotpdf(pdf1, cdf = cdf1)
-plotpdf(pdf1, cdf = cdf1, lq = 0.001, uq = 0.999)
-plotpdf(cdf1, cdf = cdf1, lq = 0.001, uq = 0.999) # plot a cdf
-
-
-pf1 <- function(x){
-  0.25 * pnorm(x, mean = 3, sd = 0.2) + 0.75 * pnorm(x, mean = -1, sd = 0.5)
-}
-df1 <- function(x){
-  0.25 * dnorm(x, mean = 3, sd = 0.2) + 0.75 * dnorm(x, mean = -1, sd = 0.5)
-  }
-
-# Here is a plot of the pdf:
-plotpdf(df1, cdf = pf1) # plot the pdf
-
-c(q5pc = cdf2quantile(0.05, pf1), q95pc = cdf2quantile(0.95, pf1))
-
-
-
-plot(x, cumsum(b))
-
-
-plot(data$x, data$b)
-plot(data$x, data$c)
-hist(b)
-
-# 일반화된 극단값 분위수 
-c = lmom::quagev(x, para = c(0, 1, -0.5))
-
-hist(c)
-
-lmr <- lmoms(c(123,34,4,654,37,78))
-cdfgev(50,pargev(lmr))
-
-
-library("lmomco")
-library("fitdistrplus")
-## reproducible:
-month <- c(27.6, 97.9, 100.6, 107.3, 108.5,
-           109, 112.4, 120.9, 137.8)
-lmom <- lmoms(month,nmom=5)     #from lmomco package
-para <- pargev(lmom, checklmom=TRUE)
-dgev <- pdfgev   #functions which are included in lmomco
-pgev <- cdfgev
-fitgev <- fitdist(month, "gev", start=para[[2]])
-
-
-# Make sure the argument in you cumulative function has variable q: pgev(q, par1, par2) instead of pgev(x, par1, par2)
-# 
-# Because the error message essentially tells you that it couldn't find the variable q.
-# 
-# The keypoint is to use: x as pdf input ;q as cdf input ;p as inverse cdf input
-# 
-# For example, fitting a Gumble Distribution defined by yourself
-# 
-# Data
-
-x1 <- c(6.4,13.3,4.1,1.3,14.1,10.6,9.9,9.6,15.3,22.1,13.4,
-13.2,8.4,6.3,8.9,5.2,10.9,14.4)
-
-# Define pdf, cdf , inverse cdf
-
-dgumbel <- function(x,a,b) 1/b*exp((a-x)/b)*exp(-exp((a-x)/b))
-pgumbel <- function(q,a,b) exp(-exp((a-q)/b))
-qgumbel <- function(p,a,b) a-b*log(-log(p))
-
-# Fit with MLE
-   f1c <- fitdist(x1,"gumbel",start=list(a=10,b=5))
-
-# Goodness of Fit
-   gofstat(f1c, fitnames = 'Gumbel MLE')
-   
-   
-   
+# ******************************************************************************
 fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0240_Song_Final+Historical-Ensemble+result.csv"))
-# fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0240_Historical.csv"))
-da = readr::read_csv(file = fileInfo, locale = locale("ko", encoding = "EUC-KR"))
+data = readr::read_csv(file = fileInfo, locale = locale("ko", encoding = "EUC-KR"))
 
-# da <- read.csv('F:/R/tu/tttt/tut/GCM/Water quality quantity/Baysian/Song_Final Historical-Ensemble result.csv.csv')
-pdf <- data.frame(da$극락교)
-cdf <- data.frame(da$극락교)
-# i = 2
-for (i in 2:3){
-  name = colnames(da)[i]
-  path <- 'F:/R/tu/tttt/tut/GCM/Water quality quantity/Baysian/'
-  path <- paste0(path,name,'_param.csv')
-  dataset <- as.data.frame(da[,i])[,1]
-  lmompara = lmom::pelgev(lmom::samlmu(dataset,nmom= 20))
-  lmr_gev_param = lmom::lmrgev(lmompara,nmom=20)
-  paramdf = data.frame(c(lmompara,lmr_gev_param))
-  colnames(paramdf) <- 'value'
-  # write.csv(paramdf, path)
-  
-  pd <- GEVcdn::dgev(dataset,location=lmompara[1],scale=lmompara[2],shape=lmompara[3])
-  cd <- GEVcdn::pgev(dataset,location=lmompara[1],scale=lmompara[2],shape=lmompara[3])
-  pdf <- data.frame(pdf,pd)
-  cdf <- data.frame(cdf,cd)
-}
+# 변수 선택
+selData = data$극락교
+# selData = data$OBS
 
-c1=cdfgev(da$극락교,lmompara)
+clmData = lmomco::lmoms(selData)
 
-plot(da$극락교,c1)
+# 일반화된 극단값 분포를 위한 파라미터 정보 (xi 모수, alpha 알파, shape 모양)
+paramInfo = pargev(clmData)
 
-pdf <- pdf[,-1]
-cdf <- cdf[,-1]
-colnames(pdf) <- colnames(da)[c(-1)]
-colnames(cdf) <- colnames(da)[c(-1)]
-write.csv(pdf,'F:/R/tu/tttt/tut/GCM/Water quality quantity/Baysian/Ensemble pdf.csv')
-write.csv(cdf,'F:/R/tu/tttt/tut/GCM/Water quality quantity/Baysian/Ensemble cdf.csv')
+# CDF 결과
+cdfRes = lmom::cdfgev(selData, para = paramInfo$para)
 
+# PDF 결과
+pdfRes = lmomco::pdfgev(selData, para = paramInfo)
 
+# 95 분위수 결과
+quagev(0.95, paramInfo)
 
-# 네! 검토사항은 BMA가 가우시안분포로 잘돌아가는지에 대한 검토입니다!
-# 확인해주셔야될부분은
-# 1. 모델이 가우시안이 적용이되는 것과, MCMC가 잘적용되었는지가 궁금합니다. (mcmc='enumeration'에서 enumeration가 MCMC 방법이 맞는지가 궁금합니다.)
-# 2. 분산과 표준편차가 잘산정되는지와 예측결과가 다음과같이 산정되는 것이 맞는지 결과가 괜찮은지에 대한 것입니다!
+dataL1 = data.frame(data = selData, cdf = cdfRes, pdf = pdfRes)
 
-library(BMS)
+# CDF 그림
+subTitle = "CDF 그래프"
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, subTitle)
+
+ggplot(dataL1, aes(x = cdf)) +
+  stat_ecdf() +
+  labs(x = "CDF", y = NULL, fill = NULL, subtitle = subTitle) +
+  theme(
+    text = element_text(size = 18)
+  ) +
+  ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
+
+# PDF 그림
+subTitle = "PDF 그래프"
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, subTitle)
+
+ggplot(dataL1, aes(x = pdf)) + 
+  geom_density() +
+  labs(x = "PDF", y = NULL, fill = NULL, subtitle = subTitle) +
+  theme(
+    text = element_text(size = 18)
+  ) +
+  ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
+
+#===============================================
+# BMS
+#===============================================
+
 # Full enumaration of model space (Tables 4 and 5)
 # BMS Package:
-da= read.csv('F:/R/tu/tttt/tut/GCM/Water quality quantity/Baysian/Historical.csv')
+# da= read.csv('F:/R/tu/tttt/tut/GCM/Water quality quantity/Baysian/Historical.csv')
 
-set.seed(2011)
-x <- da[,-c(1,14)]
-x <- as.data.frame(x)
-bms_da <- bms(x,mcmc='enumeration',g='UIP',mprior='gaussian', burn = 1000, nmodel = 500, logstep = 10000)
-c1=coef(bms_da)
-#bms_da$mprior.info
-write.csv(c1, "F:/R/tu/tttt/tut/GCM/Water quality quantity/Baysian/Markov BMA historical BMA unertainty.csv")
+# fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0240_Historical.csv"))
+# # da = read.csv(fileInfo)
+# da = readr::read_csv(file = fileInfo, locale = locale("ko", encoding = "EUC-KR"))
+# datafls
+# 
+# set.seed(2011)
+# # x <- da[,-c(1,14)]
+# x <- da[,-c(1, 2)]
+# x <- as.data.frame(x)
+# 
+# bms_da <- BMS::bms(x,mcmc='enumeration',g='UIP',mprior='gaussian', burn = 1000, nmodel = 500, logstep = 10000)
+# c1=coef(bms_da)
+# coef(bms_da,exact=TRUE,std.coefs=TRUE)
+# 
+# 
+# #bms_da$mprior.info
+# write.csv(c1, "F:/R/tu/tttt/tut/GCM/Water quality quantity/Baysian/Markov BMA historical BMA unertainty.csv")
+# 
+# l1=predict(bms_da,x)
+# 
+# write.csv(l1, "F:/R/tu/tttt/tut/GCM/Water quality quantity/Baysian/Markov BMA historical BMA.csv")
+# 
+# ######### BMS projection
+# bb=readr::read_csv('F:/R/tu/tttt/tut/GCM/Water quality quantity/Baysian/Song_Final Each Model SSP245 Ensemble result.csv.csv')
+# TT=da[,2:12]
+# 
+# l2=predict(bms_da,TT)
+# write.csv(l2, "F:/R/tu/tttt/tut/GCM/Water quality quantity/Baysian/SSP2-4.5 Markov BMA historical BMA.csv")
 
-l1=predict(bms_da,x)
+# ******************************************************************************
+# 네! 검토사항은 BMA가 가우시안분포로 잘돌아가는지에 대한 검토입니다!
+# 확인해주셔야될부분은
+# 1. 모델이 가우시안이 적용이되는 것과, MCMC가 잘적용되었는지가 궁금합니다.
+# (mcmc='enumeration'에서 enumeration가 MCMC 방법이 맞는지가 궁금합니다.)
+# 2. 분산과 표준편차가 잘산정되는지와 예측결과가 다음과같이 산정되는 것이 맞는지 결과가 괜찮은지에 대한 것입니다!
+# ******************************************************************************
+fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0240_Historical.csv"))
+data = readr::read_csv(file = fileInfo, locale = locale("ko", encoding = "EUC-KR"))
 
-write.csv(l1, "F:/R/tu/tttt/tut/GCM/Water quality quantity/Baysian/Markov BMA historical BMA.csv")
+dataL1 = data %>% 
+  dplyr::select(-c(Period, Observation))
+
+# MCMC 적용
+mcmcModel = BMS::bms(dataL1, burn = 50000, iter = 1e+05, g = "BRIC", mprior = "uniform", nmodel = 2000, mcmc = "bd", user.int = F)
+
+# 요약 결과
+summary(mcmcModel)
+
+# MCMC 그래프
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "MCMC 그래프")
+png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
+plot(mcmcModel)
+dev.off()
+
+# 회귀계수
+coefData = coef(mcmcModel) %>% 
+  as.tibble()
+
+saveCsvFile = sprintf("%s/%s.csv", globalVar$outPath, "Markov BMA historical BMA unertainty")
+readr::write_csv(coefData, file = saveCsvFile)
+
+# 예측 결과
+mcmcPrd = predict(mcmcModel, dataL1) %>% 
+  as.tibble()
+
+saveCsvFile = sprintf("%s/%s.csv", globalVar$outPath, "Markov BMA historical BMA")
+readr::write_csv(mcmcPrd, file = saveCsvFile)
 
 ######### BMS projection
-bb=readr::read_csv('F:/R/tu/tttt/tut/GCM/Water quality quantity/Baysian/Song_Final Each Model SSP245 Ensemble result.csv.csv')
-TT=bb[,2:12]
-
-l2=predict(bms_da,TT)
-write.csv(l2, "F:/R/tu/tttt/tut/GCM/Water quality quantity/Baysian/SSP2-4.5 Markov BMA historical BMA.csv")
+# bb=readr::read_csv('F:/R/tu/tttt/tut/GCM/Water quality quantity/Baysian/Song_Final Each Model SSP245 Ensemble result.csv.csv')
+# TT=da[,2:12]
+# 
+# l2=predict(bms_da,TT)
+# write.csv(l2, "F:/R/tu/tttt/tut/GCM/Water quality quantity/Baysian/SSP2-4.5 Markov BMA historical BMA.csv")
 
 
 #===============================================================================================
