@@ -1704,9 +1704,9 @@ dataL2 = dataL1 %>%
   dplyr::filter(세부투표구 %in% c("소계")) %>% 
   rowwise() %>% 
   dplyr::mutate(
-    중도층 = sum(c(중도층1, 중도층2, 중도층3, 중도층4, 중도층5, 중도층6, 중도층7, 중도층8, 중도층9, 중도층10, 중도층11, 중도층12, 중도층13, 중도층14, 중도층15, 중도층16, 중도층17, 중도층18, 중도층19), na.rm = TRUE)
+    중도층 = sum(c(중도층1, 중도층2, 중도층3, 중도층4, 중도층5, 중도층6, 중도층7, 중도층8, 중도층9, 중도층10, 중도층11, 중도층12, 중도층13, 중도층14, 중도층15, 중도층16, 중도층17, 중도층18, 중도층19, 중도층20, 중도층21, 중도층22, 중도층23, 중도층24, 중도층25, 중도층26, 중도층27, 중도층28, 중도층29, 중도층30, 중도층31, 중도층32, 중도층33), na.rm = TRUE)
   ) %>% 
-  dplyr::select(-c(중도층1, 중도층2, 중도층3, 중도층4, 중도층5, 중도층6, 중도층7, 중도층8, 중도층9, 중도층10, 중도층11, 중도층12, 중도층13, 중도층14, 중도층15, 중도층16, 중도층17, 중도층18, 중도층19)) %>% 
+  dplyr::select(-c(중도층1, 중도층2, 중도층3, 중도층4, 중도층5, 중도층6, 중도층7, 중도층8, 중도층9, 중도층10, 중도층11, 중도층12, 중도층13, 중도층14, 중도층15, 중도층16, 중도층17, 중도층18, 중도층19, 중도층20, 중도층21, 중도층22, 중도층23, 중도층24, 중도층25, 중도층26, 중도층27, 중도층28, 중도층29, 중도층30, 중도층31, 중도층32, 중도층33)) %>% 
   dplyr::select(-c(종류)) %>% 
   tidyr::gather(-c(투표구, 세부투표구), key = "key", value = "val") %>% 
   dplyr::group_by(투표구, key) %>% 
@@ -1730,13 +1730,27 @@ dataL3 = dataL2 %>%
       , 중도층 == maxVal ~ 3
     )
     , 투표구2 = dplyr::case_when(
-        stringr::str_detect(투표구, regex("가양제3동")) ~ "가양3동"
+        stringr::str_detect(투표구, regex("가양제1동")) ~ "가양1동"
+        , stringr::str_detect(투표구, regex("가양제2동")) ~ "가양2동"
+        , stringr::str_detect(투표구, regex("가양제3동")) ~ "가양3동"
         , stringr::str_detect(투표구, regex("등촌제1동")) ~ "등촌1동"
         , stringr::str_detect(투표구, regex("등촌제2동")) ~ "등촌2동"
+        , stringr::str_detect(투표구, regex("등촌제3동")) ~ "등촌3동"
+        , stringr::str_detect(투표구, regex("발산제1동")) ~ "발산1동"
+        , stringr::str_detect(투표구, regex("방화제1동")) ~ "방화1동"
+        , stringr::str_detect(투표구, regex("방화제2동")) ~ "방화2동"
+        , stringr::str_detect(투표구, regex("방화제3동")) ~ "방화3동"
+        , stringr::str_detect(투표구, regex("화곡제1동")) ~ "화곡1동"
+        , stringr::str_detect(투표구, regex("화곡제2동")) ~ "화곡2동"
+        , stringr::str_detect(투표구, regex("화곡제3동")) ~ "화곡3동"
         , stringr::str_detect(투표구, regex("화곡제4동")) ~ "화곡4동"
+        , stringr::str_detect(투표구, regex("화곡제5동")) ~ "화곡5동"
         , stringr::str_detect(투표구, regex("화곡제6동")) ~ "화곡6동"
+        , stringr::str_detect(투표구, regex("화곡제8동")) ~ "화곡8동"
         , stringr::str_detect(투표구, regex("염창동")) ~ "염창동"
         , stringr::str_detect(투표구, regex("화곡본동")) ~ "화곡본동"
+        , stringr::str_detect(투표구, regex("공항동")) ~ "공항동"
+        , stringr::str_detect(투표구, regex("우장산동")) ~ "우장산동"
       )
   )
 
@@ -1744,9 +1758,9 @@ dataDtlL2 = dataL1 %>%
   dplyr::filter(! 세부투표구 %in% c("소계", "관내사전투표", "선거일투표")) %>% 
   rowwise() %>%
   dplyr::mutate(
-    중도층 = sum(c(중도층1, 중도층2, 중도층3, 중도층4, 중도층5, 중도층6, 중도층7, 중도층8, 중도층9, 중도층10, 중도층11, 중도층12, 중도층13, 중도층14, 중도층15, 중도층16, 중도층17, 중도층18, 중도층19), na.rm = TRUE)
+    중도층 = sum(c(중도층1, 중도층2, 중도층3, 중도층4, 중도층5, 중도층6, 중도층7, 중도층8, 중도층9, 중도층10, 중도층11, 중도층12, 중도층13, 중도층14, 중도층15, 중도층16, 중도층17, 중도층18, 중도층19, 중도층20, 중도층21, 중도층22, 중도층23, 중도층24, 중도층25, 중도층26, 중도층27, 중도층28, 중도층29, 중도층30, 중도층31, 중도층32, 중도층33), na.rm = TRUE)
   ) %>% 
-  dplyr::select(-c(중도층1, 중도층2, 중도층3, 중도층4, 중도층5, 중도층6, 중도층7, 중도층8, 중도층9, 중도층10, 중도층11, 중도층12, 중도층13, 중도층14, 중도층15, 중도층16, 중도층17, 중도층18, 중도층19)) %>% 
+  dplyr::select(-c(중도층1, 중도층2, 중도층3, 중도층4, 중도층5, 중도층6, 중도층7, 중도층8, 중도층9, 중도층10, 중도층11, 중도층12, 중도층13, 중도층14, 중도층15, 중도층16, 중도층17, 중도층18, 중도층19, 중도층20, 중도층21, 중도층22, 중도층23, 중도층24, 중도층25, 중도층26, 중도층27, 중도층28, 중도층29, 중도층30, 중도층31, 중도층32, 중도층33)) %>% 
   dplyr::select(-c(종류)) %>%
   tidyr::gather(-c(투표구, 세부투표구), key = "key", value = "val") %>% 
   dplyr::group_by(세부투표구, key) %>% 
@@ -1863,13 +1877,27 @@ dataDtlL4 = dataDtlL3 %>%
     label = str_match_all(세부투표구, "제[[:digit:]]+투") %>% unlist()
     , 투표구 = str_replace_all(세부투표구, pattern = "제[[:digit:]]+투", replacement = "")
     , 투표구2 = dplyr::case_when(
-      stringr::str_detect(투표구, regex("가양제3동")) ~ "가양3동"
+      stringr::str_detect(투표구, regex("가양제1동")) ~ "가양1동"
+      , stringr::str_detect(투표구, regex("가양제2동")) ~ "가양2동"
+      , stringr::str_detect(투표구, regex("가양제3동")) ~ "가양3동"
       , stringr::str_detect(투표구, regex("등촌제1동")) ~ "등촌1동"
       , stringr::str_detect(투표구, regex("등촌제2동")) ~ "등촌2동"
+      , stringr::str_detect(투표구, regex("등촌제3동")) ~ "등촌3동"
+      , stringr::str_detect(투표구, regex("발산제1동")) ~ "발산1동"
+      , stringr::str_detect(투표구, regex("방화제1동")) ~ "방화1동"
+      , stringr::str_detect(투표구, regex("방화제2동")) ~ "방화2동"
+      , stringr::str_detect(투표구, regex("방화제3동")) ~ "방화3동"
+      , stringr::str_detect(투표구, regex("화곡제1동")) ~ "화곡1동"
+      , stringr::str_detect(투표구, regex("화곡제2동")) ~ "화곡2동"
+      , stringr::str_detect(투표구, regex("화곡제3동")) ~ "화곡3동"
       , stringr::str_detect(투표구, regex("화곡제4동")) ~ "화곡4동"
+      , stringr::str_detect(투표구, regex("화곡제5동")) ~ "화곡5동"
       , stringr::str_detect(투표구, regex("화곡제6동")) ~ "화곡6동"
+      , stringr::str_detect(투표구, regex("화곡제8동")) ~ "화곡8동"
       , stringr::str_detect(투표구, regex("염창동")) ~ "염창동"
       , stringr::str_detect(투표구, regex("화곡본동")) ~ "화곡본동"
+      , stringr::str_detect(투표구, regex("공항동")) ~ "공항동"
+      , stringr::str_detect(투표구, regex("우장산동")) ~ "우장산동"
     )
   ) %>% 
   dplyr::na_if(0)
@@ -1904,7 +1932,8 @@ ggplot(dataDtlL4, aes(x = label, y = val, fill = key, group = key, label = round
     , values = c("자유한국당" = ggplotDefaultColor[1], "더불어민주당" = ggplotDefaultColor[3], "중도층" = "gray")
     , labels = c("자유한국당", "더불어민주당", "중도층")
   ) +
-  facet_wrap(~투표구2, scale = "free", ncol = 3) +
+  # facet_wrap(~투표구2, scale = "free", ncol = 3) +
+  facet_wrap(~투표구2, scale = "free", ncol = 4) +
   # facet_wrap(~투표구, scale = "free", ncol = 5) +
   # facet_grid(~ 투표구, space = "free") +
   # facet_wrap(~투표구, scale = "free", space = "free", ncol = 5) +
