@@ -2790,3 +2790,312 @@ htmlwidgets::saveWidget(fig, "fig.html", selfcontained = FALSE)
 
 # html에서 png로 저장
 webshot::webshot("fig.html", "워드클라우드.png", vwidth = 800, vheight = 600, delay = 10)
+
+
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+#================================================
+# 요구사항
+#================================================
+# R을 이용한 지도학습 (선형회귀분석과 정규화, 상호작용 효과, 분류 및 판별 분석)
+
+#================================================
+# 초기 환경변수 설정
+#================================================
+# env = "local"   # 로컬 : 원도우 환경, 작업환경 (현재 소스 코드 환경 시 .) 설정
+env = "dev"   # 개발 : 원도우 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+# env = "oper"  # 운영 : 리눅스 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+
+prjName = "test"
+serviceName = "LSH0251"
+contextPath = ifelse(env == "local", ".", getwd())
+
+if (env == "local") {
+  globalVar = list(
+    "inpPath" = contextPath
+    , "figPath" = contextPath
+    , "outPath" = contextPath
+    , "tmpPath" = contextPath
+    , "logPath" = contextPath
+  )
+} else {
+  source(here::here(file.path(contextPath, "src"), "InitConfig.R"), encoding = "UTF-8")
+}
+
+#================================================
+# 비즈니스 로직 수행
+#================================================
+# 라이브러리 읽기
+library(RColorBrewer)
+library(tidyverse)
+library(readr)
+library(spdep)
+library(rgdal)
+library(foreign) 
+library(car)
+library(RColorBrewer)
+library(classInt)
+library(spatialreg)
+library(spdep)
+library(rgdal)
+library(foreign) 
+library(ROCit)
+library(klaR)
+library(spdep)
+library(rgdal)
+library(foreign) 
+library(ROCit)
+library(klaR)
+library(rsample)
+
+## Mapping function
+mapping.seq <- function(polys, x, nclass, main="") {  
+  pal.red <- brewer.pal(nclass, "Reds")
+  q.n <- classIntervals(x, nclass, style="quantile") 
+  cols.red <- findColours(q.n, pal.red)
+  plot(polys, col=cols.red)
+  brks <- round(q.n$brks,2)
+  leg <- paste(brks[-(nclass+1)], brks[-1], sep=" - ")
+  legend("bottomright", fill=pal.red, legend=leg, bty="n")
+  if (!missing(main)) title(main)
+}
+
+
+## Read Shapefile
+sample.shp <- readOGR(dsn = globalVar$inpPath, layer = "Seoul_dong", encoding = 'ESRI Shapefile')
+sample.df <- read.dbf(file.path(globalVar$inpPath, 'Seoul_dong.dbf'))
+sample.df$Div <- as.factor(sample.df$Div)
+
+# ******************************************************************************
+# Part 1: 선형 회귀 분석과 정규화
+# ******************************************************************************
+# 1번 문제
+## Multiple linear regression
+mult.lm1 <- lm(Price~M_priv+H_univ+E_prog+Year+Park+Sub+Nurser+Hospit+Culture, data = sample.df)
+summary(mult.lm1)
+vif(mult.lm1)
+
+# 2번 문제
+##autocorrelation
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "잔차의 공간적 자기상관")
+png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
+
+mapping.seq(sample.shp, mult.lm1$residuals, 6, "SA in residuals")
+nb <- poly2nb(sample.shp, queen=T)
+sample.listw <- nb2listw(nb, style = 'W')
+lm.morantest(mult.lm1, sample.listw)
+
+dev.off()
+
+# 3번 문제
+mult.lm1 <- lm(Price~M_priv+H_univ+E_prog+Year+Park+Sub+Nurser+Hospit+Culture, data = sample.df)
+sample.esf <- MASS::stepAIC(mult.lm1, direction='both')
+summary(sample.esf)
+
+# 4번 문제
+##
+## The Lasso obtained with alpha=1
+##
+x <- as.matrix(sample.df[,c("Year", "Nurser", "Hospit", "Park",   
+                            "Culture", "Sub","H_univ", "M_priv","E_prog")])
+y <- sample.df$Price
+
+cv.out <- glmnet::cv.glmnet(x, y, alpha=1, nfolds = 5)
+
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "LASSO 회귀계수의 오차 변화")
+png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
+plot(cv.out)
+
+(bestlam <- cv.out$lambda.min)
+
+dev.off()
+
+lasso.mod <- glmnet::glmnet(x, y, alpha=1, lambda=bestlam)
+lasso.coef <- predict(lasso.mod, type="coefficients", s=bestlam)
+
+
+# ******************************************************************************
+# Part 2: 상호작용 효과
+# ******************************************************************************
+# 6번
+lmModel = lm(Price ~ Sub)
+summary(lmModel)
+
+
+# 7번
+#Adding interaction variable
+#prepare Plot
+divSymbol <- ifelse(Div==levels(Div)[1],15,16)      # Symbols & colors for well type
+divCol <- ifelse(Div==levels(Div)[1],"red","blue")
+
+# Regression with intercept dummy
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "intercept dummy 효과")
+png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
+
+dummy.lm1 <- lm(Price~Sub+Div, data = sample.df)
+summary(dummy.lm1)
+plot(Sub, Price, pch=divSymbol, col=divCol)
+abline(dummy.lm1$coef[1],dummy.lm1$coef[2],col="red")
+abline(dummy.lm1$coef[1]+dummy.lm1$coef[3],dummy.lm1$coef[2],col="blue")
+legend("topleft",legend=c("그외","강남"), col=c("red","blue"),pch=c(15,16))
+
+dev.off()
+
+# 8번
+# Regression with slope dummy
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "slope dummy 효과")
+png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
+
+dummy.lm2 <- lm(Price~Sub+Sub:Div, data = sample.df)
+summary(dummy.lm2)
+plot(Sub, Price, pch=divSymbol, col=divCol)
+abline(dummy.lm2$coef[1],dummy.lm2$coef[2],col="red")
+abline(dummy.lm2$coef[1], dummy.lm2$coef[2]+dummy.lm2$coef[3],col="blue")
+legend("topleft",legend=c("그외","강남"), col=c("red","blue"),pch=c(15,16))
+
+dev.off()
+
+# 9번
+# Regression with both
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "intercept-slope dummy 효과")
+png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
+
+dummy.lm3 <- lm(Price~Sub+Sub*Div, data = sample.df)
+summary(dummy.lm3)
+plot(Sub, Price, pch=divSymbol, col=divCol)
+abline(dummy.lm3$coef[1],dummy.lm3$coef[2],col="red")
+abline(dummy.lm3$coef[1]+dummy.lm3$coef[3], dummy.lm3$coef[2]+dummy.lm3$coef[4],col="blue")
+legend("topleft",legend=c("그외","강남"), col=c("red","blue"),pch=c(15,16))
+
+dev.off()
+
+# ******************************************************************************
+# Part 3: Classification and sampling
+# ******************************************************************************
+
+# 10번
+set.seed(100)
+n <- nrow(sample.df)
+sample.idx <-sample(1:n, round(n * 0.7))
+train.df <- sample.df[sample.idx, ]
+test.df <- sample.df[-sample.idx,]
+
+logit.train <- glm(Div~M_priv+H_univ+Price, data=train.df, family=binomial(link="logit"))
+summary(logit.train)
+
+logit.Test <- predict(logit.train, newdata=test.df, type="response")
+div.Pred <- ifelse(logit.Test < 0.5, "ETC", "Gangnam")
+gmodels::CrossTable(x=test.df$Div, y=div.Pred, prop.r=F, prop.c=F, prop.chisq = FALSE)
+(100 +15 )/127 
+(15 /24 )
+(3 /103 )
+
+# (180+26)/223
+# (26/39)
+# (4/184)
+
+
+logit.Roc <- rocit(score = logit.Test, class = test.df$Div)
+summary(logit.Roc)
+
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "Simple Random Sampling")
+png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
+
+plot(logit.Roc)
+
+dev.off()
+
+# 11번
+
+##
+##Discriminant Analysis
+##
+lda.train <- MASS::lda(Div~M_priv+H_univ+Price, data=train.df)
+lda.train
+partimat(Div~M_priv+H_univ+Price, data=train.df, method = "lda")
+layout(matrix(1,nrow=1,ncol=1))
+lda.test <- predict(lda.train, test.df)
+
+CrossTable(x=test.df$Div, y=lda.test$class, prop.r=F, prop.c=F, prop.chisq = FALSE)
+(182+25)/223
+(25/39)
+(2/184)
+lda.Roc <- rocit(score = lda.test$posterior[,2], class = test.df$Div)
+summary(lda.Roc)
+plot(lda.Roc)
+
+# qda.train <- qda(Div~M_priv+H_univ+Price, data=train.df)
+# qda.train
+# partimat(Div~M_priv+H_univ+Price, data=train.df, method = "qda")
+# layout(matrix(1,nrow=1,ncol=1))
+# qda.test <- predict(qda.train, test.df)
+# 
+# CrossTable(x=test.df$Div, y=qda.test$class, prop.r=F, prop.c=F, prop.chisq = FALSE)
+# (181+24)/223
+# (24/39)
+# (3/184)
+
+# library(spdep)
+# library(maptools)
+# 
+# # Read shape file
+# sample.shp <- maptools::readShapePoly(file.path(globalVar$inpPath, 'Seoul_dong.shp'))
+# n <- nrow(sample.shp)
+# n.sample <- round(n*0.7)
+# 
+# # n <- nrow(sample.shp)
+# # n.sample <- round(n*0.7)
+# 
+# ## Random Sampling
+# sample.random <- spsample(sample.shp, round(n*0.7), type='random')
+# plot(sample.shp)
+# plot(sample.random, pch=20, col = "red",add=T)
+# 
+# # qda.Roc <- rocit(score = qda.test$posterior[,2], class = test.df$Div)
+# # summary(qda.Roc)
+# # plot(qda.Roc)
+
+
+##
+## Stratified random sampling
+## 
+set.seed(100)
+# n <- nrow(sample.df)
+# sample.idx <-sample(1:n, round(n * 0.7))
+# sample.idx <- spsample(sample.shp, round(n*0.7), type='random')
+# train.df <- sample.df[sample.idx, ]
+# test.df <- sample.df[-sample.idx,]
+
+sample.idx  <- rsample::initial_split(sample.df, prop = 0.7,strata = "Div")
+train.df  <- rsample::training(sample.idx)
+test.df   <- rsample::testing(sample.idx)
+
+lda.train <- MASS::lda(Div~M_priv+H_univ+Price, data=train.df)
+lda.train
+partimat(Div~M_priv+H_univ+Price, data=train.df, method = "lda")
+layout(matrix(1,nrow=1,ncol=1))
+lda.test <- predict(lda.train, test.df)
+
+CrossTable(x=test.df$Div, y=lda.test$class, prop.r=F, prop.c=F, prop.chisq = FALSE)
+(105+14)/223
+(25/39)
+(2/184)
+
+lda.Roc <- rocit(score = lda.test$posterior[,2], class = test.df$Div)
+summary(lda.Roc)
+
+
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "Stratified Random Sampling")
+png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
+
+plot(lda.Roc)
+
+dev.off()
