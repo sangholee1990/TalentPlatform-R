@@ -2247,6 +2247,7 @@ library(tidyverse)
 library(readr)
 library(stringr)
 library(lmom)
+library(lmomco)
 library(BMS)
 
 #===============================================
@@ -2306,33 +2307,48 @@ set.seed(100)
 fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0240_Song_Final+Historical-Ensemble+result.csv"))
 data = readr::read_csv(file = fileInfo, locale = locale("ko", encoding = "EUC-KR"))
 
-# 변수 선택
-selData = data$극락교
-# selData = data$OBS
+colList = c("극락교", "OBS")
+# colInfo = "극락교"
 
-clmData = lmomco::lmoms(selData)
+dataL2 = data.frame()
+for (colInfo in colList) {
 
-# 일반화된 극단값 분포를 위한 파라미터 정보 (xi 모수, alpha 알파, shape 모양)
-paramInfo = pargev(clmData)
+  # 변수 선택
+  selData = get(colInfo, data)
+  
+  clmData = lmomco::lmoms(selData)
+  
+  # 일반화된 극단값 분포를 위한 파라미터 정보 (xi 모수, alpha 알파, shape 모양)
+  paramInfo = lmomco::pargev(clmData)
+  
+  # CDF 결과
+  cdfRes = lmom::cdfgev(selData, para = paramInfo$para)
+  
+  # PDF 결과
+  pdfRes = lmomco::pdfgev(selData, para = paramInfo)
+  
+  # 95 분위수 결과
+  quagev(0.95, paramInfo)
+  
+  dataL1 = data.frame(type = colInfo, obs = selData, cdf = cdfRes, pdf = pdfRes) %>% 
+    dplyr::arrange(obs)
+  
+  dataL2 = dplyr::bind_rows(dataL2, dataL1)
+}
 
-# CDF 결과
-cdfRes = lmom::cdfgev(selData, para = paramInfo$para)
+dataL3 = dataL2 %>% 
+  dplyr::filter(
+    cdf >= 0.95
+  )
 
-# PDF 결과
-pdfRes = lmomco::pdfgev(selData, para = paramInfo)
-
-# 95 분위수 결과
-quagev(0.95, paramInfo)
-
-dataL1 = data.frame(data = selData, cdf = cdfRes, pdf = pdfRes)
-
+  
 # CDF 그림
 subTitle = "CDF 그래프"
 saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, subTitle)
 
-ggplot(dataL1, aes(x = cdf)) +
-  stat_ecdf() +
-  labs(x = "CDF", y = NULL, fill = NULL, subtitle = subTitle) +
+ggplot(dataL2, aes(x = obs, y = cdf, colour = type)) +
+  geom_line() +
+  labs(x = "OBS", y = "CDF", fill = NULL, subtitle = subTitle) +
   theme(
     text = element_text(size = 18)
   ) +
@@ -2342,13 +2358,38 @@ ggplot(dataL1, aes(x = cdf)) +
 subTitle = "PDF 그래프"
 saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, subTitle)
 
-ggplot(dataL1, aes(x = pdf)) + 
-  geom_density() +
-  labs(x = "PDF", y = NULL, fill = NULL, subtitle = subTitle) +
+ggplot(dataL2, aes(x = obs, y = pdf, colour = type)) +
+  geom_line() +
+  labs(x = "OBS", y = "PDF", fill = NULL, subtitle = subTitle) +
   theme(
     text = element_text(size = 18)
   ) +
   ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
+  
+# 95 이상 CDF 그림
+subTitle = "95 이상 CDF 그래프"
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, subTitle)
+
+ggplot(dataL3, aes(x = obs, y = cdf, colour = type)) +
+  geom_line() +
+  labs(x = "OBS", y = "CDF", fill = NULL, subtitle = subTitle) +
+  theme(
+    text = element_text(size = 18)
+  ) +
+  ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
+
+# 95 이상 PDF 그림
+subTitle = "95 이상 PDF 그래프"
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, subTitle)
+
+ggplot(dataL3, aes(x = obs, y = pdf, colour = type)) +
+  geom_line() +
+  labs(x = "OBS", y = "PDF", fill = NULL, subtitle = subTitle) +
+  theme(
+    text = element_text(size = 18)
+  ) +
+  ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
+
 
 #===============================================
 # BMS
