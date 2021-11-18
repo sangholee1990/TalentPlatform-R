@@ -19294,7 +19294,8 @@ prjName = "test"
 # serviceName = "LSH0237"
 # serviceName = "LSH0245"
 # serviceName = "LSH0246"
-serviceName = "LSH0247"
+# serviceName = "LSH0247"
+serviceName = "LSH0252"
 
 contextPath = ifelse(env == "local", ".", getwd())
 
@@ -19468,7 +19469,10 @@ fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0195_일식 식분도 이�
 # sheetInfo = 40
 
 # 시트 41 : 동위온리(1)
-sheetInfo = 41
+# sheetInfo = 41
+
+# 시트 42 : 양+후북위+공통(15)
+sheetInfo = 42
 
 sheetName = dplyr::case_when(
   sheetInfo == 1 ~ "테스트"
@@ -19513,6 +19517,7 @@ sheetName = dplyr::case_when(
   , sheetInfo == 39 ~ "진온리(1)"
   , sheetInfo == 40 ~ "양+동위+공통(3)"
   , sheetInfo == 41 ~ "동위온리(1)"
+  , sheetInfo == 42 ~ "양+후북위+공통(15)"
   , TRUE ~ NA_character_
 )
 
@@ -19525,7 +19530,7 @@ data = openxlsx::read.xlsx(fileInfo, sheet = sheetInfo) %>%
 
 typeList = data$type %>% unique %>% sort
 
-selTypeList = typeList[1]
+selTypeList = typeList[15]
 
 for (typeInfo in selTypeList) {
 # for (typeInfo in typeList) {
@@ -19659,8 +19664,11 @@ beepr::beep(sound = 8)
 # sheetList = c(36, 38, 39)
 # sheetName = "진-수-공통(1)+진-북주-공통(7)+진온리(1)"
 
-sheetList = c(40, 41)
-sheetName = "양-동위-공통(3)+동위온리(1)"
+# sheetList = c(40, 41)
+# sheetName = "양-동위-공통(3)+동위온리(1)"
+
+sheetList = c(40, 42)
+sheetName = "양-동위-공통(3)+양-후북위-공통(15)"
 
 dataL3 = tibble()
 for (sheetInfo in sheetList) {
@@ -19749,10 +19757,13 @@ maxData = dataL4[idx, ]
 # setBreakCont = c(seq(0.52, 0, -0.02))
 # setBreakText = c(seq(0.52, 0.10, -0.02))
 
-setBreakCont = c(seq(0.50, 0, -0.04))
-setBreakText = c(seq(0.50, 0.10, -0.04))
+# setBreakCont = c(seq(0.50, 0, -0.04))
+# setBreakText = c(seq(0.50, 0.10, -0.04))
 
-# 0.5217
+setBreakCont = c(seq(0.46, 0, -0.02))
+setBreakText = c(seq(0.46, 0.10, -0.02))
+
+# 0.4542
 
 saveImg = sprintf("%s/%s_%s_%s.png", globalVar$figPath, serviceName, sheetName, "Mean_Color")
 

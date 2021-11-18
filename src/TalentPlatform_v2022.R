@@ -8,7 +8,6 @@
 # Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
 #===============================================================================================
 
-
 #================================================
 # 요구사항
 #================================================
@@ -1387,7 +1386,7 @@ saveFile = sprintf("%s/%s_%s.csv", globalVar$outPath, serviceName, "충남 아�
 #   readr::write_csv(x = addrData, file = saveFile, append = TRUE)
 # }
 
-addrData =  readr::read_csv(file = saveFile, col_names = c("value", "lon", "lat"))
+addrData = readr::read_csv(file = saveFile, col_names = c("value", "lon", "lat"))
 
 dataGeoL2 = dataGeoL1 %>% 
   dplyr::left_join(addrData, by = c("addr" = "value"))
@@ -1689,7 +1688,7 @@ saveFile = sprintf("%s/%s_%s.csv", globalVar$outPath, serviceName, "서울시 �
 #   readr::write_csv(x = addrData, file = saveFile, append = TRUE)
 # }
 
-addrData =  readr::read_csv(file = saveFile, col_names = c("value", "lon", "lat"))
+addrData = readr::read_csv(file = saveFile, col_names = c("value", "lon", "lat"))
 
 dataGeoL2 = dataGeoL1 %>% 
   dplyr::left_join(addrData, by = c("addr" = "value"))
@@ -2855,6 +2854,8 @@ library(foreign)
 library(ROCit)
 library(klaR)
 library(rsample)
+library(gmodels)
+library(caret)
 
 ## Mapping function
 mapping.seq <- function(polys, x, nclass, main="") {  
@@ -2994,14 +2995,18 @@ summary(logit.train)
 logit.Test <- predict(logit.train, newdata=test.df, type="response")
 div.Pred <- ifelse(logit.Test < 0.5, "ETC", "Gangnam")
 gmodels::CrossTable(x=test.df$Div, y=div.Pred, prop.r=F, prop.c=F, prop.chisq = FALSE)
-(100 +15 )/127 
-(15 /24 )
-(3 /103 )
 
-# (180+26)/223
-# (26/39)
-# (4/184)
+# 정확도 (Accuracy) : (TP + TN) / (TN + FP + FN + TP)
+# 0.905511811
+(100+15)/127
 
+# 민감도 (Sensitivity) : TP / (TP + FN)
+# 0.9708737864
+(100/103)
+
+# 특이도 (Specificity) :  TN / (TN + FP)
+# 0.625
+(15/24)
 
 logit.Roc <- rocit(score = logit.Test, class = test.df$Div)
 summary(logit.Roc)
@@ -3014,84 +3019,36 @@ plot(logit.Roc)
 dev.off()
 
 # 11번
-
-##
-##Discriminant Analysis
-##
-lda.train <- MASS::lda(Div~M_priv+H_univ+Price, data=train.df)
-lda.train
-partimat(Div~M_priv+H_univ+Price, data=train.df, method = "lda")
-layout(matrix(1,nrow=1,ncol=1))
-lda.test <- predict(lda.train, test.df)
-
-CrossTable(x=test.df$Div, y=lda.test$class, prop.r=F, prop.c=F, prop.chisq = FALSE)
-(182+25)/223
-(25/39)
-(2/184)
-lda.Roc <- rocit(score = lda.test$posterior[,2], class = test.df$Div)
-summary(lda.Roc)
-plot(lda.Roc)
-
-# qda.train <- qda(Div~M_priv+H_univ+Price, data=train.df)
-# qda.train
-# partimat(Div~M_priv+H_univ+Price, data=train.df, method = "qda")
-# layout(matrix(1,nrow=1,ncol=1))
-# qda.test <- predict(qda.train, test.df)
-# 
-# CrossTable(x=test.df$Div, y=qda.test$class, prop.r=F, prop.c=F, prop.chisq = FALSE)
-# (181+24)/223
-# (24/39)
-# (3/184)
-
-# library(spdep)
-# library(maptools)
-# 
-# # Read shape file
-# sample.shp <- maptools::readShapePoly(file.path(globalVar$inpPath, 'Seoul_dong.shp'))
-# n <- nrow(sample.shp)
-# n.sample <- round(n*0.7)
-# 
-# # n <- nrow(sample.shp)
-# # n.sample <- round(n*0.7)
-# 
-# ## Random Sampling
-# sample.random <- spsample(sample.shp, round(n*0.7), type='random')
-# plot(sample.shp)
-# plot(sample.random, pch=20, col = "red",add=T)
-# 
-# # qda.Roc <- rocit(score = qda.test$posterior[,2], class = test.df$Div)
-# # summary(qda.Roc)
-# # plot(qda.Roc)
-
-
 ##
 ## Stratified random sampling
 ## 
 set.seed(100)
-# n <- nrow(sample.df)
-# sample.idx <-sample(1:n, round(n * 0.7))
-# sample.idx <- spsample(sample.shp, round(n*0.7), type='random')
-# train.df <- sample.df[sample.idx, ]
-# test.df <- sample.df[-sample.idx,]
 
 sample.idx  <- rsample::initial_split(sample.df, prop = 0.7,strata = "Div")
 train.df  <- rsample::training(sample.idx)
 test.df   <- rsample::testing(sample.idx)
 
 lda.train <- MASS::lda(Div~M_priv+H_univ+Price, data=train.df)
-lda.train
-partimat(Div~M_priv+H_univ+Price, data=train.df, method = "lda")
-layout(matrix(1,nrow=1,ncol=1))
 lda.test <- predict(lda.train, test.df)
 
-CrossTable(x=test.df$Div, y=lda.test$class, prop.r=F, prop.c=F, prop.chisq = FALSE)
-(105+14)/223
-(25/39)
-(2/184)
+gmodels::CrossTable(x=test.df$Div, y=lda.test$class, prop.r=F, prop.c=F, prop.chisq = FALSE)
+
+# 정확도 (Accuracy) : (TP + TN) / (TN + FP + FN + TP)
+# 0.8984375
+(102+13)/128
+
+# 민감도 (Sensitivity) : TP / (TP + FN)
+# 0.9272727273
+(102/110)
+
+
+# 특이도 (Specificity) :  TN / (TN + FP)
+# 0.7222222222
+(13/18)
+
 
 lda.Roc <- rocit(score = lda.test$posterior[,2], class = test.df$Div)
 summary(lda.Roc)
-
 
 saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "Stratified Random Sampling")
 png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
@@ -3099,3 +3056,258 @@ png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
 plot(lda.Roc)
 
 dev.off()
+
+
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+#================================================
+# 요구사항
+#================================================
+# R을 이용한 퇴직 여부에 따른 로지스틱 회귀분석
+
+# 퇴직 여부 (0, 1)에 영향을 미치는 요인들의 상관관계
+# 전체 변수 및 유의미한 변수 (종속변수 : 퇴직여부 / 독립변수 : 퇴직여부 외 변수) 에 대한 로지스틱 회귀분석
+# 결과 해석
+
+#================================================
+# 초기 환경변수 설정
+#================================================
+# env = "local"   # 로컬 : 원도우 환경, 작업환경 (현재 소스 코드 환경 시 .) 설정
+env = "dev"   # 개발 : 원도우 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+# env = "oper"  # 운영 : 리눅스 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+
+prjName = "test"
+serviceName = "LSH0253"
+contextPath = ifelse(env == "local", ".", getwd())
+
+if (env == "local") {
+  globalVar = list(
+    "inpPath" = contextPath
+    , "figPath" = contextPath
+    , "outPath" = contextPath
+    , "tmpPath" = contextPath
+    , "logPath" = contextPath
+  )
+} else {
+  source(here::here(file.path(contextPath, "src"), "InitConfig.R"), encoding = "UTF-8")
+}
+
+#================================================
+# 비즈니스 로직 수행
+#================================================
+# 라이브러리 읽기
+library(xlsx)
+library(MASS)
+library(ROCR)
+library(abdiv)
+library(ggcorrplot)
+library(caret)
+
+# 컴퓨터 내부에서 특정 난수 생성
+# 즉 이 코드는 훈련 및 데이터 셋 분할과정에서 사용
+set.seed(3)
+
+# *******************************************
+# 엑셀 파일 읽기
+# *******************************************
+# 데이터 설명 :
+# 퇴직 : 0 (퇴직), 1 (재직)
+# 나이 : 23 ~ 64
+# 학력 : 1 (고등학교), 2 (전문대), 3 (4년제), 4 (대학원)
+# 국내외.학력 : 1 (국내대학교), 2 (해외대학교)
+# 성별 : 1 (남자), 2 (여자)
+# 난이도 : 2 ~ 11
+# 직급 : 사원 (1), 대리 (2), 과장 (3), 4 (차장), 5 (부장), 6 (이사), 7 (상무), 8 (전무), 9 (부사장)
+# 근속년수 : 0 ~ 35.07
+# 승진후.지난.시간 : 0 ~ 14.1
+# 입사일
+
+# 출처 : 공공데이터포털에서 데이터 융합하여 만든 가상 데이터셋
+
+fileInfo = Sys.glob(file.path(globalVar$inpPath, "LogisticsRegression.xlsx"))
+data = xlsx::read.xlsx(fileInfo, sheetName = "in", encoding = "UTF-8")
+
+summary(data)
+
+# NA값을 제거
+dataL1 = na.omit(data)
+
+# 자료형 변환 (number > factor)
+dataL1$퇴직여부 = factor(dataL1$퇴직여부)
+
+#=====================================================================
+# 상관분석 
+#=====================================================================
+# 상관관계 행렬에서 퇴직 여부를 기준으로
+# 음의 관계 (학력, 국내외 학력, 성별, 난이도, 승진후 지난시간)을 보인
+# 반면 나이, 직급, 근속년수, 입사일에서는 양의 관계를 보인다.
+# 특히 승진후 지난시간, 근속년수, 직급의 경우 유의수준 0.05 이하로서 통계적으로 유의한 결과를 보였다.
+
+# 상관계수
+corRes = cor(data)
+pvalRes = ggcorrplot::cor_pmat(data)    
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "상관계수 행렬")
+
+ggcorrplot::ggcorrplot(
+  corRes
+  , outline.col = "white"
+  , lab = TRUE
+  , p.mat = pvalRes
+  , sig.level = 0.05
+  , colors = c("#6D9EC1", "white", "#E46726")
+  ) +
+  ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
+
+#=====================================================================
+# 유의미 변수 선택
+#=====================================================================
+# Initial Model:
+#     퇴직여부 ~ 나이 + 학력 + 국내외.학력 + 성별 + 난이도 + 직급 +
+#     근속년수 + 승진후.지난.시간 + 상사
+#
+# Final Model:
+#     퇴직여부 ~ 나이 + 난이도 + 직급 + 근속년수 + 승진후.지난.시간
+
+# 전체 변수에 대한 로지스틱 회귀모형 수행
+# 독립변수 : 퇴직여부 제외한 전체 변수
+# 종속변수 : 퇴적여부
+glmFitVarAll = glm(퇴직여부 ~ ., data = dataL1, family = binomial)
+
+# 전체 변수에 대한 요약 결과
+summary(glmFitVarAll)
+
+# 1) 기본값으로 변수 선택
+# stepRes = step(glmFitVarAll)
+
+# 2) AIC 기준으로 변수 선택
+stepAicRes = MASS::stepAIC(glmFitVarAll, direction = "both")
+
+# 유의미한 변수에 대한 요약 결과
+summary(stepAicRes)
+
+# 한 눈에 분석 결과 확인 가능
+stepAicRes$anova
+
+#=====================================================================
+# 훈련 및 테스트 셋 설정 (60 : 40)
+#=====================================================================
+# 훈련 및 데이터 셋을 60:40으로 나누기 위한 인덱스 설정
+ind = sample(1:nrow(dataL1), nrow(dataL1) * 0.6)
+
+# 해당 인덱스에 따라 자료 할당
+trainData = dataL1[ind, ]
+testData = dataL1[-ind, ]
+
+# 훈련 데이터셋 확인
+dplyr::tbl_df(trainData)
+
+# 테스트 데이터셋 확인
+dplyr::tbl_df(testData)
+
+#=====================================================================
+# 전체 변수
+# 훈련 데이터를 이용한 회귀모형 학습
+# 테스트 데이터를 이용한 검증 수행
+#=====================================================================
+# 전체 변수에 대한 로지스틱 회귀모형 수행
+# 독립변수 : 퇴직여부 제외한 전체 변수
+# 종속변수 : 퇴적여부
+glmFit = glm(퇴직여부 ~ ., data = trainData, family = binomial)
+
+# 회귀모형에 대한 요약 결과
+summary(glmFit)
+
+# 실제 퇴직여부
+yObs = as.numeric(as.character(testData$퇴직여부))
+
+# 테스트셋을 이용한 예측 퇴직여부
+yHat = predict.glm(glmFit, newdata = testData, type = "response")
+
+# 카테고리형 정확도 측정
+yHatYn = ifelse(yHat > 0.5, 1, 0)
+conMatRes = caret::confusionMatrix(data = factor(yHatYn), reference = factor(yObs))
+# 정확도 : 0.809
+conMatRes$overall["Accuracy"] %>% round(4)
+
+# 민감도 : 0.6296 
+conMatRes$byClass["Sensitivity"] %>% round(4)
+
+# 특이도 : 0.8871 
+conMatRes$byClass["Specificity"] %>% round(4)
+
+# ROC 커브를 위한 설정
+logitRoc = ROCit::rocit(score = yHat, class = yObs)
+
+# 요약 결과
+# summary(logitRoc)
+
+mainTitle = "ROC 곡선-전체 변수"
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, mainTitle)
+png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
+
+plot(logitRoc, main = mainTitle)
+
+dev.off()
+
+# AUC 측정 : 1에 가까울수록 최고 성능 : 0.81
+logitRoc$AUC
+
+# 이항편차 측정 : 낮을수록 좋음 : 20.89
+abdiv::binomial_deviance(yObs, yHat)
+
+
+#=====================================================================
+# 유의미한 변수
+# 훈련 데이터를 이용한 회귀모형 학습
+# 테스트 데이터를 이용한 검증 수행
+#=====================================================================
+# 전체 변수에 대한 로지스틱 회귀모형 수행
+# 독립변수 : 나이, 직급, 근속년수, 승진후.지난.시간
+# 종속변수 : 퇴적여부
+glmFitSel = glm(퇴직여부 ~ 나이 + 직급 + 근속년수 + 승진후.지난.시간, data = trainData, family = binomial)
+
+# 실제 퇴직여부
+yObs = as.numeric(as.character(testData$퇴직여부))
+
+# 테스트셋을 이용한 예측 퇴직여부
+yHat = predict.glm(glmFitSel, newdata = testData, type = "response")
+
+# 카테고리형 정확도 측정
+yHatYn = ifelse(yHat > 0.5, 1, 0)
+conMatRes = caret::confusionMatrix(data = factor(yHatYn), reference = factor(yObs))
+# 정확도 : 0.809
+conMatRes$overall["Accuracy"] %>% round(4)
+
+# 민감도 : 0.6296 
+conMatRes$byClass["Sensitivity"] %>% round(4)
+
+# 특이도 : 0.8871 
+conMatRes$byClass["Specificity"] %>% round(4)
+
+# ROC 커브를 위한 설정
+logitRoc = ROCit::rocit(score = yHat, class = yObs)
+
+# 요약 결과
+# summary(logitRoc)
+
+mainTitle = "ROC 곡선-유의미한 변수"
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, mainTitle)
+png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
+
+plot(logitRoc, main = mainTitle)
+
+dev.off()
+
+# AUC 측정 : 1에 가까울수록 최고 성능 : 0.84
+logitRoc$AUC
+
+# 이항편차 측정 : 낮을수록 좋음 : 20.89
+abdiv::binomial_deviance(yObs, yHat)
