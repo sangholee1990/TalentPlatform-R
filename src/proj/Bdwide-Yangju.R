@@ -68,10 +68,12 @@ metaData = readr::read_tsv(file = fileInfo, locale = locale("ko", encoding = "UT
 # i = 3
 # i = 150
 # i = 1000
+# seqList = 382
+seqList = seq(1, 1000, 1)
 
 dataL3 = tibble::tibble()
 
-for (i in seq(1, 1000, 1)) {
+for (i in seqList) {
   
   fileKey = paste0("제", i, "호")
   fileKey2 = paste0("식", i, "호")
@@ -187,3 +189,4 @@ wb = openxlsx::createWorkbook()
 openxlsx::addWorksheet(wb, "Sheet1")
 openxlsx::writeData(wb, "Sheet1", dataL4, startRow = 1, startCol = 1, colNames = TRUE, rowNames = FALSE)
 openxlsx::saveWorkbook(wb, file = saveXlsxFile, overwrite = TRUE)
+
