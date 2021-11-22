@@ -68,7 +68,7 @@ metaData = readr::read_tsv(file = fileInfo, locale = locale("ko", encoding = "UT
 # i = 3
 # i = 150
 # i = 1000
-# seqList = 382
+# seqList = 46
 seqList = seq(1, 1000, 1)
 
 dataL3 = tibble::tibble()
