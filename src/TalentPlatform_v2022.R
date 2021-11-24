@@ -1703,9 +1703,9 @@ dataL2 = dataL1 %>%
   dplyr::filter(세부투표구 %in% c("소계")) %>% 
   rowwise() %>% 
   dplyr::mutate(
-    중도층 = sum(c(중도층1, 중도층2, 중도층3, 중도층4, 중도층5, 중도층6, 중도층7, 중도층8, 중도층9, 중도층10, 중도층11, 중도층12, 중도층13, 중도층14, 중도층15, 중도층16, 중도층17, 중도층18, 중도층19, 중도층20, 중도층21, 중도층22, 중도층23, 중도층24, 중도층25, 중도층26, 중도층27, 중도층28, 중도층29, 중도층30, 중도층31, 중도층32, 중도층33), na.rm = TRUE)
+    중도층 = sum(dplyr::c_across(matches("중도층")), na.rm = TRUE)
   ) %>% 
-  dplyr::select(-c(중도층1, 중도층2, 중도층3, 중도층4, 중도층5, 중도층6, 중도층7, 중도층8, 중도층9, 중도층10, 중도층11, 중도층12, 중도층13, 중도층14, 중도층15, 중도층16, 중도층17, 중도층18, 중도층19, 중도층20, 중도층21, 중도층22, 중도층23, 중도층24, 중도층25, 중도층26, 중도층27, 중도층28, 중도층29, 중도층30, 중도층31, 중도층32, 중도층33)) %>% 
+  dplyr::select(-tidyselect::matches("중도층[0-9]")) %>% 
   dplyr::select(-c(종류)) %>% 
   tidyr::gather(-c(투표구, 세부투표구), key = "key", value = "val") %>% 
   dplyr::group_by(투표구, key) %>% 
@@ -1714,6 +1714,7 @@ dataL2 = dataL1 %>%
   ) %>% 
   dplyr::ungroup() %>% 
   tidyr::spread(key = "key", value = "meanVal")
+
 
 dataL3 = dataL2 %>% 
   rowwise(투표구) %>% 
@@ -1753,13 +1754,75 @@ dataL3 = dataL2 %>%
       )
   )
 
+# ******************************************************************************
+# 출력 데이터
+# ******************************************************************************
+writeData = dataL1 %>% 
+  dplyr::filter(세부투표구 %in% c("소계")) %>% 
+  rowwise() %>% 
+  dplyr::mutate(
+    중도층 = sum(dplyr::c_across(matches("중도층")), na.rm = TRUE)
+  ) %>% 
+  dplyr::select(-tidyselect::matches("중도층[0-9]")) %>% 
+  dplyr::mutate(
+    sumVal = sum(더불어민주당, 자유한국당, 중도층, na.rm = TRUE)
+    , maxVal = max(더불어민주당, 자유한국당, 중도층, na.rm = TRUE)
+    , meanVal = (더불어민주당 / sumVal) * 100
+    , meanVal2 = (자유한국당 / sumVal) * 100
+    , meanVal3 = (중도층 / sumVal) * 100
+  ) %>% 
+  dplyr::rename(
+    "합계" = sumVal
+    , "%더불어민주당" = meanVal
+    , "%자유한국당" = meanVal2
+    , "%중도층" = meanVal3
+  ) %>%
+  dplyr::select(-c(maxVal, 세부투표구)) %>% 
+  dplyr::arrange(종류, 투표구)
+    
+
+writeDataL2 = dataL3 %>%
+  dplyr::rename(
+    "합계" = sumVal
+    , "평균 더불어민주당" = 더불어민주당
+    , "평균 자유한국당" = 자유한국당
+    , "평균 중도층" = 중도층
+    , "%평균 더불어민주당" = meanVal
+    , "%평균 자유한국당" = meanVal2
+    , "%평균 중도층" = meanVal3
+  ) %>%
+  dplyr::select(-c(maxVal, val, 투표구2))
+
+
+typeList = writeData$종류 %>% unique() %>% sort()
+
+# typeInfo = typeList[1]
+
+saveXlsxFile = sprintf("%s/%s_%s.xlsx", globalVar$outPath, serviceName, "[1단계] 서울특별시 강서구 선거 데이터")
+wb = openxlsx::createWorkbook()
+
+openxlsx::addWorksheet(wb, "선거 데이터")
+openxlsx::writeData(wb, "선거 데이터", writeDataL2, startRow = 1, startCol = 1, colNames = TRUE, rowNames = FALSE)
+
+for (typeInfo in typeList) {
+  
+  writeDataL1 = writeData %>% 
+    dplyr::filter(종류 == typeInfo)
+  
+  openxlsx::addWorksheet(wb, typeInfo)
+  openxlsx::writeData(wb, typeInfo, writeDataL1, startRow = 1, startCol = 1, colNames = TRUE, rowNames = FALSE)
+}
+
+openxlsx::saveWorkbook(wb, file = saveXlsxFile, overwrite = TRUE)
+
+
 dataDtlL2 = dataL1 %>% 
   dplyr::filter(! 세부투표구 %in% c("소계", "관내사전투표", "선거일투표")) %>% 
   rowwise() %>%
   dplyr::mutate(
-    중도층 = sum(c(중도층1, 중도층2, 중도층3, 중도층4, 중도층5, 중도층6, 중도층7, 중도층8, 중도층9, 중도층10, 중도층11, 중도층12, 중도층13, 중도층14, 중도층15, 중도층16, 중도층17, 중도층18, 중도층19, 중도층20, 중도층21, 중도층22, 중도층23, 중도층24, 중도층25, 중도층26, 중도층27, 중도층28, 중도층29, 중도층30, 중도층31, 중도층32, 중도층33), na.rm = TRUE)
+    중도층 = sum(dplyr::c_across(matches("중도층")), na.rm = TRUE)
   ) %>% 
-  dplyr::select(-c(중도층1, 중도층2, 중도층3, 중도층4, 중도층5, 중도층6, 중도층7, 중도층8, 중도층9, 중도층10, 중도층11, 중도층12, 중도층13, 중도층14, 중도층15, 중도층16, 중도층17, 중도층18, 중도층19, 중도층20, 중도층21, 중도층22, 중도층23, 중도층24, 중도층25, 중도층26, 중도층27, 중도층28, 중도층29, 중도층30, 중도층31, 중도층32, 중도층33)) %>% 
+  dplyr::select(-tidyselect::matches("중도층[0-9]")) %>% 
   dplyr::select(-c(종류)) %>%
   tidyr::gather(-c(투표구, 세부투표구), key = "key", value = "val") %>% 
   dplyr::group_by(세부투표구, key) %>% 
@@ -1781,6 +1844,7 @@ dataDtlL3 = dataDtlL2 %>%
       자유한국당 == maxVal ~ 1
       , 더불어민주당 == maxVal ~ 2
       , 중도층 == maxVal ~ 3
+      
     )
   ) %>% 
   dplyr::left_join(dataGeoL2, by = c("세부투표구" = "세부투표구")) %>% 
@@ -2090,6 +2154,24 @@ dataL3 = statData %>%
 #   tidyr::spread(key = "type", value = "투표수")
 #   # tidyr::spread(key = "나이", value = "투표수")
 
+
+# ******************************************************************************
+# 출력 데이터
+# ******************************************************************************
+writeData = dataL3 %>% 
+  dplyr::rename(
+    "합계" = sumVal
+  ) %>%
+  dplyr::arrange(투표구)
+
+saveXlsxFile = sprintf("%s/%s_%s.xlsx", globalVar$outPath, serviceName, "[1단계] 서울특별시 강서구 인구현황 데이터")
+wb = openxlsx::createWorkbook()
+
+openxlsx::addWorksheet(wb, "인구현황 데이터")
+openxlsx::writeData(wb, "인구현황 데이터", writeData, startRow = 1, startCol = 1, colNames = TRUE, rowNames = FALSE)
+openxlsx::saveWorkbook(wb, file = saveXlsxFile, overwrite = TRUE)
+
+
 # 읍면동 지도 읽기
 mapInfo = Sys.glob(file.path(globalVar$mapPath, "koreaInfo/bnd_dong_00_2019_2019_2Q.shp"))
 
@@ -2183,6 +2265,54 @@ ggplot() +
     , plot.margin = unit(c(0.2, 0, 0, 0), 'lines')
   ) +
   ggsave(filename = saveImg2, width = 10, height = 8, dpi = 600)
+
+
+
+
+
+
+library(ggsubplot)
+library(ggplot2)
+library(maps)
+library(plyr)
+
+#Get world map info
+world_map <- map_data("world")
+
+#Create a base plot
+p <- ggplot()  + geom_polygon(data=world_map,aes(x=long, y=lat,group=group), col = "blue4", fill = "lightgray") + theme_bw()
+
+# Calculate the mean longitude and latitude per region (places where subplots are plotted),
+cntr <- ddply(world_map,.(region),summarize,long=mean(long),lat=mean(lat))
+
+# example data
+myd <- data.frame (region = rep (c("USA","China","USSR","Brazil", "Australia","India", "Canada"),5),
+                   categ = rep (c("A", "B", "C", "D", "E"),7), frequency = round (rnorm (35, 8000, 4000), 0))
+
+
+subsetcntr  <- subset(cntr, region %in% c("USA","China","USSR","Brazil", "Australia","India", "Canada"))
+
+simdat <- merge(subsetcntr, myd)
+colnames(simdat) <- c( "region","long","lat", "categ", "myvar" )
+
+
+myplot  <- p+geom_subplot2d(aes(long, lat, subplot = geom_bar(aes(x = categ, y = myvar, fill = categ, width=1), position = "identity")), ref = NULL, data = simdat)
+
+print(myplot)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #===============================================================================================
 # Routine : Main R program
@@ -2310,6 +2440,8 @@ colList = c("극락교", "OBS")
 # colInfo = "극락교"
 
 dataL2 = data.frame()
+paramData = tibble::tibble()
+
 for (colInfo in colList) {
 
   # 변수 선택
@@ -2333,7 +2465,14 @@ for (colInfo in colList) {
     dplyr::arrange(obs)
   
   dataL2 = dplyr::bind_rows(dataL2, dataL1)
+  
+  tmpParamData = paramInfo$para %>% t() %>% as.tibble()
+  paramData = dplyr::bind_rows(paramData, tmpParamData)
 }
+
+saveFile = sprintf("%s/%s_%s.csv", globalVar$outPath, serviceName, "paramData")
+readr::write_csv(x = paramData, file = saveFile)
+
 
 dataL3 = dataL2 %>% 
   dplyr::filter(
@@ -2345,48 +2484,56 @@ dataL3 = dataL2 %>%
 subTitle = "CDF 그래프"
 saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, subTitle)
 
-ggplot(dataL2, aes(x = obs, y = cdf, colour = type)) +
+ggplot(dataL2, aes(x = obs, y = cdf, colour = type, size = type)) +
   geom_line() +
   labs(x = "OBS", y = "CDF", fill = NULL, subtitle = subTitle) +
   theme(
     text = element_text(size = 18)
   ) +
+  scale_size_manual(values = 2:1) +
+  scale_colour_manual(values = c("black", "green")) +
   ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
 
 # PDF 그림
 subTitle = "PDF 그래프"
 saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, subTitle)
 
-ggplot(dataL2, aes(x = obs, y = pdf, colour = type)) +
+ggplot(dataL2, aes(x = obs, y = pdf, colour = type, size = type)) +
   geom_line() +
   labs(x = "OBS", y = "PDF", fill = NULL, subtitle = subTitle) +
   theme(
     text = element_text(size = 18)
   ) +
+  scale_size_manual(values = 2:1) +
+  scale_colour_manual(values = c("black", "green")) +
   ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
   
 # 95 이상 CDF 그림
 subTitle = "95 이상 CDF 그래프"
 saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, subTitle)
 
-ggplot(dataL3, aes(x = obs, y = cdf, colour = type)) +
+ggplot(dataL3, aes(x = obs, y = cdf, colour = type, size = type)) +
   geom_line() +
   labs(x = "OBS", y = "CDF", fill = NULL, subtitle = subTitle) +
   theme(
     text = element_text(size = 18)
   ) +
+  scale_size_manual(values = 2:1) +
+  scale_colour_manual(values = c("black", "green")) +
   ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
 
 # 95 이상 PDF 그림
 subTitle = "95 이상 PDF 그래프"
 saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, subTitle)
 
-ggplot(dataL3, aes(x = obs, y = pdf, colour = type)) +
+ggplot(dataL3, aes(x = obs, y = pdf, colour = type, size = type)) +
   geom_line() +
   labs(x = "OBS", y = "PDF", fill = NULL, subtitle = subTitle) +
   theme(
     text = element_text(size = 18)
   ) +
+  scale_size_manual(values = 2:1) +
+  scale_colour_manual(values = c("black", "green")) +
   ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
 
 
@@ -3244,7 +3391,7 @@ conMatRes$byClass["Sensitivity"] %>% round(4)
 conMatRes$byClass["Specificity"] %>% round(4)
 
 # ROC 커브를 위한 설정
-logitRoc = ROCit::rocit(score = yHat, class = yObs)
+logitRoc = ROCit::rocit(score = yHatYn, class = yObs)
 
 # 요약 결과
 # summary(logitRoc)
@@ -3311,3 +3458,396 @@ logitRoc$AUC
 
 # 이항편차 측정 : 낮을수록 좋음 : 20.89
 abdiv::binomial_deviance(yObs, yHat)
+
+
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+#================================================
+# 요구사항
+#================================================
+# R을 이용한 2019-2020 한국복지패널 데이터에 대한 막대 그래프 시각화
+
+#================================================
+# 초기 환경변수 설정
+#================================================
+# env = "local"   # 로컬 : 원도우 환경, 작업환경 (현재 소스 코드 환경 시 .) 설정
+env = "dev"   # 개발 : 원도우 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+# env = "oper"  # 운영 : 리눅스 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+
+prjName = "test"
+serviceName = "LSH0256"
+contextPath = ifelse(env == "local", ".", getwd())
+
+if (env == "local") {
+  globalVar = list(
+    "inpPath" = contextPath
+    , "figPath" = contextPath
+    , "outPath" = contextPath
+    , "tmpPath" = contextPath
+    , "logPath" = contextPath
+  )
+} else {
+  source(here::here(file.path(contextPath, "src"), "InitConfig.R"), encoding = "UTF-8")
+}
+
+#================================================
+# 비즈니스 로직 수행
+#================================================
+# 라이브러리 읽기
+library(xlsx)
+library(MASS)
+library(ROCR)
+library(abdiv)
+library(ggcorrplot)
+library(caret)
+library(haven)
+
+# ******************************************************************************
+# 참조 테이블
+# ******************************************************************************
+xlsxFileInfo = Sys.glob(file.path(globalVar$inpPath, "(2019년 14차 한국복지패널조사) 조사설계서-가구용(beta2).xlsx"))
+xlsxData = openxlsx::read.xlsx(xlsxFileInfo, sheet = 4)
+
+xlsxDataL1 = xlsxData %>% 
+  dplyr::select(소분류, X4) %>% 
+  dplyr::rename(
+    code = 소분류
+    , name = X4
+  ) %>% 
+  dplyr::mutate_at(vars(code), funs(as.numeric))
+
+
+# ******************************************************************************
+# 2019년 한국복지패널조사
+# ******************************************************************************
+fileInfo = Sys.glob(file.path(globalVar$inpPath, "Koweps_h14_2019_beta2.sav"))
+data = haven::read_sav(fileInfo)
+
+dataL1 = data %>% 
+  dplyr::select(h1401_4, h1403_8) %>% 
+  dplyr::filter(
+    ! is.na(h1401_4)
+    , ! is.na(h1403_8)
+  ) %>% 
+  dplyr::left_join(xlsxDataL1, by = c("h1403_8" = "code")) %>% 
+  dplyr::mutate(
+    sex = dplyr::case_when(
+      h1401_4 == 1 ~ "남"
+      , h1401_4 == 2 ~ "여"
+    )
+  )
+
+dataL2 = dataL1 %>% 
+  dplyr::group_by(sex, name) %>% 
+  dplyr::summarise(cnt = n()) %>% 
+  dplyr::arrange(desc(cnt)) %>% 
+  dplyr::slice(1:10)
+
+sexList = dataL2$sex %>% unique() %>% sort()
+
+# sexInfo = "남"
+for (sexInfo in sexList) {
+  
+  dataL3 = dataL2 %>% 
+    dplyr::filter(sex == sexInfo)
+  
+  dataL3$name = forcats::fct_relevel(dataL3$name, rev(dataL3$name))
+  
+  plotSubTitle = sprintf("%s %s %s", "2019년", sexInfo, "직업빈도 상위 10개")
+  saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, plotSubTitle)
+  
+  makePlot = ggplot(dataL3, aes(x = as.factor(name), y = cnt, fill = cnt)) +
+    geom_bar(stat = "identity") +
+    geom_text(aes(label = cnt), hjust = 1.5, vjust = 0.5, color = "white", size = 4) +
+    coord_flip() +
+    labs(x = "직종", y = "빈도수", fill = "빈도", title = plotSubTitle)
+  
+  ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
+}
+
+
+# ******************************************************************************
+# 2020년 한국복지패널조사
+# ******************************************************************************
+fileInfo2 = Sys.glob(file.path(globalVar$inpPath, "Koweps_h15_2020_beta1.sav"))
+data2 = haven::read_sav(fileInfo2)
+
+data2L1 = data2 %>% 
+  dplyr::select(h1501_4, h1503_8) %>% 
+  dplyr::filter(
+    ! is.na(h1501_4)
+    , ! is.na(h1503_8)
+  ) %>% 
+  dplyr::left_join(xlsxDataL1, by = c("h1503_8" = "code")) %>% 
+  dplyr::mutate(
+    sex = dplyr::case_when(
+      h1501_4 == 1 ~ "남"
+      , h1501_4 == 2 ~ "여"
+    )
+  )
+
+data2L2 = data2L1 %>% 
+  dplyr::group_by(sex, name) %>% 
+  dplyr::summarise(cnt = n()) %>% 
+  dplyr::arrange(desc(cnt)) %>% 
+  dplyr::slice(1:10)
+
+sexList = data2L2$sex %>% unique() %>% sort()
+
+# sexInfo = "남"
+for (sexInfo in sexList) {
+  
+  data2L3 = data2L2 %>% 
+    dplyr::filter(sex == sexInfo)
+  
+  data2L3$name = forcats::fct_relevel(data2L3$name, rev(data2L3$name))
+  
+  plotSubTitle = sprintf("%s %s %s", "2020년", sexInfo, "직업빈도 상위 10개")
+  saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, plotSubTitle)
+  
+  makePlot = ggplot(data2L3, aes(x = as.factor(name), y = cnt, fill = cnt)) +
+    geom_bar(stat = "identity") +
+    geom_text(aes(label = cnt), hjust = 1.5, vjust = 0.5, color = "white", size = 4) +
+    coord_flip() +
+    labs(x = "직종", y = "빈도수", fill = "빈도", title = plotSubTitle)
+  
+  ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
+}
+
+
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+#================================================
+# 요구사항
+#================================================
+# R을 이용한 2016-2018 한국복지패널 데이터에 대한 막대 그래프 시각화
+
+#================================================
+# 초기 환경변수 설정
+#================================================
+# env = "local"   # 로컬 : 원도우 환경, 작업환경 (현재 소스 코드 환경 시 .) 설정
+env = "dev"   # 개발 : 원도우 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+# env = "oper"  # 운영 : 리눅스 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+
+prjName = "test"
+serviceName = "LSH0258"
+contextPath = ifelse(env == "local", ".", getwd())
+ 
+if (env == "local") {
+  globalVar = list(
+    "inpPath" = contextPath
+    , "figPath" = contextPath
+    , "outPath" = contextPath
+    , "tmpPath" = contextPath
+    , "logPath" = contextPath
+  )
+} else {
+  source(here::here(file.path(contextPath, "src"), "InitConfig.R"), encoding = "UTF-8")
+}
+
+#================================================
+# 비즈니스 로직 수행
+#================================================
+# 라이브러리 읽기
+library(xlsx)
+library(MASS)
+library(ROCR)
+library(abdiv)
+library(ggcorrplot)
+library(caret)
+library(haven)
+
+# ******************************************************************************
+# 참조 테이블
+# ******************************************************************************
+xlsxFileInfo = Sys.glob(file.path(globalVar$inpPath, "(2016년 11차 한국복지패널조사) 조사설계서-가구용(beta5).xlsx"))
+xlsxData = openxlsx::read.xlsx(xlsxFileInfo, sheet = 4)
+
+xlsxDataL1 = xlsxData %>% 
+  dplyr::select(소분류) %>% 
+  tidyr::separate(col = 소분류, into = c("code", "name"), sep = ' ') %>%
+  dplyr::mutate(
+    name = gsub("[[:punct:]]", "", name)
+  ) %>% 
+  dplyr::mutate_at(vars(code), funs(as.numeric))
+
+# ******************************************************************************
+# 2016년 한국복지패널조사
+# ******************************************************************************
+fileInfo = Sys.glob(file.path(globalVar$inpPath, "Koweps_h11_2016_beta5.sav"))
+data = haven::read_sav(fileInfo)
+
+colList = colnames(data)
+
+for (colInfo in colList) {
+  cat(attr(get(colInfo, data), 'label'), "\n")
+}
+
+dataL1 = data %>% 
+  dplyr::select(h1103_8, h1101_4) %>% 
+  dplyr::filter(
+    ! is.na(h1103_8)
+    , ! is.na(h1101_4)
+  ) %>% 
+  dplyr::left_join(xlsxDataL1, by = c("h1103_8" = "code")) %>% 
+  dplyr::mutate(
+    sex = dplyr::case_when(
+      h1101_4 == 1 ~ "남"
+      , h1101_4 == 2 ~ "여"
+    )
+  )
+
+dataL2 = dataL1 %>% 
+  dplyr::group_by(sex, name) %>% 
+  dplyr::summarise(cnt = n()) %>% 
+  dplyr::arrange(desc(cnt)) %>% 
+  dplyr::slice(1:10)
+
+sexList = dataL2$sex %>% unique() %>% sort()
+
+# sexInfo = "남"
+for (sexInfo in sexList) {
+  
+  dataL3 = dataL2 %>% 
+    dplyr::filter(sex == sexInfo)
+  
+  dataL3$name = forcats::fct_relevel(dataL3$name, rev(dataL3$name))
+  
+  plotSubTitle = sprintf("%s %s %s", "2016년", sexInfo, "직업빈도 상위 10개")
+  saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, plotSubTitle)
+  
+  makePlot = ggplot(dataL3, aes(x = as.factor(name), y = cnt, fill = cnt)) +
+    geom_bar(stat = "identity") +
+    geom_text(aes(label = cnt), hjust = 1.5, vjust = 0.5, color = "white", size = 4) +
+    coord_flip() +
+    labs(x = "직종", y = "빈도수", fill = "빈도", title = plotSubTitle)
+  
+  ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
+}
+
+
+# ******************************************************************************
+# 2017년 한국복지패널조사
+# ******************************************************************************
+fileInfo = Sys.glob(file.path(globalVar$inpPath, "Koweps_h12_2017_beta4.sav"))
+data = haven::read_sav(fileInfo)
+
+colList = colnames(data)
+
+for (colInfo in colList) {
+  cat(attr(get(colInfo, data), 'label'), "\n")
+}
+
+dataL1 = data %>% 
+  dplyr::select(h1203_8, h1201_4) %>% 
+  dplyr::filter(
+    ! is.na(h1203_8)
+    , ! is.na(h1201_4)
+  ) %>% 
+  dplyr::left_join(xlsxDataL1, by = c("h1203_8" = "code")) %>% 
+  dplyr::mutate(
+    sex = dplyr::case_when(
+      h1201_4 == 1 ~ "남"
+      , h1201_4 == 2 ~ "여"
+    )
+  )
+
+dataL2 = dataL1 %>% 
+  dplyr::group_by(sex, name) %>% 
+  dplyr::summarise(cnt = n()) %>% 
+  dplyr::arrange(desc(cnt)) %>% 
+  dplyr::slice(1:10)
+
+sexList = dataL2$sex %>% unique() %>% sort()
+
+# sexInfo = "남"
+for (sexInfo in sexList) {
+  
+  dataL3 = dataL2 %>% 
+    dplyr::filter(sex == sexInfo)
+  
+  dataL3$name = forcats::fct_relevel(dataL3$name, rev(dataL3$name))
+  
+  plotSubTitle = sprintf("%s %s %s", "2017년", sexInfo, "직업빈도 상위 10개")
+  saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, plotSubTitle)
+  
+  makePlot = ggplot(dataL3, aes(x = as.factor(name), y = cnt, fill = cnt)) +
+    geom_bar(stat = "identity") +
+    geom_text(aes(label = cnt), hjust = 1.5, vjust = 0.5, color = "white", size = 4) +
+    coord_flip() +
+    labs(x = "직종", y = "빈도수", fill = "빈도", title = plotSubTitle)
+  
+  ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
+}
+
+
+# ******************************************************************************
+# 2018년 한국복지패널조사
+# ******************************************************************************
+fileInfo = Sys.glob(file.path(globalVar$inpPath, "Koweps_h13_2018_beta3.sav"))
+data = haven::read_sav(fileInfo)
+
+colList = colnames(data)
+
+for (colInfo in colList) {
+  cat(attr(get(colInfo, data), 'label'), "\n")
+}
+
+dataL1 = data %>% 
+  dplyr::select(h1303_8, h1301_4) %>% 
+  dplyr::filter(
+    ! is.na(h1303_8)
+    , ! is.na(h1301_4)
+  ) %>% 
+  dplyr::left_join(xlsxDataL1, by = c("h1303_8" = "code")) %>% 
+  dplyr::mutate(
+    sex = dplyr::case_when(
+      h1301_4 == 1 ~ "남"
+      , h1301_4 == 2 ~ "여"
+    )
+  )
+
+dataL2 = dataL1 %>% 
+  dplyr::group_by(sex, name) %>% 
+  dplyr::summarise(cnt = n()) %>% 
+  dplyr::arrange(desc(cnt)) %>% 
+  dplyr::slice(1:10)
+
+sexList = dataL2$sex %>% unique() %>% sort()
+
+# sexInfo = "남"
+for (sexInfo in sexList) {
+  
+  dataL3 = dataL2 %>% 
+    dplyr::filter(sex == sexInfo)
+  
+  dataL3$name = forcats::fct_relevel(dataL3$name, rev(dataL3$name))
+  
+  plotSubTitle = sprintf("%s %s %s", "2018년", sexInfo, "직업빈도 상위 10개")
+  saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, plotSubTitle)
+  
+  makePlot = ggplot(dataL3, aes(x = as.factor(name), y = cnt, fill = cnt)) +
+    geom_bar(stat = "identity") +
+    geom_text(aes(label = cnt), hjust = 1.5, vjust = 0.5, color = "white", size = 4) +
+    coord_flip() +
+    labs(x = "직종", y = "빈도수", fill = "빈도", title = plotSubTitle)
+  
+  ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
+}
+
