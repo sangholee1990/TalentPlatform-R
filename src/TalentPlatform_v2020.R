@@ -19557,7 +19557,7 @@ data = openxlsx::read.xlsx(fileInfo, sheet = sheetInfo) %>%
 
 typeList = data$type %>% unique() %>% sort()
 
-selTypeList = typeList[3]
+selTypeList = typeList[15]
 
 for (typeInfo in selTypeList) {
 # for (typeInfo in typeList) {
@@ -19697,8 +19697,11 @@ beepr::beep(sound = 8)
 # sheetList = c(40, 42)
 # sheetName = "양-동위-공통(3)+양-후북위-공통(15)"
 
-sheetList = c(43, 44, 45)
-sheetName = "남제온리(1)+후북위-남제-공통(3)+선북위-남제-공통(8)"
+# sheetList = c(43, 44, 45)
+# sheetName = "남제온리(1)+후북위-남제-공통(3)+선북위-남제-공통(8)"
+
+sheetList = c(1, 2)
+sheetName = "유송온리(3)+선북위-유송공통(15)"
 
 dataL3 = tibble()
 for (sheetInfo in sheetList) {
@@ -19793,10 +19796,13 @@ maxData = dataL4[idx, ]
 # setBreakCont = c(seq(0.46, 0, -0.02))
 # setBreakText = c(seq(0.46, 0.10, -0.02))
 
-setBreakCont = c(seq(0.46, 0, -0.02))
-setBreakText = c(seq(0.46, 0.10, -0.02))
+# setBreakCont = c(seq(0.46, 0, -0.02))
+# setBreakText = c(seq(0.46, 0.10, -0.02))
 
-# 0.4696
+setBreakCont = c(seq(0.55, 0, -0.02))
+setBreakText = c(seq(0.55, 0.10, -0.02))
+
+# 0.5572
 
 saveImg = sprintf("%s/%s_%s_%s.png", globalVar$figPath, serviceName, sheetName, "Mean_Color")
 
