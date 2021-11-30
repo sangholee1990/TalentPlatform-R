@@ -19296,7 +19296,8 @@ prjName = "test"
 # serviceName = "LSH0246"
 # serviceName = "LSH0247"
 # serviceName = "LSH0252"
-serviceName = "LSH0257"
+# serviceName = "LSH0257"
+serviceName = "LSH0259"
 
 contextPath = ifelse(env == "local", ".", getwd())
 
@@ -19344,7 +19345,8 @@ gridData = noncompliance::expand.grid.DT(
 )
 
 # fileInfo = Sys.glob(file.path(globalVar$inpPath, "mapImageToData.xlsx"))
-fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0195_일식 식분도 이미지 데이터 추출.xlsx"))
+# fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0195_일식 식분도 이미지 데이터 추출.xlsx"))
+fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0259_일식 식분도 이미지 데이터 추출.xlsx"))
 
 # **************************************************
 # 시트 선택
@@ -19482,55 +19484,67 @@ fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0195_일식 식분도 이�
 # sheetInfo = 44
 
 # 시트 45 : 선북위+남제+공통(8)
-sheetInfo = 45
+# sheetInfo = 45
+
+# sheetName = dplyr::case_when(
+#   sheetInfo == 1 ~ "테스트"
+#   , sheetInfo == 2 ~ "초기신라"
+#   , sheetInfo == 3 ~ "후기신라"
+#   , sheetInfo == 4 ~ "전한"
+#   , sheetInfo == 4 ~ "전한(수정)"
+#   , sheetInfo == 5 ~ "당나라"
+#   , sheetInfo == 6 ~ "8개(최종)"
+#   , sheetInfo == 7 ~ "청온리(18)"
+#   , sheetInfo == 8 ~ "청-조선공통(92)"
+#   , sheetInfo == 9 ~ "조선온리(20)"
+#   , sheetInfo == 10 ~ "북명+조선공통(74)"
+#   , sheetInfo == 11 ~ "남명+조선공통(6)"
+#   , sheetInfo == 12 ~ "개경조선온리(1)"
+#   , sheetInfo == 13 ~ "남명+개경조선(2)"
+#   , sheetInfo == 14 ~ "남명온리(17)"
+#   , sheetInfo == 15 ~ "북명온리(14)"
+#   , sheetInfo == 16 ~ "남원+남송공통(4)"
+#   , sheetInfo == 17 ~ "남원온리(39)"
+#   , sheetInfo == 18 ~ "남송+선금공통(6)"
+#   , sheetInfo == 19 ~ "남송+중금공통(19)"
+#   , sheetInfo == 20 ~ "남송+후금공통(6)"
+#   , sheetInfo == 21 ~ "남송온리(17)"
+#   , sheetInfo == 22 ~ "북원+남송공통(5)"
+#   , sheetInfo == 23 ~ "후금온리(1)"
+#   , sheetInfo == 24 ~ "중금온리(2)"
+#   , sheetInfo == 25 ~ "선금+북송공통(3)"
+#   , sheetInfo == 26 ~ "선금+요+공통(1)"
+#   , sheetInfo == 27 ~ "북송+요+공통(17)"
+#   , sheetInfo == 28 ~ "북송온리(49)"
+#   , sheetInfo == 29 ~ "요+후당공통(2)"
+#   , sheetInfo == 30 ~ "요온리(7)"
+#   , sheetInfo == 31 ~ "후진온리(8)"
+#   , sheetInfo == 32 ~ "후당온리(4)"
+#   , sheetInfo == 33 ~ "후한온리(3)"
+#   , sheetInfo == 34 ~ "낙양당온리(11)"
+#   , sheetInfo == 35 ~ "시안당온리(67)"
+#   , sheetInfo == 36 ~ "진+수+공통(1)"
+#   , sheetInfo == 37 ~ "수온리(3)"
+#   , sheetInfo == 38 ~ "진+북주+공통(7)"
+#   , sheetInfo == 39 ~ "진온리(1)"
+#   , sheetInfo == 40 ~ "양+동위+공통(3)"
+#   , sheetInfo == 41 ~ "동위온리(1)"
+#   , sheetInfo == 42 ~ "양+후북위+공통(15)"
+#   , sheetInfo == 43 ~ "남제온리(1)"
+#   , sheetInfo == 44 ~ "후북위+남제+공통(3)"
+#   , sheetInfo == 45 ~ "선북위+남제+공통(8)"
+#   , TRUE ~ NA_character_
+# )
+
+# 시트 1 : 유송온리(3)
+# sheetInfo = 1
+
+# 시트 2 : 선북위+유송공통(15)
+sheetInfo = 2
 
 sheetName = dplyr::case_when(
-  sheetInfo == 1 ~ "테스트"
-  , sheetInfo == 2 ~ "초기신라"
-  , sheetInfo == 3 ~ "후기신라"
-  , sheetInfo == 4 ~ "전한"
-  , sheetInfo == 4 ~ "전한(수정)"
-  , sheetInfo == 5 ~ "당나라"
-  , sheetInfo == 6 ~ "8개(최종)"
-  , sheetInfo == 7 ~ "청온리(18)"
-  , sheetInfo == 8 ~ "청-조선공통(92)"
-  , sheetInfo == 9 ~ "조선온리(20)"
-  , sheetInfo == 10 ~ "북명+조선공통(74)"
-  , sheetInfo == 11 ~ "남명+조선공통(6)"
-  , sheetInfo == 12 ~ "개경조선온리(1)"
-  , sheetInfo == 13 ~ "남명+개경조선(2)"
-  , sheetInfo == 14 ~ "남명온리(17)"
-  , sheetInfo == 15 ~ "북명온리(14)"
-  , sheetInfo == 16 ~ "남원+남송공통(4)"
-  , sheetInfo == 17 ~ "남원온리(39)"
-  , sheetInfo == 18 ~ "남송+선금공통(6)"
-  , sheetInfo == 19 ~ "남송+중금공통(19)"
-  , sheetInfo == 20 ~ "남송+후금공통(6)"
-  , sheetInfo == 21 ~ "남송온리(17)"
-  , sheetInfo == 22 ~ "북원+남송공통(5)"
-  , sheetInfo == 23 ~ "후금온리(1)"
-  , sheetInfo == 24 ~ "중금온리(2)"
-  , sheetInfo == 25 ~ "선금+북송공통(3)"
-  , sheetInfo == 26 ~ "선금+요+공통(1)"
-  , sheetInfo == 27 ~ "북송+요+공통(17)"
-  , sheetInfo == 28 ~ "북송온리(49)"
-  , sheetInfo == 29 ~ "요+후당공통(2)"
-  , sheetInfo == 30 ~ "요온리(7)"
-  , sheetInfo == 31 ~ "후진온리(8)"
-  , sheetInfo == 32 ~ "후당온리(4)"
-  , sheetInfo == 33 ~ "후한온리(3)"
-  , sheetInfo == 34 ~ "낙양당온리(11)"
-  , sheetInfo == 35 ~ "시안당온리(67)"
-  , sheetInfo == 36 ~ "진+수+공통(1)"
-  , sheetInfo == 37 ~ "수온리(3)"
-  , sheetInfo == 38 ~ "진+북주+공통(7)"
-  , sheetInfo == 39 ~ "진온리(1)"
-  , sheetInfo == 40 ~ "양+동위+공통(3)"
-  , sheetInfo == 41 ~ "동위온리(1)"
-  , sheetInfo == 42 ~ "양+후북위+공통(15)"
-  , sheetInfo == 43 ~ "남제온리(1)"
-  , sheetInfo == 44 ~ "후북위+남제+공통(3)"
-  , sheetInfo == 45 ~ "선북위+남제+공통(8)"
+  sheetInfo == 1 ~ "유송온리(3)"
+  , sheetInfo == 2 ~ "선북위+유송공통(15)"
   , TRUE ~ NA_character_
 )
 
@@ -19541,9 +19555,9 @@ sheetName = dplyr::case_when(
 data = openxlsx::read.xlsx(fileInfo, sheet = sheetInfo) %>%
   as.tibble()
 
-typeList = data$type %>% unique %>% sort
+typeList = data$type %>% unique() %>% sort()
 
-selTypeList = typeList[5]
+selTypeList = typeList[3]
 
 for (typeInfo in selTypeList) {
 # for (typeInfo in typeList) {
