@@ -3851,3 +3851,577 @@ for (sexInfo in sexList) {
   ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
 }
 
+
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+#================================================
+# 요구사항
+#================================================
+# R을 이용한 말랭이 처리조건별, 시간에 따른 품질특성 분석
+
+#================================================
+# 초기 환경변수 설정
+#================================================
+# env = "local"   # 로컬 : 원도우 환경, 작업환경 (현재 소스 코드 환경 시 .) 설정
+env = "dev"   # 개발 : 원도우 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+# env = "oper"  # 운영 : 리눅스 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+
+prjName = "test"
+serviceName = "LSH0262"
+contextPath = ifelse(env == "local", ".", getwd())
+
+if (env == "local") {
+  globalVar = list(
+    "inpPath" = contextPath
+    , "figPath" = contextPath
+    , "outPath" = contextPath
+    , "tmpPath" = contextPath
+    , "logPath" = contextPath
+  )
+} else {
+  source(here::here(file.path(contextPath, "src"), "InitConfig.R"), encoding = "UTF-8")
+}
+
+#================================================
+# 비즈니스 로직 수행
+#================================================
+# 라이브러리 읽기
+library(xlsx)
+library(MASS)
+library(ROCR)
+library(abdiv)
+library(ggcorrplot)
+library(caret)
+library(haven)
+library(laercio)
+library(agricolae)
+
+#===============================================================================
+# 1. 처리조건에 따른 품질 특성 (적색도, 수분함량)
+#===============================================================================
+# 엑셀 파일 읽기
+xlsxFileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "rawdata.xlsx"))
+data = openxlsx::read.xlsx(xlsxFileInfo, sheet = 3)
+
+dataL1 = data %>% 
+  readr::type_convert()
+
+dataL1$type = as.factor(dataL1$type)
+dataL1$proc = as.factor(dataL1$proc)
+
+summary(dataL1)
+
+
+# ******************************************************************************
+# 1.가. [적색도, 수분함량] 처리조건에 따른 품질 특성
+# ******************************************************************************
+# anova 검정 시 집단 간 평균에 유의미한 차이 분석
+aovModel = aov(a ~ type + proc, data = dataL1)
+
+# 그 결과 유의 수준 (Pr(>F))이 0.05 이하로서 집단 간의 평균 차이가 있음 (대립가설 채택)
+summary(aovModel)
+
+# Df   Sum Sq   Mean Sq F value    Pr(>F)   
+# type         8 160.6901 20.086261 2.94534 0.0066241 **
+#   Residuals   72 491.0165  6.819674                     
+# ---
+#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+
+# 추가로 사후분석 (Duncan's LSR test)을 통해 어느 집단 간에 차이가 있는가를 분석
+
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# [적색도] 처리조건에 따른 품질 특성 (type, proc)
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+result = agricolae::duncan.test(aovModel, c("type", "proc"), alpha = 0.05, console = TRUE)
+
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "[적색도] 처리조건에 따른 품질 특성 (type, proc)")
+png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
+plot(result)
+dev.off()
+
+# 9개 그룹
+result$groups %>% 
+  as.tibble() %>% 
+  dplyr::select(groups) %>% 
+  unique() %>% 
+  nrow()
+
+# Means with the same letter are not significantly different.
+# 
+# a groups
+# G5%+S1% 3시간:건조 후          20.05333333      a
+# G5%+S1% 30분:건조 후           19.48000000     ab
+# G5%+S1% 2시간:냉동보관 30일 후 18.88666667    abc
+# 무처리:냉동보관 30일 후        18.38666667   abcd
+# G5%+S1% 1시간:건조 후          18.35333333   abcd
+# G5%+S1% 3시간:냉동보관 30일 후 17.99000000   abcd
+# G5%+S1% 1시간:냉동보관 30일 후 17.98333333   abcd
+# G5%+S1% 2시간:건조 후          15.86666667  abcde
+# S1% 2시간:냉동보관 30일 후     15.40000000  abcde
+# S1% 3시간:냉동보관 30일 후     15.27000000  abcde
+# S1% 30분:냉동보관 30일 후      15.02333333   bcde
+# G5%+S1% 1시간:침지 전          14.16333333    cde
+# G5%+S1% 2시간:침지 전          14.16333333    cde
+# G5%+S1% 30분:침지 전           14.16333333    cde
+# G5%+S1% 3시간:침지 전          14.16333333    cde
+# S1% 1시간:침지 전              14.16333333    cde
+# S1% 2시간:침지 전              14.16333333    cde
+# S1% 30분:침지 전               14.16333333    cde
+# S1% 3시간:침지 전              14.16333333    cde
+# 무처리:침지 전                 14.16333333    cde
+# S1% 2시간:건조 후              13.51666667     de
+# S1% 3시간:건조 후              13.47666667     de
+# S1% 30분:건조 후               13.43000000     de
+# G5%+S1% 30분:냉동보관 30일 후  13.37666667     de
+# S1% 1시간:냉동보관 30일 후     12.98000000      e
+# 무처리:건조 후                 12.63333333      e
+# S1% 1시간:건조 후              10.88333333      e
+
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# [적색도] 처리조건에 따른 품질 특성 (type)
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+result = agricolae::duncan.test(aovModel, c("type"), alpha = 0.05, console = TRUE)
+
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "[적색도] 처리조건에 따른 품질 특성 (type)")
+png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
+plot(result)
+dev.off()
+
+# Means with the same letter are not significantly different.
+# 
+# a groups
+# G5%+S1% 3시간 17.40222222      a
+# G5%+S1% 1시간 16.83333333     ab
+# G5%+S1% 2시간 16.30555556     ab
+# G5%+S1% 30분  15.67333333     ab
+# 무처리        15.06111111    abc
+# S1% 2시간     14.36000000     bc
+# S1% 3시간     14.30333333     bc
+# S1% 30분      14.20555556     bc
+# S1% 1시간     12.67555556      c
+
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# [적색도] 처리조건에 따른 품질 특성 (proc)
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+result = agricolae::duncan.test(aovModel, c("proc"), alpha = 0.05, console = TRUE)
+
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "[적색도] 처리조건에 따른 품질 특성 (proc)")
+png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
+plot(result)
+dev.off()
+
+# a groups
+# 냉동보관 30일 후 16.14407407      a
+# 건조 후          15.29925926     ab
+# 침지 전          14.16333333      b
+
+
+# ******************************************************************************
+# 1.나. [수분함량] 처리조건에 따른 품질 특성
+# ******************************************************************************
+# anova 검정 시 집단 간 평균에 유의미한 차이 분석
+aovModel = aov(water ~ type + proc, data = dataL1)
+
+# 그 결과 유의 수준 (Pr(>F))이 0.05 이하로서 집단 간의 평균 차이가 있음 (대립가설 채택)
+summary(aovModel)
+
+# 추가로 사후분석 (Duncan's LSR test)을 통해 어느 집단 간에 차이가 있는가를 분석
+
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# [수분함량] 처리조건에 따른 품질 특성 (type, proc)
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+result = agricolae::duncan.test(aovModel, c("type", "proc"), alpha = 0.05, console = TRUE)
+
+# 8개 그룹
+result$groups %>% 
+  as.tibble() %>% 
+  dplyr::select(groups) %>% 
+  unique() %>% 
+  nrow()
+
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "[수분함량] 처리조건에 따른 품질 특성 (type, proc)")
+png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
+plot(result)
+dev.off()
+
+# Means with the same letter are not significantly different.
+# 
+# water groups
+# S1% 3시간:침지 전              85.70000000      a
+# G5%+S1% 2시간:침지 전          85.20000000      a
+# S1% 2시간:침지 전              85.20000000      a
+# G5%+S1% 3시간:침지 전          85.00000000      a
+# S1% 1시간:침지 전              85.00000000      a
+# G5%+S1% 30분:침지 전           84.40000000      a
+# S1% 30분:침지 전               83.40000000      a
+# 무처리:침지 전                 81.73333333      a
+# G5%+S1% 1시간:침지 전          81.70000000      a
+# G5%+S1% 2시간:건조 후          20.30000000      b
+# G5%+S1% 1시간:냉동보관 30일 후 19.80000000     bc
+# G5%+S1% 2시간:냉동보관 30일 후 19.40000000    bcd
+# G5%+S1% 3시간:냉동보관 30일 후 19.30000000    bcd
+# G5%+S1% 30분:냉동보관 30일 후  19.10000000    bcd
+# G5%+S1% 30분:건조 후           19.00000000    bcd
+# G5%+S1% 1시간:건조 후          18.10000000    bcd
+# S1% 30분:건조 후               18.00000000    bcd
+# G5%+S1% 3시간:건조 후          17.70000000    bcd
+# S1% 3시간:건조 후              17.70000000    bcd
+# S1% 2시간:냉동보관 30일 후     17.30000000    bcd
+# S1% 1시간:건조 후              16.80000000    bcd
+# S1% 1시간:냉동보관 30일 후     16.80000000    bcd
+# S1% 3시간:냉동보관 30일 후     16.20000000   bcde
+# S1% 30분:냉동보관 30일 후      16.00000000   bcde
+# S1% 2시간:건조 후              14.90000000    cde
+# 무처리:건조 후                 14.70000000     de
+# 무처리:냉동보관 30일 후        11.90000000      e
+
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# [수분함량] 처리조건에 따른 품질 특성 (type)
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+result = agricolae::duncan.test(aovModel, c("type"), alpha = 0.05, console = TRUE)
+
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "[수분함량] 처리조건에 따른 품질 특성 (type)")
+png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
+plot(result)
+dev.off()
+
+# Means with the same letter are not significantly different.
+# 
+# water groups
+# 무처리        54.36000000      a
+# G5%+S1% 2시간 41.63333333      b
+# G5%+S1% 30분  40.83333333      b
+# G5%+S1% 3시간 40.66666667      b
+# G5%+S1% 1시간 39.86666667      b
+# S1% 3시간     39.86666667      b
+# S1% 1시간     39.53333333      b
+# S1% 2시간     39.13333333      b
+# S1% 30분      39.13333333      b
+
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# [수분함량] 처리조건에 따른 품질 특성 (proc)
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+result = agricolae::duncan.test(aovModel, c("proc"), alpha = 0.05, console = TRUE)
+
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "[수분함량] 처리조건에 따른 품질 특성 (proc)")
+png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
+plot(result)
+dev.off()
+
+# Means with the same letter are not significantly different.
+# 
+# water groups
+# 침지 전          83.70909091      a
+# 건조 후          17.46666667      b
+# 냉동보관 30일 후 17.31111111      b
+
+
+
+
+#===============================================================================
+# 2. [적색도, 수분함량] 과육크기에 따른 품질 특성
+#===============================================================================
+# 엑셀 파일 읽기
+data = openxlsx::read.xlsx(xlsxFileInfo, sheet = 4)
+
+dataL1 = data %>% 
+  readr::type_convert()
+
+dataL1$type = as.factor(dataL1$type)
+dataL1$type2 = as.factor(dataL1$type2)
+dataL1$proc = as.factor(dataL1$proc)
+
+summary(dataL1)
+
+# ******************************************************************************
+# 2.가. [적색도] 과육크기에 따른 품질 특성
+# ******************************************************************************
+# anova 검정 시 집단 간 평균에 유의미한 차이 분석
+aovModel = aov(a ~ type + type2 + proc, data = dataL1)
+
+# 그 결과 유의 수준 (Pr(>F))이 0.05 이하로서 집단 간의 평균 차이가 있음 (대립가설 채택)
+summary(aovModel)
+
+# 추가로 사후분석 (Duncan's LSR test)을 통해 어느 집단 간에 차이가 있는가를 분석
+
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# [적색도] 과육크기에 따른 품질 특성 (type, type2, proc)
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+result = agricolae::duncan.test(aovModel, c("type", "type2", "proc"), alpha = 0.05, console = TRUE)
+
+# 12개 그룹
+result$groups %>% 
+  as.tibble() %>% 
+  dplyr::select(groups) %>% 
+  unique() %>% 
+  nrow()
+
+
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "[적색도] 과육크기에 따른 품질 특성 (type, type2, proc)")
+png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
+plot(result)
+dev.off()
+
+# Means with the same letter are not significantly different.
+# 
+# a groups
+# G5%:4조각:건조 후                   25.43666667      a
+# G5%:4조각:냉동보관 30일 후          25.28000000      a
+# G10%+S1%:4조각:건조 후              23.90333333      a
+# G10%+S1%:4조각:냉동보관 30일 후     23.75666667      a
+# G10%:4조각:냉동보관 30일 후         23.57666667      a
+# G10%:4조각:건조 후                  22.89333333      a
+# 무처리:4조각:건조 후                22.41666667     ab
+# 무처리:4조각:냉동보관 30일 후       22.14000000    abc
+# G5%+S1%:4조각:건조 후               21.70000000   abcd
+# G5%+S1%:4조각:냉동보관 30일 후      20.93666667  abcde
+# G10%:4조각:침지 전                  20.22666667 abcdef
+# G10%+S1%:4조각:침지 전              20.22666667 abcdef
+# G5%:4조각:침지 전                   20.22666667 abcdef
+# G5%+S1%:4조각:침지 전               20.22666667 abcdef
+# 무처리:4조각:침지 전                20.22666667 abcdef
+# 무처리+S1%:4조각:침지 전            20.22666667 abcdef
+# 무처리+S1%:4조각:건조 후            17.53000000 bcdefg
+# G5%:깍두기 모양:건조 후             16.94333333  cdefg
+# G5%:깍두기 모양:냉동보관 30일 후    16.71666667   defg
+# G10%:깍두기 모양:냉동보관 30일 후   15.85333333    efg
+# G10%:깍두기 모양:건조 후            15.55666667     fg
+# 무처리:깍두기 모양:건조 후          14.53000000      g
+# 무처리:깍두기 모양:냉동보관 30일 후 14.35666667      g
+# 무처리:깍두기 모양:침지 전          13.66666667      g
+# 무처리+S1%:4조각:냉동보관 30일 후   13.15666667      g
+
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# [적색도] 과육크기에 따른 품질 특성 (type)
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+result = agricolae::duncan.test(aovModel, c("type"), alpha = 0.05, console = TRUE)
+
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "[적색도] 과육크기에 따른 품질 특성 (type)")
+png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
+plot(result)
+dev.off()
+
+
+# Means with the same letter are not significantly different.
+# 
+# a groups
+# G10%+S1%   22.62888889      a
+# G5%+S1%    20.95444444     ab
+# G5%        20.92066667     ab
+# G10%       19.62133333     bc
+# 무처리     17.88944444     cd
+# 무처리+S1% 16.97111111      d
+
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# [적색도] 과육크기에 따른 품질 특성 (type2)
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+result = agricolae::duncan.test(aovModel, c("type2"), alpha = 0.05, console = TRUE)
+
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "[적색도] 과육크기에 따른 품질 특성 (type2)")
+png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
+plot(result)
+dev.off()
+
+
+# Means with the same letter are not significantly different.
+# 
+# a groups
+# 4조각       21.33814815      a
+# 깍두기 모양 15.37476190      b
+
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# [적색도] 과육크기에 따른 품질 특성 (proc)
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+result = agricolae::duncan.test(aovModel, c("proc"), alpha = 0.05, console = TRUE)
+
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "[적색도] 과육크기에 따른 품질 특성 (proc)")
+png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
+plot(result)
+dev.off()
+
+# Means with the same letter are not significantly different.
+# 
+# a groups
+# 건조 후          20.10111111      a
+# 냉동보관 30일 후 19.53037037      a
+# 침지 전          19.28952381      a
+
+
+
+# ******************************************************************************
+# 2.나. [수분함량] 과육크기에 따른 품질 특성
+# ******************************************************************************
+# anova 검정 시 집단 간 평균에 유의미한 차이 분석
+aovModel = aov(water ~ type + type2, data = dataL1)
+
+# 그 결과 유의 수준 (Pr(>F))이 0.05 이하로서 집단 간의 평균 차이가 있음 (대립가설 채택)
+summary(aovModel)
+
+# 추가로 사후분석 (Duncan's LSR test)을 통해 어느 집단 간에 차이가 있는가를 분석
+
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# [수분함량] 과육크기에 따른 품질 특성 (type, type2)
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+result = agricolae::duncan.test(aovModel, c("type", "type2"), alpha = 0.05, console = TRUE)
+
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "[수분함량] 과육크기에 따른 품질 특성 (type, type2)")
+png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
+plot(result)
+dev.off()
+
+# Means with the same letter are not significantly different.
+# 
+# water groups
+# G10%+S1%:4조각      27.4      a
+# G5%+S1%:4조각       26.6     ab
+# G10%:4조각          25.5    abc
+# G5%:4조각           25.1    abc
+# 무처리:4조각        23.5   abcd
+# G10%:깍두기 모양    22.7   bcde
+# G5%:깍두기 모양     21.5    cde
+# 무처리+S1%:4조각    20.3     de
+# 무처리:깍두기 모양  18.4      e
+
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# [수분함량] 과육크기에 따른 품질 특성 (type)
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+result = agricolae::duncan.test(aovModel, c("type"), alpha = 0.05, console = TRUE)
+
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "[수분함량] 과육크기에 따른 품질 특성 (type)")
+png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
+plot(result)
+dev.off()
+
+# Means with the same letter are not significantly different.
+# 
+# water groups
+# G10%+S1%   27.40      a
+# G5%+S1%    26.60     ab
+# G10%       24.10    abc
+# G5%        23.30     bc
+# 무처리     20.95      c
+# 무처리+S1% 20.30      c
+
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# [수분함량] 과육크기에 따른 품질 특성 (type2)
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+result = agricolae::duncan.test(aovModel, c("type2"), alpha = 0.05, console = TRUE)
+
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "[수분함량] 과육크기에 따른 품질 특성 (type2)")
+png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
+plot(result)
+dev.off()
+
+
+# Means with the same letter are not significantly different.
+# 
+# water groups
+# 4조각       24.73333333      a
+# 깍두기 모양 20.86666667      b
+
+
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+#================================================
+# 요구사항
+#================================================
+# R을 이용한 수도권 지하철 CCTV 설치 현황 및 성범죄 신고현황 시각화
+
+#================================================
+# 초기 환경변수 설정
+#================================================
+# env = "local"   # 로컬 : 원도우 환경, 작업환경 (현재 소스 코드 환경 시 .) 설정
+env = "dev"   # 개발 : 원도우 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+# env = "oper"  # 운영 : 리눅스 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+
+prjName = "test"
+serviceName = "LSH0263"
+contextPath = ifelse(env == "local", ".", getwd())
+
+if (env == "local") {
+  globalVar = list(
+    "inpPath" = contextPath
+    , "figPath" = contextPath
+    , "outPath" = contextPath
+    , "tmpPath" = contextPath
+    , "logPath" = contextPath
+  )
+} else {
+  source(here::here(file.path(contextPath, "src"), "InitConfig.R"), encoding = "UTF-8")
+}
+
+#================================================
+# 비즈니스 로직 수행
+#================================================
+# 라이브러리 읽기
+library(xlsx)
+library(tidyverse)
+
+#===============================================================================
+# 수도권 지하철 CCTV 설치 현황
+#===============================================================================
+# 엑셀 파일 읽기
+xlsxFileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0263_수도권 지하철 CCTV 설치 현황 및 성범죄 신고현황에 대한 데이터.xlsx"))
+data = openxlsx::read.xlsx(xlsxFileInfo, sheet = 1)
+
+dataL1 = data %>% 
+  as.tibble() %>% 
+  readr::type_convert() %>% 
+  dplyr::mutate_at(vars(type), funs(as.factor)) %>% 
+  dplyr::arrange(rat)
+
+# type 정렬
+dataL1$type = forcats::fct_relevel(dataL1$type, rev(as.character(dataL1$type)))
+
+plotSubTitle = sprintf("%s", "수도권 지하철 CCTV 설치 현황")
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, plotSubTitle)
+
+ggplot(dataL1, aes(x = type, y = rat, fill = type, label = round(rat, 2))) +
+  geom_bar(stat = "identity") +
+  geom_text(hjust = 0.5, vjust = 1.25, color = "white", size = 5) +
+  labs(x = "지하철 호선", y = "비율", fill = "비율", title = plotSubTitle) +
+  ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
+
+#===============================================================================
+# 성범죄 신고현황
+#===============================================================================
+# 엑셀 파일 읽기
+xlsxFileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0263_수도권 지하철 CCTV 설치 현황 및 성범죄 신고현황에 대한 데이터.xlsx"))
+data = openxlsx::read.xlsx(xlsxFileInfo, sheet = 2)
+
+dataL1 = data %>% 
+  as.tibble() %>% 
+  readr::type_convert() %>% 
+  dplyr::mutate_at(vars(type), funs(as.factor)) %>% 
+  dplyr::arrange(rat)
+
+# type 정렬
+dataL1$type = forcats::fct_relevel(dataL1$type, rev(as.character(dataL1$type)))
+
+plotSubTitle = sprintf("%s", "성범죄 신고현황")
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, plotSubTitle)
+
+ggplot(dataL1, aes(x = year, y = rat, fill = type, label = round(rat, 2))) +
+  geom_bar(position = "dodge", stat = "identity") +
+  geom_text(hjust = 0.5, vjust = 1.25, color = "white", size = 5) +
+  ylim(0, 100) +
+  labs(x = "성범죄 연도", y = "비율", fill = "비율", title = plotSubTitle) +
+  facet_wrap(~ type, scale = "free_x") +
+  ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
