@@ -4425,3 +4425,324 @@ ggplot(dataL1, aes(x = year, y = rat, fill = type, label = round(rat, 2))) +
   labs(x = "성범죄 연도", y = "비율", fill = "비율", title = plotSubTitle) +
   facet_wrap(~ type, scale = "free_x") +
   ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
+
+
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+#================================================
+# 요구사항
+#================================================
+# R을 이용한 지도학습 (일반화가법모형, 의사결정나무, 앙상블)
+
+#================================================
+# 초기 환경변수 설정
+#================================================
+# env = "local"   # 로컬 : 원도우 환경, 작업환경 (현재 소스 코드 환경 시 .) 설정
+env = "dev"   # 개발 : 원도우 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+# env = "oper"  # 운영 : 리눅스 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+
+prjName = "test"
+serviceName = "LSH0266"
+contextPath = ifelse(env == "local", ".", getwd())
+
+if (env == "local") {
+  globalVar = list(
+    "inpPath" = contextPath
+    , "figPath" = contextPath
+    , "outPath" = contextPath
+    , "tmpPath" = contextPath
+    , "logPath" = contextPath
+  )
+} else {
+  source(here::here(file.path(contextPath, "src"), "InitConfig.R"), encoding = "UTF-8")
+}
+
+#================================================
+# 비즈니스 로직 수행
+#================================================
+# 라이브러리 읽기
+library(tidyverse)
+library(readr)
+library(raster)
+library(rgeos)
+library(maptools)
+library(rgdal)
+library(ggcorrplot)
+library(GGally)
+library(factoextra)
+library(ISLR)
+library(splines)
+library(gam)
+library(akima)
+attach(Wage)
+library(RColorBrewer)
+library(RColorBrewer)
+library(tidyverse)
+library(readr)
+library(spdep)
+library(rgdal)
+library(foreign) 
+library(car)
+library(RColorBrewer)
+library(classInt)
+library(spatialreg)
+library(spdep)
+library(rgdal)
+library(foreign) 
+library(ROCit)
+library(klaR)
+library(spdep)
+library(rgdal)
+library(foreign) 
+library(ROCit)
+library(klaR)
+library(rsample)
+library(gmodels)
+library(tree)
+library(MASS)
+library(randomForest)
+library(gbm)
+library(BART)
+
+## shp 파일 읽기
+mapShp = readOGR(dsn = globalVar$inpPath, layer = "Seoul_dong", encoding = 'ESRI Shapefile')
+mapData = read.dbf(file.path(globalVar$inpPath, 'Seoul_dong.dbf'))
+mapData$Div = as.factor(mapData$Div)
+
+# Mapping function
+mapping.seq <- function(polys, x, nclass, main="") {  
+  pal.red <- brewer.pal(nclass, "Reds")
+  q.n <- classIntervals(x, nclass, style="quantile") 
+  cols.red <- findColours(q.n, pal.red)
+  plot(polys, col=cols.red)
+  brks <- round(q.n$brks,2)
+  leg <- paste(brks[-(nclass+1)], brks[-1], sep=" - ")
+  legend("bottomright", fill=pal.red, legend=leg, bty="n")
+  if (!missing(main)) title(main)
+}
+
+#===============================================================================
+# Part 1: Generalized Additive Models (GAM)
+#===============================================================================
+
+# ******************************************************************************
+# 1. 아래의 GAM 모형(e.g., gam.m1)을 추정하시오. 
+# 아래와 같이 모든 변수는 Smoothing spline으로 변환하여 추정하시오. 
+# 종속변수와 독립변수 간의 관계를 도표화하고, 그 결과를 해석하시오.
+# ******************************************************************************
+# 상관관계 행렬에서 아파트 단위면적당 매매가를 기준으로
+# 음의 관계 (지하철역 접근성, 노후 연수, 대학 진학률)을 보인 반면
+# 특목/자립고 진학 비율에서는 양의 관계를 보인다.
+# 특히 주요 편의 시설 관련 변수 (병원-공원-문화시설-공원시설 접근성)들은 서로 간의 상관성이 높음을 수 확인할 수 있다.
+
+gamModelFor = formula(Price ~ s(M_priv)+s(H_univ)+s(E_prog)+s(Year)+s(Park)+s(Sub)+s(Nurser)+s(Hospit)+s(Culture))
+gam.m1 <- gam::gam(gamModelFor, data = mapData)
+summary(gam.m1)
+
+# ******************************************************************************
+# 2. 위 모형에서 가장 설명력이 낮다고 판단되는 변수 2개를 제외하고 
+# GAM 모형(e.g., gam.m2)을 다시 추정하시오. 해당 변수 2개를 제외한 근거는 무엇인가? 
+# 1에서 생성한 모형과 2에서 생성한 모형은 유의미한 차이를 보이는가?
+# ******************************************************************************
+gamModelFor2 = formula(Price ~ s(M_priv)+s(H_univ)+s(E_prog)+s(Year)+s(Nurser)+s(Hospit)+s(Culture))
+gam.m2 <- gam::gam(gamModelFor2, data = mapData)
+
+summary(gam.m2)
+
+# 여기서 p-values는 귀무가설: linear relationship 대립가설: non-linear relationship에서의 p-value을 나타내며 
+# year에 대한 p-value가 큰 것은 귀무가설 채택 = linear relationship이라는 뜻이고
+# age에 대해서는 non-linear relationship = 대립가설 채택이므로 non-linear func을 적용하는 것이 
+# 합당해 보인다!
+
+# ******************************************************************************
+# 3. 1에서 생성된 모형 중 Smoothing splines으로 변환할 필요가 없는 변수는 
+# 무엇이며 그 근거는 무엇인가? 
+# 해당 변수를 Smoothing splines로 변형하지 않고 GAM 모형(e.g., gam.m3)을 추정하시오. 
+# 1에서 생성한 모형과 3에서 생성한 모형 간 유의미한 차이 존재하는가? 
+# ******************************************************************************
+gamModelFor3 = formula(Price ~ s(M_priv)+s(H_univ)+s(E_prog)+s(Year)+Park+Sub+s(Nurser)+s(Hospit)+s(Culture))
+gam.m3 <- gam::gam(gamModelFor3, data = mapData)
+
+summary(gam.m3)
+anova(gam.m1, gam.m2, gam.m3, test="F")
+
+# ******************************************************************************
+# 4. 3에서 추정한 모형(e.g., gam.m3)의 잔차를 지도화하고, 
+# 공간적 자기상관(Moran’s I)를 값을 추정하시오. 해당 잔차는 공간적 자기상관을 보이는가? 
+# 특히 과소 추정된 지역은 어디인지 확인하고, 어떤 변수를 추가로 활용할 수 있을지 추론하시오. 
+# ******************************************************************************
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "잔차의 공간적 자기상관")
+png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
+
+mapping.seq(mapShp, gam.m3$residuals, 6, "SA in residuals")
+nb <- poly2nb(mapShp, queen=T)
+sample.listw <- nb2listw(nb, style = 'W')
+lm.morantest(gam.m3, sample.listw)
+
+dev.off()
+
+#===============================================================================
+# Part 2: Decision trees and Ensemble methods
+#===============================================================================
+# 자료는 Train과 Test 셋으로 구분하고, Train에 1,000개의 관측치, 
+# 그리고 test에 나머지의 관측지 수를 활용할 것이다. 
+# Simple Random Sampling(base R 기반)을 활용하고 
+# 채점 목적으로 seed 값은 1 (i.e., set.seed(1))로 유지한다.  
+
+set.seed(1)
+
+seoulFor = formula(Price ~  M_priv+H_univ+E_prog+Year+Park+Sub+Nurser+Hospit+Culture)
+
+idx <-sample(1:nrow(mapData), 200) 
+train.df <- mapData[idx, ]
+test.df <- mapData[-idx, ]
+
+# ******************************************************************************
+# 5. 아래의 모형에 대한 Regression tree를 추정하고 그 결과를 시각화하시오.
+# ******************************************************************************
+tree.seoul <- tree::tree(seoulFor, data=train.df)
+
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "회귀 트리")
+png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
+
+plot(tree.seoul)
+text(tree.seoul, pretty = 0)
+
+dev.off()
+
+# ******************************************************************************
+# 6. Regression tree를 pruning 한다. 가장 적합한 terminal node의 수는 얼마인가? 
+# 결과를 해석하고, test MSE를 제시하여라.
+# ******************************************************************************
+# terminal node : 13
+summary(tree.seoul)
+
+prune.seoul <- prune.tree(tree.seoul, best = 13)
+yhat <- predict(prune.seoul, newdata = test.df)
+
+# test MSE
+mean((yhat - test.df$Price)^2)
+
+# ******************************************************************************
+# 7. 앞의 Regression tree에 bagging을 적용한다. 
+# 아파트 매매가격 추정에 가장 중요한 변수는 무엇인지를 도표와 함께 설명하시오. 
+# 그리고 test MSE를 제시하시오.
+# ******************************************************************************
+set.seed(1)
+
+bag.seoul <- randomForest(seoulFor, data = train.df, mtry = 13, importance = TRUE)
+yhat.bag <- predict(bag.seoul, newdata = test.df)
+
+# 중요 변수
+importance(bag.seoul)
+
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "배깅-중요 변수")
+png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
+
+varImpPlot(bag.seoul)
+
+dev.off()
+
+# test MSE
+mean((yhat.bag - test.df$Price)^2)
+
+
+# ******************************************************************************
+# 8. 다음은 앞의 Regression tree에 Random Forest를 적용한다. 
+# 각 분리에 사용될 변수의 수(i.e., mtry)를 2~6까지 변화시키며 
+# test MSE를 가장 작게 하는 변수를 선택하시오. 
+# 그리고 그 결과 test MSE와 변수의 중요도를 도표화하여 설명하시오.
+# ******************************************************************************
+set.seed(1)
+
+rfResData = data.frame()
+for (i in c(2:6)) {
+  
+  rf.seoul <- randomForest::randomForest(seoulFor, data = train.df, mtry = i, importance = TRUE)
+  yhat.rf <- predict(rf.seoul, newdata = test.df)
+  
+  # test MSE
+  mseVal = mean((yhat.rf - test.df$Price)^2)
+  
+  tmpData = data.frame("mtry" = i, "mse" = mseVal)
+  
+  rfResData = rbind(rfResData, tmpData)
+}
+
+bestRfModel <- randomForest::randomForest(seoulFor, data = train.df, mtry = 5, importance = TRUE)
+
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "랜덤포레스트-중요 변수")
+png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
+
+varImpPlot(bestRfModel)
+
+dev.off()
+
+importance(bestRfModel)
+
+
+# ******************************************************************************
+# 9. 마지막으로 앞의 Regression tree에 Boosting을 적용한다. 
+# 분리의 수(interaction.depth)를 1에서 10까지 조정하며, 
+# 각 분리 수마다 가장 적합한 전체 트리의 수(n.trees)를 5-folds CV를 이용하여 추정하시오. 
+# 각 분리의 수에 따른 test MSE를 제시하고 가장 낮은 모형을 선택하시오.
+# ******************************************************************************
+set.seed(1)
+
+gbmResData = data.frame()
+for (i in c(1:10)) {
+  
+  boost.seoul.cv <- gbm::gbm(seoulFor, data = train.df, distribution = "gaussian", 
+                             n.trees = 5000, interaction.depth = i, cv.folds = 5)
+  
+  best.iter <- gbm.perf(boost.seoul.cv, method = 'cv')
+  boost.seoul <- gbm(seoulFor, data = train.df, distribution = "gaussian", 
+                     n.trees = best.iter, interaction.depth = i)
+  yhat.boost <- predict(boost.seoul, newdata = test.df, n.trees = best.iter)
+  
+  # test MSE
+  mseVal = mean((yhat.boost - test.df$Price)^2)
+  
+  tmpData = data.frame("interaction.depth" = i, "mse" = mseVal)
+  
+  gbmResData = rbind(gbmResData, tmpData)
+}
+
+bestBbmModel <- gbm(seoulFor, data = train.df, distribution = "gaussian", 
+                    n.trees = best.iter, interaction.depth = 6)
+
+summary(bestBbmModel)
+
+
+# ******************************************************************************
+# 10. 9번 모형에서 가장 중요도가 높은 변수 2개와 아파트 매매가격 간의 관계를 설명하시오.
+# ******************************************************************************
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "부스팅-중요 변수1")
+png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
+
+plot(bestBbmModel, i = "H_univ")
+
+dev.off()
+
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "부스팅-중요 변수2")
+png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
+
+plot(bestBbmModel, i = "Year")
+
+dev.off()
+
+# ******************************************************************************
+# 11. Regression tree, bagging, Random forest, boosting 중 test MSE를 기준으로 
+# 아파트 매매가격을 가장 잘 예측하는 모형은 무엇인가?
+# ******************************************************************************
+# 42655.31524
+# 5 30271.80634
+# 6 30896.06983
