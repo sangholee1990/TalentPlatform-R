@@ -4482,7 +4482,6 @@ library(ISLR)
 library(splines)
 library(gam)
 library(akima)
-attach(Wage)
 library(RColorBrewer)
 library(RColorBrewer)
 library(tidyverse)
@@ -4538,10 +4537,13 @@ mapping.seq <- function(polys, x, nclass, main="") {
 # 아래와 같이 모든 변수는 Smoothing spline으로 변환하여 추정하시오. 
 # 종속변수와 독립변수 간의 관계를 도표화하고, 그 결과를 해석하시오.
 # ******************************************************************************
-# 상관관계 행렬에서 아파트 단위면적당 매매가를 기준으로
-# 음의 관계 (지하철역 접근성, 노후 연수, 대학 진학률)을 보인 반면
-# 특목/자립고 진학 비율에서는 양의 관계를 보인다.
-# 특히 주요 편의 시설 관련 변수 (병원-공원-문화시설-공원시설 접근성)들은 서로 간의 상관성이 높음을 수 확인할 수 있다.
+# 모수 효과의 경우 대부분 독립변수는 유의수준 0.01 이하에 만족하나
+# 일부 변수 (Park, Culture)는 통계적으로 유의하지 못한 결과를 보인다.
+
+# 그리고 비모수 효과의 경우 대부분 독립변수는 비선형 관계 (유의수준 0.01 이하)를 만족하나
+# 일부 변수 (Park, Sub)는 선형 관계 (통계적으로 유의하지 못한 결과)를 띤다. 
+# 즉 유의수준 (Pr(F))가 0.05 이하일 경우 대립가설 기각하기 때문에 비선형 관계를 띠고
+# 그 반대의 경우 귀무가설 채택하므로 선형 관게를 의미한다.
 
 gamModelFor = formula(Price ~ s(M_priv)+s(H_univ)+s(E_prog)+s(Year)+s(Park)+s(Sub)+s(Nurser)+s(Hospit)+s(Culture))
 gam.m1 <- gam::gam(gamModelFor, data = mapData)
@@ -4552,15 +4554,16 @@ summary(gam.m1)
 # GAM 모형(e.g., gam.m2)을 다시 추정하시오. 해당 변수 2개를 제외한 근거는 무엇인가? 
 # 1에서 생성한 모형과 2에서 생성한 모형은 유의미한 차이를 보이는가?
 # ******************************************************************************
-gamModelFor2 = formula(Price ~ s(M_priv)+s(H_univ)+s(E_prog)+s(Year)+s(Nurser)+s(Hospit)+s(Culture))
-gam.m2 <- gam::gam(gamModelFor2, data = mapData)
+# 앞선 gam.m1에서 모수 효과의 경우 대부분 독립변수는 유의수준 0.01 이하에 만족하나
+# 일부 변수 (Park, Culture)는 통계적으로 유의하지 못한 결과를 보인다.
 
+# 분산표에 의하면 유의수준 0.05 이하로서 유의한 차이를 보인다.
+
+gamModelFor2 = formula(Price ~ s(M_priv)+s(H_univ)+s(E_prog)+s(Year)+s(Sub)+s(Nurser)+s(Hospit))
+gam.m2 <- gam::gam(gamModelFor2, data = mapData)
 summary(gam.m2)
 
-# 여기서 p-values는 귀무가설: linear relationship 대립가설: non-linear relationship에서의 p-value을 나타내며 
-# year에 대한 p-value가 큰 것은 귀무가설 채택 = linear relationship이라는 뜻이고
-# age에 대해서는 non-linear relationship = 대립가설 채택이므로 non-linear func을 적용하는 것이 
-# 합당해 보인다!
+anova(gam.m1, gam.m2, test="F")
 
 # ******************************************************************************
 # 3. 1에서 생성된 모형 중 Smoothing splines으로 변환할 필요가 없는 변수는 
@@ -4568,21 +4571,31 @@ summary(gam.m2)
 # 해당 변수를 Smoothing splines로 변형하지 않고 GAM 모형(e.g., gam.m3)을 추정하시오. 
 # 1에서 생성한 모형과 3에서 생성한 모형 간 유의미한 차이 존재하는가? 
 # ******************************************************************************
+# 앞선 gam.m1에서 비모수 효과의 경우 대부분 독립변수는 비선형 관계 (유의수준 0.01 이하)를 만족하나
+# 일부 변수 (Park, Sub)는 선형 관계 (통계적으로 유의하지 못한 결과)를 띤다. 
+# 즉 유의수준 (Pr(F))가 0.05 이하일 경우 대립가설 기각하기 때문에 비선형 관계를 띠고
+# 그 반대의 경우 귀무가설 채택하므로 선형 관게를 의미한다.
+
+# 분산표에 의하면 유의수준 0.05 이상로서 차이가 없다.
+
 gamModelFor3 = formula(Price ~ s(M_priv)+s(H_univ)+s(E_prog)+s(Year)+Park+Sub+s(Nurser)+s(Hospit)+s(Culture))
 gam.m3 <- gam::gam(gamModelFor3, data = mapData)
-
 summary(gam.m3)
-anova(gam.m1, gam.m2, gam.m3, test="F")
+
+anova(gam.m1, gam.m3, test="F")
 
 # ******************************************************************************
 # 4. 3에서 추정한 모형(e.g., gam.m3)의 잔차를 지도화하고, 
 # 공간적 자기상관(Moran’s I)를 값을 추정하시오. 해당 잔차는 공간적 자기상관을 보이는가? 
 # 특히 과소 추정된 지역은 어디인지 확인하고, 어떤 변수를 추가로 활용할 수 있을지 추론하시오. 
 # ******************************************************************************
+# 양의 공간적 자기상관
+# Moran I statistic : 0.5877 (p-value = 2.2204e-16)
+
 saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "잔차의 공간적 자기상관")
 png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
 
-mapping.seq(mapShp, gam.m3$residuals, 6, "SA in residuals")
+mapping.seq(mapShp, gam.m3$residuals, 6, "gam.m3 in residuals")
 nb <- poly2nb(mapShp, queen=T)
 sample.listw <- nb2listw(nb, style = 'W')
 lm.morantest(gam.m3, sample.listw)
@@ -4622,7 +4635,12 @@ dev.off()
 # 6. Regression tree를 pruning 한다. 가장 적합한 terminal node의 수는 얼마인가? 
 # 결과를 해석하고, test MSE를 제시하여라.
 # ******************************************************************************
+# 회귀 트리 결과 총 9개 변수 중에서 6개 변수 (H_univ, Nurser, E_prog, Sub, M_priv, Year)를 사용하여 의사결정을 수행하였다. 
+# 특히 아파트 매매가격 추정에 있어서 보육시설 접근성 (Nurser), 대학 진학률 (H_Univ) 순으로 높았다. 
+# 이에 학습모형을 통해 예측 성능은 42655.32의 MSE 오차를 보인다.
 # terminal node : 13
+# test MSE : 42655.32
+
 summary(tree.seoul)
 
 prune.seoul <- prune.tree(tree.seoul, best = 13)
@@ -4636,6 +4654,10 @@ mean((yhat - test.df$Price)^2)
 # 아파트 매매가격 추정에 가장 중요한 변수는 무엇인지를 도표와 함께 설명하시오. 
 # 그리고 test MSE를 제시하시오.
 # ******************************************************************************
+# 랜덤포레스트 결과 아파트 매매가격 추정에 있어서 보육시설 접근성(Nurser) 및 대학 진학률(H_Univ) 순으로 높았다. 
+# 이에 학습모형을 통해 예측 성능은 30761.15의 MSE 오차를 보인다.
+# test MSE : 30761.15
+
 set.seed(1)
 
 bag.seoul <- randomForest(seoulFor, data = train.df, mtry = 13, importance = TRUE)
@@ -4661,6 +4683,9 @@ mean((yhat.bag - test.df$Price)^2)
 # test MSE를 가장 작게 하는 변수를 선택하시오. 
 # 그리고 그 결과 test MSE와 변수의 중요도를 도표화하여 설명하시오.
 # ******************************************************************************
+# test MSE를 가장 작게 하는 변수 (mtry) : 4
+# 랜덤포레스트 결과 아파트 매매가격 추정에 있어서 보육시설 접근성(Nurser) 및 대학 진학률(H_Univ) 순으로 높았다. 
+# 이에 학습모형을 통해 예측 성능은 30350.00의 MSE 오차를 보인다.
 set.seed(1)
 
 rfResData = data.frame()
@@ -4695,6 +4720,7 @@ importance(bestRfModel)
 # 각 분리 수마다 가장 적합한 전체 트리의 수(n.trees)를 5-folds CV를 이용하여 추정하시오. 
 # 각 분리의 수에 따른 test MSE를 제시하고 가장 낮은 모형을 선택하시오.
 # ******************************************************************************
+# 가장 낮은 모형 (interaction.depth) : 2
 set.seed(1)
 
 gbmResData = data.frame()
@@ -4717,7 +4743,7 @@ for (i in c(1:10)) {
 }
 
 bestBbmModel <- gbm(seoulFor, data = train.df, distribution = "gaussian", 
-                    n.trees = best.iter, interaction.depth = 6)
+                    n.trees = best.iter, interaction.depth = 2)
 
 summary(bestBbmModel)
 
@@ -4725,6 +4751,8 @@ summary(bestBbmModel)
 # ******************************************************************************
 # 10. 9번 모형에서 가장 중요도가 높은 변수 2개와 아파트 매매가격 간의 관계를 설명하시오.
 # ******************************************************************************
+# 대학 진학률 (H_Univ)이 높을수록 아파트 매매가격이 감소한다.
+# 이는 강남권/용산구에 살면서 부모의 재력을 이어받은 자녀들은 명문대에 떨어지면 유학이나 재수를 선택하기 때문이다.
 saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "부스팅-중요 변수1")
 png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
 
@@ -4732,10 +4760,12 @@ plot(bestBbmModel, i = "H_univ")
 
 dev.off()
 
+# 보육시설 접근성 (Nurser)이 많을수록 아파트 매매 가격이 증가한다.
+# 이는 양질의 보육시설에 대한 수요가 높아지면서 어린이집을 품고 있는 아파트가 인기를 끌기 때문이다.
 saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "부스팅-중요 변수2")
 png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
 
-plot(bestBbmModel, i = "Year")
+plot(bestBbmModel, i = "Nurser")
 
 dev.off()
 
@@ -4743,6 +4773,6 @@ dev.off()
 # 11. Regression tree, bagging, Random forest, boosting 중 test MSE를 기준으로 
 # 아파트 매매가격을 가장 잘 예측하는 모형은 무엇인가?
 # ******************************************************************************
-# 42655.31524
-# 5 30271.80634
-# 6 30896.06983
+# Regression tree : 42655.32
+# Random forest :  30350.00
+# boosting : 30949.44
