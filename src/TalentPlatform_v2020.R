@@ -19547,13 +19547,17 @@ fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0259_일식 식분도 이�
 # sheetInfo = 3
 
 # 시트 4 : 동진온리(21)
-sheetInfo = 4
+# sheetInfo = 4
+
+# 시트 5 : 선북위+남제+공통(8)
+# sheetInfo = 5
 
 sheetName = dplyr::case_when(
   sheetInfo == 1 ~ "유송온리(3)"
   , sheetInfo == 2 ~ "선북위+유송공통(15)"
   , sheetInfo == 3 ~ "동진+북위공통(3)"
   , sheetInfo == 4 ~ "동진온리(21)"
+  , sheetInfo == 5 ~ "선북위+남제+공통(8)"
   , TRUE ~ NA_character_
 )
 
@@ -19709,11 +19713,18 @@ beepr::beep(sound = 8)
 # sheetList = c(43, 44, 45)
 # sheetName = "남제온리(1)+후북위-남제-공통(3)+선북위-남제-공통(8)"
 
+# sheetList = c(42, 44)
+# sheetName = "양-후북위-공통(15)+후북위-남제-공통(3)"
+
 # sheetList = c(1, 2)
 # sheetName = "유송온리(3)+선북위-유송공통(15)"
 
-sheetList = c(3, 4)
-sheetName = "동진-북위공통(3)+동진온리(21)"
+# sheetList = c(3, 4)
+# sheetName = "동진-북위공통(3)+동진온리(21)"
+# 
+sheetList = c(3, 2, 5)
+sheetName = "동진-선북위공통(3)+선북위-유송공통(15)+선북위-남제-공통(5)"
+
 
 dataL3 = tibble()
 for (sheetInfo in sheetList) {
@@ -19770,54 +19781,10 @@ summary(dataL4)
 idx = which(dataL4$meanVal == max(dataL4$meanVal, na.rm = TRUE))
 maxData = dataL4[idx, ]
 
-# setBreak = c(seq(0.42, 0, -0.02), 0.41, seq(0.42, 0.43, 0.001))
-# setBreak = c(seq(0.55, 0, -0.02), 0.555)
-# setBreak = c(seq(0.37, 0, -0.02), 0.41, seq(0.37, 0.38, 0.001))
-# setBreak = c(seq(0.37, 0, -0.02))
-# setBreak = c(seq(0.29, 0, -0.02))
-# setBreak = c(seq(0.42, 0, -0.02), 0.41)
-# setBreak = c(seq(0.39, 0, -0.02), 0.38)
-# setBreak = c(seq(0.44, 0, -0.02), 0.43)
-# setBreak = c(seq(0.44, 0, -0.02))
-# setBreak = c(seq(0.44, 0, -0.02))
-# setBreak = c(seq(0.64, 0, -0.02))
-# setBreak = c(seq(0.37, 0, -0.02), 0.36)
-# setBreak = c(seq(0.48, 0, -0.02), 0.47)
-# setBreak = c(seq(0.48, 0, -0.02), 0.47)
-# setBreak = c(seq(0.47, 0, -0.02), 0.46)
-# setBreak = c(seq(0.85, 0, -0.05))
-# setBreak = c(seq(0.68, 0.60, -0.02), seq(0.58, 0, -0.04))
-# setBreak = c(seq(0.68, 0.60, -0.02), seq(0.58, 0, -0.04))
-# setBreak = c(seq(0.44, 0, -0.02))
+setBreakCont = c(seq(0.52, 0, -0.02), 0.53)
+setBreakText = c(seq(0.52, 0.10, -0.02), 0.53)
 
-# setBreakCont = c(seq(0.64, 0, -0.02))
-# setBreakText = c(seq(0.64, 0.10, -0.02))
-
-# setBreakCont = c(seq(0.54, 0, -0.02), 0.53)
-# setBreakText = c(seq(0.54, 0.10, -0.02), 0.53)
-
-# setBreakCont = c(seq(0.56, 0, -0.02), 0.55)
-# setBreakText = c(seq(0.56, 0.10, -0.02), 0.55)
-
-# setBreakCont = c(seq(0.52, 0, -0.02))
-# setBreakText = c(seq(0.52, 0.10, -0.02))
-
-# setBreakCont = c(seq(0.50, 0, -0.04))
-# setBreakText = c(seq(0.50, 0.10, -0.04))
-
-# setBreakCont = c(seq(0.46, 0, -0.02))
-# setBreakText = c(seq(0.46, 0.10, -0.02))
-
-# setBreakCont = c(seq(0.46, 0, -0.02))
-# setBreakText = c(seq(0.46, 0.10, -0.02))
-
-# setBreakCont = c(seq(0.55, 0, -0.02))
-# setBreakText = c(seq(0.55, 0.10, -0.02))
-
-setBreakCont = c(seq(0.48, 0, -0.02))
-setBreakText = c(seq(0.48, 0.10, -0.02))
-
-# 0.4837
+# 0.5387
 
 saveImg = sprintf("%s/%s_%s_%s.png", globalVar$figPath, serviceName, sheetName, "Mean_Color")
 
