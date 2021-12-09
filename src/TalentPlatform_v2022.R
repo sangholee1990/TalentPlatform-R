@@ -4776,3 +4776,325 @@ dev.off()
 # Regression tree : 42655.32
 # Random forest :  30350.00
 # boosting : 30949.44
+
+
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+#================================================
+# 요구사항
+#================================================
+# R을 이용한 보건 데이터 처리 및 연관 분석
+
+#================================================
+# 초기 환경변수 설정
+#================================================
+# env = "local"   # 로컬 : 원도우 환경, 작업환경 (현재 소스 코드 환경 시 .) 설정
+env = "dev"   # 개발 : 원도우 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+# env = "oper"  # 운영 : 리눅스 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+
+prjName = "test"
+serviceName = "LSH0267"
+contextPath = ifelse(env == "local", ".", getwd())
+
+if (env == "local") {
+  globalVar = list(
+    "inpPath" = contextPath
+    , "figPath" = contextPath
+    , "outPath" = contextPath
+    , "tmpPath" = contextPath
+    , "logPath" = contextPath
+  )
+} else {
+  source(here::here(file.path(contextPath, "src"), "InitConfig.R"), encoding = "UTF-8")
+}
+
+#================================================
+# 비즈니스 로직 수행
+#================================================
+# 라이브러리 읽기
+library(tidyverse)
+library(readr)
+library(arules)
+library(arulesViz)
+
+
+# Step 1. 데이터 읽어오기
+fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "복지_사회참여_문화와여가_소득과소비_노동_2019_20211207_52279.csv"))
+# health <- read.csv("2016_사회조사_보건데이터_정제.csv",stringsAsFactors=T)
+data = read.csv(file = fileInfo, header = FALSE)
+
+# V1 : 가구번호
+# V2 : 가구원번호
+# V3 : 만연령
+# V4 : 성별코드
+# V5 : 개인적인간관계만족도코드
+# V6 : 사회적관계망_대화상대도움요청대상인원수
+# V7 : 사회적관계망_교류가족친척인원수
+# V8 : 사회적관계망_교류가족친척외인원수
+# V9 : 독서_교양서적권수
+# V10 : 주말여가활동_동반자코드
+# V11 : 여가활용만족도코드
+# V12 : 주관적소득수준코드
+# V13 : 현재소득여부
+# V14 : 소득만족도코드
+# V15 : 소비생활만족도코드
+# V16 : 가구소득코드
+# V17 : 분류코드_교육정도코드
+
+# Step 2. 요약 통계 확인
+summary(data)
+
+# Step 3. 연관 분석할 데이터 정제하기
+## 연관 분석할 데이터 항목 선택
+# check = subset(data, select=c(성별, 혼인상태, 주관적만족감, 건강평가, 가정생활스트레스, 일상생활스트레스, 가구소득))
+
+dataL1 = data %>% 
+  dplyr::select(V5, V7, V8, V11, V16) %>% 
+  na.omit()
+
+# 소득수준에 따른 사회관계망 만족도와 인원수 연관분석
+# 소득수준과 여가활동 만족도
+# 사회관계망 만족도 연관분석
+# 
+# 
+# 정제된  데이터를  가지고  apriori  함수(support,  confidence  조건은  학생들이  조정)를  이용하여  연관  규칙들을  찾고,  apriori  함수로  찾은  연관  규칙들에서  분석하고  싶은  패턴을  최소  2개  이상  정의inspect  함수를  이용하여  찾아진  각  패턴(규칙)  결과를  이용하여하고 
+# , Ÿ 지지도(support)가  가장  높은  패턴(규칙)에  대해서  설명(분석)하기.
+# Ÿ 신뢰도(confidence)가  가장  높은  패턴(규칙)에  대해서  설명(분석)하기.
+# Ÿ 향상도(lift)가  가장  높은  패턴(규칙)에  대해서  설명(분석)하기. (예:  사회조사데이터를  통한  스트레스에  영향을  주는  요인  분석,  등) 
+# # 
+
+# ******************************************************************************
+# 범주형 데이터 정제
+# ******************************************************************************
+# 개인적인간관계만족도코드 : 1-매우만족 2-약간만족 3-보통 4-약간불만족 5-매우불만족
+dataL1$개인적인간관계만족도코드 = factor(dataL1$V5, levels=c(1:5), labels=c('매우만족', '약간만족', '보통', '약간불만족', '매우불만족'))
+
+# 사회적관계망_교류가족친척인원수
+dataL1$사회적관계망_교류가족친척인원수 = factor(dataL1$V7)
+
+# 사회적관계망_교류가족친척외인원수
+dataL1$사회적관계망_교류가족친척외인원수 = factor(dataL1$V8)
+
+# 여가활용만족도코드 : 1-매우만족 2-약간만족 3-보통 4-약간불만족 5-매우불만족
+dataL1$여가활용만족도코드 = factor(dataL1$V11, levels=c(1:5), labels=c('매우만족', '약간만족', '보통', '약간불만족', '매우불만족'))
+
+# 여가활용만족도코드 : 1-매우만족 2-약간만족 3-보통 4-약간불만족 5-매우불만족
+dataL1$여가활용만족도코드 = factor(dataL1$V11, levels=c(1:5), labels=c('매우만족', '약간만족', '보통', '약간불만족', '매우불만족'))
+
+# 가구소득코드 : 1-100만원미만 2-100~200만원 3-200~300만원 4-300~400만원 5-400~500만원 6-500~600만원 7- 600~700만원 8-700만원이상, 9-800만원이상
+dataL1$가구소득코드 <- factor(dataL1$V16, levels=c(1:9), labels=c('100만원미만', '100~200만원', '200~300만원', '300~400만원', '400~500만원', '500~600만원', '600~700만원', '700만원이상', '800만원이상'))
+
+summary(dataL1)
+
+
+
+# 소득수준에 따른 사회관계망 만족도와 인원수 연관분석
+dataL2 = dataL1 %>% 
+  # dplyr::select(가구소득코드, 사회적관계망_교류가족친척인원수, 사회적관계망_교류가족친척외인원수)
+  dplyr::select(V16, V7, V8)
+
+
+# 
+# 
+# ### 주관적만족감: 1-매우만족 2-약간만족 3-보통 4-약간불만족 5-매우불만족
+# check$주관적만족감 <- factor(check$주관적만족감, levels=c(1:5), labels=c('매우만족', '약간만족', '보통', '약간불만족', '매우불만족'))
+# 
+# ### 건강평가: 1-매우좋다 2-좋은편이다 3-보통이다 4-나쁜편이다 5-매우나쁘다
+# check$건강평가 <- factor(check$건강평가, levels=c(1:5), labels=c('매우좋다',	'좋은편이다', '보통이다',	'나쁜편이다', '매우나쁘다'))
+# 
+# ### 가정생활스트레스: 1-매우많이느꼈다 2-느끼는편이다 3-느끼지않는편이다 4-전혀느끼지않았다 5-해당없음
+# check$가정생활스트레스 <- factor(check$가정생활스트레스, levels=c(1:5), labels=c('매우많이느꼈다', '느끼는편이다', '느끼지않는편이다', '전혀느끼지않았다', '해당없음'))
+# 
+# ### 일상생활스트레스: 1-매우많이느꼈다 2-느끼는편이다 3-느끼지않는편이다 4-전혀느끼지않았다 5-해당없음
+# check$일상생활스트레스 <- factor(check$일상생활스트레스, levels=c(1:5), labels=c('매우많이느꼈다', '느끼는편이다', '느끼지않는편이다', '전혀느끼지않았다', '해당없음'))
+# 
+# ### 가구소득(월): 1-100만원미만 2-100~200만원 3-200~300만원 4-300~400만원 5-400~500만원 6-500~600만원 7- 600~700만원 8-700만원이상
+# check$가구소득 <- factor(check$가구소득, levels=c(1:8), labels=c('100만원미만', '100~200만원', '200~300만원', '300~400만원', '400~500만원', '500~600만원', '600~700만원', '700만원이상'))
+# 
+# ## 정제 결과 확인
+# summary(check)
+# 
+# 
+
+# Step 5. 연관 분석
+## 조건 (support=0.1, confidence=0.8, minlen=1, maxlen=10으로 연관분석
+rule1 <- arules::apriori(dataL2)
+summary(rule1)
+
+plot(rule1)
+plot(rule1, method="group")
+plot(rule1, method="graph")
+
+rule1.df <- as(rule1, "data.frame")
+
+
+rule2 <- arules::apriori(dataL2, parameter=list(support=0.3))
+summary(rule2)
+rule2.df <- as(rule2, "data.frame")
+
+
+rule_hstress <- inspect(subset(rule2, subset=rhs %in% c("가정생활스트레스=매우많이느꼈다", "가정생활스트레스=느끼는편이다")))
+
+rule_lstress <- inspect(subset(rule2, subset=rhs %in% c("일상생활스트레스=매우많이느꼈다", "일상생활스트레스=느끼는편이다")))
+
+rule_hstress2 <- inspect(subset(rule2, subset=rhs %in% c("가정생활스트레스=느끼지않는편이다", "가정생활스트레스=전혀느끼지않았다")))
+
+rule_lstress2 <- inspect(subset(rule2, subset=rhs %in% c("일상생활스트레스=느끼지않는편이다", "일상생활스트레스=전혀느끼지않았다")))
+
+rule_mhstress <- inspect(subset(rule2, subset= lhs %pin% c("혼인상태=") & rhs %in% c("가정생활스트레스=매우많이느꼈다", "가정생활스트레스=느끼는편이다")))
+
+rule_ihstress <- inspect(subset(rule2, subset= lhs %pin% c("가구소득=") & rhs %in% c("가정생활스트레스=매우많이느꼈다", "가정생활스트레스=느끼는편이다")))
+
+
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+#================================================
+# 요구사항
+#================================================
+# R을 이용한 2018-2020년 서울시 지하철 데이터 시각화 (시계열, 막대그래프, 트리맵)
+
+#================================================
+# 초기 환경변수 설정
+#================================================
+# env = "local"   # 로컬 : 원도우 환경, 작업환경 (현재 소스 코드 환경 시 .) 설정
+env = "dev"   # 개발 : 원도우 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+# env = "oper"  # 운영 : 리눅스 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+
+prjName = "test"
+serviceName = "LSH0269"
+contextPath = ifelse(env == "local", ".", getwd())
+
+if (env == "local") {
+  globalVar = list(
+    "inpPath" = contextPath
+    , "figPath" = contextPath
+    , "outPath" = contextPath
+    , "tmpPath" = contextPath
+    , "logPath" = contextPath
+  )
+} else {
+  source(here::here(file.path(contextPath, "src"), "InitConfig.R"), encoding = "UTF-8")
+}
+
+#================================================
+# 비즈니스 로직 수행
+#================================================
+# 라이브러리 읽기
+library(tidyverse)
+library(readr)
+library(ggplot2)
+library(openxlsx)
+library(lubridate)
+library(tidyr)
+library(treemapify)
+library(ggplot2)
+
+# 자료 읽기
+fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "서울시+교통2018-2019-2020.xlsx"))
+data = openxlsx::read.xlsx(fileInfo, sheet = 1)
+
+# 자료 전처리
+dataL1 = data %>% 
+  tibble::as.tibble() %>% 
+  dplyr::select(-c("합.계")) %>% 
+  tidyr::gather(-c("날짜", "호선", "역번호", "역명", "구분"), key = "key", value = "val") %>% 
+  dplyr::mutate(
+    dtDate = readr::parse_datetime(날짜, "%Y-%m-%d")
+    , dtYear = lubridate::year(dtDate)
+    , dtMonth = lubridate::month(dtDate)
+    , dtDay = lubridate::day(dtDate)
+    , dtRefDate = lubridate::make_date(month = dtMonth, day = dtDay)
+  )
+
+
+# ******************************************************************************
+# 시계열 그래프는 년도별로 색깔을 다르게 하여 1년치의 승차객수의 합으로 
+# 시각화를 하고자합니다.
+# ******************************************************************************
+dataL2 = dataL1 %>% 
+  dplyr::group_by(dtRefDate, dtYear) %>% 
+  dplyr::summarise(
+    sumVal = sum(val, na.rm = TRUE)
+  )
+
+plotSubTitle = sprintf("%s %s", "2018-2020년", "지하철 시계열")
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, plotSubTitle)
+
+ggplot(dataL2, aes(x = dtRefDate, y = sumVal, color = factor(dtYear))) +
+  geom_line() +
+  scale_x_date(date_labels = "%B", date_breaks = "1 month") +
+  labs(x = "연도", y = "승객수", color = "연도", subtitle = plotSubTitle) +
+  theme(text = element_text(size = 18)) +
+  ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
+
+
+# ******************************************************************************
+# 비교 막대그래프는 승차와 하차를 막대 안에서 색깔로 비교하고 x축은 호선으로 
+# 구분하고자 합니다
+# ******************************************************************************
+dataL2 = dataL1 %>% 
+  dplyr::group_by(호선, 구분) %>% 
+  dplyr::summarise(
+    sumVal = sum(val, na.rm = TRUE)
+  )
+
+plotSubTitle = sprintf("%s %s", "2018-2020년", "지하철 막대그래프")
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, plotSubTitle)
+
+ggplot(dataL2, aes(x = 호선, y = sumVal, fill = 구분)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  # scale_x_date(date_labels = "%B", date_breaks = "2 month") +
+  labs(x = "호선", y = "승객수", fill = "구분", subtitle = plotSubTitle) +
+  theme(text = element_text(size = 18)) +
+  ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
+
+
+# ******************************************************************************
+# 텍스트 시각화는 이미지 맵으로 4호선만 활용하여 승차를 많이한 기준으로 
+# 이미지맵을 만들고 하차를 많이한 기준으로 이미지맵을 그리고 싶습니다. 
+# 텍스트는 엑셀 열 이름인 시간대로요!
+# ******************************************************************************
+typeList = dataL1$구분 %>% unique() %>% sort()
+
+for (typeInfo in typeList) {
+  
+  dataL2 = dataL1 %>% 
+    dplyr::filter(
+      호선 == "4호선"
+      , 구분 == typeInfo
+    ) %>% 
+    dplyr::group_by(key, 구분) %>% 
+    dplyr::summarise(
+      sumVal = sum(val, na.rm = TRUE)
+    )
+  
+  plotSubTitle = sprintf("%s %s %s %s", "2018-2020년", "지하철", typeInfo, "트리맵")
+  saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, plotSubTitle)
+  
+  makePlot = ggplot(dataL2, aes(area = sumVal, fill = key, label = paste(key, sumVal, sep = "\n"))) +
+    geom_treemap() +
+    geom_treemap_text(colour = "white", place = "centre", size = 15) +
+    labs(x = NULL, y = NULL, fill = NULL, subtitle = plotSubTitle) +
+    theme(
+      text = element_text(size = 18)
+      , legend.position = "none"
+    )
+  
+  ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
+}
