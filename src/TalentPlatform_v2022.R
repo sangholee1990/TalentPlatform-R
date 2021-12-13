@@ -5098,3 +5098,289 @@ for (typeInfo in typeList) {
   
   ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
 }
+
+
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+#================================================
+# 요구사항
+#================================================
+# R을 이용한 지도학습 ()
+# 작업하시기 편하신 데이터 자율선정하셔서 분석 진행해주시면 됩니다.
+# 
+# -1) 분석 데이터(활용데이터)
+# -2) 방법론(classification) 활용
+# -3) 분석 결과(r코드 및 결과 이미지 삽입)
+# 순으로 진행 해주시고
+# 이번엔 제가 첨부드린 ppt에 디자인 고려안해주셔도 되니 내용만 넣어주시면 되세요
+# 
+# 기존과 동일하게 넣어주시되,
+# 분석할 데이터, 방법론에 대한 간략설명, 분석결과(이미지,r코드) 넣어주시면 되세요!
+#   ** 독립변수나 종속변수는 1개는 안되고 되도록 2개이상으로 많으면 좋아요 ㅠㅠ
+# 
+# 첨부드린 자료는 참고용으로 보내드렸어요 보시고 자율선정해주셔서 분석 부탁드리겠습니다
+# 
+# 기한은 다음주 17일 늦어도 그주 주말까지 부탁드릴게요
+# 보시고 연락주세요 감사합니다~!
+
+#================================================
+# 초기 환경변수 설정
+#================================================
+# env = "local"   # 로컬 : 원도우 환경, 작업환경 (현재 소스 코드 환경 시 .) 설정
+env = "dev"   # 개발 : 원도우 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+# env = "oper"  # 운영 : 리눅스 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+
+prjName = "test"
+serviceName = "LSH0271"
+contextPath = ifelse(env == "local", ".", getwd())
+
+if (env == "local") {
+  globalVar = list(
+    "inpPath" = contextPath
+    , "figPath" = contextPath
+    , "outPath" = contextPath
+    , "tmpPath" = contextPath
+    , "logPath" = contextPath
+  )
+} else {
+  source(here::here(file.path(contextPath, "src"), "InitConfig.R"), encoding = "UTF-8")
+}
+
+#================================================
+# 비즈니스 로직 수행
+#================================================
+# 라이브러리 읽기
+library(tidyverse)
+library(readr)
+library(raster)
+library(rgeos)
+library(maptools)
+library(rgdal)
+library(ggcorrplot)
+library(GGally)
+library(factoextra)
+library(ISLR)
+library(splines)
+library(gam)
+library(akima)
+library(RColorBrewer)
+library(RColorBrewer)
+library(tidyverse)
+library(readr)
+library(spdep)
+library(rgdal)
+library(foreign) 
+library(car)
+library(RColorBrewer)
+library(classInt)
+library(spatialreg)
+library(spdep)
+library(rgdal)
+library(foreign) 
+library(ROCit)
+library(klaR)
+library(spdep)
+library(rgdal)
+library(foreign) 
+library(ROCit)
+library(klaR)
+library(rsample)
+library(gmodels)
+library(tree)
+library(MASS)
+library(randomForest)
+library(gbm)
+library(BART)
+library(spdep)
+library(rgdal)
+library(foreign) 
+library(ROCit)
+library(klaR)
+library(class)
+
+# shp 파일 읽기
+mapShp = readOGR(dsn = globalVar$inpPath, layer = "Seoul_dong", encoding = 'ESRI Shapefile')
+mapData = read.dbf(file.path(globalVar$inpPath, 'Seoul_dong.dbf'))
+mapData$Div = as.factor(mapData$Div)
+
+# 컬럼 선택
+mapDataL1 = mapData %>% 
+  dplyr::select(Price, Year, Nurser, Hospit, Park, Culture, Sub, E_prog, H_univ, M_priv, Div)
+
+# ******************************************************************************
+# 변수 선택을 통해 유의미한 변수 도출
+# ******************************************************************************
+# AIC 기준으로 유의미한 변수 선택
+glmFitVarAll = glm(Div ~ ., data=mapDataL1, family=binomial(link="logit"))
+stepAic = MASS::stepAIC(glmFitVarAll, direction = "both")
+
+# 결과에 대한 요약
+summary(stepAic)
+
+# 유의미한 변수 도출
+# Div ~ Price + Year + Nurser + Park + Culture + H_univ + M_priv
+
+# ******************************************************************************
+# 훈련 및 테스트 데이터셋 분류
+# ******************************************************************************
+set.seed(100)
+
+# 훈련 및 테스트 데이터셋 분류
+sample.idx <-sample(1:nrow(mapDataL1), nrow(mapDataL1) * 0.7) 
+train.df <- mapDataL1[sample.idx, ]
+test.df <- mapDataL1[-sample.idx,]
+
+mainTitle = "훈련 데이터셋 정보"
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, mainTitle)
+png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
+
+plot(mapShp, main = mainTitle)
+plot(mapShp[sample.idx, ], col='red', add=TRUE)
+
+dev.off()
+
+# 테스트셋 종속 변수
+yObs = factor(test.df$Div, levels = c(0, 1), labels = c("ETC", "Gangnam"))
+
+# ******************************************************************************
+# 로지스틱 회귀분석
+# ******************************************************************************
+logit.train <- glm(stepAic$formula, data=train.df, family=binomial(link="logit"))
+summary(logit.train)
+
+logit.Test <- predict(logit.train, newdata=test.df, type="response")
+div.Pred <- ifelse(logit.Test < 0.5, 0, 1)
+yHat = factor(div.Pred, levels = c(0, 1), labels = c("ETC", "Gangnam"))
+
+conMatRes = caret::confusionMatrix(data = yHat, reference = yObs)
+
+# 정확도 : 0.937
+conMatRes$overall["Accuracy"] %>% round(3)
+
+# 민감도 : 0.955 
+conMatRes$byClass["Sensitivity"] %>% round(3)
+
+# 특이도 : 0.80
+conMatRes$byClass["Specificity"] %>% round(3)
+
+# ROC 커브를 위한 설정
+logit.Roc <- ROCit::rocit(score = logit.Test, class = test.df$Div)
+
+# 요약 결과
+# summary(logit.Roc)
+
+mainTitle = "ROC 곡선-로지스틱 회귀분석"
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, mainTitle)
+png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
+
+plot(logit.Roc, main = mainTitle)
+
+dev.off()
+
+# ******************************************************************************
+# 선형 판별분석
+# ******************************************************************************
+lda.train <- lda(stepAic$formula, data=train.df)
+# summary(lda.train)
+
+lda.test <- predict(lda.train, test.df)
+yHat = factor(lda.test$class, levels = c(0, 1), labels = c("ETC", "Gangnam"))
+
+conMatRes = caret::confusionMatrix(data = yHat, reference = yObs)
+
+# 정확도 : 0.913 
+conMatRes$overall["Accuracy"] %>% round(3)
+
+# 민감도 : 0.955 
+conMatRes$byClass["Sensitivity"] %>% round(3)
+
+# 특이도 : 0.6 
+conMatRes$byClass["Specificity"] %>% round(3)
+
+# ROC 커브를 위한 설정
+lda.Roc <- ROCit::rocit(score = lda.test$posterior[,2], class = test.df$Div)
+
+# 요약 결과
+summary(lda.Roc)
+
+mainTitle = "ROC 곡선-선형 판별분석"
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, mainTitle)
+png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
+
+plot(lda.Roc, main = mainTitle)
+
+dev.off()
+
+
+# ******************************************************************************
+# 비선형 판별분석
+# ******************************************************************************
+qda.train <- qda(stepAic$formula, data=train.df)
+
+qda.test <- predict(qda.train, test.df)
+yHat = factor(qda.test$class, levels = c(0, 1), labels = c("ETC", "Gangnam"))
+
+conMatRes = caret::confusionMatrix(data = yHat, reference = yObs)
+
+# 정확도 : 0.929 
+conMatRes$overall["Accuracy"] %>% round(3)
+
+# 민감도 : 0.964 
+conMatRes$byClass["Sensitivity"] %>% round(3)
+
+# 특이도 : 0.667 
+conMatRes$byClass["Specificity"] %>% round(3)
+
+# ROC 커브를 위한 설정
+qda.Roc <- ROCit::rocit(score = qda.test$posterior[,2], class = test.df$Div)
+
+# 요약 결과
+# summary(qda.Roc)
+
+mainTitle = "ROC 곡선-비선형 판별분석"
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, mainTitle)
+png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
+
+plot(qda.Roc, main = mainTitle)
+
+dev.off()
+
+
+# ******************************************************************************
+# K 인접 기법
+# ******************************************************************************
+# 변수 스케일링
+mapDataL2 = mapDataL1 %>% 
+  dplyr::select(-c("Div")) %>% 
+  scale()
+
+# 트레이닝 및 테스트 데이터 셋 분류
+train.x <- mapDataL2[sample.idx, ]
+test.x <- mapDataL2[-sample.idx,]
+
+knn.pred <- class::knn(train = train.x, test = test.x, cl = train.df$Div, k=1, prob = TRUE)
+yHat = factor(knn.pred, levels = c(0, 1), labels = c("ETC", "Gangnam"))
+
+conMatRes = caret::confusionMatrix(data = yHat, reference = yObs)
+
+# 정확도 : 0.937 
+conMatRes$overall["Accuracy"] %>% round(3)
+
+# 민감도 : 0.946 
+conMatRes$byClass["Sensitivity"] %>% round(3)
+
+# 특이도 : 0.867 
+conMatRes$byClass["Specificity"] %>% round(3)
+
+
+
+
+
