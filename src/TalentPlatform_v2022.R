@@ -5262,13 +5262,13 @@ yHat = factor(div.Pred, levels = c(0, 1), labels = c("ETC", "Gangnam"))
 
 conMatRes = caret::confusionMatrix(data = yHat, reference = yObs)
 
-# 정확도 : 0.937
+# 정확도 : 0.937 
 conMatRes$overall["Accuracy"] %>% round(3)
 
-# 민감도 : 0.955 
+# 민감도 : 0.971 
 conMatRes$byClass["Sensitivity"] %>% round(3)
 
-# 특이도 : 0.80
+# 특이도 : 0.792 
 conMatRes$byClass["Specificity"] %>% round(3)
 
 # ROC 커브를 위한 설정
@@ -5296,13 +5296,13 @@ yHat = factor(lda.test$class, levels = c(0, 1), labels = c("ETC", "Gangnam"))
 
 conMatRes = caret::confusionMatrix(data = yHat, reference = yObs)
 
-# 정확도 : 0.913 
+# 정확도 : 0.906 
 conMatRes$overall["Accuracy"] %>% round(3)
 
-# 민감도 : 0.955 
+# 민감도 : 0.981 
 conMatRes$byClass["Sensitivity"] %>% round(3)
 
-# 특이도 : 0.6 
+# 특이도 : 0.583 
 conMatRes$byClass["Specificity"] %>% round(3)
 
 # ROC 커브를 위한 설정
@@ -5330,13 +5330,13 @@ yHat = factor(qda.test$class, levels = c(0, 1), labels = c("ETC", "Gangnam"))
 
 conMatRes = caret::confusionMatrix(data = yHat, reference = yObs)
 
-# 정확도 : 0.929 
+# 정확도 : 0.898 
 conMatRes$overall["Accuracy"] %>% round(3)
 
-# 민감도 : 0.964 
+# 민감도 : 0.971 
 conMatRes$byClass["Sensitivity"] %>% round(3)
 
-# 특이도 : 0.667 
+# 특이도 : 0.583 
 conMatRes$byClass["Specificity"] %>% round(3)
 
 # ROC 커브를 위한 설정
@@ -5371,16 +5371,215 @@ yHat = factor(knn.pred, levels = c(0, 1), labels = c("ETC", "Gangnam"))
 
 conMatRes = caret::confusionMatrix(data = yHat, reference = yObs)
 
-# 정확도 : 0.937 
+# 정확도 : 0.929 
 conMatRes$overall["Accuracy"] %>% round(3)
 
-# 민감도 : 0.946 
+# 민감도 : 0.981 
 conMatRes$byClass["Sensitivity"] %>% round(3)
 
-# 특이도 : 0.867 
+# 특이도 : 0.708 
 conMatRes$byClass["Specificity"] %>% round(3)
 
 
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+#================================================
+# 요구사항
+#================================================
+# R을 이용한 의사소통 및 진로결정 데이터 분석 (분산분석, 상관분석, 회귀분석) 및 보고서
+
+# 안녕하세요. 과제를 하고 있는 대학생입니다.
+# 이번학기 통계수업을 듣고 설문 수집을 하고 R을 활용해서 분석을 한 뒤 보고서를 작성해야 하는 과제를 하고 있습니다.
+# 제가 가지고 있는 데이터로 어떤 분석을 해야 효과적일지 이야기를 좀 나눠보고 싶고,
+# R 스크립트도 제출해야하는데 처음 해보는 것이라 도움을 받고자 올려봅니다.
+
+# 주제: 대학생의 부모-자녀 의사소통과 진로결정몰입도 간의 관계 연구
+# 가설: 대학생들이 부모-자녀 간 의사소통이 활발하게 이루어질수록 진로결정몰입도가 높아질 것이다.
+
+# 변수명입니다!
+# com_mean: 의사소통척도 평균
+# com_sum: 의사소통척도 합계
+# com_normal: 부모님과 일상적인 주제로 대화할 때 소통방식
+# com_important: 부모님과 중요한 주제로 대화할 때 소통방식
+# com_time: 일주일에 부모님과 소통하는 시간
+# dream_decide: 진로결정여부
+# IMM_MEAN: 진로결정몰입척도 평균
+# IMM_SUM: 진로결정몰입척도 합계
+
+# 1. 분산분석(anova): IMM_MEAN 과 com_time, com_important, dream_decide
+# 2. 상관분석: IMM_MEAN과 com_mean
+# 3. 회귀분석: IMM_MEAN과 com_mean
+# * 스크립트를 첨부해야해서 같이 보내주시면 감사하겠습니다!
+
+#================================================
+# 초기 환경변수 설정
+# ================================================
+# env = "local"   # 로컬 : 원도우 환경, 작업환경 (현재 소스 코드 환경 시 .) 설정
+env = "dev"   # 개발 : 원도우 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+# env = "oper"  # 운영 : 리눅스 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+
+prjName = "test"
+serviceName = "LSH0274"
+contextPath = ifelse(env == "local", ".", getwd())
+
+if (env == "local") {
+  globalVar = list(
+    "inpPath" = contextPath
+    , "figPath" = contextPath
+    , "outPath" = contextPath
+    , "tmpPath" = contextPath
+    , "logPath" = contextPath
+  )
+} else {
+  source(here::here(file.path(contextPath, "src"), "InitConfig.R"), encoding = "UTF-8")
+}
+
+#================================================
+# 비즈니스 로직 수행
+#================================================
+# 라이브러리 읽기
+library(tidyverse)
+library(readr)
+library(raster)
+library(ggpubr)
+library(ggplot)
+library(agricolae)
+
+# 파일 읽기
+# fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "r+final+assignment.csv"))
+fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "r+finalassignment_20211217.csv"))
+data = readr::read_csv(file = fileInfo, locale = locale("ko", encoding = "EUC-KR"))
+
+# 결측값 제거
+dataL1 = data %>% 
+  na.omit()
+
+# 이상치 제거
+lmFit = lm(IMM_MEAN ~ com_mean, data = dataL1)
+# summary(lmFit)
+
+cooksDis =  cooks.distance(lmFit) 
+outlierVal = 4 * mean(cooksDis, na.rm = TRUE)
+dataL1$outFlag = ifelse(cooksDis > outlierVal, TRUE, FALSE)
+# dataL1$outFlag[30] = FALSE
+
+dataL2 = dataL1 %>% 
+  dplyr::filter(outFlag == FALSE)
 
 
+# 문자형을 범주형 변수로 변환
+dataL2$com_time = as.factor(dataL2$com_time)
+dataL2$com_important = as.factor(dataL2$com_important)
+dataL2$dream_decide = as.factor(dataL2$dream_decide)
+
+summary(dataL2)
+
+# ******************************************************************************
+# 1. 분산분석(anova): IMM_MEAN 과 com_time, com_important, dream_decide
+# ******************************************************************************
+# anova 검정 시 집단 간 평균에 유의미한 차이 분석
+aovModel = aov(IMM_MEAN ~ com_time + com_important + dream_decide, data = dataL2)
+
+# 그 결과 dream_decide (진로결정여부)의 유의 수준 (Pr(>F))이 약 0.1 이하로서 
+# 집단 간의 평균 차이가 있음 (대립가설 채택)
+# 반면에 com_time (일주일에 부모님과 소통하는 시간), 
+# com_important (부모님과 중요한 주제로 대화할 때 소통방식)의 
+# 유의 수준 (Pr(>F))이 약 0.1 이상으로서 집단 간의 평균 차이가 없음 (대립가설 기각)
+summary(aovModel)
+
+# Df    Sum Sq    Mean Sq F value  Pr(>F)
+# com_time       4 0.2140050 0.05350124 0.46833 0.75833
+# com_important  2 0.2759776 0.13798881 1.20790 0.31789
+# dream_decide   4 0.9878504 0.24696260 2.16181 0.10703
+# Residuals     22 2.5132579 0.11423900      
+
+
+# 추가로 사후분석 (Duncan's LSR test)을 통해 어느 집단 간에 차이가 있는가를 분석
+result = agricolae::duncan.test(aovModel, c("com_time", "com_important",  "dream_decide"), alpha = 0.05, console = TRUE)
+
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "부모님 의사소통 조건에 따른 진로결정몰입척도 (com_time, com_important, dream_decide)")
+png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
+plot(result)
+dev.off()
+
+# 9개 그룹
+result$groups %>% 
+  as.tibble() %>% 
+  dplyr::select(groups) %>% 
+  unique() %>% 
+  nrow()
+
+
+# ******************************************************************************
+# 2. 상관분석: IMM_MEAN과 com_mean
+# ******************************************************************************
+lmFit = lm(IMM_MEAN ~ com_mean, data = dataL2)
+
+summary(lmFit)
+
+plotSubTitle = sprintf("%s", "의사소통척도에 따른 진로결정몰입척도 산점도")
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, plotSubTitle)
+
+ggpubr::ggscatter(
+  dataL2, x = "com_mean", y = "IMM_MEAN"
+  , add = "reg.line", conf.int = TRUE, scales = "free_x"
+  , add.params = list(color = "blue", fill = "lightblue")
+) +
+  labs(
+    title = NULL
+    , x = "평균 의사소통척도"
+    , y = "평균 진로결정몰입척도"
+    , color = NULL
+    , subtitle = plotSubTitle
+  ) +
+  theme_bw() +
+  ggpubr::stat_regline_equation(label.x.npc = 0.0, label.y.npc = 1.0, size = 5) +
+  ggpubr::stat_cor(label.x.npc = 0.0, label.y.npc = 0.90, p.accuracy  =  0.01,  r.accuracy  =  0.01, size = 5) +
+  theme(text = element_text(size = 18)) +
+  ggsave(filename = saveImg, width = 8, height = 8, dpi = 600)
+
+
+# ******************************************************************************
+# 3. 회귀분석: IMM_MEAN과 com_mean
+# ******************************************************************************
+dataL3 = data.frame(
+  yObs = dataL2$IMM_MEAN
+  , yHat = predict(lmFit, newdata = dataL2)
+)
+
+biasVal = Metrics::bias(actual = dataL3$yObs, predicted = dataL3$yHat)
+rmseVal = Metrics::rmse(actual = dataL3$yObs, predicted = dataL3$yHat)
+
+# summary(dataL3)
+
+plotSubTitle = sprintf("%s", "진로결정몰입척도 예측 및 실측 산점도")
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, plotSubTitle)
+
+ggpubr::ggscatter(
+  dataL3, x = "yHat", y = "yObs"
+  , add = "reg.line", conf.int = TRUE, scales = "free_x"
+  , add.params = list(color = "blue", fill = "lightblue")
+  ) +
+  labs(
+    title = NULL
+    , x = "진로결정몰입척도 예측"
+    , y = "진로결정몰입척도 실측"
+    , color = NULL
+    , subtitle = plotSubTitle
+  ) +
+  theme_bw() +
+  ggpubr::stat_regline_equation(label.x.npc = 0.0, label.y.npc = 1.0, size = 5) +
+  ggpubr::stat_cor(label.x.npc = 0.0, label.y.npc = 0.90, p.accuracy  =  0.01,  r.accuracy  =  0.01, size = 5) +
+  ggpp::annotate("text_npc", npcx = 0.05, npcy = 0.80, label = sprintf("Bias = %s", round(biasVal, 2)), hjust = 0, size = 5) +
+  ggpp::annotate("text_npc", npcx = 0.05, npcy = 0.75, label = sprintf("RMSE = %s", round(rmseVal, 2)), hjust = 0, size = 5) +
+  theme(text = element_text(size = 18)) +
+  ggsave(filename = saveImg, width = 8, height = 8, dpi = 600)
 
