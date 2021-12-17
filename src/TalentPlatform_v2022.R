@@ -5583,3 +5583,129 @@ ggpubr::ggscatter(
   theme(text = element_text(size = 18)) +
   ggsave(filename = saveImg, width = 8, height = 8, dpi = 600)
 
+
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+#================================================
+# 요구사항
+#================================================
+# R을 이용한 서울특별시 버스위치 및 노선정보 구글맵 시각화
+
+#================================================
+# 초기 환경변수 설정
+# ================================================
+# env = "local"   # 로컬 : 원도우 환경, 작업환경 (현재 소스 코드 환경 시 .) 설정
+env = "dev"   # 개발 : 원도우 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+# env = "oper"  # 운영 : 리눅스 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+
+prjName = "test"
+serviceName = "LSH0275"
+contextPath = ifelse(env == "local", ".", getwd())
+
+if (env == "local") {
+  globalVar = list(
+    "inpPath" = contextPath
+    , "figPath" = contextPath
+    , "outPath" = contextPath
+    , "tmpPath" = contextPath
+    , "logPath" = contextPath
+  )
+} else {
+  source(here::here(file.path(contextPath, "src"), "InitConfig.R"), encoding = "UTF-8")
+}
+
+#================================================
+# 비즈니스 로직 수행
+#================================================
+# 라이브러리 읽기
+library(tidyverse)
+library(readr)
+library(ggplot)
+library(httr)
+library(rvest)
+library(jsonlite)
+library(RCurl)
+library(readr)
+library(RCurl)
+library(stringr)
+library(ggrepel)
+library(ggmap)
+
+# 공공데이터포털 API키
+# reqDataKey = globalVar$dataKey
+reqDataKey = "u9oRMh10jAyyk+nlhHGphWG+4aapJz6++xQm+SyvyD7LxuOJUwjzcighNSi2zOm/K0xQWKNFL2RUh3vymjD2ag=="
+
+# 구글 파일키 등록
+# reqGoogleKey = globalVar$googleKey
+reqGoogleKey = ""
+# ggmap::register_google(key = reqGoogleKey)
+
+# ******************************************************************************
+# 검색 옵션
+# ******************************************************************************
+# 버스 번호
+searchBusRouteNm = 402
+
+# ******************************************************************************
+# 공공데이터포털 API (노선정보조회 서비스)
+# ******************************************************************************
+# 요청 URL
+reqBusRouteInfoUrl = "http://ws.bus.go.kr/api/rest/busRouteInfo/getBusRouteList"
+
+# 요청 파라미터
+reqKey = stringr::str_c("?serviceKey=", RCurl::curlEscape(stringr::str_conv(reqDataKey, encoding = "UTF-8")))
+reqResultType = stringr::str_c("&resultType=", "json")
+reqStrSrch = stringr::str_c("&strSrch=", searchBusRouteNm)
+
+resData = httr::GET(
+  stringr::str_c(reqBusRouteInfoUrl, reqKey, reqResultType, reqStrSrch)
+  ) %>%
+  httr::content(as = "text", encoding = "UTF-8") %>%
+  jsonlite::fromJSON() 
+
+data = resData$msgBody$itemList %>% 
+  as.tibble() %>% 
+  dplyr::filter(busRouteNm == searchBusRouteNm)
+
+
+# ******************************************************************************
+# 구글맵 시각화
+# ******************************************************************************
+# 자료 전처리 (컬럼 선택, 이름 변경, 자동 형 변환)
+dataL2 = dataL1 %>% 
+  dplyr::select(gpsX, gpsY, plainNo) %>% 
+  dplyr::rename(
+    lon = gpsX
+    , lat = gpsY
+  ) %>% 
+  readr::type_convert()
+
+# 구글맵 지정
+map = ggmap::get_googlemap(
+  center = c(lon = mean(dataL2$lon, na.rm = TRUE), lat = mean(dataL2$lat, na.rm = TRUE))
+  , zoom = 12
+  , markers = dataL2 %>% dplyr::select(lon, lat)
+  )
+
+# 구글맵 시각화
+plotSubTitle = sprintf("%s", "서울특별시 버스위치 및 노선정보 구글맵 시각화")
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, plotSubTitle)
+
+ggmap::ggmap(map, extent = "device") +
+  ggrepel::geom_label_repel(data = dataL2, aes(x = lon, y = lat, color = factor(plainNo)), alpha = 0.75, size = 5, label = dataL2$plainNo) +
+  labs(
+    color = "버스 차량 번호"
+  ) + 
+  theme(
+    text = element_text(size = 18)
+    , legend.position=c(0.90, 0.78)
+  ) +
+  ggsave(filename = saveImg, width = 10, height = 10, dpi = 600)
