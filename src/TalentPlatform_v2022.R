@@ -5640,13 +5640,13 @@ library(ggrepel)
 library(ggmap)
 
 # 공공데이터포털 API키
-# reqDataKey = globalVar$dataKey
-reqDataKey = "u9oRMh10jAyyk+nlhHGphWG+4aapJz6++xQm+SyvyD7LxuOJUwjzcighNSi2zOm/K0xQWKNFL2RUh3vymjD2ag=="
+reqDataKey = globalVar$dataKey
+# reqDataKey = "u9oRMh10jAyyk+nlhHGphWG+4aapJz6++xQm+SyvyD7LxuOJUwjzcighNSi2zOm/K0xQWKNFL2RUh3vymjD2ag=="
 
 # 구글 파일키 등록
-# reqGoogleKey = globalVar$googleKey
-reqGoogleKey = ""
-# ggmap::register_google(key = reqGoogleKey)
+reqGoogleKey = globalVar$googleKey
+# reqGoogleKey = ""
+ggmap::register_google(key = reqGoogleKey)
 
 # ******************************************************************************
 # 검색 옵션
@@ -5666,33 +5666,77 @@ reqResultType = stringr::str_c("&resultType=", "json")
 reqStrSrch = stringr::str_c("&strSrch=", searchBusRouteNm)
 
 resData = httr::GET(
-  stringr::str_c(reqBusRouteInfoUrl, reqKey, reqResultType, reqStrSrch)
+  stringr::str_c(reqBusRouteInfoUrl, reqKey, reqResultType)
   ) %>%
   httr::content(as = "text", encoding = "UTF-8") %>%
   jsonlite::fromJSON() 
 
-data = resData$msgBody$itemList %>% 
-  as.tibble() %>% 
+refData = resData$msgBody$itemList %>% 
+  as.tibble()
+
+data = refData %>% 
   dplyr::filter(busRouteNm == searchBusRouteNm)
+
+
+# ******************************************************************************
+# 공공데이터포털 API (노선정보조회 서비스)
+# ******************************************************************************
+# 요청 URL
+reqBusRouteInfoUrl = "http://ws.bus.go.kr/api/rest/busRouteInfo/getStaionByRoute"
+
+# 요청 키
+reqBusRouteId= stringr::str_c("&busRouteId=", data$busRouteId)
+
+resData = httr::GET(
+  stringr::str_c(reqBusRouteInfoUrl, reqKey, reqResultType, reqBusRouteId)
+) %>%
+  httr::content(as = "text", encoding = "UTF-8") %>%
+  jsonlite::fromJSON()
+
+dataL1 = resData$msgBody$itemList %>% 
+  as.tibble()
+
+
+# ******************************************************************************
+# 공공데이터포털 API (버스위치정보조회 서비스)
+# ******************************************************************************
+# 요청 URL
+reqBusPosUrl = "http://ws.bus.go.kr/api/rest/buspos/getBusPosByRtid"
+
+# 요청 키
+reqBusRouteId= stringr::str_c("&busRouteId=", data$busRouteId)
+
+resData = httr::GET(
+  stringr::str_c(reqBusPosUrl, reqKey, reqResultType, reqBusRouteId)
+) %>%
+  httr::content(as = "text", encoding = "UTF-8") %>%
+  jsonlite::fromJSON()
+
+dataL2 = resData$msgBody$itemList %>% 
+  as.tibble()
 
 
 # ******************************************************************************
 # 구글맵 시각화
 # ******************************************************************************
 # 자료 전처리 (컬럼 선택, 이름 변경, 자동 형 변환)
-dataL2 = dataL1 %>% 
-  dplyr::select(gpsX, gpsY, plainNo) %>% 
+dataL3 = dataL2 %>% 
+  dplyr::left_join(dataL1, by = c("sectOrd" = "seq")) %>% 
+  dplyr::select(gpsX.x, gpsY.x, stationNm, plainNo) %>% 
   dplyr::rename(
-    lon = gpsX
-    , lat = gpsY
+    lon = gpsX.x
+    , lat = gpsY.x
+  ) %>% 
+  dplyr::mutate(
+    label = stringr::str_c("[", plainNo, "]\n", stationNm)
   ) %>% 
   readr::type_convert()
 
 # 구글맵 지정
 map = ggmap::get_googlemap(
-  center = c(lon = mean(dataL2$lon, na.rm = TRUE), lat = mean(dataL2$lat, na.rm = TRUE))
+  center = c(lon = mean(dataL3$lon, na.rm = TRUE), lat = mean(dataL3$lat, na.rm = TRUE))
   , zoom = 12
-  , markers = dataL2 %>% dplyr::select(lon, lat)
+  , markers = dataL3 %>% dplyr::select(lon, lat)
   )
 
 # 구글맵 시각화
@@ -5700,12 +5744,6 @@ plotSubTitle = sprintf("%s", "서울특별시 버스위치 및 노선정보 구�
 saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, plotSubTitle)
 
 ggmap::ggmap(map, extent = "device") +
-  ggrepel::geom_label_repel(data = dataL2, aes(x = lon, y = lat, color = factor(plainNo)), alpha = 0.75, size = 5, label = dataL2$plainNo) +
-  labs(
-    color = "버스 차량 번호"
-  ) + 
-  theme(
-    text = element_text(size = 18)
-    , legend.position=c(0.90, 0.78)
-  ) +
+  ggrepel::geom_label_repel(data = dataL3, aes(x = lon, y = lat, color = label), hjust = 0, alpha = 0.75, size = 5, label = dataL3$label, show.legend = FALSE) +
+  theme(text = element_text(size = 18)) +
   ggsave(filename = saveImg, width = 10, height = 10, dpi = 600)
