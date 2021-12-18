@@ -5638,6 +5638,7 @@ library(RCurl)
 library(stringr)
 library(ggrepel)
 library(ggmap)
+library(forcats)
 
 # 공공데이터포털 API키
 reqDataKey = globalVar$dataKey
@@ -5726,11 +5727,16 @@ dataL3 = dataL2 %>%
   dplyr::rename(
     lon = gpsX.x
     , lat = gpsY.x
-  ) %>% 
+  ) %>%
+  dplyr::arrange(lon) %>% 
+  tibble::rowid_to_column() %>% 
   dplyr::mutate(
     label = stringr::str_c("[", plainNo, "]\n", stationNm)
-  ) %>% 
+    , legend = stringr::str_c(rowid, ". [", plainNo, "] ", stationNm)
+  ) %>%
   readr::type_convert()
+
+dataL3$legend = forcats::fct_relevel(factor(dataL3$legend), dataL3$legend)
 
 # 구글맵 지정
 map = ggmap::get_googlemap(
@@ -5744,6 +5750,12 @@ plotSubTitle = sprintf("%s", "서울특별시 버스위치 및 노선정보 구�
 saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, plotSubTitle)
 
 ggmap::ggmap(map, extent = "device") +
-  ggrepel::geom_label_repel(data = dataL3, aes(x = lon, y = lat, color = label), hjust = 0, alpha = 0.75, size = 5, label = dataL3$label, show.legend = FALSE) +
-  theme(text = element_text(size = 18)) +
+  ggrepel::geom_label_repel(data = dataL3, aes(x = lon, y = lat, color = legend), hjust = 0, alpha = 0.75, size = 4, label = dataL3$label, show.legend = TRUE) +
+  labs(color = "[버스 번호] 정류장 이름") +
+  theme(
+    text = element_text(size = 18)
+    , legend.position = c(0.80, 0.80)
+    , legend.title = element_text(size = 12)
+    , legend.text = element_text(size = 10)
+    ) +
   ggsave(filename = saveImg, width = 10, height = 10, dpi = 600)
