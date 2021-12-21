@@ -5475,7 +5475,6 @@ dataL1$outFlag = ifelse(cooksDis > outlierVal, TRUE, FALSE)
 dataL2 = dataL1 %>% 
   dplyr::filter(outFlag == FALSE)
 
-
 # 문자형을 범주형 변수로 변환
 dataL2$com_time = as.factor(dataL2$com_time)
 dataL2$com_important = as.factor(dataL2$com_important)
@@ -5783,3 +5782,210 @@ ggmap::ggmap(map, extent = "device") +
     , legend.text = element_text(size = 10)
     ) +
   ggsave(filename = saveImg, width = 10, height = 10, dpi = 600)
+
+
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+#================================================
+# 요구사항
+#================================================
+# R을 이용한 CDF 분포 추정 그리고 JS (잭슨 샤넌) 및 KL (쿨러 라이블러 발산)를 이용한 서로 간의 분포 비교
+
+#================================================
+# 초기 환경변수 설정
+# ================================================
+# env = "local"   # 로컬 : 원도우 환경, 작업환경 (현재 소스 코드 환경 시 .) 설정
+env = "dev"   # 개발 : 원도우 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+# env = "oper"  # 운영 : 리눅스 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+
+prjName = "test"
+serviceName = "LSH0281"
+contextPath = ifelse(env == "local", ".", getwd())
+
+if (env == "local") {
+  globalVar = list(
+    "inpPath" = contextPath
+    , "figPath" = contextPath
+    , "outPath" = contextPath
+    , "tmpPath" = contextPath
+    , "logPath" = contextPath
+  )
+} else {
+  source(here::here(file.path(contextPath, "src"), "InitConfig.R"), encoding = "UTF-8")
+}
+
+#================================================
+# 비즈니스 로직 수행
+#================================================
+# 라이브러리 읽기
+library(tidyverse)
+library(readr)
+library(ggplot)
+library(httr)
+library(rvest)
+library(jsonlite)
+library(RCurl)
+library(dplyr)
+library(data.table)
+library(Rcpp)
+library(philentropy)
+
+# ******************************************************************************
+# 1. M1 , M2 분포 회귀식으로 중간값 분포값 추정 예 (350)
+# ******************************************************************************
+# # Y=ax^2+bx+c의 회귀식이 있으면 x에 확률 pdf와 cdf가 들어가고 저 값을 산정합니다!
+
+fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "예시.xlsx"))
+data = openxlsx::read.xlsx(fileInfo, sheet = 1)
+
+dataL1 = data %>% 
+  na.omit() %>% 
+  readr::type_convert()
+
+dataL2 = dplyr::bind_rows(
+  dataL1[ , 1:4]
+  , dataL1[ , 5:8]
+  , dataL1[ , 9:12]
+  )
+
+# obs 컬럼을 기준으로 최대값 선택
+maxData = dataL2 %>%
+  dplyr::group_by(type) %>% 
+  dplyr::summarise(
+    maxVal = max(obs, na.rm = TRUE)
+  ) %>% 
+  dplyr::arrange(desc(maxVal)) %>% 
+  slice(1)
+
+# 학습을 위한 테스트 데이터
+testData = dataL2 %>% 
+  dplyr::filter(type == maxData$type)
+
+typeList = dataL2$type %>% unique() %>% sort()
+dataL3 = data.frame()
+
+# typeInfo = "M1"
+for (typeInfo in typeList) {
+  
+  # 훈련 데이터
+  trainData = dataL2 %>% 
+    dplyr::filter(type == typeInfo)
+  
+  # 다중선형회귀모형 학습
+  lmFit = lm(obs ~ poly(cdf, 3) + poly(pdf, 3), data = trainData)
+  
+  # 요약 결과
+  # summary(lmFit)
+
+  # 앞선 테스트 데이터를 이용하되 type를 동적으로 변경
+  # XtestDataL1 = testData %>%
+    # dplyr::mutate(type = typeInfo)
+  
+  testDataL1 = dataL2 %>%
+    dplyr::filter(type == typeInfo) %>%
+    dplyr::mutate(type = typeInfo)
+  
+  # 최대 컬럼이 아닌 경우
+  if (maxData$type != typeInfo) {
+    testDataL1$obs = predict(lmFit, newdata = testDataL1)
+    # testDataL1$obs = predict(lmFit, newdata = testData)
+  }
+  
+  dataL3 = dplyr::bind_rows(dataL3, testDataL1)
+}
+
+
+# ******************************************************************************
+# 2. JS와 KL을 이용하여 각각 M1, M2의 분포와 OBS 분포와의 차이 계산
+# (분포의 길이는 데이터 길이가 가장 긴 모형의 길이로 산정)
+# ******************************************************************************
+fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "LSTM+Naju+distribution.csv"))
+one = readr::read_csv(file = fileInfo, locale = locale("ko", encoding = "EUC-KR"))
+
+one = dataL3
+
+summary(one)
+
+# one =fread(fileInfo) %>% data.frame(stringsAsFactors = F) %>% data.frame(stringsAsFactors = F)
+
+head(one)
+
+
+two = one$type %>% unique()
+
+
+
+one_list = list()
+
+
+
+for(i in 1:length(two)){
+  
+  one_list[[i]] = one %>% filter(type == two[i]) %>% select(pdf) %>% t()
+  
+}
+
+
+
+one_dat = one_list %>% do.call(rbind, .)
+
+CL1<-philentropy::KL(one_dat, test.na = TRUE, unit = "log", est.prob = "empirical")
+
+# write.csv(CL1,"F:/ploting/GEV PLOT/KL S Youngsan distribution PDF.csv")
+
+
+for(i in 1:length(two)){
+  
+  one_list[[i]] = one %>% filter(type == two[i]) %>% select(cdf) %>% t()
+  
+}
+
+
+
+one_dat = one_list %>% do.call(rbind, .)
+
+
+CL2<-philentropy::KL(one_dat, test.na = TRUE, unit = "log", est.prob = "empirical")
+
+# write.csv(CL2,"F:/ploting/GEV PLOT/KL S Youngsan distribution CDF.csv")
+
+
+#######################################
+for(i in 1:length(two)){
+  
+  one_list[[i]] = one %>% filter(type == two[i]) %>% select(pdf) %>% t()
+  
+}
+
+
+
+one_dat = one_list %>% do.call(rbind, .)
+
+CL3<-philentropy::JSD(one_dat, test.na = TRUE, unit = "log", est.prob = "empirical")
+
+# write.csv(CL3,"F:/ploting/GEV PLOT/Youngsan/LSTM GEV/JSD LSTM Youngsan 95th distribution PDF.csv")
+
+str(one_dat)
+
+for(i in 1:length(two)){
+  
+  one_list[[i]] = one %>% filter(type == two[i]) %>% select(cdf) %>% t()
+  
+}
+
+
+
+one_dat = one_list %>% do.call(rbind, .)
+
+CL4<-philentropy::JSD(one_dat, test.na = TRUE, unit = "log", est.prob = "empirical")
+
+# write.csv(CL4,"F:/ploting/GEV PLOT/Youngsan/LSTM GEV/JSD LSTM Youngsan 95th distribution CDF.csv")
+
