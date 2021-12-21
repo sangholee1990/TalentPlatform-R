@@ -5452,6 +5452,7 @@ library(raster)
 library(ggpubr)
 library(ggplot)
 library(agricolae)
+library(ggcorrplot)
 
 # 파일 읽기
 # fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "r+final+assignment.csv"))
@@ -5521,6 +5522,29 @@ result$groups %>%
 # ******************************************************************************
 # 2. 상관분석: IMM_MEAN과 com_mean
 # ******************************************************************************
+# 상관계수
+dataL3 = dataL2 %>% 
+  dplyr::select(IMM_MEAN, com_mean)
+
+corRes = cor(dataL3)
+pvalRes = ggcorrplot::cor_pmat(dataL3)
+
+plotSubTitle = sprintf("%s", "상관계수 행렬")
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, plotSubTitle)
+
+ggcorrplot::ggcorrplot(
+  corRes
+  , outline.col = "white"
+  , lab = TRUE
+  , p.mat = pvalRes
+  , sig.level = 0.05
+  , colors = c("#6D9EC1", "white", "#E46726")
+  ) +
+  theme(text = element_text(size = 18)) +
+  ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
+
+
+# 상관분석
 lmFit = lm(IMM_MEAN ~ com_mean, data = dataL2)
 
 summary(lmFit)
