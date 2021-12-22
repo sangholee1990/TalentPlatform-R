@@ -5822,13 +5822,17 @@ if (env == "local") {
   source(here::here(file.path(contextPath, "src"), "InitConfig.R"), encoding = "UTF-8")
 }
 
+# globalVar = list()
+# globalVar$inpPath = "F:/R/tu/tttt/tut/GCM/Water quality quantity/Baysian/GEV"
+# globalVar$figPath = "F:/R/tu/tttt/tut/GCM/Water quality quantity/Baysian/GEV"
+# globalVar$outPath = "F:/R/tu/tttt/tut/GCM/Water quality quantity/Baysian/GEV"
+
 #================================================
 # 비즈니스 로직 수행
 #================================================
 # 라이브러리 읽기
 library(tidyverse)
 library(readr)
-library(ggplot)
 library(httr)
 library(rvest)
 library(jsonlite)
@@ -5837,11 +5841,20 @@ library(dplyr)
 library(data.table)
 library(Rcpp)
 library(philentropy)
+library(h2o)
 
 # ******************************************************************************
 # 1. M1 , M2 분포 회귀식으로 중간값 분포값 추정 예 (350)
 # ******************************************************************************
 # # Y=ax^2+bx+c의 회귀식이 있으면 x에 확률 pdf와 cdf가 들어가고 저 값을 산정합니다!
+
+# 옵션 설정 (95 %)
+sysOpt = list(
+  "probs" = 0.95
+)
+
+# 머신러닝/딥러닝 초기화
+h2o::h2o.init()
 
 fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "예시.xlsx"))
 data = openxlsx::read.xlsx(fileInfo, sheet = 1)
@@ -5854,85 +5867,179 @@ dataL2 = dplyr::bind_rows(
   dataL1[ , 1:4]
   , dataL1[ , 5:8]
   , dataL1[ , 9:12]
-  )
+  ) %>% 
+  dplyr::arrange(type, obs)
 
 # obs 컬럼을 기준으로 최대값 선택
-maxData = dataL2 %>%
+statData = dataL2 %>%
   dplyr::group_by(type) %>% 
   dplyr::summarise(
-    maxVal = max(obs, na.rm = TRUE)
+    minVal = min(obs, na.rm = TRUE)
+    , maxVal = max(obs, na.rm = TRUE)
   ) %>% 
   dplyr::arrange(desc(maxVal)) %>% 
-  slice(1)
+  slice(3)
 
 # 학습을 위한 테스트 데이터
-testData = dataL2 %>% 
-  dplyr::filter(type == maxData$type)
+minVal = as.integer(min(statData$minVal, na.rm = TRUE) - 1)
+maxVal = as.integer(max(statData$maxVal, na.rm = TRUE) + 1)
 
+testDataL1 = tibble(obs = seq(minVal, maxVal))
+
+# 반복문 수행
 typeList = dataL2$type %>% unique() %>% sort()
-dataL3 = data.frame()
+dataL3 = tibble::tibble()
 
-# typeInfo = "M1"
+# typeInfo = "OBS"
 for (typeInfo in typeList) {
   
   # 훈련 데이터
   trainData = dataL2 %>% 
     dplyr::filter(type == typeInfo)
   
-  # 다중선형회귀모형 학습
-  lmFit = lm(obs ~ poly(cdf, 3) + poly(pdf, 3), data = trainData)
+  # CDF/PDF 다중선형회귀모형 학습
+  # lmCdfModel = lm(cdf ~ poly(obs, 4), data = trainData)
+  # lmPdfModel = lm(pdf ~ poly(obs, 4), data = trainData)
   
   # 요약 결과
-  # summary(lmFit)
+  # summary(lmCdfModel)
+  # summary(lmPdfModel)
 
-  # 앞선 테스트 데이터를 이용하되 type를 동적으로 변경
-  # XtestDataL1 = testData %>%
-    # dplyr::mutate(type = typeInfo)
+  # CDF 학습 모델
+  saveCdfFile = sprintf("%s/%s/%s-%s-%s-%s-%s.model", globalVar$inpPath, serviceName, 'final', typeInfo, 'h2o', 'cdf', 'train')
   
-  testDataL1 = dataL2 %>%
-    dplyr::filter(type == typeInfo) %>%
-    dplyr::mutate(type = typeInfo)
+  # CDF 학습 모델이 있을 경우 
+  if (fs::file_exists(saveCdfFile)) {
+    amlCdfModel = h2o::h2o.loadModel(saveCdfFile)  
+  } else {
+    # CDF 모델 학습
+    amlCdfModel = h2o::h2o.automl(
+      x = "obs"
+      , y = "cdf"
+      , training_frame = as.h2o(trainData)
+      , nfolds = 2
+      , sort_metric = "RMSE"
+      , stopping_metric = "RMSE"
+      , seed = 1
+      , max_models = 5
+    )
+    
+    amlCdfBestModel = h2o.get_best_model(amlCdfModel)
+    h2o::h2o.saveModel(object = amlCdfBestModel, path = fs::path_dir(saveCdfFile), filename = fs::path_file(saveCdfFile), force = TRUE)
+  }
+
+  # 요약
+  # summary(amlPdfModel)
+    
+  # PDF 학습 모델
+  savePdfFile = sprintf("%s/%s/%s-%s-%s-%s-%s.model", globalVar$inpPath, serviceName, 'final', typeInfo, 'h2o', 'pdf', 'train')
   
-  # 최대 컬럼이 아닌 경우
-  if (maxData$type != typeInfo) {
-    testDataL1$obs = predict(lmFit, newdata = testDataL1)
-    # testDataL1$obs = predict(lmFit, newdata = testData)
+  # PDF 학습 모델이 있을 경우 
+  if (fs::file_exists(savePdfFile)) {
+    amlPdfModel = h2o::h2o.loadModel(savePdfFile)  
+  } else {
+    # PDF 모델 학습
+    amlPdfModel = h2o::h2o.automl(
+      x = "obs"
+      , y = "pdf"
+      , training_frame = as.h2o(trainData)
+      , nfolds = 2
+      , sort_metric = "RMSE"
+      , stopping_metric = "RMSE"
+      , seed = 1
+      , max_models = 5
+    )
+    
+    amlPdfBestModel = h2o.get_best_model(amlPdfModel)
+    h2o::h2o.saveModel(object = amlPdfBestModel, path = fs::path_dir(savePdfFile), filename = fs::path_file(savePdfFile), force = TRUE)
   }
   
-  dataL3 = dplyr::bind_rows(dataL3, testDataL1)
+  # 요약
+  # summary(amlPdfModel)
+
+  # 앞선 테스트 데이터를 이용하되 type를 동적으로 변경
+  testDataL2 = testDataL1 %>%
+    dplyr::mutate(type = typeInfo)
+  
+  # 테스트 데이터셋에 적용
+  # testDataL2$cdf = predict(lmCdfModel, newdata = testDataL2)
+  # testDataL2$pdf = predict(lmPdfModel, newdata = testDataL2)
+  
+  testDataL2$cdf = as.data.frame(h2o::h2o.predict(object = amlCdfModel, newdata = as.h2o(testDataL2)))$predict
+  testDataL2$pdf = as.data.frame(h2o::h2o.predict(object = amlPdfModel, newdata = as.h2o(testDataL2)))$predict
+  
+  dataL3 = dplyr::bind_rows(dataL3, testDataL2)
 }
 
+cdfData = dataL3 %>% 
+  dplyr::select(-pdf) %>%
+  tidyr::spread(key = "type", value = c("cdf"))
+
+saveFile = sprintf("%s/%s_%s.csv", globalVar$outPath, serviceName, "cdfData")
+readr::write_csv(x = cdfData, file = saveFile)
+
+pdfData = dataL3 %>% 
+  dplyr::select(-cdf) %>% 
+  tidyr::spread(key = "type", value = c("pdf"))
+
+saveFile = sprintf("%s/%s_%s.csv", globalVar$outPath, serviceName, "pdfData")
+readr::write_csv(x = pdfData, file = saveFile)
+
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "실측 및 예측에 대한 CDF 산점도")
+
+ggplot() +
+  geom_point(data = dataL2 %>% dplyr::filter(type == "OBS"), aes(x = obs, y = cdf, color = "실측 OBS")) +
+  geom_point(data = dataL2 %>% dplyr::filter(type == "M1"), aes(x = obs, y = cdf, color = "실측 M1")) +
+  geom_point(data = dataL2 %>% dplyr::filter(type == "M2"), aes(x = obs, y = cdf, color = "실측 M2")) +
+  geom_line(data = dataL3, aes(x = obs, y = cdf, color = type)) +
+  theme(text = element_text(size = 18)) +
+  ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
+
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "실측 및 예측에 대한 PDF 산점도")
+
+ggplot() +
+  geom_line(data = dataL2 %>% dplyr::filter(type == "OBS"), aes(x = obs, y = pdf, color = "실측 OBS")) +
+  geom_line(data = dataL2 %>% dplyr::filter(type == "M1"), aes(x = obs, y = pdf, color = "실측 M1")) +
+  geom_line(data = dataL2 %>% dplyr::filter(type == "M2"), aes(x = obs, y = pdf, color = "실측 M2")) +
+  geom_point(data = dataL3, aes(x = obs, y = pdf, color = type)) +
+  theme(text = element_text(size = 18)) +
+  ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
+
+
+# 옵션에서 CDF 확률 설정에 따른 데이터
+dataL4 = dataL3 %>% 
+  dplyr::filter(
+    cdf >= sysOpt["probs"]
+  )
 
 # ******************************************************************************
 # 2. JS와 KL을 이용하여 각각 M1, M2의 분포와 OBS 분포와의 차이 계산
 # (분포의 길이는 데이터 길이가 가장 긴 모형의 길이로 산정)
 # ******************************************************************************
-fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "LSTM+Naju+distribution.csv"))
-one = readr::read_csv(file = fileInfo, locale = locale("ko", encoding = "EUC-KR"))
+# fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "LSTM+Naju+distribution.csv"))
+# one = readr::read_csv(file = fileInfo, locale = locale("ko", encoding = "EUC-KR"))
 
+# 전체 데이터
 one = dataL3
+
+# 옵션에서 확률 설정에 따른 데이터
+# one = dataL4
 
 summary(one)
 
 # one =fread(fileInfo) %>% data.frame(stringsAsFactors = F) %>% data.frame(stringsAsFactors = F)
-
 head(one)
-
 
 two = one$type %>% unique()
 
-
-
 one_list = list()
 
-
-
 for(i in 1:length(two)){
-  
-  one_list[[i]] = one %>% filter(type == two[i]) %>% select(pdf) %>% t()
-  
+  one_list[[i]] = one %>% 
+    dplyr::filter(type == two[i]) %>% 
+    dplyr::select(pdf) %>% 
+    t()
 }
-
 
 
 one_dat = one_list %>% do.call(rbind, .)
@@ -5941,6 +6048,8 @@ CL1<-philentropy::KL(one_dat, test.na = TRUE, unit = "log", est.prob = "empirica
 
 # write.csv(CL1,"F:/ploting/GEV PLOT/KL S Youngsan distribution PDF.csv")
 
+saveCsvFile = sprintf("%s/%s_%s.csv", globalVar$outPath, serviceName, "KL S Youngsan distribution PDF")
+write.csv(CL1, saveCsvFile)
 
 for(i in 1:length(two)){
   
@@ -5956,6 +6065,9 @@ one_dat = one_list %>% do.call(rbind, .)
 CL2<-philentropy::KL(one_dat, test.na = TRUE, unit = "log", est.prob = "empirical")
 
 # write.csv(CL2,"F:/ploting/GEV PLOT/KL S Youngsan distribution CDF.csv")
+
+saveCsvFile = sprintf("%s/%s_%s.csv", globalVar$outPath, serviceName, "KL S Youngsan distribution CDF")
+write.csv(CL2, saveCsvFile)
 
 
 #######################################
@@ -5973,6 +6085,9 @@ CL3<-philentropy::JSD(one_dat, test.na = TRUE, unit = "log", est.prob = "empiric
 
 # write.csv(CL3,"F:/ploting/GEV PLOT/Youngsan/LSTM GEV/JSD LSTM Youngsan 95th distribution PDF.csv")
 
+saveCsvFile = sprintf("%s/%s_%s.csv", globalVar$outPath, serviceName, "JSD LSTM Youngsan 95th distribution PDF")
+write.csv(CL3, saveCsvFile)
+
 str(one_dat)
 
 for(i in 1:length(two)){
@@ -5988,4 +6103,7 @@ one_dat = one_list %>% do.call(rbind, .)
 CL4<-philentropy::JSD(one_dat, test.na = TRUE, unit = "log", est.prob = "empirical")
 
 # write.csv(CL4,"F:/ploting/GEV PLOT/Youngsan/LSTM GEV/JSD LSTM Youngsan 95th distribution CDF.csv")
+
+saveCsvFile = sprintf("%s/%s_%s.csv", globalVar$outPath, serviceName, "JSD LSTM Youngsan 95th distribution CDF")
+write.csv(CL4, saveCsvFile)
 
