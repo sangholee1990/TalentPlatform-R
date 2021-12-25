@@ -5853,7 +5853,7 @@ sysOpt = list(
   "probs" = 0.95
 )
 
-# 머신러닝/딥러닝 초기화
+# 초기화
 h2o::h2o.init()
 
 fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "예시.xlsx"))
@@ -5863,12 +5863,20 @@ dataL1 = data %>%
   na.omit() %>% 
   readr::type_convert()
 
+# tmpData = dataL1[1:30, ]
+
 dataL2 = dplyr::bind_rows(
   dataL1[ , 1:4]
   , dataL1[ , 5:8]
   , dataL1[ , 9:12]
-  ) %>% 
+  ) %>%
   dplyr::arrange(type, obs)
+
+
+# ******************************************************************************
+# 전체 데이터에 대한 예측
+# ******************************************************************************
+typeList = dataL2$type %>% unique() %>% sort()
 
 # obs 컬럼을 기준으로 최대값 선택
 statData = dataL2 %>%
@@ -5878,7 +5886,7 @@ statData = dataL2 %>%
     , maxVal = max(obs, na.rm = TRUE)
   ) %>% 
   dplyr::arrange(desc(maxVal)) %>% 
-  slice(3)
+  slice(length(typeList))
 
 # 학습을 위한 테스트 데이터
 minVal = as.integer(min(statData$minVal, na.rm = TRUE) - 1)
@@ -5896,7 +5904,7 @@ for (typeInfo in typeList) {
   # 훈련 데이터
   trainData = dataL2 %>% 
     dplyr::filter(type == typeInfo)
-  
+ 
   # CDF/PDF 다중선형회귀모형 학습
   # lmCdfModel = lm(cdf ~ poly(obs, 4), data = trainData)
   # lmPdfModel = lm(pdf ~ poly(obs, 4), data = trainData)
@@ -5907,10 +5915,10 @@ for (typeInfo in typeList) {
 
   # CDF 학습 모델
   saveCdfFile = sprintf("%s/%s/%s-%s-%s-%s-%s.model", globalVar$inpPath, serviceName, 'final', typeInfo, 'h2o', 'cdf', 'train')
-  
-  # CDF 학습 모델이 있을 경우 
+
+  # CDF 학습 모델이 있을 경우
   if (fs::file_exists(saveCdfFile)) {
-    amlCdfModel = h2o::h2o.loadModel(saveCdfFile)  
+    amlCdfModel = h2o::h2o.loadModel(saveCdfFile)
   } else {
     # CDF 모델 학습
     amlCdfModel = h2o::h2o.automl(
@@ -5923,20 +5931,20 @@ for (typeInfo in typeList) {
       , seed = 1
       , max_models = 5
     )
-    
+
     amlCdfBestModel = h2o.get_best_model(amlCdfModel)
     h2o::h2o.saveModel(object = amlCdfBestModel, path = fs::path_dir(saveCdfFile), filename = fs::path_file(saveCdfFile), force = TRUE)
   }
 
   # 요약
   # summary(amlPdfModel)
-    
+  #   
   # PDF 학습 모델
   savePdfFile = sprintf("%s/%s/%s-%s-%s-%s-%s.model", globalVar$inpPath, serviceName, 'final', typeInfo, 'h2o', 'pdf', 'train')
-  
-  # PDF 학습 모델이 있을 경우 
+
+  # PDF 학습 모델이 있을 경우
   if (fs::file_exists(savePdfFile)) {
-    amlPdfModel = h2o::h2o.loadModel(savePdfFile)  
+    amlPdfModel = h2o::h2o.loadModel(savePdfFile)
   } else {
     # PDF 모델 학습
     amlPdfModel = h2o::h2o.automl(
@@ -5949,11 +5957,11 @@ for (typeInfo in typeList) {
       , seed = 1
       , max_models = 5
     )
-    
+
     amlPdfBestModel = h2o.get_best_model(amlPdfModel)
     h2o::h2o.saveModel(object = amlPdfBestModel, path = fs::path_dir(savePdfFile), filename = fs::path_file(savePdfFile), force = TRUE)
   }
-  
+
   # 요약
   # summary(amlPdfModel)
 
@@ -6006,11 +6014,148 @@ ggplot() +
   ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
 
 
-# 옵션에서 CDF 확률 설정에 따른 데이터
-dataL4 = dataL3 %>% 
-  dplyr::filter(
-    cdf >= sysOpt["probs"]
-  )
+# ******************************************************************************
+# 95% 데이터에 대한 예측
+# ******************************************************************************
+# obs 컬럼을 기준으로 최대값 선택
+statData95 = dataL2 %>%
+  dplyr::filter(cdf >= sysOpt["probs"]) %>% 
+  dplyr::group_by(type) %>% 
+  dplyr::summarise(
+    minVal = min(obs, na.rm = TRUE)
+    , maxVal = max(obs, na.rm = TRUE)
+  ) %>% 
+  dplyr::arrange(desc(maxVal)) %>% 
+  slice(length(typeList))
+
+# 학습을 위한 테스트 데이터
+minVal95 = as.integer(min(statData95$minVal, na.rm = TRUE) - 1)
+maxVal95 = as.integer(max(statData95$maxVal, na.rm = TRUE) + 1)
+
+testData95L1 = tibble(obs = seq(minVal95, maxVal95))
+
+# 반복문 수행
+typeList = dataL2$type %>% unique() %>% sort()
+dataL4 = tibble::tibble()
+
+# typeInfo = "OBS"
+for (typeInfo in typeList) {
+  
+  # 훈련 데이터
+  trainData = dataL2 %>% 
+    dplyr::filter(
+      type == typeInfo
+      , cdf >= sysOpt["probs"]
+      )
+  
+  # CDF/PDF 다중선형회귀모형 학습
+  # lmCdfModel = lm(cdf ~ poly(obs, 3), data = trainData)
+  # lmPdfModel = lm(pdf ~ poly(obs, 3), data = trainData)
+
+  # 요약 결과
+  # summary(lmCdfModel)
+  # summary(lmPdfModel)
+  
+  # CDF 학습 모델
+  saveCdfFile = sprintf("%s/%s/%s-%s-%s-%s-%s.model", globalVar$inpPath, serviceName, 'final', typeInfo, 'h2o', 'cdf95', 'train')
+  
+  # CDF 학습 모델이 있을 경우
+  if (fs::file_exists(saveCdfFile)) {
+    amlCdfModel = h2o::h2o.loadModel(saveCdfFile)
+  } else {
+    # CDF 모델 학습
+    amlCdfModel = h2o::h2o.automl(
+      x = "obs"
+      , y = "cdf"
+      , training_frame = as.h2o(trainData)
+      , nfolds = 2
+      , sort_metric = "RMSE"
+      , stopping_metric = "RMSE"
+      , seed = 1
+      , max_models = 5
+    )
+    
+    amlCdfBestModel = h2o.get_best_model(amlCdfModel)
+    h2o::h2o.saveModel(object = amlCdfBestModel, path = fs::path_dir(saveCdfFile), filename = fs::path_file(saveCdfFile), force = TRUE)
+  }
+  
+  # 요약
+  # summary(amlPdfModel)
+  #   
+  # PDF 학습 모델
+  savePdfFile = sprintf("%s/%s/%s-%s-%s-%s-%s.model", globalVar$inpPath, serviceName, 'final', typeInfo, 'h2o', 'pdf95', 'train')
+  
+  # PDF 학습 모델이 있을 경우
+  if (fs::file_exists(savePdfFile)) {
+    amlPdfModel = h2o::h2o.loadModel(savePdfFile)
+  } else {
+    # PDF 모델 학습
+    amlPdfModel = h2o::h2o.automl(
+      x = "obs"
+      , y = "pdf"
+      , training_frame = as.h2o(trainData)
+      , nfolds = 2
+      , sort_metric = "RMSE"
+      , stopping_metric = "RMSE"
+      , seed = 1
+      , max_models = 5
+    )
+    
+    amlPdfBestModel = h2o.get_best_model(amlPdfModel)
+    h2o::h2o.saveModel(object = amlPdfBestModel, path = fs::path_dir(savePdfFile), filename = fs::path_file(savePdfFile), force = TRUE)
+  }
+  
+  # 요약
+  # summary(amlPdfModel)
+  
+  # 앞선 테스트 데이터를 이용하되 type를 동적으로 변경
+  testData95L2 = testData95L1 %>%
+    dplyr::mutate(type = typeInfo)
+  
+  # 테스트 데이터셋에 적용
+  # testDataL2$cdf = predict(lmCdfModel, newdata = testDataL2)
+  # testDataL2$pdf = predict(lmPdfModel, newdata = testDataL2)
+  
+  testData95L2$cdf = as.data.frame(h2o::h2o.predict(object = amlCdfModel, newdata = as.h2o(testData95L2)))$predict
+  testData95L2$pdf = as.data.frame(h2o::h2o.predict(object = amlPdfModel, newdata = as.h2o(testData95L2)))$predict
+  
+  dataL4 = dplyr::bind_rows(dataL4, testData95L2)
+}
+
+cdfData95 = dataL4 %>% 
+  dplyr::select(-pdf) %>%
+  tidyr::spread(key = "type", value = c("cdf"))
+
+saveFile = sprintf("%s/%s_%s.csv", globalVar$outPath, serviceName, "cdfData95")
+readr::write_csv(x = cdfData95, file = saveFile)
+
+pdfData95 = dataL4 %>% 
+  dplyr::select(-cdf) %>% 
+  tidyr::spread(key = "type", value = c("pdf"))
+
+saveFile = sprintf("%s/%s_%s.csv", globalVar$outPath, serviceName, "pdfData95")
+readr::write_csv(x = pdfData95, file = saveFile)
+
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "실측 및 예측에 대한 CDF95 산점도")
+
+ggplot() +
+  geom_point(data = dataL2 %>% dplyr::filter(type == "OBS", cdf >= sysOpt["probs"]), aes(x = obs, y = cdf, color = "실측 OBS")) +
+  geom_point(data = dataL2 %>% dplyr::filter(type == "M1", cdf >= sysOpt["probs"]), aes(x = obs, y = cdf, color = "실측 M1")) +
+  geom_point(data = dataL2 %>% dplyr::filter(type == "M2", cdf >= sysOpt["probs"]), aes(x = obs, y = cdf, color = "실측 M2")) +
+  geom_line(data = dataL4, aes(x = obs, y = cdf, color = type)) +
+  theme(text = element_text(size = 18)) +
+  ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
+
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "실측 및 예측에 대한 PDF95 산점도")
+
+ggplot() +
+  geom_line(data = dataL2 %>% dplyr::filter(type == "OBS", cdf >= sysOpt["probs"]), aes(x = obs, y = pdf, color = "실측 OBS")) +
+  geom_line(data = dataL2 %>% dplyr::filter(type == "M1", cdf >= sysOpt["probs"]), aes(x = obs, y = pdf, color = "실측 M1")) +
+  geom_line(data = dataL2 %>% dplyr::filter(type == "M2", cdf >= sysOpt["probs"]), aes(x = obs, y = pdf, color = "실측 M2")) +
+  geom_point(data = dataL4, aes(x = obs, y = pdf, color = type)) +
+  theme(text = element_text(size = 18)) +
+  ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
+
 
 # ******************************************************************************
 # 2. JS와 KL을 이용하여 각각 M1, M2의 분포와 OBS 분포와의 차이 계산
@@ -6021,9 +6166,6 @@ dataL4 = dataL3 %>%
 
 # 전체 데이터
 one = dataL3
-
-# 옵션에서 확률 설정에 따른 데이터
-# one = dataL4
 
 summary(one)
 
@@ -6053,7 +6195,7 @@ write.csv(CL1, saveCsvFile)
 
 for(i in 1:length(two)){
   
-  one_list[[i]] = one %>% filter(type == two[i]) %>% select(cdf) %>% t()
+  one_list[[i]] = one %>% dplyr::filter(type == two[i]) %>% dplyr::select(cdf) %>% t()
   
 }
 
@@ -6069,17 +6211,21 @@ CL2<-philentropy::KL(one_dat, test.na = TRUE, unit = "log", est.prob = "empirica
 saveCsvFile = sprintf("%s/%s_%s.csv", globalVar$outPath, serviceName, "KL S Youngsan distribution CDF")
 write.csv(CL2, saveCsvFile)
 
-
 #######################################
+# 옵션에서 확률 설정에 따른 데이터
+one = dataL4
+one_list = list()
+
+two = one$type %>% unique()
+
 for(i in 1:length(two)){
   
-  one_list[[i]] = one %>% filter(type == two[i]) %>% select(pdf) %>% t()
+  one_list[[i]] = one %>% dplyr::filter(type == two[i]) %>% dplyr::select(pdf) %>% t()
   
 }
 
-
-
 one_dat = one_list %>% do.call(rbind, .)
+
 
 CL3<-philentropy::JSD(one_dat, test.na = TRUE, unit = "log", est.prob = "empirical")
 
@@ -6092,7 +6238,7 @@ str(one_dat)
 
 for(i in 1:length(two)){
   
-  one_list[[i]] = one %>% filter(type == two[i]) %>% select(cdf) %>% t()
+  one_list[[i]] = one %>% dplyr::filter(type == two[i]) %>% dplyr::select(cdf) %>% t()
   
 }
 
@@ -6107,3 +6253,108 @@ CL4<-philentropy::JSD(one_dat, test.na = TRUE, unit = "log", est.prob = "empiric
 saveCsvFile = sprintf("%s/%s_%s.csv", globalVar$outPath, serviceName, "JSD LSTM Youngsan 95th distribution CDF")
 write.csv(CL4, saveCsvFile)
 
+
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+#================================================
+# 요구사항
+#================================================
+# R을 이용한 판매량 데이터 예측 모형
+
+#================================================
+# 초기 환경변수 설정
+# ================================================
+# env = "local"   # 로컬 : 원도우 환경, 작업환경 (현재 소스 코드 환경 시 .) 설정
+env = "dev"   # 개발 : 원도우 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+# env = "oper"  # 운영 : 리눅스 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+
+prjName = "test"
+serviceName = "LSH0282"
+contextPath = ifelse(env == "local", ".", getwd())
+
+if (env == "local") {
+  globalVar = list(
+    "inpPath" = contextPath
+    , "figPath" = contextPath
+    , "outPath" = contextPath
+    , "tmpPath" = contextPath
+    , "logPath" = contextPath
+  )
+} else {
+  source(here::here(file.path(contextPath, "src"), "InitConfig.R"), encoding = "UTF-8")
+}
+
+#================================================
+# 비즈니스 로직 수행
+#================================================
+# 라이브러리 읽기
+library(tidyverse)
+library(readr)
+library(httr)
+library(rvest)
+library(jsonlite)
+library(RCurl)
+library(dplyr)
+library(data.table)
+library(Rcpp)
+library(philentropy)
+library(h2o)
+
+fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "판매량_예측.xlsx"))
+data = openxlsx::read.xlsx(fileInfo, sheet = 2)
+
+dataL1 = data %>% 
+  dplyr::mutate(
+    dtDate = readr::parse_date(date, "%Y-%m")
+    , dtYear = lubridate::year(dtDate)
+    , dtMonth = lubridate::month(dtDate)
+    , dtXran = lubridate::decimal_date(dtDate)
+  )
+
+# ******************************************************************************
+# 다중선형회귀모형
+# ******************************************************************************
+lmModel = lm(value ~ dtXran + dtYear + dtMonth, data = dataL1)
+summary(lmModel)
+
+dataL1$prdLM = predict(lmModel, newdata = dataL1)
+
+# ******************************************************************************
+# 머신러닝 및 딥러닝 모형
+# ******************************************************************************
+# 초기화
+h2o::h2o.init()
+
+# 모델 학습
+# amlModel = h2o::h2o.automl(
+#   x = c("dtXran", "dtYear", "dtMonth")
+#   , y = c("value")
+#   , training_frame = as.h2o(dataL1)
+#   , nfolds = 10
+#   , sort_metric = "RMSE"
+#   , stopping_metric = "RMSE"
+#   , seed = 1
+#   , max_models = 10
+# )
+
+summary(amlModel)
+
+dataL1$prdDL = as.data.frame(h2o::h2o.predict(object = amlModel, newdata = as.h2o(dataL1)))$predict
+
+
+# ******************************************************************************
+# 에측 결과 저장
+# ******************************************************************************
+saveXlsxFile = sprintf("%s/%s_%s.xlsx", globalVar$outPath, serviceName, "판매량_예측결과")
+wb = openxlsx::createWorkbook()
+openxlsx::addWorksheet(wb, "예측 데이터")
+openxlsx::writeData(wb, "예측 데이터", dataL1, startRow = 1, startCol = 1, colNames = TRUE, rowNames = FALSE)
+openxlsx::saveWorkbook(wb, file = saveXlsxFile, overwrite = TRUE)
