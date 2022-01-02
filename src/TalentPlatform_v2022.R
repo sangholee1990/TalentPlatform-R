@@ -6311,7 +6311,7 @@ library(h2o)
 fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "판매량_예측.xlsx"))
 data = openxlsx::read.xlsx(fileInfo, sheet = 2)
 
-dataL1 = data %>% 
+trainData = data %>% 
   dplyr::mutate(
     dtDate = readr::parse_date(date, "%Y-%m")
     , dtYear = lubridate::year(dtDate)
@@ -6319,25 +6319,35 @@ dataL1 = data %>%
     , dtXran = lubridate::decimal_date(dtDate)
   )
 
+testData = tibble(dtDate = seq(as.Date("2018-09-01"), as.Date("2023-02-01"), "1 month")) %>% 
+  dplyr::mutate(
+    dtYear = lubridate::year(dtDate)
+    , dtMonth = lubridate::month(dtDate)
+    , dtXran = lubridate::decimal_date(dtDate)
+  ) %>% 
+  dplyr::filter(
+    dtMonth %in% c(9, 10, 11)
+  )
+
 # ******************************************************************************
 # 다중선형회귀모형
 # ******************************************************************************
-lmModel = lm(value ~ dtXran + dtYear + dtMonth, data = dataL1)
+lmModel = lm(value ~ dtXran + dtYear + dtMonth, data = trainData)
 summary(lmModel)
 
-dataL1$prdLM = predict(lmModel, newdata = dataL1)
+testData$prdLM = predict(lmModel, newdata = testData)
 
 # ******************************************************************************
 # 머신러닝 및 딥러닝 모형
 # ******************************************************************************
 # 초기화
-h2o::h2o.init()
-
-# 모델 학습
+# h2o::h2o.init()
+# 
+# # 모델 학습
 # amlModel = h2o::h2o.automl(
 #   x = c("dtXran", "dtYear", "dtMonth")
 #   , y = c("value")
-#   , training_frame = as.h2o(dataL1)
+#   , training_frame = as.h2o(trainData)
 #   , nfolds = 10
 #   , sort_metric = "RMSE"
 #   , stopping_metric = "RMSE"
@@ -6347,7 +6357,7 @@ h2o::h2o.init()
 
 summary(amlModel)
 
-dataL1$prdDL = as.data.frame(h2o::h2o.predict(object = amlModel, newdata = as.h2o(dataL1)))$predict
+testData$prdDL = as.data.frame(h2o::h2o.predict(object = amlModel, newdata = as.h2o(testData)))$predict
 
 
 # ******************************************************************************
@@ -6356,5 +6366,5 @@ dataL1$prdDL = as.data.frame(h2o::h2o.predict(object = amlModel, newdata = as.h2
 saveXlsxFile = sprintf("%s/%s_%s.xlsx", globalVar$outPath, serviceName, "판매량_예측결과")
 wb = openxlsx::createWorkbook()
 openxlsx::addWorksheet(wb, "예측 데이터")
-openxlsx::writeData(wb, "예측 데이터", dataL1, startRow = 1, startCol = 1, colNames = TRUE, rowNames = FALSE)
+openxlsx::writeData(wb, "예측 데이터", testData, startRow = 1, startCol = 1, colNames = TRUE, rowNames = FALSE)
 openxlsx::saveWorkbook(wb, file = saveXlsxFile, overwrite = TRUE)
