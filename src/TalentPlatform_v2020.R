@@ -19301,7 +19301,9 @@ prjName = "test"
 # serviceName = "LSH0265"
 # serviceName = "LSH0273"
 # serviceName = "LSH0277"
-serviceName = "LSH0278"
+# serviceName = "LSH0278"
+# serviceName = "LSH0280"
+serviceName = "LSH0285"
 
 contextPath = ifelse(env == "local", ".", getwd())
 
@@ -19565,7 +19567,16 @@ fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0259_일식 식분도 이�
 # sheetInfo = 8
 
 # 시트 9 : 동주+BC진+공통(6)
-sheetInfo = 9
+# sheetInfo = 9
+
+# 시트 10 : 온리동주(2)
+# sheetInfo = 10
+
+# 시트 11 : 동주+노+공통(33)
+# sheetInfo = 11
+
+# 시트 12 : 초기신라(16)
+sheetInfo = 12
 
 
 sheetName = dplyr::case_when(
@@ -19578,6 +19589,9 @@ sheetName = dplyr::case_when(
   , sheetInfo == 7 ~ "위온리(13)"
   , sheetInfo == 8 ~ "BC진온리(1)"
   , sheetInfo == 9 ~ "동주+BC진+공통(6)"
+  , sheetInfo == 10 ~ "온리동주(2)"
+  , sheetInfo == 11 ~ "동주+노+공통(33)"
+  , sheetInfo == 12 ~ "초기신라(16)"
   , TRUE ~ NA_character_
 )
 
@@ -19590,7 +19604,8 @@ data = openxlsx::read.xlsx(fileInfo, sheet = sheetInfo) %>%
 
 typeList = data$type %>% unique() %>% sort()
 
-selTypeList = typeList[5]
+# selTypeList = typeList[14]
+selTypeList = typeList
 
 for (typeInfo in selTypeList) {
 # for (typeInfo in typeList) {
@@ -19621,7 +19636,7 @@ for (typeInfo in selTypeList) {
   ind = which(dataL2$zAxis == max(dataL2$zAxis, na.rm = TRUE))
   maxData = dataL2[ind,]
   
-  ggplot(data = dataL2, aes(x = xAxis, y = yAxis, fill = zAxis, z = zAxis)) +
+  makePlot = ggplot(data = dataL2, aes(x = xAxis, y = yAxis, fill = zAxis, z = zAxis)) +
     geom_raster(interpolate = TRUE, na.rm = TRUE) +
     # metR::geom_contour_fill(na.fill = TRUE, kriging = TRUE) +.
     # geom_tile() +
@@ -19646,8 +19661,9 @@ for (typeInfo in selTypeList) {
       , colour = NULL
       , title = NULL
     ) +
-    theme(text = element_text(size = 18)) +
-    ggsave(filename = saveImg, width = 10, height = 10, dpi = 600)
+    theme(text = element_text(size = 18))
+  
+  ggsave(plot = makePlot, filename = saveImg, width = 10, height = 10, dpi = 600)
   
 }
 
@@ -19751,9 +19767,17 @@ beepr::beep(sound = 8)
 # sheetList = c(7)
 # sheetName = "위온리(13)"
 
-sheetList = c(8, 9)
-sheetName = "BC진온리(1)+동주-BC진-공통(6)"
+# sheetList = c(8, 9)
+# sheetName = "BC진온리(1)+동주-BC진-공통(6)"
 
+# sheetList = c(9, 10, 11)
+# sheetName = "동주-BC진-공통(6)+온리동주(2)+동주-노-공통(33)"
+
+# sheetList = c(11)
+# sheetName = "동주-노-공통(33)"
+
+sheetList = c(12)
+sheetName = "초기신라(16)"
 
 dataL3 = tibble()
 for (sheetInfo in sheetList) {
@@ -19810,8 +19834,8 @@ summary(dataL4)
 idx = which(dataL4$meanVal == max(dataL4$meanVal, na.rm = TRUE))
 maxData = dataL4[idx, ]
 
-setBreakCont = c(seq(0.83, 0, -0.04))
-setBreakText = c(seq(0.83, 0.10, -0.04))
+setBreakCont = c(seq(0.70, 0, -0.04))
+setBreakText = c(seq(0.70, 0.10, -0.04))
 
 # 0.8329
 

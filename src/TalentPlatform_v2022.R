@@ -6368,3 +6368,212 @@ wb = openxlsx::createWorkbook()
 openxlsx::addWorksheet(wb, "예측 데이터")
 openxlsx::writeData(wb, "예측 데이터", testData, startRow = 1, startCol = 1, colNames = TRUE, rowNames = FALSE)
 openxlsx::saveWorkbook(wb, file = saveXlsxFile, overwrite = TRUE)
+
+s
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+#================================================
+# 요구사항
+#================================================
+#R을 이용한 격자별 유출모형을 Fortran으로 코드 변환
+
+#================================================
+# 초기 환경변수 설정
+# ================================================
+# env = "local"   # 로컬 : 원도우 환경, 작업환경 (현재 소스 코드 환경 시 .) 설정
+env = "dev"   # 개발 : 원도우 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+# env = "oper"  # 운영 : 리눅스 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+
+prjName = "test"
+serviceName = "LSH0284"
+contextPath = ifelse(env == "local", ".", getwd())
+
+if (env == "local") {
+  globalVar = list(
+    "inpPath" = contextPath
+    , "figPath" = contextPath
+    , "outPath" = contextPath
+    , "tmpPath" = contextPath
+    , "logPath" = contextPath
+  )
+} else {
+  source(here::here(file.path(contextPath, "src"), "InitConfig.R"), encoding = "UTF-8")
+}
+
+#================================================
+# 비즈니스 로직 수행
+#================================================
+# 라이브러리 읽기
+library(tidyverse)
+library(readr)
+library(httr)
+library(rvest)
+library(jsonlite)
+library(RCurl)
+library(dplyr)
+library(data.table)
+library(Rcpp)
+library(philentropy)
+library(h2o)
+
+fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "판매량_예측.xlsx"))
+# data = openxlsx::read.xlsx(fileInfo, sheet = 2)
+# 
+# trainData = data %>% 
+#   dplyr::mutate(
+#     dtDate = readr::parse_date(date, "%Y-%m")
+#     , dtYear = lubridate::year(dtDate)
+#     , dtMonth = lubridate::month(dtDate)
+#     , dtXran = lubridate::decimal_date(dtDate)
+#   )
+# 
+# testData = tibble(dtDate = seq(as.Date("2018-09-01"), as.Date("2023-02-01"), "1 month")) %>% 
+#   dplyr::mutate(
+#     dtYear = lubridate::year(dtDate)
+#     , dtMonth = lubridate::month(dtDate)
+#     , dtXran = lubridate::decimal_date(dtDate)
+#   ) %>% 
+#   dplyr::filter(
+#     dtMonth %in% c(9, 10, 11)
+#   )
+
+
+
+# 2D 변환 작업
+library(rgdal)
+library(tidyr)
+library(dplyr)
+library(plot.matrix)
+require(foreign)
+
+fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "rrrccc.asc"))
+# RRRCCC <- read.asciigrid("rrrccc.asc")
+
+RRRCCC <- read.asciigrid(fileInfo)
+test <- RRRCCC@data
+
+DirLocal<-'D' 
+DirBsn <-'220106'
+Period<- '20210823_Test'         # 분석 기간 폴더 
+DirSHP <- paste(DirLocal, ":/", DirBsn, "/SHP",sep="")
+DirPeriod <- paste(DirLocal, ":/", DirBsn, "/RDR/", Period, sep="") 
+DirTank <-  paste(DirLocal, ":/", DirBsn, "/RDR/", Period, "/05_Tank", sep="")  
+
+# clip된 레이더 자료 list load
+DirRDR <- paste(DirLocal, ":/", DirBsn, "/RDR/", Period, "/04_Clip",sep="") 
+# setwd(DirRDR)
+# filename<-list.files(path = ".", pattern =glob2rx("*cc_*asc*"), all.files = FALSE, full.names = FALSE, recursive = FALSE)
+filename<-list.files(path = file.path(globalVar$inpPath, serviceName), pattern =glob2rx("*cc_*asc*"), all.files = FALSE, full.names = FALSE, recursive = FALSE)
+timeList<-substr(basename(filename), nchar(basename(filename))-13, nchar(basename(filename))-4) 
+
+# 유출 모형 매개변수 11개 
+a<-1000     #면적
+Qb<-15  ; s_ini<-6 ;  #기저유량 , #초기 저류고 
+a1<-0.05 ; a2<-0.15 ; a3<-0.3  #유출공계수
+h1<-25 ; h2<-5; h3<-8   #유출공높이
+b1<-0.35 ;b2<-0.21  #침투공계수
+
+# 유출모형
+
+tank_df<- function(data) {
+  
+  data$s1=data$s1+data$Rain
+  if (data$s1 >=h1){
+    q1<- (data$s1-h1)*a1
+    q2<- (data$s1-h2)*a2
+    inf1<-data$s1*b1
+    data$s1=data$s1-q1-q2-inf1
+  }else if (data$s1 <h1 & data$s1 >=h2 ){
+    q1<- 0
+    q2<- (data$s1-h2)*a2
+    inf1<-data$s1*b1
+    data$s1=data$s1-q1-q2-inf1
+  }else{
+    q1<- 0
+    q2<- 0
+    inf1<-data$s1*b1
+    data$s1=data$s1-q1-q2-inf1
+  }
+  data$s2=data$s2+inf1
+  if (data$s2 >=h3){
+    q3<- (data$s2-h3)*a3
+    inf2<-data$s2*b2
+    data$s2=data$s2-q3-inf2
+    total_q<-((q1+q2+q3)*a/3.6+Qb)
+  }else{
+    q3<- 0
+    inf2<-data$s2*b2
+    data$s2=data$s2-q3-inf2
+    total_q<-((q1+q2+q3)*a/3.6+Qb)
+  }
+  data_result<- cbind(data$RRRCCC, data$Rain,data$s1, data$s2, total_q)
+  colnames(data_result)<-c("RRRCCC", "Rain", "s1", "s2", "Total_q")
+  return(data_result)
+}
+
+
+
+# 유출분석
+
+j = 2
+for (j in 1:length(filename)){
+  # setwd(DirRDR)
+  time <- substr(basename(filename[j]), nchar(basename(filename))-13, nchar(basename(filename[j]))-4)
+  
+  
+  fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, filename[j]))
+  
+  R <- sp::read.asciigrid(fileInfo, as.image =FALSE, plot.image = TRUE, proj4string = CRS("+proj=tmerc +lat_0=38 +lon_0=127.5 +k=0.9996
++x_0=1000000 +y_0=2000000 +ellps=GRS80
++towgs84=0,0,0,0,0,0,0 +units=m +no_defs"))
+  rain <- R@data
+  
+  # setwd(DirTank)
+  
+  fileInfoS = Sys.glob(file.path(globalVar$inpPath, serviceName, paste0('Sto1_',timeList[j], ".txt")))
+  S1<- read.asciigrid(fileInfoS, as.image=FALSE, colname=cbind("sto1"))
+  
+  fileInfoS2 = Sys.glob(file.path(globalVar$inpPath, serviceName, paste0('Sto2_',timeList[j], ".txt")))
+  S2<- read.asciigrid(fileInfoS2, as.image=FALSE, colname=cbind("sto2"))
+  
+  sto1 <- S1@data
+  sto2 <- S2@data
+  r1 <- cbind(test,rain, sto1, sto2)
+  data<- r1 %>% drop_na()
+  colnames(data)<-c("RRRCCC", "Rain", "s1", "s2")
+  
+  
+  result_df<-as.data.frame(tank_df(data))
+  result_df <- transform(result_df, Rain = sprintf("%.3f", result_df$Rain), s1 = sprintf("%.3f", result_df$s1), s2 = sprintf("%.3f", result_df$s2), Total_q = sprintf("%.3f", result_df$Total_q))
+  
+  flow<- select(result_df, RRRCCC, Rain, Total_q)
+  # write.table(x=flow, quote = FALSE, row.names = FALSE, file=paste('Outflow_', timeList[j], '.txt', sep=""))
+  
+  saveTxtFile = sprintf("%s/%s_%s.txt", globalVar$outPath, serviceName, paste0('Outflow_', timeList[j]))
+  write.table(x=flow, quote = FALSE, row.names = FALSE, file=saveTxtFile)
+  
+  storage<- select(result_df, RRRCCC, s1, s2)
+  # write.table(x=storage, quote = FALSE, row.names = FALSE, file=paste('Sto_',timeList[j+1], '.txt', sep=""))
+  saveTxtFile = sprintf("%s/%s_%s.txt", globalVar$outPath, serviceName, paste0('Sto_',timeList[j+1]))
+  write.table(x=storage, quote = FALSE, row.names = FALSE, file=saveTxtFile)
+}
+
+
+# write.table(x=data, quote = FALSE, row.names = FALSE, file=paste('RDR_',timeList[j+1], '.txt', sep=""))
+
+saveTxtFile = sprintf("%s/%s_%s.txt", globalVar$outPath, serviceName, paste0('RDR_',timeList[j+1]))
+write.table(x=data, quote = FALSE, row.names = FALSE, file=saveTxtFile)
+
+
+
+
+
+
