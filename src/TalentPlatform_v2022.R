@@ -884,7 +884,6 @@ saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "워드클라�
 webshot::webshot("fig.html", saveImg, vwidth = 800, vheight = 600, delay = 10)
 
 
-
 #===============================================================================================
 # Routine : Main R program
 #
@@ -2265,53 +2264,6 @@ ggplot() +
     , plot.margin = unit(c(0.2, 0, 0, 0), 'lines')
   ) +
   ggsave(filename = saveImg2, width = 10, height = 8, dpi = 600)
-
-
-
-
-
-
-library(ggsubplot)
-library(ggplot2)
-library(maps)
-library(plyr)
-
-#Get world map info
-world_map <- map_data("world")
-
-#Create a base plot
-p <- ggplot()  + geom_polygon(data=world_map,aes(x=long, y=lat,group=group), col = "blue4", fill = "lightgray") + theme_bw()
-
-# Calculate the mean longitude and latitude per region (places where subplots are plotted),
-cntr <- ddply(world_map,.(region),summarize,long=mean(long),lat=mean(lat))
-
-# example data
-myd <- data.frame (region = rep (c("USA","China","USSR","Brazil", "Australia","India", "Canada"),5),
-                   categ = rep (c("A", "B", "C", "D", "E"),7), frequency = round (rnorm (35, 8000, 4000), 0))
-
-
-subsetcntr  <- subset(cntr, region %in% c("USA","China","USSR","Brazil", "Australia","India", "Canada"))
-
-simdat <- merge(subsetcntr, myd)
-colnames(simdat) <- c( "region","long","lat", "categ", "myvar" )
-
-
-myplot  <- p+geom_subplot2d(aes(long, lat, subplot = geom_bar(aes(x = categ, y = myvar, fill = categ, width=1), position = "identity")), ref = NULL, data = simdat)
-
-print(myplot)
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 #===============================================================================================
@@ -6369,7 +6321,7 @@ openxlsx::addWorksheet(wb, "예측 데이터")
 openxlsx::writeData(wb, "예측 데이터", testData, startRow = 1, startCol = 1, colNames = TRUE, rowNames = FALSE)
 openxlsx::saveWorkbook(wb, file = saveXlsxFile, overwrite = TRUE)
 
-s
+
 #===============================================================================================
 # Routine : Main R program
 #
@@ -6383,7 +6335,7 @@ s
 #================================================
 # 요구사항
 #================================================
-#R을 이용한 격자별 유출모형을 Fortran으로 코드 변환
+# R을 이용한 격자별 유출모형을 Fortran으로 코드 변환
 
 #================================================
 # 초기 환경변수 설정
@@ -6412,19 +6364,19 @@ if (env == "local") {
 # 비즈니스 로직 수행
 #================================================
 # 라이브러리 읽기
-library(tidyverse)
-library(readr)
-library(httr)
-library(rvest)
-library(jsonlite)
-library(RCurl)
-library(dplyr)
-library(data.table)
-library(Rcpp)
-library(philentropy)
-library(h2o)
+# library(tidyverse)
+# library(readr)
+# library(httr)
+# library(rvest)
+# library(jsonlite)
+# library(RCurl)
+# library(dplyr)
+# library(data.table)
+# library(Rcpp)
+# library(philentropy)
+# library(h2o)
 
-fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "판매량_예측.xlsx"))
+# fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "판매량_예측.xlsx"))
 # data = openxlsx::read.xlsx(fileInfo, sheet = 2)
 # 
 # trainData = data %>% 
@@ -6452,7 +6404,7 @@ library(rgdal)
 library(tidyr)
 library(dplyr)
 library(plot.matrix)
-require(foreign)
+library(foreign)
 
 fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "rrrccc.asc"))
 # RRRCCC <- read.asciigrid("rrrccc.asc")
@@ -6482,7 +6434,6 @@ h1<-25 ; h2<-5; h3<-8   #유출공높이
 b1<-0.35 ;b2<-0.21  #침투공계수
 
 # 유출모형
-
 tank_df<- function(data) {
   
   data$s1=data$s1+data$Rain
@@ -6514,6 +6465,7 @@ tank_df<- function(data) {
     data$s2=data$s2-q3-inf2
     total_q<-((q1+q2+q3)*a/3.6+Qb)
   }
+  # data_result<- cbind(data$RRRCCC, data$Rain,data$s1, data$s2, total_q, q1, q2, q3, inf1, inf2)
   data_result<- cbind(data$RRRCCC, data$Rain,data$s1, data$s2, total_q)
   colnames(data_result)<-c("RRRCCC", "Rain", "s1", "s2", "Total_q")
   return(data_result)
@@ -6523,11 +6475,11 @@ tank_df<- function(data) {
 
 # 유출분석
 
-j = 2
+j = 1
 for (j in 1:length(filename)){
+  
   # setwd(DirRDR)
   time <- substr(basename(filename[j]), nchar(basename(filename))-13, nchar(basename(filename[j]))-4)
-  
   
   fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, filename[j]))
   
@@ -6550,30 +6502,648 @@ for (j in 1:length(filename)){
   data<- r1 %>% drop_na()
   colnames(data)<-c("RRRCCC", "Rain", "s1", "s2")
   
+  # result_df<-as.data.frame(tank_df(data))
+  # result_df <- transform(result_df, Rain = sprintf("%.3f", result_df$Rain), s1 = sprintf("%.3f", result_df$s1), s2 = sprintf("%.3f", result_df$s2), Total_q = sprintf("%.3f", result_df$Total_q))
+  # 
+  # # write.table(x=data, quote = FALSE, row.names = FALSE, file=paste('RDR_',timeList[j+1], '.txt', sep=""))
+  # saveTxtFile = sprintf("%s/%s_%s.txt", globalVar$outPath, serviceName, paste0('RDR_',timeList[j+1]))
+  # write.table(x=data, quote = FALSE, row.names = FALSE, file=saveTxtFile)
+  # 
+  # 
+  # flow<- select(result_df, RRRCCC, Rain, Total_q)
+  # # write.table(x=flow, quote = FALSE, row.names = FALSE, file=paste('Outflow_', timeList[j], '.txt', sep=""))
+  # 
+  # saveTxtFile = sprintf("%s/%s_%s.txt", globalVar$outPath, serviceName, paste0('Outflow_', timeList[j]))
+  # write.table(x=flow, quote = FALSE, row.names = FALSE, file=saveTxtFile)
+  # 
+  # storage<- select(result_df, RRRCCC, s1, s2)
+  # # write.table(x=storage, quote = FALSE, row.names = FALSE, file=paste('Sto_',timeList[j+1], '.txt', sep=""))
+  # saveTxtFile = sprintf("%s/%s_%s.txt", globalVar$outPath, serviceName, paste0('Sto_',timeList[j+1]))
+  # write.table(x=storage, quote = FALSE, row.names = FALSE, file=saveTxtFile)
   
-  result_df<-as.data.frame(tank_df(data))
-  result_df <- transform(result_df, Rain = sprintf("%.3f", result_df$Rain), s1 = sprintf("%.3f", result_df$s1), s2 = sprintf("%.3f", result_df$s2), Total_q = sprintf("%.3f", result_df$Total_q))
+
+  # ****************************************************************************
+  # Fortran
+  # ****************************************************************************
+  library(nml)
   
-  flow<- select(result_df, RRRCCC, Rain, Total_q)
-  # write.table(x=flow, quote = FALSE, row.names = FALSE, file=paste('Outflow_', timeList[j], '.txt', sep=""))
+  saveInpFile = sprintf("%s/%s_%s.txt", globalVar$outPath, serviceName, "input")
+  utils::write.table(data, file = saveInpFile, col.names = FALSE, row.names = FALSE)
   
-  saveTxtFile = sprintf("%s/%s_%s.txt", globalVar$outPath, serviceName, paste0('Outflow_', timeList[j]))
-  write.table(x=flow, quote = FALSE, row.names = FALSE, file=saveTxtFile)
+  saveOutflowFile = sprintf("%s/%s_%s.txt", globalVar$outPath, serviceName, paste0('Outflow_', timeList[j]))
+  saveStoFile = sprintf("%s/%s_%s.txt", globalVar$outPath, serviceName, paste0('RDR_',timeList[j+1]))
+  saveRdrFile = sprintf("%s/%s_%s.txt", globalVar$outPath, serviceName, paste0('Sto_',timeList[j+1]))
   
-  storage<- select(result_df, RRRCCC, s1, s2)
-  # write.table(x=storage, quote = FALSE, row.names = FALSE, file=paste('Sto_',timeList[j+1], '.txt', sep=""))
-  saveTxtFile = sprintf("%s/%s_%s.txt", globalVar$outPath, serviceName, paste0('Sto_',timeList[j+1]))
-  write.table(x=storage, quote = FALSE, row.names = FALSE, file=saveTxtFile)
+  # 네임리스트 파일 정보
+  nmlFileInfo = Sys.glob(file.path(globalVar$srcPath, "fortran", "TEMPLATE_namelistInfo.nml"))
+  
+  # 포트란 소스코드 정보
+  fortranFileInfo = Sys.glob(file.path(globalVar$srcPath, "fortran", "RunFortran.f90"))
+  fortranSoFileInfo = Sys.glob(file.path(globalVar$srcPath, "fortran", "RunFortran.so"))
+  
+  nmlInfo = nml::read_nml(nmlFileInfo)
+  
+  # 입력자료 
+  nmlInfo$input$inpFile = saveInpFile
+
+  # 출력자료 
+  nmlInfo$out$outflowFile = saveOutflowFile
+  nmlInfo$out$stoFile = saveStoFile
+  nmlInfo$out$rdrFile = saveRdrFile
+  
+  # 네임리스트 출력 정보
+  inpNmlFile = sprintf("%s/%s_%s.txt", globalVar$outPath, serviceName, "input")
+  
+  # gfortran.exe -c .\RunFortran.f90
+  #  gfortran.exe -shared -o .\RunFortran.so .\RunFortran.o
+  dyn.load(fortranSoFileInfo)
+  .Fortran("dataProc"
+           ,inpFile = "1.txt"
+           , outflowFile = saveOutflowFile
+           , stoFile = saveStoFile
+           , rdrFile = saveRdrFile
+           )
+  
+  
+  system(paste("gfortran", paste0("\"", fortranFileInfo, "\"")))
+  shell
+
+  # 컴파일 
+  # system(paste(
+  #   "gfortran"
+  #   , fortranFileInfo
+  # ))
+  
+  system(paste(
+    "./a.exe"
+  ))
+  
+  fileName = tools::file_path_sans_ext(fs::path_file(fileInfo1))
+  
+  saveFile1 = sprintf("./%s_%s", fileName, "result-dimD.dat")
+  file.copy("./result-dimD.dat", saveFile1)
+  
+  saveFile2 = sprintf("./%s_%s", fileName, "result-dimR.dat")
+  file.copy("./result-dimR.dat", saveFile2)
+  
+  saveFile3 = sprintf("./%s_%s", fileName, "result-dimAvg.dat")
+  file.copy("./result-dimAvg.dat", saveFile3)
+  
 }
 
 
-# write.table(x=data, quote = FALSE, row.names = FALSE, file=paste('RDR_',timeList[j+1], '.txt', sep=""))
-
-saveTxtFile = sprintf("%s/%s_%s.txt", globalVar$outPath, serviceName, paste0('RDR_',timeList[j+1]))
-write.table(x=data, quote = FALSE, row.names = FALSE, file=saveTxtFile)
 
 
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+#================================================
+# 요구사항
+#================================================
+# R을 이용한 선거 데이터 (서울특별시 용산구) 3단계 시각화 및 도표 삽입
+
+#================================================
+# 초기 환경변수 설정
+#================================================
+# env = "local"   # 로컬 : 원도우 환경, 작업환경 (현재 소스 코드 환경 시 .) 설정
+env = "dev"   # 개발 : 원도우 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+# env = "oper"  # 운영 : 리눅스 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+
+prjName = "test"
+# serviceName = "LSH0214"
+serviceName = "LSH0287"
+
+contextPath = ifelse(env == "local", ".", getwd())
+
+if (env == "local") {
+  globalVar = list(
+    "inpPath" = contextPath
+    , "figPath" = contextPath
+    , "outPath" = contextPath
+    , "tmpPath" = contextPath
+    , "logPath" = contextPath
+  )
+} else {
+  source(here::here(file.path(contextPath, "src"), "InitConfig.R"), encoding = "UTF-8")
+}
+
+#================================================
+# 비즈니스 로직 수행
+#================================================
+# 라이브러리 읽기
+library(readxl)
+library(tidyverse)
+library(ggplot2)
+library(ggmap)
+library(lubridate)
+library(tidyverse)
+library(ggplot2)
+library(lubridate)
+library(openxlsx)
+library(fs)
+library(openxlsx)
+library(readxl)
+library(tidyverse)
+library(ggplot2)
+library(ggmap)
+library(ggplot2)
+library(lubridate)
+library(raster)
+library(rgeos)
+library(maptools)
+library(rgdal)
+library(sf)
+library(ggmap)
+library(ggcharts)
+library(scales)
+library(raster)
+library(cowplot)
+library(patchwork)
+library(scatterpie)
+
+#=================================================
+# 선거 주제도
+#=================================================
+# 선거 데이터 읽기
+fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "선거분석(용산구).xlsx"))
+data = openxlsx::read.xlsx(fileInfo, sheet = 1)
+# dataGeo = openxlsx::read.xlsx(fileInfo, sheet = 3)
+
+# 세부 투표구에 대한 위/경도 반환
+# dataGeoL1 = dataGeo %>% 
+#   dplyr::mutate(
+#     addr = stringr::str_c(주소, 건물명, sep = " ")
+#   )
+
+# addrList = dataGeoL1$addr%>% unique %>% sort %>%
+#   as.tibble()
+
+# saveFile = sprintf("%s/%s_%s.csv", globalVar$outPath, serviceName, "서울시 강서구 투표구 정보")
+
+# 각 주소에 따라 위/경도 반환
+# for (i in 1:nrow(addrList)) {
+# 
+#   # 구글 API 하루 제한
+#   addrData = ggmap::mutate_geocode(addrList[i, 'value'], value, source = "google")
+# 
+#   if (nrow(addrData) < 1) { next }
+# 
+#   readr::write_csv(x = addrData, file = saveFile, append = TRUE)
+# }
+
+# addrData = readr::read_csv(file = saveFile, col_names = c("value", "lon", "lat"))
+
+# dataGeoL2 = dataGeoL1 %>% 
+#   dplyr::left_join(addrData, by = c("addr" = "value"))
+
+# summary(dataGeoL2)
+
+dataL1 = data %>%
+  as.tibble() %>%
+  readr::type_convert()
+
+dataL2 = dataL1 %>%
+  dplyr::filter(세부투표구 %in% c("소계")) %>% 
+  rowwise() %>% 
+  dplyr::mutate(
+    중도층 = sum(dplyr::c_across(matches("중도층")), na.rm = TRUE)
+  ) %>% 
+  dplyr::select(-tidyselect::matches("중도층[0-9]")) %>% 
+  dplyr::select(-c(종류)) %>% 
+  tidyr::gather(-c(투표구, 세부투표구), key = "key", value = "val") %>% 
+  dplyr::group_by(투표구, key) %>% 
+  dplyr::summarise(
+    meanVal = mean(val, na.rm = TRUE)
+  ) %>% 
+  dplyr::ungroup() %>% 
+  tidyr::spread(key = "key", value = "meanVal")
+
+dataL3 = data %>% 
+  dplyr::filter(세부투표구 %in% c("소계")) %>% 
+  rowwise(투표구) %>% 
+  dplyr::mutate(
+    maxVal = max(더불어민주당, 자유한국당, 중도층, na.rm = TRUE)
+    , val = dplyr::case_when(
+      자유한국당 == maxVal ~ 1
+      , 더불어민주당 == maxVal ~ 2
+      , 중도층 == maxVal ~ 3
+      )
+    , 투표구2 = dplyr::case_when(
+      stringr::str_detect(투표구, regex("원효로제1동")) ~ "원효로1동"
+      , stringr::str_detect(투표구, regex("원효로제2동")) ~ "원효로2동"
+      , stringr::str_detect(투표구, regex("이촌제1동")) ~ "이촌1동"
+      , stringr::str_detect(투표구, regex("이촌제2동")) ~ "이촌2동"
+      , stringr::str_detect(투표구, regex("이태원제1동")) ~ "이태원1동"
+      , stringr::str_detect(투표구, regex("이태원제2동")) ~ "이태원2동"
+      , TRUE ~ 투표구
+    )
+  )
+
+# 읍면동 지도 읽기
+mapInfo = Sys.glob(file.path(globalVar$mapPath, "koreaInfo/bnd_dong_00_2019_2019_2Q.shp"))
+
+# shp 파일 읽기 (2)
+mapGlobal = sf::st_read(mapInfo, quiet = TRUE, options = "ENCODING=EUC-KR") %>% 
+  sf::st_transform(CRS("+proj=longlat"))
+
+# 법정동 코드 읽기 (2)
+codeInfo = Sys.glob(file.path(globalVar$mapPath, "admCode/admCode.xlsx"))
+codeData = openxlsx::read.xlsx(codeInfo, sheet = 1, startRow = 2)
+
+codeDataL1 = codeData %>%
+  dplyr::filter(
+    stringr::str_detect(시도명칭, regex("서울특별시"))
+    , stringr::str_detect(시군구명칭, regex("용산구"))
+  ) 
+
+# 통합 데이터셋
+dataL5 = mapGlobal %>%
+  dplyr::inner_join(codeDataL1, by = c("adm_dr_cd" = "읍면동코드")) %>%
+  dplyr::left_join(dataL3, by = c("adm_dr_nm" = "투표구2")) 
 
 
 
+# ************************************************
+# 선거 주제도
+# ************************************************
+plotSubTitle = sprintf("%s", "서울특별시 용산구 선거 주제도")
+saveImg2 = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, plotSubTitle)
 
+ggplotDefaultColor = hue_pal()(3)
+
+ggplot() +
+  theme_bw() +
+  coord_fixed(ratio = 1) +
+  geom_sf(data = dataL5, aes(fill = factor(val)), inherit.aes = FALSE, alpha = 0.3) +
+  geom_sf_text(data = dataL5, aes(label = 읍면동명칭)) +
+  # geom_point(data = dataDtlL3, aes(x = lon, y = lat, color = factor(val)), shape = 16, show.legend = FALSE) +
+  # ggrepel::geom_label_repel(
+  #   data = dataDtlL3
+  #   , aes(x = lon, y = lat, fill = factor(val), label = label)
+  #   , color = "white"
+  #   , segment.color = "black"
+  #   , show.legend = FALSE
+  #   , segment.size = 0.2
+  #   , size = 3
+  # ) +
+  scale_fill_manual(
+    name = NULL
+    , na.value = "transparent"
+    , values = c("1" = ggplotDefaultColor[1], "2" = ggplotDefaultColor[3], "3" = "gray")
+    , labels = c("자유한국당", "더불어민주당", "중도층")
+  ) +
+  scale_color_manual(
+    name = NULL
+    , na.value = "transparent"
+    , values = c("1" = ggplotDefaultColor[1], "2" = ggplotDefaultColor[3], "3" = "gray")
+    , labels = c("자유한국당", "더불어민주당", "중도층")
+  ) +
+  
+  labs(title = plotSubTitle, x = NULL, y = NULL, colour = NULL, fill = NULL, subtitle = NULL) +
+  theme(
+    text = element_text(size = 16)
+    , panel.grid.major.x = element_blank()
+    , panel.grid.major.y = element_blank()
+    , panel.grid.minor.x = element_blank()
+    , panel.grid.minor.y = element_blank()
+    , axis.text.x = element_blank()
+    , axis.ticks.x = element_blank()
+    , axis.title.x = element_blank()
+    , axis.text.y = element_blank()
+    , axis.ticks.y = element_blank()
+    , axis.title.y = element_blank()
+    , plot.subtitle = element_text(hjust = 1)
+    , legend.position = "top"
+  ) +
+  ggsave(filename = saveImg2, width = 8, height = 8, dpi = 600)
+
+
+# ************************************************
+# 선거 빈도분포
+# ************************************************
+dataDtlL4 = data %>% 
+  dplyr::filter(! 세부투표구 %in% c("소계")) %>% 
+  # rowwise(투표구) %>%
+  dplyr::mutate(
+    투표구2 = dplyr::case_when(
+      stringr::str_detect(투표구, regex("원효로제1동")) ~ "원효로1동"
+      , stringr::str_detect(투표구, regex("원효로제2동")) ~ "원효로2동"
+      , stringr::str_detect(투표구, regex("이촌제1동")) ~ "이촌1동"
+      , stringr::str_detect(투표구, regex("이촌제2동")) ~ "이촌2동"
+      , stringr::str_detect(투표구, regex("이태원제1동")) ~ "이태원1동"
+      , stringr::str_detect(투표구, regex("이태원제2동")) ~ "이태원2동"
+      , TRUE ~ 투표구
+    )
+    , label = str_match_all(세부투표구, "제[[:digit:]]+투") %>% unlist()
+  ) %>% 
+  dplyr::na_if(0) %>% 
+  dplyr::select(투표구2, 세부투표구, `%자유한국당`, `%더불어민주당`, `%중도층`, label) %>% 
+  tidyr::gather(-c(투표구2, 세부투표구, label), key = "key", value = "val") 
+
+
+# 정당에 따른 정렬
+dataDtlL4$key = forcats::fct_relevel(dataDtlL4$key, rev(c("%자유한국당", "%더불어민주당", "%중도층")))
+
+selLabel = paste0("제", c(1:99), "투")
+dataDtlL4$label = forcats::fct_relevel(dataDtlL4$label, selLabel)
+# dataDtlL4$label = forcats::fct_relevel(dataDtlL4$label, rev(selLabel))
+
+plotSubTitle = sprintf("%s", "서울특별시 용산구 선거 빈도분포")
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, plotSubTitle)
+
+ggplot(dataDtlL4, aes(x = label, y = val, fill = key, group = key, label = round(val, 0))) +
+  geom_bar(position = position_stack(), stat = "identity") +
+  # geom_bar(stat = "identity") +
+  geom_text(position = position_stack(vjust = 0.5), size = 4, color = "white") +
+  coord_flip() +
+  labs(x = "세부 투표구", y = "비율", fill = NULL, subtitle = plotSubTitle) +
+  theme(
+    text = element_text(size = 14)
+    , legend.position = "top"
+    , axis.ticks.x = element_blank()
+    , axis.text.x = element_blank()
+  ) +
+  scale_fill_manual(
+    name = NULL
+    , na.value = "transparent"
+    , values = c("%자유한국당" = ggplotDefaultColor[1], "%더불어민주당" = ggplotDefaultColor[3], "%중도층" = "gray")
+    , labels = c("자유한국당", "더불어민주당", "중도층")
+  ) +
+  # facet_wrap(~투표구2, scale = "free", ncol = 3) +
+  facet_wrap(~투표구2, scale = "free", ncol = 4) +
+  ggsave(filename = saveImg, width = 16, height = 12, dpi = 600)
+
+
+# ************************************************
+# 스토리 보드
+# ************************************************
+# # 빈도분포
+# ggFreqPlot = ggplot(dataDtlL4, aes(x = label, y = val, fill = key, group = key, label = round(val, 0))) +
+#   geom_bar(position = position_stack(), stat = "identity") +
+#   geom_text(position = position_stack(vjust = 0.5), size = 3, color = "white") +
+#   coord_flip() +
+#   labs(x = NULL, y = NULL, fill = NULL, subtitle = NULL) +
+#   theme(
+#     text = element_text(size = 9)
+#     , legend.position = "none"
+#     , axis.ticks.x = element_blank()
+#     , axis.text.x = element_blank()
+#   ) +
+#   scale_fill_manual(
+#     name = NULL
+#     , na.value = "transparent"
+#     , values = c("자유한국당" = ggplotDefaultColor[1], "더불어민주당" = ggplotDefaultColor[3], "중도층" = "gray")
+#     , labels = c("자유한국당", "더불어민주당", "중도층")
+#   ) +
+#   facet_wrap(~투표구, scale = "free", ncol = 4)
+# 
+# 
+# # 지도
+# ggMapPlot = ggplot() +
+#   theme_bw() +
+#   coord_fixed(ratio = 1) +
+#   geom_sf(data = dataL5, aes(fill = factor(val)), inherit.aes = FALSE, alpha = 0.3) +
+#   geom_sf_text(data = dataL5, aes(label = 읍면동명칭)) +
+#   # geom_point(data = dataDtlL3, aes(x = lon, y = lat, color = factor(val)), shape = 16, show.legend = FALSE) +
+#   # ggrepel::geom_label_repel(
+#   #   data = dataDtlL3
+#   #   , aes(x = lon, y = lat, fill = factor(val), label = label)
+#   #   , color = "white"
+#   #   , segment.color = "black"
+#   #   , show.legend = FALSE
+#   #   , segment.size = 0.2
+#   #   , size = 3
+#   # ) +
+#   scale_fill_manual(
+#     name = NULL
+#     , na.value = "transparent"
+#     , values = c("1" = ggplotDefaultColor[1], "2" = ggplotDefaultColor[3], "3" = "gray")
+#     , labels = c("자유한국당", "더불어민주당", "중도층")
+#   ) +
+#   scale_color_manual(
+#     name = NULL
+#     , na.value = "transparent"
+#     , values = c("1" = ggplotDefaultColor[1], "2" = ggplotDefaultColor[3], "3" = "gray")
+#     , labels = c("자유한국당", "더불어민주당", "기타야당")
+#   ) +
+#   labs(title = plotSubTitle, x = NULL, y = NULL, colour = NULL, fill = NULL, subtitle = NULL)
+# 
+# ggMapPlotTheme = theme(
+#   text = element_text(size = 16)
+#   , panel.grid.major.x = element_blank()
+#   , panel.grid.major.y = element_blank()
+#   , panel.grid.minor.x = element_blank()
+#   , panel.grid.minor.y = element_blank()
+#   , axis.text.x = element_blank()
+#   , axis.ticks.x = element_blank()
+#   , axis.title.x = element_blank()
+#   , axis.text.y = element_blank()
+#   , axis.ticks.y = element_blank()
+#   , axis.title.y = element_blank()
+#   , plot.subtitle = element_text(hjust = 1)
+#   , legend.position = "top"
+# )
+# 
+# 
+# plotSubTitle = sprintf("%s", "서울특별시 강서구 선거 통합도")
+# saveImgMerge = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, plotSubTitle)
+# 
+# (ggMapPlot & ggMapPlotTheme ) / (ggFreqPlot) +
+#   patchwork::plot_layout(heights = c(2, 1)) +
+#   ggsave(filename = saveImgMerge, width = 10, height = 20, dpi = 600)
+
+
+#=================================================
+# 인구현황
+#=================================================
+# [행정안전부] 주민등록 인구통계 : https://jumin.mois.go.kr/
+
+# 선거 데이터 읽기
+fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0287/선거분석(용산구).xlsx"))
+data = openxlsx::read.xlsx(fileInfo, sheet = 2)
+
+dataL1 = data %>%
+  as.tibble() %>%
+  na.omit() %>%
+  readr::type_convert()
+
+sexListPattern = c("남", "여", "남|여")
+
+for (sexInfoPattern in sexListPattern) {
+  
+  sexInfo = stringr::str_replace(sexInfoPattern, "\\|", "")
+  
+  dataL2 = dataL1 %>%
+    dplyr::select(투표구, tidyselect::matches("[[:digit:]]+세")) %>% 
+    tidyr::gather(-투표구, key = "key", value = "투표수") %>% 
+    dplyr::mutate(
+      age = stringr::str_match_all(key, "[[:digit:]]+") %>% unlist()
+      , sex = stringr::str_match_all(key, "^남|여") %>% unlist()
+      , isSex = dplyr::case_when(
+        stringr::str_detect(sex, regex(sexInfoPattern)) ~ TRUE
+        , TRUE ~ FALSE
+      )
+    ) %>% 
+    dplyr::filter(isSex == TRUE) %>% 
+    dplyr::mutate(
+      type = dplyr::case_when(
+        18 <= age & age <= 20 ~ "18-20세"
+        , 21 <= age & age <= 30 ~ "21-30세"
+        , 31 <= age & age <= 40 ~ "31-40세"
+        , 41 <= age & age <= 50 ~ "41-50세"
+        , 51 <= age & age <= 60 ~ "51-60세"
+        , 61 <= age & age <= 70 ~ "61-70세"
+        , 71 <= age ~ "71세 이상"
+      )
+    ) %>% 
+    dplyr::filter(
+      ! is.na(age)
+      , ! is.na(type)
+    ) %>% 
+    dplyr::select(-age)
+  
+  
+  statData = dataL2 %>%
+    dplyr::group_by(투표구, type) %>% 
+    dplyr::summarise(
+      sumKeyVal = sum(투표수, na.rm = TRUE) 
+    )
+  
+  statDataL2 = dataL2 %>% 
+    dplyr::group_by(투표구) %>% 
+    dplyr::summarise(
+      sumVal = sum(투표수, na.rm = TRUE) 
+    )
+  
+  
+  dataL4 = statData %>% 
+    dplyr::left_join(statDataL2, by = c("투표구" = "투표구")) %>% 
+    tidyr::spread(key = "type", value = "sumKeyVal") %>% 
+    dplyr::mutate(
+      투표구2 = dplyr::case_when(
+        stringr::str_detect(투표구, regex("원효로제1동")) ~ "원효로1동"
+        , stringr::str_detect(투표구, regex("원효로제2동")) ~ "원효로2동"
+        , stringr::str_detect(투표구, regex("이촌제1동")) ~ "이촌1동"
+        , stringr::str_detect(투표구, regex("이촌제2동")) ~ "이촌2동"
+        , stringr::str_detect(투표구, regex("이태원제1동")) ~ "이태원1동"
+        , stringr::str_detect(투표구, regex("이태원제2동")) ~ "이태원2동"
+        , TRUE ~ 투표구
+      )
+    )
+  
+  
+  saveData = dataL4 %>% 
+    dplyr::rename(
+      합계 = sumVal
+    )
+  
+  saveXlsxFile = sprintf("%s/%s_%s_(%s).xlsx", globalVar$outPath, serviceName, "인구현황", sexInfo)
+  
+  wb = openxlsx::createWorkbook()
+  openxlsx::addWorksheet(wb, "인구현황")
+  openxlsx::writeData(wb, "인구현황", saveData, startRow = 1, startCol = 1, colNames = TRUE, rowNames = TRUE)
+  openxlsx::saveWorkbook(wb, file = saveXlsxFile, overwrite = TRUE)
+  
+  
+  # 읍면동 지도 읽기
+  mapInfo = Sys.glob(file.path(globalVar$mapPath, "koreaInfo/bnd_dong_00_2019_2019_2Q.shp"))
+  
+  # shp 파일 읽기 (2)
+  mapGlobal = sf::st_read(mapInfo, quiet = TRUE, options = "ENCODING=EUC-KR") %>% 
+    sf::st_transform(CRS("+proj=longlat"))
+  
+  # 법정동 코드 읽기 (2)
+  codeInfo = Sys.glob(file.path(globalVar$mapPath, "admCode/admCode.xlsx"))
+  codeData = openxlsx::read.xlsx(codeInfo, sheet = 1, startRow = 2)
+  
+  codeDataL1 = codeData %>%
+    dplyr::filter(
+      stringr::str_detect(시도명칭, regex("서울특별시"))
+      , stringr::str_detect(시군구명칭, regex("용산구"))
+    ) 
+  
+  # 통합 데이터셋
+  dataL5 = mapGlobal %>%
+    dplyr::inner_join(codeDataL1, by = c("adm_dr_cd" = "읍면동코드")) %>%
+    dplyr::left_join(dataL4, by = c("adm_dr_nm" = "투표구2")) 
+  
+  # 중심 위/경도 반환
+  posData = sf::st_centroid(dataL5$geometry) %>% 
+    sf::st_coordinates() %>% 
+    as.tibble() %>% 
+    dplyr::rename(
+      "lon" = "X"
+      , "lat" = "Y"
+    )
+  
+  dataL6 = dplyr::bind_cols(dataL5, posData)
+  
+  # ************************************************
+  # 선거 주제도
+  # ************************************************
+  dataL7 = na.omit(dataL6)
+  
+  dataL8 = dataL7 %>% 
+    as.tibble() %>% 
+    dplyr::mutate(
+      geometry = NULL
+    )
+  
+  plotSubTitle2 = sprintf("%s (%s)", "서울특별시 용산구 선거 인구현황", sexInfo)
+  saveImg2 = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, plotSubTitle2)
+  
+  makePiePlot = ggplot() +
+    theme_bw() +
+    coord_fixed(ratio = 1) +
+    geom_sf(data = dataL7, fill = NA, inherit.aes = FALSE) +
+    geom_sf_text(data = dataL7, aes(label = 읍면동명칭)) +
+    # 크기 비율 X
+    scatterpie::geom_scatterpie(
+      aes(x = lon, y = lat, group = factor(읍면동명칭), r = 0.004)
+      , cols=c("18-20세", "21-30세", "31-40세", "41-50세", "51-60세", "61-70세", "71세 이상")
+      , data = dataL8, color = NA, alpha = 0.75
+    ) +
+    # 크기 비율 O
+    # scatterpie::geom_scatterpie(
+    #   aes(x = lon, y = lat, group = factor(읍면동명칭), r = sumVal/5000000)
+    #   , cols=c("18-20세", "21-30세", "31-40세", "41-50세", "51-60세", "61-70세", "71세 이상")
+    #   , data = dataL8, color = NA, alpha = 0.75
+    # ) +
+    scatterpie::geom_scatterpie_legend(
+      dataL8$sumVal/5000000
+      , x =  min(posData$lon, na.rm = TRUE) - 0.01
+      , y = min(posData$lat, na.rm = TRUE)
+    ) +
+    labs(
+      x = NULL
+      , y = NULL
+      , color = NULL
+      , fill = NULL
+      , subtitle = plotSubTitle2
+    ) +
+    theme(
+      text = element_text(size = 14)
+      , panel.grid.major.x = element_blank()
+      , panel.grid.major.y = element_blank()
+      , panel.grid.minor.x = element_blank()
+      , panel.grid.minor.y = element_blank()
+      , axis.text.x = element_blank()
+      , axis.ticks.x = element_blank()
+      , axis.title.x = element_blank()
+      , axis.text.y = element_blank()
+      , axis.ticks.y = element_blank()
+      , axis.title.y = element_blank()
+      , legend.position = "top"
+      , legend.box = "horizontal"
+      , plot.margin = unit(c(0.2, 0, 0, 0), 'lines')
+    )
+  
+    ggsave(makePiePlot, filename = saveImg2, width = 10, height = 8, dpi = 600)
+}
