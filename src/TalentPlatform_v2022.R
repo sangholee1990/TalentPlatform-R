@@ -6364,47 +6364,15 @@ if (env == "local") {
 # 비즈니스 로직 수행
 #================================================
 # 라이브러리 읽기
-# library(tidyverse)
-# library(readr)
-# library(httr)
-# library(rvest)
-# library(jsonlite)
-# library(RCurl)
-# library(dplyr)
-# library(data.table)
-# library(Rcpp)
-# library(philentropy)
-# library(h2o)
-
-# fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "판매량_예측.xlsx"))
-# data = openxlsx::read.xlsx(fileInfo, sheet = 2)
-# 
-# trainData = data %>% 
-#   dplyr::mutate(
-#     dtDate = readr::parse_date(date, "%Y-%m")
-#     , dtYear = lubridate::year(dtDate)
-#     , dtMonth = lubridate::month(dtDate)
-#     , dtXran = lubridate::decimal_date(dtDate)
-#   )
-# 
-# testData = tibble(dtDate = seq(as.Date("2018-09-01"), as.Date("2023-02-01"), "1 month")) %>% 
-#   dplyr::mutate(
-#     dtYear = lubridate::year(dtDate)
-#     , dtMonth = lubridate::month(dtDate)
-#     , dtXran = lubridate::decimal_date(dtDate)
-#   ) %>% 
-#   dplyr::filter(
-#     dtMonth %in% c(9, 10, 11)
-#   )
-
-
-
 # 2D 변환 작업
 library(rgdal)
 library(tidyr)
 library(dplyr)
 library(plot.matrix)
 library(foreign)
+library(tidyverse)
+library(readr)
+library(nml)
 
 fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "rrrccc.asc"))
 # RRRCCC <- read.asciigrid("rrrccc.asc")
@@ -6427,61 +6395,66 @@ filename<-list.files(path = file.path(globalVar$inpPath, serviceName), pattern =
 timeList<-substr(basename(filename), nchar(basename(filename))-13, nchar(basename(filename))-4) 
 
 # 유출 모형 매개변수 11개 
-a<-1000     #면적
-Qb<-15  ; s_ini<-6 ;  #기저유량 , #초기 저류고 
-a1<-0.05 ; a2<-0.15 ; a3<-0.3  #유출공계수
-h1<-25 ; h2<-5; h3<-8   #유출공높이
-b1<-0.35 ;b2<-0.21  #침투공계수
+# a<-1000     #면적
+# Qb<-15  ; s_ini<-6 ;  #기저유량 , #초기 저류고 
+# a1<-0.05 ; a2<-0.15 ; a3<-0.3  #유출공계수
+# h1<-25 ; h2<-5; h3<-8   #유출공높이
+# b1<-0.35 ;b2<-0.21  #침투공계수
 
-# 유출모형
-tank_df<- function(data) {
-  
-  data$s1=data$s1+data$Rain
-  if (data$s1 >=h1){
-    q1<- (data$s1-h1)*a1
-    q2<- (data$s1-h2)*a2
-    inf1<-data$s1*b1
-    data$s1=data$s1-q1-q2-inf1
-  }else if (data$s1 <h1 & data$s1 >=h2 ){
-    q1<- 0
-    q2<- (data$s1-h2)*a2
-    inf1<-data$s1*b1
-    data$s1=data$s1-q1-q2-inf1
-  }else{
-    q1<- 0
-    q2<- 0
-    inf1<-data$s1*b1
-    data$s1=data$s1-q1-q2-inf1
-  }
-  data$s2=data$s2+inf1
-  if (data$s2 >=h3){
-    q3<- (data$s2-h3)*a3
-    inf2<-data$s2*b2
-    data$s2=data$s2-q3-inf2
-    total_q<-((q1+q2+q3)*a/3.6+Qb)
-  }else{
-    q3<- 0
-    inf2<-data$s2*b2
-    data$s2=data$s2-q3-inf2
-    total_q<-((q1+q2+q3)*a/3.6+Qb)
-  }
-  # data_result<- cbind(data$RRRCCC, data$Rain,data$s1, data$s2, total_q, q1, q2, q3, inf1, inf2)
-  data_result<- cbind(data$RRRCCC, data$Rain,data$s1, data$s2, total_q)
-  colnames(data_result)<-c("RRRCCC", "Rain", "s1", "s2", "Total_q")
-  return(data_result)
-}
+# # 유출모형
+# tank_df<- function(data) {
+#   
+#   data$s1=data$s1+data$Rain
+#   if (data$s1 >=h1){
+#     q1<- (data$s1-h1)*a1
+#     q2<- (data$s1-h2)*a2
+#     inf1<-data$s1*b1
+#     data$s1=data$s1-q1-q2-inf1
+#   }else if (data$s1 <h1 & data$s1 >=h2 ){
+#     q1<- 0
+#     q2<- (data$s1-h2)*a2
+#     inf1<-data$s1*b1
+#     data$s1=data$s1-q1-q2-inf1
+#   }else{
+#     q1<- 0
+#     q2<- 0
+#     inf1<-data$s1*b1
+#     data$s1=data$s1-q1-q2-inf1
+#   }
+#   data$s2=data$s2+inf1
+#   if (data$s2 >=h3){
+#     q3<- (data$s2-h3)*a3
+#     inf2<-data$s2*b2
+#     data$s2=data$s2-q3-inf2
+#     total_q<-((q1+q2+q3)*a/3.6+Qb)
+#   }else{
+#     q3<- 0
+#     inf2<-data$s2*b2
+#     data$s2=data$s2-q3-inf2
+#     total_q<-((q1+q2+q3)*a/3.6+Qb)
+#   }
+#   # data_result<- cbind(data$RRRCCC, data$Rain,data$s1, data$s2, total_q, q1, q2, q3, inf1, inf2)
+#   data_result<- cbind(data$RRRCCC, data$Rain,data$s1, data$s2, total_q)
+#   colnames(data_result)<-c("RRRCCC", "Rain", "s1", "s2", "Total_q")
+#   return(data_result)
+# }
 
 
 
 # 유출분석
-
 j = 1
 for (j in 1:length(filename)){
   
   # setwd(DirRDR)
   time <- substr(basename(filename[j]), nchar(basename(filename))-13, nchar(basename(filename[j]))-4)
   
-  fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, filename[j]))
+  fileInfoPattern = file.path(globalVar$inpPath, serviceName, filename[j])
+  fileInfo <- Sys.glob(fileInfoPattern)
+  
+  if (length(fileInfo) < 1) {
+    cat(sprintf("[ERROR] 입력자료가 없습니다. : %s", fileInfoPattern), "\n")
+    next
+  }
   
   R <- sp::read.asciigrid(fileInfo, as.image =FALSE, plot.image = TRUE, proj4string = CRS("+proj=tmerc +lat_0=38 +lon_0=127.5 +k=0.9996
 +x_0=1000000 +y_0=2000000 +ellps=GRS80
@@ -6490,17 +6463,30 @@ for (j in 1:length(filename)){
   
   # setwd(DirTank)
   
-  fileInfoS = Sys.glob(file.path(globalVar$inpPath, serviceName, paste0('Sto1_',timeList[j], ".txt")))
-  S1<- read.asciigrid(fileInfoS, as.image=FALSE, colname=cbind("sto1"))
+  fileInfoStoPattern = file.path(globalVar$inpPath, serviceName, paste0('Sto1_',timeList[j], ".txt"))
+  fileInfoSto = Sys.glob(fileInfoStoPattern)
+  if (length(fileInfoSto) < 1) {
+    cat(sprintf("[ERROR] 입력자료가 없습니다. : %s", fileInfoStoPattern), "\n")
+    next
+  }
   
-  fileInfoS2 = Sys.glob(file.path(globalVar$inpPath, serviceName, paste0('Sto2_',timeList[j], ".txt")))
-  S2<- read.asciigrid(fileInfoS2, as.image=FALSE, colname=cbind("sto2"))
+  S1<- read.asciigrid(fileInfoSto, as.image=FALSE, colname=cbind("sto1"))
+  
+  fileInfoSto2Pattern = file.path(globalVar$inpPath, serviceName, paste0('Sto2_',timeList[j], ".txt"))
+  fileInfoSto2 = Sys.glob(fileInfoSto2Pattern)
+  if (length(fileInfoSto2) < 1) {
+    cat(sprintf("[ERROR] 입력자료가 없습니다. : %s", fileInfoSto2Pattern), "\n")
+    next
+  }
+  
+  S2<- read.asciigrid(fileInfoSto2, as.image=FALSE, colname=cbind("sto2"))
   
   sto1 <- S1@data
   sto2 <- S2@data
   r1 <- cbind(test,rain, sto1, sto2)
   data<- r1 %>% drop_na()
   colnames(data)<-c("RRRCCC", "Rain", "s1", "s2")
+  
   
   # result_df<-as.data.frame(tank_df(data))
   # result_df <- transform(result_df, Rain = sprintf("%.3f", result_df$Rain), s1 = sprintf("%.3f", result_df$s1), s2 = sprintf("%.3f", result_df$s2), Total_q = sprintf("%.3f", result_df$Total_q))
@@ -6521,76 +6507,63 @@ for (j in 1:length(filename)){
   # saveTxtFile = sprintf("%s/%s_%s.txt", globalVar$outPath, serviceName, paste0('Sto_',timeList[j+1]))
   # write.table(x=storage, quote = FALSE, row.names = FALSE, file=saveTxtFile)
   
-
-  # ****************************************************************************
-  # Fortran
-  # ****************************************************************************
-  library(nml)
   
-  saveInpFile = sprintf("%s/%s_%s.txt", globalVar$outPath, serviceName, "input")
+  # ****************************************************************************
+  # Fortran 소스코드 수행
+  # ****************************************************************************
+  # 포트란 경로 입력 (수동 입력)
+  # srcPath = "E:/04. TalentPlatform/Github/TalentPlatform-R/src/fortran"
+  srcPath = file.path(".", "fortran")
+  srcFile = file.path(srcPath, "RunFortran.f90")
+  exeFile = file.path(srcPath, "a.exe")
+  
+  # 입력자료 저장
+  saveInpFile = sprintf("%s/%s_%s.txt", srcPath, serviceName, "input")
   utils::write.table(data, file = saveInpFile, col.names = FALSE, row.names = FALSE)
   
-  saveOutflowFile = sprintf("%s/%s_%s.txt", globalVar$outPath, serviceName, paste0('Outflow_', timeList[j]))
-  saveStoFile = sprintf("%s/%s_%s.txt", globalVar$outPath, serviceName, paste0('RDR_',timeList[j+1]))
-  saveRdrFile = sprintf("%s/%s_%s.txt", globalVar$outPath, serviceName, paste0('Sto_',timeList[j+1]))
+  cat(sprintf("[CHECK] saveInpFile : %s", saveInpFile), "\n")
   
-  # 네임리스트 파일 정보
-  nmlFileInfo = Sys.glob(file.path(globalVar$srcPath, "fortran", "TEMPLATE_namelistInfo.nml"))
-  
-  # 포트란 소스코드 정보
-  fortranFileInfo = Sys.glob(file.path(globalVar$srcPath, "fortran", "RunFortran.f90"))
-  fortranSoFileInfo = Sys.glob(file.path(globalVar$srcPath, "fortran", "RunFortran.so"))
-  
-  nmlInfo = nml::read_nml(nmlFileInfo)
-  
-  # 입력자료 
-  nmlInfo$input$inpFile = saveInpFile
-
   # 출력자료 
-  nmlInfo$out$outflowFile = saveOutflowFile
-  nmlInfo$out$stoFile = saveStoFile
-  nmlInfo$out$rdrFile = saveRdrFile
+  saveOutflowFile = sprintf("%s/%s_%s.txt", ".", serviceName, paste0('Outflow_', timeList[j]))
+  saveStoFile = sprintf("%s/%s_%s.txt", srcPath, serviceName, paste0('RDR_',timeList[j]))
+  saveRdrFile = sprintf("%s/%s_%s.txt", srcPath, serviceName, paste0('Sto_',timeList[j]))
   
-  # 네임리스트 출력 정보
+  # 템플릿 네임리스트 파일 정보
+  nmlFileInfo = Sys.glob(file.path(srcPath, "TEMPLATE_namelistInfo.nml"))
+  
+  # 출력 네임리스트 파일
+  saveNmlFile = sprintf("%s/%s_%s.nml", srcPath, serviceName, "namelistInfo")
+  
+  # 템플릿 네임리스트 파일 읽기 그리고 동적 변수 (입력자료, 출력자료) 치환
+  # 출력 네임리스트 파일 저장
+  readLines(nmlFileInfo) |>
+    stringr::str_replace(pattern = "%inpFile", replace = saveInpFile) |>
+    stringr::str_replace(pattern = "%outflowFile", replace = saveOutflowFile) |>
+    stringr::str_replace(pattern = "%stoFile", replace = saveStoFile) |>
+    stringr::str_replace(pattern = "%rdrFile", replace = saveRdrFile) |>
+    writeLines(con = saveNmlFile)
+  
   inpNmlFile = sprintf("%s/%s_%s.txt", globalVar$outPath, serviceName, "input")
   
-  # gfortran.exe -c .\RunFortran.f90
-  #  gfortran.exe -shared -o .\RunFortran.so .\RunFortran.o
-  dyn.load(fortranSoFileInfo)
-  .Fortran("dataProc"
-           ,inpFile = "1.txt"
-           , outflowFile = saveOutflowFile
-           , stoFile = saveStoFile
-           , rdrFile = saveRdrFile
-           )
-  
-  
-  system(paste("gfortran", paste0("\"", fortranFileInfo, "\"")))
-  shell
-
-  # 컴파일 
-  # system(paste(
-  #   "gfortran"
-  #   , fortranFileInfo
-  # ))
-  
+  # 포트란 컴파일
+  # gfortran ./fortran/RunFortran.f90
   system(paste(
-    "./a.exe"
+    "gfortran"
+    , srcFile
   ))
   
-  fileName = tools::file_path_sans_ext(fs::path_file(fileInfo1))
+  # 포트란 실행 및 입력자료 (네임리스트 파일)
+  # ./fortran/a.out ./fortran/LSH0284_namelistInfo.nml
+  system(paste(
+    exeFile
+    , saveNmlFile
+  ))
   
-  saveFile1 = sprintf("./%s_%s", fileName, "result-dimD.dat")
-  file.copy("./result-dimD.dat", saveFile1)
-  
-  saveFile2 = sprintf("./%s_%s", fileName, "result-dimR.dat")
-  file.copy("./result-dimR.dat", saveFile2)
-  
-  saveFile3 = sprintf("./%s_%s", fileName, "result-dimAvg.dat")
-  file.copy("./result-dimAvg.dat", saveFile3)
-  
+  # 포트란에서 출력 결과를 R에서 읽기
+  outflowData = readr::read_table(file = saveOutflowFile, col_names = FALSE)
+  stoData = readr::read_table(file = saveStoFile, col_names = FALSE)
+  rdrFile = readr::read_table(file = saveRdrFile, col_names = FALSE)
 }
-
 
 
 
