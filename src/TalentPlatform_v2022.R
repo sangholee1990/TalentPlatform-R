@@ -6377,7 +6377,7 @@ library(nml)
 fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "rrrccc.asc"))
 # RRRCCC <- read.asciigrid("rrrccc.asc")
 
-RRRCCC <- read.asciigrid(fileInfo)
+RRRCCC <- sp::read.asciigrid(fileInfo)
 test <- RRRCCC@data
 
 DirLocal<-'D' 
@@ -6581,6 +6581,7 @@ for (j in 1:length(filename)){
 # 요구사항
 #================================================
 # R을 이용한 선거 데이터 (서울특별시 용산구) 3단계 시각화 및 도표 삽입
+# R을 이용한 선거 데이터 (경상남도 남해군) 3단계 시각화 및 도표 삽입
 
 #================================================
 # 초기 환경변수 설정
@@ -6645,9 +6646,8 @@ library(scatterpie)
 # 선거 주제도
 #=================================================
 # 선거 데이터 읽기
-fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "선거분석(용산구).xlsx"))
+fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "선거분석 (서울특별시 용산구).xlsx"))
 data = openxlsx::read.xlsx(fileInfo, sheet = 1)
-# dataGeo = openxlsx::read.xlsx(fileInfo, sheet = 3)
 
 # 세부 투표구에 대한 위/경도 반환
 # dataGeoL1 = dataGeo %>% 
@@ -6937,9 +6937,18 @@ ggplot(dataDtlL4, aes(x = label, y = val, fill = key, group = key, label = round
 # 인구현황
 #=================================================
 # [행정안전부] 주민등록 인구통계 : https://jumin.mois.go.kr/
+# 연령별 인구현황 > 행정구역 (경상북도, 남해군) > 연간 (2021년) > 연령 구분 단위 (1세) > 만 연령구분 (0, 100이상)
+# csv 파일 다운로드
 
 # 선거 데이터 읽기
-fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0287/선거분석(용산구).xlsx"))
+# addrName = "서울특별시"
+# addrDtlName = "용산구"
+
+addrName = "경상남도"
+addrDtlName = "남해군"
+
+fileInfoPattern = sprintf("선거분석 (%s %s).xlsx", addrName, addrDtlName)
+fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, fileInfoPattern))
 data = openxlsx::read.xlsx(fileInfo, sheet = 2)
 
 dataL1 = data %>%
@@ -6948,6 +6957,7 @@ dataL1 = data %>%
   readr::type_convert()
 
 sexListPattern = c("남", "여", "남|여")
+sexInfoPattern = "남"
 
 for (sexInfoPattern in sexListPattern) {
   
@@ -7017,13 +7027,12 @@ for (sexInfoPattern in sexListPattern) {
       합계 = sumVal
     )
   
-  saveXlsxFile = sprintf("%s/%s_%s_(%s).xlsx", globalVar$outPath, serviceName, "인구현황", sexInfo)
-  
+  saveXlsxFile = sprintf("%s/%s_%s_%s_%s_(%s).xlsx", globalVar$outPath, serviceName, addrName, addrDtlName, "인구현황", sexInfo)
+
   wb = openxlsx::createWorkbook()
   openxlsx::addWorksheet(wb, "인구현황")
   openxlsx::writeData(wb, "인구현황", saveData, startRow = 1, startCol = 1, colNames = TRUE, rowNames = TRUE)
   openxlsx::saveWorkbook(wb, file = saveXlsxFile, overwrite = TRUE)
-  
   
   # 읍면동 지도 읽기
   mapInfo = Sys.glob(file.path(globalVar$mapPath, "koreaInfo/bnd_dong_00_2019_2019_2Q.shp"))
@@ -7038,8 +7047,8 @@ for (sexInfoPattern in sexListPattern) {
   
   codeDataL1 = codeData %>%
     dplyr::filter(
-      stringr::str_detect(시도명칭, regex("서울특별시"))
-      , stringr::str_detect(시군구명칭, regex("용산구"))
+      # stringr::str_detect(시도명칭, regex("서울특별시")), stringr::str_detect(시군구명칭, regex("용산구"))
+      stringr::str_detect(시도명칭, regex(addrName)), stringr::str_detect(시군구명칭, regex(addrDtlName))
     ) 
   
   # 통합 데이터셋
@@ -7069,7 +7078,7 @@ for (sexInfoPattern in sexListPattern) {
       geometry = NULL
     )
   
-  plotSubTitle2 = sprintf("%s (%s)", "서울특별시 용산구 선거 인구현황", sexInfo)
+  plotSubTitle2 = sprintf("%s %s 인구현황 (%s)", addrName, addrDtlName, sexInfo)
   saveImg2 = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, plotSubTitle2)
   
   makePiePlot = ggplot() +
@@ -7079,7 +7088,7 @@ for (sexInfoPattern in sexListPattern) {
     geom_sf_text(data = dataL7, aes(label = 읍면동명칭)) +
     # 크기 비율 X
     scatterpie::geom_scatterpie(
-      aes(x = lon, y = lat, group = factor(읍면동명칭), r = 0.004)
+      aes(x = lon, y = lat, group = factor(읍면동명칭), r = 0.025)
       , cols=c("18-20세", "21-30세", "31-40세", "41-50세", "51-60세", "61-70세", "71세 이상")
       , data = dataL8, color = NA, alpha = 0.75
     ) +
@@ -7090,9 +7099,11 @@ for (sexInfoPattern in sexListPattern) {
     #   , data = dataL8, color = NA, alpha = 0.75
     # ) +
     scatterpie::geom_scatterpie_legend(
-      dataL8$sumVal/5000000
-      , x =  min(posData$lon, na.rm = TRUE) - 0.01
-      , y = min(posData$lat, na.rm = TRUE)
+      dataL8$sumVal/600000
+      , x =  127.80 + 0.02
+      , y = 34.69 + 0.02
+      # , x =  min(posData$lon, na.rm = TRUE) 
+      # , y = min(posData$lat, na.rm = TRUE)
     ) +
     labs(
       x = NULL
@@ -7101,6 +7112,8 @@ for (sexInfoPattern in sexListPattern) {
       , fill = NULL
       , subtitle = plotSubTitle2
     ) +
+    xlim(127.80, 128.08) + 
+    ylim(34.69, 34.95) + 
     theme(
       text = element_text(size = 14)
       , panel.grid.major.x = element_blank()
@@ -7118,5 +7131,6 @@ for (sexInfoPattern in sexListPattern) {
       , plot.margin = unit(c(0.2, 0, 0, 0), 'lines')
     )
   
-    ggsave(makePiePlot, filename = saveImg2, width = 10, height = 8, dpi = 600)
+    ggsave(makePiePlot, filename = saveImg2, width = 8, height = 8, dpi = 600)
+    
 }
