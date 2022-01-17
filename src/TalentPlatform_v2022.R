@@ -6513,20 +6513,20 @@ for (j in 1:length(filename)){
   # ****************************************************************************
   # 포트란 경로 입력 (수동 입력)
   # srcPath = "E:/04. TalentPlatform/Github/TalentPlatform-R/src/fortran"
-  srcPath = file.path(".", "fortran")
+  srcPath = file.path(".", "src", "fortran")
   srcFile = file.path(srcPath, "RunFortran.f90")
   exeFile = file.path(srcPath, "a.exe")
   
   # 입력자료 저장
-  saveInpFile = sprintf("%s/%s_%s.txt", srcPath, serviceName, "input")
+  saveInpFile = sprintf("%s/%s_%s_%s.txt", srcPath, serviceName, "input", timeList[j])
   utils::write.table(data, file = saveInpFile, col.names = FALSE, row.names = FALSE)
   
   cat(sprintf("[CHECK] saveInpFile : %s", saveInpFile), "\n")
   
   # 출력자료 
-  saveOutflowFile = sprintf("%s/%s_%s.txt", ".", serviceName, paste0('Outflow_', timeList[j]))
-  saveStoFile = sprintf("%s/%s_%s.txt", srcPath, serviceName, paste0('RDR_',timeList[j]))
-  saveRdrFile = sprintf("%s/%s_%s.txt", srcPath, serviceName, paste0('Sto_',timeList[j]))
+  saveOutflowFile = sprintf("%s/%s_%s_%s.txt", srcPath, serviceName, 'Outflow', timeList[j])
+  saveStoFile = sprintf("%s/%s_%s_%s.txt", srcPath, serviceName, 'RDR', timeList[j])
+  saveRdrFile = sprintf("%s/%s_%s_%s.txt", srcPath, serviceName, 'Sto', timeList[j])
   
   # 템플릿 네임리스트 파일 정보
   nmlFileInfo = Sys.glob(file.path(srcPath, "TEMPLATE_namelistInfo.nml"))
