@@ -6646,7 +6646,15 @@ library(scatterpie)
 # 선거 주제도
 #=================================================
 # 선거 데이터 읽기
-fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "선거분석 (서울특별시 용산구).xlsx"))
+
+# addrName = "서울특별시"
+# addrDtlName = "용산구"
+
+addrName = "경상남도"
+addrDtlName = "남해군"
+
+fileInfoPattern = sprintf("선거분석 (%s %s).xlsx", addrName, addrDtlName)
+fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, fileInfoPattern))
 data = openxlsx::read.xlsx(fileInfo, sheet = 1)
 
 # 세부 투표구에 대한 위/경도 반환
@@ -6732,8 +6740,8 @@ codeData = openxlsx::read.xlsx(codeInfo, sheet = 1, startRow = 2)
 
 codeDataL1 = codeData %>%
   dplyr::filter(
-    stringr::str_detect(시도명칭, regex("서울특별시"))
-    , stringr::str_detect(시군구명칭, regex("용산구"))
+    stringr::str_detect(시도명칭, regex(addrName))
+    , stringr::str_detect(시군구명칭, regex(addrDtlName))
   ) 
 
 # 통합 데이터셋
@@ -6746,16 +6754,19 @@ dataL5 = mapGlobal %>%
 # ************************************************
 # 선거 주제도
 # ************************************************
-plotSubTitle = sprintf("%s", "서울특별시 용산구 선거 주제도")
+plotSubTitle = sprintf("%s %s 선거 주제도",addrName, addrDtlName)
 saveImg2 = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, plotSubTitle)
 
-ggplotDefaultColor = hue_pal()(3)
+# ggplotDefaultColor = hue_pal()(3)
+ggplotDefaultColor = c("red", "blue", "grey")
+
 
 ggplot() +
   theme_bw() +
   coord_fixed(ratio = 1) +
-  geom_sf(data = dataL5, aes(fill = factor(val)), inherit.aes = FALSE, alpha = 0.3) +
-  geom_sf_text(data = dataL5, aes(label = 읍면동명칭)) +
+  # geom_sf(data = dataL5, aes(fill = factor(val)), inherit.aes = FALSE, alpha = 0.3) +
+  geom_sf(data = dataL5, aes(fill = factor(val)), inherit.aes = FALSE, alpha = 1.0, color = "white") +
+  geom_sf_text(data = dataL5, aes(label = 읍면동명칭), color = "white") +
   # geom_point(data = dataDtlL3, aes(x = lon, y = lat, color = factor(val)), shape = 16, show.legend = FALSE) +
   # ggrepel::geom_label_repel(
   #   data = dataDtlL3
@@ -6769,16 +6780,19 @@ ggplot() +
   scale_fill_manual(
     name = NULL
     , na.value = "transparent"
-    , values = c("1" = ggplotDefaultColor[1], "2" = ggplotDefaultColor[3], "3" = "gray")
+    # , values = c("1" = ggplotDefaultColor[1], "2" = ggplotDefaultColor[3], "3" = "gray")
+    , values = c("1" = ggplotDefaultColor[1], "2" = ggplotDefaultColor[2], "3" = ggplotDefaultColor[3])
     , labels = c("자유한국당", "더불어민주당", "중도층")
   ) +
   scale_color_manual(
     name = NULL
     , na.value = "transparent"
-    , values = c("1" = ggplotDefaultColor[1], "2" = ggplotDefaultColor[3], "3" = "gray")
+    # , values = c("1" = ggplotDefaultColor[1], "2" = ggplotDefaultColor[3], "3" = "gray")
+    , values = c("1" = ggplotDefaultColor[1], "2" = ggplotDefaultColor[2], "3" = ggplotDefaultColor[3])
     , labels = c("자유한국당", "더불어민주당", "중도층")
   ) +
-  
+  xlim(127.80, 128.08) + 
+  ylim(34.69, 34.95) + 
   labs(title = plotSubTitle, x = NULL, y = NULL, colour = NULL, fill = NULL, subtitle = NULL) +
   theme(
     text = element_text(size = 16)
@@ -6828,7 +6842,7 @@ selLabel = paste0("제", c(1:99), "투")
 dataDtlL4$label = forcats::fct_relevel(dataDtlL4$label, selLabel)
 # dataDtlL4$label = forcats::fct_relevel(dataDtlL4$label, rev(selLabel))
 
-plotSubTitle = sprintf("%s", "서울특별시 용산구 선거 빈도분포")
+plotSubTitle = sprintf("%s %s 선거 빈도분포", addrName, addrDtlName)
 saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, plotSubTitle)
 
 ggplot(dataDtlL4, aes(x = label, y = val, fill = key, group = key, label = round(val, 0))) +
@@ -6846,7 +6860,8 @@ ggplot(dataDtlL4, aes(x = label, y = val, fill = key, group = key, label = round
   scale_fill_manual(
     name = NULL
     , na.value = "transparent"
-    , values = c("%자유한국당" = ggplotDefaultColor[1], "%더불어민주당" = ggplotDefaultColor[3], "%중도층" = "gray")
+    # , values = c("%자유한국당" = ggplotDefaultColor[1], "%더불어민주당" = ggplotDefaultColor[3], "%중도층" = "gray")
+    , values = c("%자유한국당" = ggplotDefaultColor[1], "%더불어민주당" = ggplotDefaultColor[2], "%중도층" = ggplotDefaultColor[3])
     , labels = c("자유한국당", "더불어민주당", "중도층")
   ) +
   # facet_wrap(~투표구2, scale = "free", ncol = 3) +
