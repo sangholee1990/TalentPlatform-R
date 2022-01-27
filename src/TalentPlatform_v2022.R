@@ -7190,3 +7190,193 @@ openxlsx::addWorksheet(wb, "(결과)인구현황")
 openxlsx::writeData(wb, "(결과)인구현황", saveDataL1, startRow = 1, startCol = 1, colNames = TRUE, rowNames = FALSE)
 openxlsx::saveWorkbook(wb, file = saveXlsxFile, overwrite = TRUE)
 
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+#================================================
+# 요구사항
+#================================================
+# R을 이용한 행렬 수식 계산 및 ROC 시각화
+
+#================================================
+# 초기 환경변수 설정
+#================================================
+# env = "local"   # 로컬 : 원도우 환경, 작업환경 (현재 소스 코드 환경 시 .) 설정
+env = "dev"   # 개발 : 원도우 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+# env = "oper"  # 운영 : 리눅스 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+
+prjName = "test"
+serviceName = "LSH0289"
+
+contextPath = ifelse(env == "local", ".", getwd())
+
+if (env == "local") {
+  globalVar = list(
+    "inpPath" = contextPath
+    , "figPath" = contextPath
+    , "outPath" = contextPath
+    , "tmpPath" = contextPath
+    , "logPath" = contextPath
+  )
+} else {
+  source(here::here(file.path(contextPath, "src"), "InitConfig.R"), encoding = "UTF-8")
+}
+
+#================================================
+# 비즈니스 로직 수행
+#================================================
+# 라이브러리 읽기
+library(rockchalk)
+library(tidyverse)
+library(readr)
+library(tidyverse)
+library(readr)
+library(ROCit)
+
+
+# ******************************************************************************
+# 행렬 수식 계산
+# ******************************************************************************
+
+id <- c(1,1,2,2,2,3,3,3,3,3,4,4,5,5,6,6,6,7,8,8,8,8,8,9,9,9,10,10)
+a <-table(id)
+
+ar <- function(n, rho) {
+  exponent <- abs(matrix(1:n - 1, nrow = n, ncol = n, byrow = TRUE) - (1:n - 1))
+  rho^exponent
+}
+
+cor <- function(n){
+  ar_n <- 0.5*ar(n,0.3)
+  delta_n <- diag(sqrt(2),n)
+  cor_n <- t(delta_n)%*%ar_n%*%delta_n
+  cor_n
+}
+
+
+makeMat = function(idList) {
+  
+  id = c(1,1,2,2,2,3,3,3,3,3,4,4,5,5,6,6,6,7,8,8,8,8,8,9,9,9,10,10)
+  idTab = table(id)
+  refIdTab = data.frame(idTab)
+  
+  idList = 1:3
+  
+  data = data.frame()
+  for (i in idList) {
+    idDtlList = refIdTab[i, ]$Freq
+    for (j in 1:idDtlList) {
+      
+      if (i == 1) {
+        matVal = rnorm(10, 2, 0.5)
+      } else {
+        matVal = rockchalk::mvrnorm(10, rep(2,i-1), cor(i-1))
+      }
+      
+      tmpData = data.frame(
+        id = i
+        , t(matVal)
+      )    
+      
+      data = dplyr::bind_rows(data, tmpData)
+    }
+  }
+  
+  result = as.matrix(data)
+  
+  return(result)
+}
+
+
+# 1:2에 대한 실행
+mat = makeMat(1:2)
+print(mat)
+
+# 1:4에 대한 실행
+mat = makeMat(1:4)
+print(mat)
+
+
+
+# ******************************************************************************
+# ROC 시각화
+# ******************************************************************************
+fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "Output.csv"))
+data = readr::read_csv(file = fileInfo, locale = locale("ko", encoding = "EUC-KR"))
+
+# 일단 제가 보낸 파일에서 fwerArea로 roc커브를 그려야하는데
+# 이때 true는 L이 3이상 15이하인것 중에
+# 5개로 무작위로 뽑아요
+
+tmpData = data %>% 
+  tibble::rowid_to_column() %>% 
+  dplyr::filter(dplyr::between(L, 3, 15)) %>% 
+  dplyr::sample_n(5) %>% 
+  dplyr::mutate(isFlag = TRUE)
+
+
+# tp:L# tp: true이면서 fwer<0.05도 만족한 값이구요
+# fp:fwer<0.05인데 false인경우
+# fn:true인데 fwer>=0.05
+# tn:false인데 fwer>=0.05
+dataL1 = data %>% 
+  tibble::rowid_to_column() %>% 
+  dplyr::left_join(tmpData, by = c("rowid" = "rowid"), suffix = c("", ".tmp")) %>% 
+  dplyr::mutate(
+    label = dplyr::case_when(
+      fwerArea < 0.05 & isFlag == TRUE ~ TRUE
+      , TRUE ~ FALSE
+      )
+    )
+
+
+dataL1$label = as.factor(dataL1$label)
+
+
+library(ROCit)
+library(ggplot2)
+library(pROC)
+
+# 요약 결과
+summary(rocRes)
+
+
+
+# 이때 x축은 0.00으로 시작해서 0.01씩 커지게 해주시고 false positive라고 적어주세요
+# y축은 1,2,3,4이런 빈도가 나오도록 해주시고 true positive라고 적어주세요!
+
+# ROC 곡선
+rocRes = pROC::roc(label ~ fwerArea, data = dataL1, ci = TRUE)
+
+mainTitle = "ROC 곡선"
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, mainTitle)
+
+pROC::ggroc(ROC, size = 1, legacy.axes = TRUE) +
+  geom_abline(color = "dark grey", size = 0.5) +
+  labs(x = "False Positive", y = "True Positive", subtitle = mainTitle) +
+  scale_x_continuous(breaks = seq(0, 1, by = 0.1)) +
+  scale_y_continuous(breaks = seq(0, 1, by = 0.1)) +
+  # scale_x_continuous(breaks = c(0, 0.01, 0.05, 0.1)) +
+  # scale_y_continuous(breaks = c(0, 0.01, 0.02, 0.3)) +
+  theme(text = element_text(size = 18)) +
+  ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
+
+
+# ROC 곡선2
+rocRes = ROCit::rocit(score = dataL1$fwerArea, class = dataL1$label)
+
+mainTitle = "ROC 곡선2"
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, mainTitle)
+png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
+
+plot(rocRes, main = mainTitle)
+
+dev.off()
+
