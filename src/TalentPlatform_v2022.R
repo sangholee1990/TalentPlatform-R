@@ -7190,6 +7190,7 @@ openxlsx::addWorksheet(wb, "(결과)인구현황")
 openxlsx::writeData(wb, "(결과)인구현황", saveDataL1, startRow = 1, startCol = 1, colNames = TRUE, rowNames = FALSE)
 openxlsx::saveWorkbook(wb, file = saveXlsxFile, overwrite = TRUE)
 
+
 #===============================================================================================
 # Routine : Main R program
 #
@@ -7239,12 +7240,13 @@ library(readr)
 library(tidyverse)
 library(readr)
 library(ROCit)
+library(ggplot2)
+library(pROC)
 
 
 # ******************************************************************************
 # 행렬 수식 계산
 # ******************************************************************************
-
 id <- c(1,1,2,2,2,3,3,3,3,3,4,4,5,5,6,6,6,7,8,8,8,8,8,9,9,9,10,10)
 a <-table(id)
 
@@ -7339,11 +7341,6 @@ dataL1 = data %>%
 
 dataL1$label = as.factor(dataL1$label)
 
-
-library(ROCit)
-library(ggplot2)
-library(pROC)
-
 # 요약 결과
 summary(rocRes)
 
@@ -7358,7 +7355,7 @@ rocRes = pROC::roc(label ~ fwerArea, data = dataL1, ci = TRUE)
 mainTitle = "ROC 곡선"
 saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, mainTitle)
 
-pROC::ggroc(ROC, size = 1, legacy.axes = TRUE) +
+pROC::ggroc(rocRes, size = 1, legacy.axes = TRUE) +
   geom_abline(color = "dark grey", size = 0.5) +
   labs(x = "False Positive", y = "True Positive", subtitle = mainTitle) +
   scale_x_continuous(breaks = seq(0, 1, by = 0.1)) +
@@ -7380,3 +7377,161 @@ plot(rocRes, main = mainTitle)
 
 dev.off()
 
+
+
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+#================================================
+# 요구사항
+#================================================
+# R을 이용한 기상 정보, 고도, 종분포 간의 GAM 회귀분석
+
+#================================================
+# 초기 환경변수 설정
+#================================================
+# env = "local"   # 로컬 : 원도우 환경, 작업환경 (현재 소스 코드 환경 시 .) 설정
+env = "dev"   # 개발 : 원도우 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+# env = "oper"  # 운영 : 리눅스 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+
+prjName = "test"
+serviceName = "LSH0290"
+
+contextPath = ifelse(env == "local", ".", getwd())
+
+if (env == "local") {
+  globalVar = list(
+    "inpPath" = contextPath
+    , "figPath" = contextPath
+    , "outPath" = contextPath
+    , "tmpPath" = contextPath
+    , "logPath" = contextPath
+  )
+} else {
+  source(here::here(file.path(contextPath, "src"), "InitConfig.R"), encoding = "UTF-8")
+}
+
+#================================================
+# 비즈니스 로직 수행
+#================================================
+# 라이브러리 읽기
+library(rockchalk)
+library(tidyverse)
+library(readr)
+library(tidyverse)
+library(readr)
+library(ROCit)
+library(mgcv)
+
+
+fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "Jiri_real+final.csv"))
+data = readr::read_csv(file = fileInfo, locale = locale("ko", encoding = "EUC-KR")) %>% 
+  dplyr::mutate(
+    groupsLabel = ifelse(Groups == "adult", 0, 1)
+  )
+data$Groups
+data$groupsLabel
+# 
+# 
+# summary(data)
+# 
+# data$Species %>% unique()
+# data$Groups %>% unique()
+  
+# factor(data$Groups)
+  
+# data$Groups = factor(data$Groups, levels = c(1, 2))
+data$Species = as.factor(daCta$Species)
+
+# d = data$Species 
+
+# gamModel = mgcv::gam(
+#   Elevation ~ Groups + Species
+#   , data = data
+# )
+
+# R-sq.(adj) =  0.0283   Deviance explained = 3.31%
+# GCV = 0.21574  Scale est. = 0.21466   n = 7123
+# gamModel = mgcv::gam(
+#   groupsLabel ~ s(Elevation) + Species
+#   , data = data
+# )
+
+
+gamModel = mgcv::gam(
+  groupsLabel ~ s(Elevation) + Species
+  , data = data
+  , family=binomial
+  , method="REML"
+)
+
+
+# gamModel = mgcv::gam(
+#   Elevation ~ Groups + Species
+#   , data = data
+# )
+
+plot(data$Elevation, data$groupsLabel)
+
+# gamModel = mgcv::gam(
+#   groupsLabel ~ s(Elevation)
+#   , data = data
+#   , family=binomial
+#   , method="REML"
+# )
+
+
+# R-sq.(adj) =  0.00567   Deviance explained = 0.944%
+# GCV = 0.22053  Scale est. = 0.21966   n = 7123
+# gamModel = mgcv::gam(
+#   groupsLabel ~ Elevation + Species
+#   , data = data
+# )
+
+
+# summary(gamModel)
+# plot(gamModel)
+# mgcv::plot.gam(gamModel)
+
+
+# 요약
+summary(gamModel)
+# # mgcViz::getViz(gamModel)
+# 
+# # b <- mgcViz::getViz(gamModel)
+# print(plot(mgcViz::getViz(gamModel), allTCerms = TRUE), pages = 1) # Calls print.plotGam()
+# 
+# plot(mgcViz::getViz(gamModel), select = 1)
+# plot(mgcViz::getViz(gamModel), select = 2)
+# 
+# Species
+
+# print(plot(mgcViz::getViz(gamModel), allTerms = TRUE), pages = 1)
+
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "Elevation에 따른 Groups 결과 (adult=0, juvenile=1)")
+png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
+plot(mgcViz::getViz(gamModel), select = 1)
+dev.off()
+
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "Species에 따른 Groups 결과 (adult=0, juvenile=1)")
+png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
+plot(mgcViz::getViz(gamModel), select = 2)
+dev.off()
+# 
+# 
+# # 모델 검증
+# perfTable["GAM", ] = perfEval(
+#   predict(gamModel, newdata = testData)
+#   , testData$CHWEUI
+# ) %>%
+#   round(2)
+# 
+# 
+# gam
