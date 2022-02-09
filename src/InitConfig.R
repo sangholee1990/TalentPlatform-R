@@ -78,6 +78,9 @@ rm(list = setdiff(ls(), c("env", "prjName", "serviceName", "contextPath")))
 #=====================================
 # Set Env
 #=====================================
+# 인코딩 정보 확인
+# Sys.getlocale()
+
 # Sys.setlocale("LC_ALL", "C")
 # options(encoding = "UTF-8")
 # Sys.setenv(LANG = "ko_KR.UTF-8")
@@ -91,7 +94,6 @@ Sys.setenv(LANG = "ko_KR.UTF-8")
 # Sys.setenv(LANG = "en_US.UTF-8")
 
 # Sys.setlocale("LC_CTYPE", ".1251")
-# Sys.setlocale("LC_CTYPE", "Korean")
 
 # Open API Key
 configInfo = yaml::yaml.load_file(file.path(contextPath, "resources", "config", "system.cfg"))

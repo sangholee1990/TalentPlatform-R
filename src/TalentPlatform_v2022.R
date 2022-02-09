@@ -57,7 +57,9 @@ fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "Seoul_grid.shp"))
 mapData = sf::st_read(fileInfo, quiet = TRUE, options = "ENCODING=EUC-KR") %>% 
   sf::st_transform(CRS("+proj=longlat"))
 
-mapDataL1 = mapData %>% 
+a= 10
+plot(a)
+mapDataL1 = mapData %>%
   as.tibble() %>% 
   dplyr::select(-c("grid_id", "geometry"))
 
@@ -6641,24 +6643,32 @@ library(raster)
 library(cowplot)
 library(patchwork)
 library(scatterpie)
+library(readxl)
+library(ggplot2) 
+library(grid)
+library(gridExtra) 
+library(cowplot) 
 
 #=================================================
 # 선거 주제도
 #=================================================
 # 선거 데이터 읽기
-
 # addrName = "서울특별시"
 # addrDtlName = "용산구"
 
-# addrName = "경상남도"
-# addrDtlName = "남해군"
+addrName = "경상남도"
+addrDtlName = "남해군"
 
-addrName = "경기도"
-addrDtlName = "안성시"
+# addrName = "경기도"
+# addrDtlName = "안성시"
+
+pick(fileInfo)
 
 fileInfoPattern = sprintf("선거분석 (%s %s).xlsx", addrName, addrDtlName)
 fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, fileInfoPattern))
-data = openxlsx::read.xlsx(fileInfo, sheet = 1)
+# data = openxlsx::read.xlsx(fileInfo, sheet = 1)
+# data = readxl::read_excel(fileInfo, sheet = 1)
+data = xlsx::read.xlsx(fileInfo, sheetIndex = 1, encoding="UTF-8")
 
 # 세부 투표구에 대한 위/경도 반환
 # dataGeoL1 = dataGeo %>% 
@@ -6720,12 +6730,20 @@ dataL3 = data %>%
       , 중도층 == maxVal ~ 3
       )
     , 투표구2 = dplyr::case_when(
-      stringr::str_detect(투표구, regex("원효로제1동")) ~ "원효로1동"
-      , stringr::str_detect(투표구, regex("원효로제2동")) ~ "원효로2동"
-      , stringr::str_detect(투표구, regex("이촌제1동")) ~ "이촌1동"
-      , stringr::str_detect(투표구, regex("이촌제2동")) ~ "이촌2동"
-      , stringr::str_detect(투표구, regex("이태원제1동")) ~ "이태원1동"
-      , stringr::str_detect(투표구, regex("이태원제2동")) ~ "이태원2동"
+      # stringr::str_detect(투표구, regex("원효로제1동")) ~ "원효로1동"
+      # , stringr::str_detect(투표구, regex("원효로제2동")) ~ "원효로2동"
+      # , stringr::str_detect(투표구, regex("이촌제1동")) ~ "이촌1동"
+      # , stringr::str_detect(투표구, regex("이촌제2동")) ~ "이촌2동"
+      # , stringr::str_detect(투표구, regex("이태원제1동")) ~ "이태원1동"
+      # , stringr::str_detect(투표구, regex("이태원제2동")) ~ "이태원2동"
+      # , TRUE ~ 투표구
+      
+      grepl("원효로제1동", 투표구) ~ "원효로1동"
+      , grepl("원효로제2동", 투표구) ~ "원효로2동"
+      , grepl("이촌제1동", 투표구) ~ "이촌1동"
+      , grepl("이촌제2동", 투표구) ~ "이촌2동"
+      , grepl("이태원제1동", 투표구) ~ "이태원1동"
+      , grepl("이태원제2동", 투표구) ~ "이태원2동"
       , TRUE ~ 투표구
     )
   )
@@ -6741,11 +6759,20 @@ mapGlobal = sf::st_read(mapInfo, quiet = TRUE, options = "ENCODING=EUC-KR") %>%
 codeInfo = Sys.glob(file.path(globalVar$mapPath, "admCode/admCode.xlsx"))
 codeData = openxlsx::read.xlsx(codeInfo, sheet = 1, startRow = 2)
 
+stringr::str_detect(codeData$시도명칭, regex("경상북도")) %>% 
+  unique()
+
+
 codeDataL1 = codeData %>%
   dplyr::filter(
-    stringr::str_detect(시도명칭, regex(addrName))
-    , stringr::str_detect(시군구명칭, regex(addrDtlName))
+  # stringr::str_detect(시도명칭, regex(addrName))
+  # , stringr::str_detect(시군구명칭, regex(addrDtlName))
+   grepl(addrName, 시도명칭)
+   , grepl(addrDtlName, 시군구명칭)
   ) 
+
+
+codeData$시도명칭 %>% unique()
 
 # 통합 데이터셋
 dataL5 = mapGlobal %>%
@@ -6895,7 +6922,7 @@ ggplot(dataDtlL4, aes(x = label, y = val, fill = key, group = key, label = round
 #   ) +
 #   facet_wrap(~투표구, scale = "free", ncol = 4)
 # 
-# 
+
 # # 지도
 # ggMapPlot = ggplot() +
 #   theme_bw() +
@@ -6964,11 +6991,17 @@ ggplot(dataDtlL4, aes(x = label, y = val, fill = key, group = key, label = round
 #   만 연령구분 (0, 100이상)
 # [다운로드] csv 파일 다운로드
 
-# 선거 데이터 읽기
+addrName = "경상남도"
+addrDtlName = "남해군"
 
+# 선거 데이터 읽기
 fileInfoPattern = sprintf("선거분석 (%s %s).xlsx", addrName, addrDtlName)
 fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, fileInfoPattern))
-data = openxlsx::read.xlsx(fileInfo, sheet = 2)
+data = xlsx::read.xlsx(fileInfo, sheetIndex = 2, encoding = "UTF-8")
+
+# fileInfoPattern = sprintf("선거분석 (%s %s).csv", addrName, addrDtlName)
+# fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, fileInfoPattern))
+# data = readr::read_csv(file = fileInfo)
 
 dataL1 = data %>%
   as.tibble() %>%
@@ -6976,27 +7009,29 @@ dataL1 = data %>%
   readr::type_convert()
 
 sexListPattern = c("남", "여", "남|여")
-sexInfoPattern = "남"
-
-sexInfoPattern = "남"
-
+# sexInfoPattern = "남"
 saveDataL1 = tibble::tibble()
+
 for (sexInfoPattern in sexListPattern) {
   
-  sexInfo = stringr::str_replace(sexInfoPattern, "\\|", "")
+  # 한글변환 문제
+  # sexInfo = stringr::str_replace(sexInfoPattern, "\\|", "") %>% unlist()
+  sexInfo = gsub("\\|", "", sexInfoPattern)
   
   dataL2 = dataL1 %>%
     dplyr::select(투표구, tidyselect::matches("[[:digit:]]+세")) %>% 
     tidyr::gather(-투표구, key = "key", value = "투표수") %>% 
     dplyr::mutate(
       age = stringr::str_match_all(key, "[[:digit:]]+") %>% unlist()
-      , sex = stringr::str_match_all(key, "^남|여") %>% unlist()
-      , isSex = dplyr::case_when(
-        stringr::str_detect(sex, regex(sexInfoPattern)) ~ TRUE
-        , TRUE ~ FALSE
-      )
+      # , sex = stringr::str_match_all(key, "^남|여") %>% unlist()
+      , sex = gsub("[^남|여]", "", key) %>% stringr::str_trim(side = c("both"))
+      # , isSex = dplyr::case_when(
+      #   stringr::str_detect(sex, regex(sexInfoPattern)) ~ TRUE
+      #   , TRUE ~ FALSE
+      # )
+      , isSex = grepl(sexInfoPattern, sex)
     ) %>% 
-    dplyr::filter(isSex == TRUE) %>% 
+    dplyr::filter(isSex == TRUE) %>%
     dplyr::mutate(
       type = dplyr::case_when(
         16 <= age & age <= 20 ~ "16-20세"
@@ -7013,10 +7048,9 @@ for (sexInfoPattern in sexListPattern) {
       , ! is.na(type)
     ) %>% 
     dplyr::select(-age)
-  
-  
+
   statData = dataL2 %>%
-    dplyr::group_by(투표구, type) %>% 
+    dplyr::group_by(투표구, type) %>%
     dplyr::summarise(
       sumKeyVal = sum(투표수, na.rm = TRUE) 
     )
@@ -7042,8 +7076,7 @@ for (sexInfoPattern in sexListPattern) {
       )
     )
   
-  
-  saveData = dataL4 %>% 
+  saveData = dataL4 %>%
     dplyr::rename(
       합계 = sumVal
     ) %>% 
@@ -7051,26 +7084,236 @@ for (sexInfoPattern in sexListPattern) {
       성별 = sexInfo
     )
   
+  # 데이터 병합
   saveDataL1 = dplyr::bind_rows(saveDataL1, saveData)
   
   
-  # saveXlsxFile = sprintf("%s/%s_%s_%s_%s_(%s).xlsx", globalVar$outPath, serviceName, addrName, addrDtlName, "인구현황", sexInfo)
+  # ****************************************************************************
+  # 인구현황 배경지도
+  # ****************************************************************************
+  typeList = dataL4$투표구2 %>% unique() %>% sort()
   
-  # wb = openxlsx::createWorkbook()
-  # openxlsx::addWorksheet(wb, "인구현황")
-  # openxlsx::writeData(wb, "인구현황", saveData, startRow = 1, startCol = 1, colNames = TRUE, rowNames = TRUE)
-  # openxlsx::saveWorkbook(wb, file = saveXlsxFile, overwrite = TRUE)
+  plotSubTitle = sprintf("%s %s 인구현황 막대 (%s)", addrName, addrDtlName, sexInfo)
+  saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, plotSubTitle)
+  saveTmp = tempfile(fileext = ".png")
   
-  # 읍면동 지도 읽기
-  mapInfo = Sys.glob(file.path(globalVar$mapPath, "koreaInfo/bnd_dong_00_2019_2019_2Q.shp"))
+  makePlotBg = ggplot() +
+    theme_bw() +
+    coord_fixed(ratio = 1) +
+    geom_sf(data = dataL5, fill = NA, inherit.aes = FALSE) +
+    geom_sf_text(data = dataL5, aes(label = 읍면동명칭)) +
+    labs(
+      x = NULL
+      , y = NULL
+      , color = NULL
+      , fill = NULL
+      , subtitle = plotSubTitle
+    ) +
+    xlim(127.80, 128.08) +
+    ylim(34.69, 34.95) +
+    theme(
+      text = element_text(size = 14)
+      , panel.border = element_blank()
+      , panel.grid = element_blank()
+      , panel.grid.major.x = element_blank()
+      , panel.grid.major.y = element_blank()
+      , panel.grid.minor.x = element_blank()
+      , panel.grid.minor.y = element_blank()
+      , axis.text.x = element_blank()
+      , axis.ticks.x = element_blank()
+      , axis.title.x = element_blank()
+      , axis.text.y = element_blank()
+      , axis.ticks.y = element_blank()
+      , axis.title.y = element_blank()
+      , legend.position = "top"
+      , legend.box = "horizontal"
+      , plot.margin = unit(c(0.2, 0, 0, 0), "lines")
+    )
   
-  # shp 파일 읽기 (2)
-  mapGlobal = sf::st_read(mapInfo, quiet = TRUE, options = "ENCODING=EUC-KR") %>% 
-    sf::st_transform(CRS("+proj=longlat"))
+  ggsave(makePlotBg, filename = saveTmp, width = 8, height = 8, dpi = 600)
+  fs::file_copy(saveTmp, saveImg, overwrite = TRUE)
+
   
-  # 법정동 코드 읽기 (2)
-  codeInfo = Sys.glob(file.path(globalVar$mapPath, "admCode/admCode.xlsx"))
-  codeData = openxlsx::read.xlsx(codeInfo, sheet = 1, startRow = 2)
+  # ****************************************************************************
+  # 인구현황 막대 그래프
+  # ****************************************************************************
+  # typeInfo = typeList[1]
+  for (typeInfo in typeList) {
+    
+    dataL6 = dataL4 %>%
+      dplyr::ungroup() %>%
+      dplyr::filter(투표구2 == typeInfo) %>%
+      dplyr::select(-c("투표구", "sumVal")) %>%
+      tidyr::gather(-투표구2, key = "key", value = "val") %>% 
+      dplyr::mutate(
+        per = val / sum(val, na.rm = TRUE) * 100.0
+      )
+    
+    cbSet1 = RColorBrewer::brewer.pal(7, "Set1")
+    
+    plotSubTitle = sprintf("%s %s 인구현황 막대차트 (%s, %s)", addrName, addrDtlName, sexInfo, typeInfo)
+    saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, plotSubTitle)
+    saveTmp = tempfile(fileext = ".png")
+    
+    makePlot = ggplot(dataL6, aes(x=key, y=per, group=key, fill=key, label = round(per, 0))) +
+      geom_bar(position="dodge", stat="identity", show.legend = FALSE, alpha = 1) +
+      geom_text(nudge_y = -1.50, color = "black", size = 3) +
+      labs(
+        x = NULL
+        , y = NULL
+        , color = NULL
+        , fill = NULL
+        , subtitle = NULL
+      ) +
+      scale_y_continuous(breaks = seq(0, 50, 10), minor_breaks = NULL) +
+      scale_fill_manual(
+        name = NULL
+        , na.value = "transparent"
+        , values = c("16-20세" = cbSet1[1], "21-30세" = cbSet1[2], "31-40세" = cbSet1[3], "41-50세" = cbSet1[4], "51-60세" = cbSet1[5], "61-70세" = cbSet1[6], "71세 이상" = cbSet1[7])
+        , labels = c("16-20세", "21-30세", "31-40세", "41-50세", "51-60세", "61-70세", "71세 이상")
+      ) +
+      theme_bw() +
+      theme(
+        text = element_text(size = 16)
+        , panel.border = element_blank()
+        , panel.grid.major.x = element_blank()
+        , panel.grid.major.y = element_blank()
+        , panel.grid.minor.x = element_blank()
+        , panel.grid.minor.y = element_blank()
+        , axis.text.x = element_blank()
+        , axis.ticks.x = element_blank()
+        , axis.title.x = element_blank()
+        , axis.text.y = element_blank()
+        , axis.ticks.y = element_blank()
+        , axis.title.y = element_blank()
+        , panel.grid.major = element_blank()
+        , panel.grid.minor = element_blank()
+        , panel.background = element_rect(fill = "transparent")
+        , plot.background = element_rect(fill = "transparent", color = NA)
+        , legend.background = element_rect(fill = "transparent")
+        , legend.box.background = element_rect(fill = "transparent")
+      )
+    
+    ggsave(makePlot, filename = saveTmp, width = 2, height = 2, dpi = 600)
+    
+    fs::file_copy(saveTmp, saveImg, overwrite = TRUE)
+  }
+}
+
+
+saveXlsxFile = sprintf("%s/%s_%s_%s_%s.xlsx", globalVar$outPath, serviceName, addrName, addrDtlName, "인구현황")
+
+wb = openxlsx::createWorkbook()
+openxlsx::addWorksheet(wb, "(결과)인구현황")
+openxlsx::writeData(wb, "(결과)인구현황", saveDataL1, startRow = 1, startCol = 1, colNames = TRUE, rowNames = FALSE)
+openxlsx::saveWorkbook(wb, file = saveXlsxFile, overwrite = TRUE)
+
+
+# ****************************************************************************
+# 범례 그리기
+# ****************************************************************************
+legendData = tibble::tibble(
+  x = 1:7
+  , y = 1:7
+  , legend = c("16-20세", "21-30세", "31-40세", "41-50세", "51-60세", "61-70세", "71세 이상")
+)
+
+plotSubTitle = "범례 정보"
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, plotSubTitle)
+saveTmp = tempfile(fileext = ".png")
+
+makePlotLegend = ggplot(legendData, aes(x = x, y = y, fill = legend)) +   
+  geom_bar(position="dodge", stat="identity", rsize = 7) +
+  scale_fill_manual(
+    name = NULL
+    , na.value = "transparent"
+    , values = c("16-20세" = cbSet1[1], "21-30세" = cbSet1[2], "31-40세" = cbSet1[3], "41-50세" = cbSet1[4], "51-60세" = cbSet1[5], "61-70세" = cbSet1[6], "71세 이상" = cbSet1[7])
+    , labels = c("16-20세", "21-30세", "31-40세", "41-50세", "51-60세", "61-70세", "71세 이상")
+  ) 
+
+getLegend = cowplot::get_legend(makePlotLegend)                    
+grid::grid.newpage()
+png(file = saveTmp, width = 2, height = 2, units = "in", res = 600, bg = "transparent")
+grid::grid.draw(getLegend)
+dev.off()
+fs::file_copy(saveTmp, saveImg, overwrite = TRUE)
+
+
+
+# ****************************************************************************
+# 인구현황 파이 그래프
+# ****************************************************************************
+for (sexInfoPattern in sexListPattern) {
+  
+  # 한글변환 문제
+  # sexInfo = stringr::str_replace(sexInfoPattern, "\\|", "") %>% unlist()
+  sexInfo = gsub("\\|", "", sexInfoPattern)
+  
+  dataL2 = dataL1 %>%
+    dplyr::select(투표구, tidyselect::matches("[[:digit:]]+세")) %>% 
+    tidyr::gather(-투표구, key = "key", value = "투표수") %>% 
+    dplyr::mutate(
+      age = stringr::str_match_all(key, "[[:digit:]]+") %>% unlist()
+      # , sex = stringr::str_match_all(key, "^남|여") %>% unlist()
+      , sex = gsub("[^남|여]", "",key) %>% stringr::str_trim(side = c("both"))
+      # , isSex = dplyr::case_when(
+      #   stringr::str_detect(sex, regex(sexInfoPattern)) ~ TRUE
+      #   , TRUE ~ FALSE
+      # )
+      , isSex = grepl(sexInfoPattern, sex)
+    ) %>% 
+    dplyr::filter(isSex == TRUE) %>%
+    dplyr::mutate(
+      type = dplyr::case_when(
+        16 <= age & age <= 20 ~ "16-20세"
+        , 21 <= age & age <= 30 ~ "21-30세"
+        , 31 <= age & age <= 40 ~ "31-40세"
+        , 41 <= age & age <= 50 ~ "41-50세"
+        , 51 <= age & age <= 60 ~ "51-60세"
+        , 61 <= age & age <= 70 ~ "61-70세"
+        , 71 <= age ~ "71세 이상"
+      )
+    ) %>% 
+    dplyr::filter(
+      ! is.na(age)
+      , ! is.na(type)
+    ) %>% 
+    dplyr::select(-age)
+  
+  statData = dataL2 %>%
+    dplyr::group_by(투표구, type) %>%
+    dplyr::summarise(
+      sumKeyVal = sum(투표수, na.rm = TRUE) 
+    )
+  
+  statDataL2 = dataL2 %>% 
+    dplyr::group_by(투표구) %>% 
+    dplyr::summarise(
+      sumVal = sum(투표수, na.rm = TRUE) 
+    )
+  
+  dataL4 = statData %>% 
+    dplyr::left_join(statDataL2, by = c("투표구" = "투표구")) %>% 
+    tidyr::spread(key = "type", value = "sumKeyVal") %>% 
+    dplyr::mutate(
+      투표구2 = dplyr::case_when(
+        stringr::str_detect(투표구, regex("원효로제1동")) ~ "원효로1동"
+        , stringr::str_detect(투표구, regex("원효로제2동")) ~ "원효로2동"
+        , stringr::str_detect(투표구, regex("이촌제1동")) ~ "이촌1동"
+        , stringr::str_detect(투표구, regex("이촌제2동")) ~ "이촌2동"
+        , stringr::str_detect(투표구, regex("이태원제1동")) ~ "이태원1동"
+        , stringr::str_detect(투표구, regex("이태원제2동")) ~ "이태원2동"
+        , TRUE ~ 투표구
+      )
+    )
+  
+  saveData = dataL4 %>%
+    dplyr::rename(
+      합계 = sumVal
+    ) %>% 
+    dplyr::mutate(
+      성별 = sexInfo
+    )
   
   codeDataL1 = codeData %>%
     dplyr::filter(
@@ -7106,10 +7349,6 @@ for (sexInfoPattern in sexListPattern) {
       )
     )
  
-  
-  # ************************************************
-  # 선거 주제도
-  # ************************************************
   dataL7 = na.omit(dataL6)
   
   dataL8 = dataL7 %>% 
@@ -7120,7 +7359,7 @@ for (sexInfoPattern in sexListPattern) {
   
   # ggplotDefaultColor = c("red", "blue", "grey")
   
-  plotSubTitle2 = sprintf("%s %s 인구현황 (%s)", addrName, addrDtlName, sexInfo)
+  plotSubTitle2 = sprintf("%s %s 인구현황 파이차트 (%s)", addrName, addrDtlName, sexInfo)
   saveImg2 = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, plotSubTitle2)
   
   makePiePlot = ggplot() +
@@ -7176,19 +7415,12 @@ for (sexInfoPattern in sexListPattern) {
       , axis.title.y = element_blank()
       , legend.position = "top"
       , legend.box = "horizontal"
-      , plot.margin = unit(c(0.2, 0, 0, 0), 'lines')
+      , plot.margin = unit(c(0.2, 0, 0, 0), "lines")
     )
   
     ggsave(makePiePlot, filename = saveImg2, width = 8, height = 8, dpi = 600)
     
 }
-
-saveXlsxFile = sprintf("%s/%s_%s_%s_%s.xlsx", globalVar$outPath, serviceName, addrName, addrDtlName, "인구현황")
-
-wb = openxlsx::createWorkbook()
-openxlsx::addWorksheet(wb, "(결과)인구현황")
-openxlsx::writeData(wb, "(결과)인구현황", saveDataL1, startRow = 1, startCol = 1, colNames = TRUE, rowNames = FALSE)
-openxlsx::saveWorkbook(wb, file = saveXlsxFile, overwrite = TRUE)
 
 
 #===============================================================================================
@@ -7514,34 +7746,131 @@ data = readr::read_csv(file = fileInfo, locale = locale("ko", encoding = "EUC-KR
 # 다시한 번 말씀드리면 각 수종의 juvenile&adult를 구분하였고, 한 수종당 adult, juvenile 고도 그래프가 1개씩 총 2개가 나와야합니다!! 
 # 또한 gps 자료를 통해 기상과 종분포와의 관계를 예측 및 파악하고 싶습니다!!
 grpList = data$Groups %>% unique() %>% sort()
+speList = data$Species %>% unique() %>% sort()
+
+# data$Lat %>% unique() %>% sort()
+# data$Lon %>% unique() %>% sort()
 
 # grpInfo = "adult"
-for (grpInfo in grpList) {
-  
-  gamModel = mgcv::gam(
-    Groups == grpInfo ~ s(Elevation)
-    , data = data
-    , family = binomial
-    , method = "REML"
-  )
-  
-  # summary(gamModel)
+# speInfo = "구상"
+speInfo = "고로쇠"
 
-  mainTitle = sprintf("Elevation에 따른 Groups 결과 (%s)", grpInfo)
-  saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, mainTitle)
-  saveTmp = tempfile()
-  
-  png(file = saveTmp, width = 10, height = 8, units = "in", res = 600, pointsize = 25)
-  print(
-    plot(mgcViz::getViz(gamModel)) +
-      labs(subtitle = mainTitle) +
-      theme(text = element_text(size = 18))
-    , pages = 1
-  )
-  dev.off()
-  
-  fs::file_copy(saveTmp, saveImg, overwrite = TRUE)
+for (grpInfo in grpList) {
+  for (speInfo in speList) {
+    
+    dataL1 = data %>%
+      dplyr::filter(
+        Groups == grpInfo
+      )
+
+    # data$Groups = factor(data$Groups)
+    # data$Species = factor(data$Species)
+    data$grpFac = ifelse(data$Groups == grpInfo, 1, 0)
+    data$speFac = ifelse(data$Species == speInfo, 1, 0)
+    
+    dataL1$speFac = ifelse(dataL1$Species == speInfo, 1, 0)
+    
+    
+    gamModel = mgcv::gam(
+      Groups == grpInfo & Species == speInfo ~ s(Elevation)
+      , data = data
+      , family = gaussian
+    )
+    
+    
+    # 종속 변수가 0 아니면 1인 경우: Logistic regression
+    # 종속 변수가 순위나 선호도와 같이 순서만 있는 데이터인 경우: Ordinal regression
+    # 종속 변수가 개수(count)를 나타내는 경우: Poisson regression
+    gamModel = mgcv::gam(
+      grpFac == 1 % speFac == 1 ~ s(Elevation)
+      , data = data
+      , family = gaussian
+      # , family = binomial
+      # , method = "REML"
+      # , method = "ML"
+      # , method = "P-ML"
+      # , method = "P-REML"
+    )
+    
+    # Gaussian distribution
+    gamModel = mgcv::gam(
+      speFac == 1 ~ s(Elevation)
+      , data = dataL1
+      # , family = binomial
+      , family = gaussian
+      # , method = "REML"
+      # , method = "ML"
+      # , method = "P-ML"
+      # , method = "P-REML"
+    )
+    
+
+    mainTitle = sprintf("Groups 및 Species에 따른 Elevation 결과 (%s, %s)", grpInfo, speInfo)
+    # saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, mainTitle)
+    saveTmp = tempfile()
+    
+    png(file = saveTmp, width = 10, height = 8, units = "in", res = 600, pointsize = 25)
+    
+    print(
+      plot(mgcViz::getViz(gamModel)) +
+        scale_x_continuous(breaks = seq(0, 2400, 400)) +
+        # scale_y_continuous(breaks = c(seq(-0.6, 1, 0.4), 0)) +
+        xlim(0, 2400) +
+        # ylim(-0.6, 1) +
+        theme_bw() +
+        labs(subtitle = mainTitle, x = "Elevation (m)", y = "Normalized probability of occupancy") +
+        theme(text = element_text(size = 18))
+      , pages = 1
+    )
+    
+    dev.off()
+    
+    fs::file_copy(saveTmp, saveImg, overwrite = TRUE)
+    
+    
+  }
 }
+
+
+
+# plot(gamModel, select = 1)
+
+# Groups == grpInfo & 
+# 
+#     gamModel = mgcv::gam(
+#       Species == speInfo ~ s(Elevation)
+#       , data = data
+#       , family = binomial
+#       , method = "REML"
+#     )
+#     
+#     plot(gamModel, allTerms = T)
+#     
+#     plot(gamModel, select = 1) + l_dens(type = "cond") + l_fitLine() + l_ciLine()
+#     
+#     
+#     plot(getViz(gamModel))
+
+# 
+# mgcViz::check.gamViz(getViz(gamModel))
+# mgcViz::gridPrint(getViz(gamModel))
+# mgcViz::check0D(getViz(gamModel))
+# mgcViz::check2D(getViz(gamModel))
+# mgcViz::plot.gamViz(getViz(gamModel))
+# mgcViz::plot.sos.smooth(getViz(gamModel))
+# 
+# 
+# dat <- gamSim(1,n=1e3,dist="normal",scale=2)
+# dat$fac <- as.factor( sample(letters[1:6], nrow(dat), replace = TRUE) )
+# b <- gam(y~s(x0)+s(x1, x2)+s(x3)+fac, data=dat)
+# # To plot all the effects we do:
+#   
+#   b <- getViz(b)
+# print(plot(b, allTerms = T), pages = 1) # Calls print.plotGam()
+# 
+
+
+# summary(gamModel)
 
 # saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "Species에 따른 Groups 결과 (adult=0, juvenile=1)")
 # png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
