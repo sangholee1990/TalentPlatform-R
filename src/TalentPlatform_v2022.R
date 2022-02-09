@@ -7247,63 +7247,137 @@ library(pROC)
 # ******************************************************************************
 # 행렬 수식 계산
 # ******************************************************************************
-id <- c(1,1,2,2,2,3,3,3,3,3,4,4,5,5,6,6,6,7,8,8,8,8,8,9,9,9,10,10)
-a <-table(id)
+# id <- c(1,1,2,2,2,3,3,3,3,3,4,4,5,5,6,6,6,7,8,8,8,8,8,9,9,9,10,10)
+# a <-table(id)
+# 
+# ar <- function(n, rho) {
+#   exponent <- abs(matrix(1:n - 1, nrow = n, ncol = n, byrow = TRUE) - (1:n - 1))
+#   rho^exponent
+# }
+# 
+# cor <- function(n){
+#   ar_n <- 0.5*ar(n,0.3)
+#   delta_n <- diag(sqrt(2),n)
+#   cor_n <- t(delta_n)%*%ar_n%*%delta_n
+#   cor_n
+# }
+# 
+# 
+# makeMat = function(idList) {
+#   
+#   id = c(1,1,2,2,2,3,3,3,3,3,4,4,5,5,6,6,6,7,8,8,8,8,8,9,9,9,10,10)
+#   idTab = table(id)
+#   refIdTab = data.frame(idTab)
+#   
+#   idList = 1:3
+#   
+#   data = data.frame()
+#   for (i in idList) {
+#     idDtlList = refIdTab[i, ]$Freq
+#     for (j in 1:idDtlList) {
+#       
+#       if (i == 1) {
+#         matVal = rnorm(10, 2, 0.5)
+#       } else {
+#         matVal = rockchalk::mvrnorm(10, rep(2,i-1), cor(i-1))
+#       }
+#       
+#       tmpData = data.frame(
+#         id = i
+#         , t(matVal)
+#       )    
+#       
+#       data = dplyr::bind_rows(data, tmpData)
+#     }
+#   }
+#   
+#   result = as.matrix(data)
+#   
+#   return(result)
+# }
+# 
+# 
+# # 1:2에 대한 실행
+# mat = makeMat(1:2)
+# print(mat)
+# 
+# # 1:4에 대한 실행
+# mat = makeMat(1:4)
+# print(mat)
 
+
+# ******************************************************************************
+# 행렬 수식 계산 (보완)
+# ******************************************************************************
+# sim_1.csv 파일 읽기
+fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "sim_1.csv"))
+inpData = readr::read_csv(file = fileInfo, locale = locale("ko", encoding = "EUC-KR")) 
+
+#AR(1) function
 ar <- function(n, rho) {
   exponent <- abs(matrix(1:n - 1, nrow = n, ncol = n, byrow = TRUE) - (1:n - 1))
   rho^exponent
 }
 
+#variance-covariance matrix function
 cor <- function(n){
-  ar_n <- 0.5*ar(n,0.3)
-  delta_n <- diag(sqrt(2),n)
+  ar_n <- 0.75*ar(n,0.5)
+  delta_n <- diag(sqrt(4),n)
   cor_n <- t(delta_n)%*%ar_n%*%delta_n
   cor_n
 }
 
-
-makeMat = function(idList) {
+makeMat <-  function(inpData) {
   
-  id = c(1,1,2,2,2,3,3,3,3,3,4,4,5,5,6,6,6,7,8,8,8,8,8,9,9,9,10,10)
-  idTab = table(id)
-  refIdTab = data.frame(idTab)
+  set.seed(123456)
+  data <- data.frame()
   
-  idList = 1:3
+  # data에서 1줄씩 읽기
   
-  data = data.frame()
-  for (i in idList) {
-    idDtlList = refIdTab[i, ]$Freq
-    for (j in 1:idDtlList) {
+  tabData = table(inpData$cluster1)
+  
+  # for (j in 1:100) { # 테스트
+  for (i in 1:nrow(inpData)) { # 실전
+    rowData = inpData[j, ]
+    # summary(rowData)
+    
+    # 해당 컬럼 정보 가져오기
+    clu = rowData$cluster1
+    chInfo = rowData$CHR
+    isFlag = rowData$TF
+    
+    for (i in 1:chInfo) {
       
-      if (i == 1) {
-        matVal = rnorm(10, 2, 0.5)
-      } else {
-        matVal = rockchalk::mvrnorm(10, rep(2,i-1), cor(i-1))
+      if (i==1) {
+        matVal <- mvrnorm(30, rep(0,1), 0.3*ar(1,0.5))
+      }else if(i==2){
+        matVal <- mvrnorm(30, rep(0,2), 0.3*ar(2,0.5))
+      }else {
+        #T가  아닌 cluster1는  matVal <- mvrnorm(30, rep(0,i), 0.3*ar(i,0.5)) 
+        #이때 i는 cluster의 table 결과
+        #T인 경우 cluster1는  matVal <- mvrnorm(30, rep(0,i), cor(i)) 
+        #이때 i는 cluster의 table 결과  
+        
+        if (isFlag == TRUE) {
+          matVal <- mvrnorm(30, rep(0,i), cor(i))
+        } else {
+          matVal <- mvrnorm(30, rep(0,i), 0.3*ar(i,0.5)) 
+        }
       }
       
-      tmpData = data.frame(
-        id = i
-        , t(matVal)
-      )    
-      
-      data = dplyr::bind_rows(data, tmpData)
+      Data <- data.frame(t(matVal))    
+      data <- dplyr::bind_rows(data, Data)
     }
   }
   
-  result = as.matrix(data)
-  
+  result <-  as.matrix(data)
   return(result)
 }
 
 
-# 1:2에 대한 실행
-mat = makeMat(1:2)
+mat = makeMat(inpData)
 print(mat)
 
-# 1:4에 대한 실행
-mat = makeMat(1:4)
-print(mat)
 
 
 
@@ -7429,109 +7503,47 @@ library(tidyverse)
 library(readr)
 library(ROCit)
 library(mgcv)
+library(mgcViz)
 
 
-fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "Jiri_real+final.csv"))
-data = readr::read_csv(file = fileInfo, locale = locale("ko", encoding = "EUC-KR")) %>% 
-  dplyr::mutate(
-    groupsLabel = ifelse(Groups == "adult", 0, 1)
+# fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "Jiri_real+final.csv"))
+fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "Jiri산.csv"))
+data = readr::read_csv(file = fileInfo, locale = locale("ko", encoding = "EUC-KR"))
+
+
+# 다시한 번 말씀드리면 각 수종의 juvenile&adult를 구분하였고, 한 수종당 adult, juvenile 고도 그래프가 1개씩 총 2개가 나와야합니다!! 
+# 또한 gps 자료를 통해 기상과 종분포와의 관계를 예측 및 파악하고 싶습니다!!
+grpList = data$Groups %>% unique() %>% sort()
+
+# grpInfo = "adult"
+for (grpInfo in grpList) {
+  
+  gamModel = mgcv::gam(
+    Groups == grpInfo ~ s(Elevation)
+    , data = data
+    , family = binomial
+    , method = "REML"
   )
-data$Groups
-data$groupsLabel
-# 
-# 
-# summary(data)
-# 
-# data$Species %>% unique()
-# data$Groups %>% unique()
   
-# factor(data$Groups)
+  # summary(gamModel)
+
+  mainTitle = sprintf("Elevation에 따른 Groups 결과 (%s)", grpInfo)
+  saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, mainTitle)
+  saveTmp = tempfile()
   
-# data$Groups = factor(data$Groups, levels = c(1, 2))
-data$Species = as.factor(daCta$Species)
+  png(file = saveTmp, width = 10, height = 8, units = "in", res = 600, pointsize = 25)
+  print(
+    plot(mgcViz::getViz(gamModel)) +
+      labs(subtitle = mainTitle) +
+      theme(text = element_text(size = 18))
+    , pages = 1
+  )
+  dev.off()
+  
+  fs::file_copy(saveTmp, saveImg, overwrite = TRUE)
+}
 
-# d = data$Species 
-
-# gamModel = mgcv::gam(
-#   Elevation ~ Groups + Species
-#   , data = data
-# )
-
-# R-sq.(adj) =  0.0283   Deviance explained = 3.31%
-# GCV = 0.21574  Scale est. = 0.21466   n = 7123
-# gamModel = mgcv::gam(
-#   groupsLabel ~ s(Elevation) + Species
-#   , data = data
-# )
-
-
-gamModel = mgcv::gam(
-  groupsLabel ~ s(Elevation) + Species
-  , data = data
-  , family=binomial
-  , method="REML"
-)
-
-
-# gamModel = mgcv::gam(
-#   Elevation ~ Groups + Species
-#   , data = data
-# )
-
-plot(data$Elevation, data$groupsLabel)
-
-# gamModel = mgcv::gam(
-#   groupsLabel ~ s(Elevation)
-#   , data = data
-#   , family=binomial
-#   , method="REML"
-# )
-
-
-# R-sq.(adj) =  0.00567   Deviance explained = 0.944%
-# GCV = 0.22053  Scale est. = 0.21966   n = 7123
-# gamModel = mgcv::gam(
-#   groupsLabel ~ Elevation + Species
-#   , data = data
-# )
-
-
-# summary(gamModel)
-# plot(gamModel)
-# mgcv::plot.gam(gamModel)
-
-
-# 요약
-summary(gamModel)
-# # mgcViz::getViz(gamModel)
-# 
-# # b <- mgcViz::getViz(gamModel)
-# print(plot(mgcViz::getViz(gamModel), allTCerms = TRUE), pages = 1) # Calls print.plotGam()
-# 
-# plot(mgcViz::getViz(gamModel), select = 1)
+# saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "Species에 따른 Groups 결과 (adult=0, juvenile=1)")
+# png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
 # plot(mgcViz::getViz(gamModel), select = 2)
-# 
-# Species
-
-# print(plot(mgcViz::getViz(gamModel), allTerms = TRUE), pages = 1)
-
-saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "Elevation에 따른 Groups 결과 (adult=0, juvenile=1)")
-png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
-plot(mgcViz::getViz(gamModel), select = 1)
-dev.off()
-
-saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "Species에 따른 Groups 결과 (adult=0, juvenile=1)")
-png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
-plot(mgcViz::getViz(gamModel), select = 2)
-dev.off()
-# 
-# 
-# # 모델 검증
-# perfTable["GAM", ] = perfEval(
-#   predict(gamModel, newdata = testData)
-#   , testData$CHWEUI
-# ) %>%
-#   round(2)
-# 
-# 
-# gam
+# dev.off()
