@@ -653,3 +653,13 @@ cbPlasma = rev(viridis::plasma(11))
 #   , dtDateList[i]
 #   , codeList[j, 'emdCd']
 # ), "\n")
+
+
+# ************************************************
+# 데이터 병합
+# ************************************************
+# fileList = Sys.glob(file.path(globalVar$outPath, "LSH0132_obs-to-idw_*.csv"))
+# 
+# dataL4 = fileList %>%
+#   purrr::map(read.csv) %>%
+#   purrr::reduce(dplyr::bind_rows)
