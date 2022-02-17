@@ -7684,7 +7684,6 @@ plot(rocRes, main = mainTitle)
 dev.off()
 
 
-
 #===============================================================================================
 # Routine : Main R program
 #
@@ -7699,6 +7698,10 @@ dev.off()
 # 요구사항
 #================================================
 # R을 이용한 기상 정보, 고도, 종분포 간의 GAM 회귀분석
+
+# 다시한 번 말씀드리면 각 수종의 juvenile&adult를 구분하였고, 
+# 한 수종당 adult, juvenile 고도 그래프가 1개씩 총 2개가 나와야합니다!! 
+# 또한 gps 자료를 통해 기상과 종분포와의 관계를 예측 및 파악하고 싶습니다!!
 
 #================================================
 # 초기 환경변수 설정
@@ -7736,83 +7739,96 @@ library(readr)
 library(ROCit)
 library(mgcv)
 library(mgcViz)
-
+library(lubridate)
+library(geosphere)
+library(ggcorrplot)
+library(GGally)
+library(factoextra)
+library(tidyselect)
+library(stringr)
+library(openxlsx)
+library(MASS)
+library(showtext)
+library(quantreg)
+library(ggplot2)
+library(tidyverse)
+library(Metrics)
+library(vcd)
+library(coronavirus)
+library(plotly)
+library(ggpubr)
+library(processx)
+library(webshot)
+library(htmlwidgets)
 
 # fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "Jiri_real+final.csv"))
-fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "Jiri산.csv"))
+# fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "Jiri산.csv"))
+fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "JIRIMOUNTAIN.csv"))
+
 data = readr::read_csv(file = fileInfo, locale = locale("ko", encoding = "EUC-KR"))
 
 
-# 다시한 번 말씀드리면 각 수종의 juvenile&adult를 구분하였고, 한 수종당 adult, juvenile 고도 그래프가 1개씩 총 2개가 나와야합니다!! 
-# 또한 gps 자료를 통해 기상과 종분포와의 관계를 예측 및 파악하고 싶습니다!!
+# ******************************************************************************
+# 다시한 번 말씀드리면 각 수종의 juvenile&adult를 구분하였고, 
+# ******************************************************************************
 grpList = data$Groups %>% unique() %>% sort()
 speList = data$Species %>% unique() %>% sort()
 
-# data$Lat %>% unique() %>% sort()
-# data$Lon %>% unique() %>% sort()
-
 # grpInfo = "adult"
+# grpInfo = "juvenile"
 # speInfo = "구상"
-speInfo = "고로쇠"
+# speInfo = "고로쇠"
 
 for (grpInfo in grpList) {
   for (speInfo in speList) {
     
-    dataL1 = data %>%
-      dplyr::filter(
-        Groups == grpInfo
+    data$Groups = as.factor(data$Groups)
+    data$Species = as.factor(data$Species)
+
+    
+    # gamModel = gam(
+    #   Species == speInfo & Groups == grpInfo ~ s(Elevation, by = Groups)
+    #   , data = data
+    # )
+    
+    gamModel = gam(
+      Species == speInfo ~ s(Elevation, by = Groups) + Groups
+      , data = data
+    )
+    
+    
+    # **************************************************************************
+    # adult
+    # **************************************************************************
+    prdData = data %>% 
+      dplyr::filter(Groups == "adult") %>% 
+      dplyr::mutate(
+        x = Elevation
+        , y = predict(gamModel, newdata = .)
+      ) %>% 
+      dplyr::filter(y == max(y, na.rm = TRUE)) %>% 
+      dplyr::group_by(x, y) %>% 
+      dplyr::summarise(
+        meanX = mean(x, na.rm = TRUE)
+        , meanY = mean(y, na.rm = TRUE)
       )
-
-    # data$Groups = factor(data$Groups)
-    # data$Species = factor(data$Species)
-    data$grpFac = ifelse(data$Groups == grpInfo, 1, 0)
-    data$speFac = ifelse(data$Species == speInfo, 1, 0)
-    
-    dataL1$speFac = ifelse(dataL1$Species == speInfo, 1, 0)
     
     
-    gamModel = mgcv::gam(
-      Groups == grpInfo & Species == speInfo ~ s(Elevation)
-      , data = data
-      , family = gaussian
-    )
-    
-    
-    # 종속 변수가 0 아니면 1인 경우: Logistic regression
-    # 종속 변수가 순위나 선호도와 같이 순서만 있는 데이터인 경우: Ordinal regression
-    # 종속 변수가 개수(count)를 나타내는 경우: Poisson regression
-    gamModel = mgcv::gam(
-      grpFac == 1 % speFac == 1 ~ s(Elevation)
-      , data = data
-      , family = gaussian
-      # , family = binomial
-      # , method = "REML"
-      # , method = "ML"
-      # , method = "P-ML"
-      # , method = "P-REML"
-    )
-    
-    # Gaussian distribution
-    gamModel = mgcv::gam(
-      speFac == 1 ~ s(Elevation)
-      , data = dataL1
-      # , family = binomial
-      , family = gaussian
-      # , method = "REML"
-      # , method = "ML"
-      # , method = "P-ML"
-      # , method = "P-REML"
-    )
-    
-
-    mainTitle = sprintf("Groups 및 Species에 따른 Elevation 결과 (%s, %s)", grpInfo, speInfo)
-    # saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, mainTitle)
-    saveTmp = tempfile()
-    
-    png(file = saveTmp, width = 10, height = 8, units = "in", res = 600, pointsize = 25)
-    
+    mainTitle = sprintf("Groups 및 Species에 따른 Elevation 결과 (%s, %s)", "adult", speInfo)
+    saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, mainTitle)
+    saveTmp = tempfile(fileext = "png")
+      
+    png(file = saveTmp, width = 10, height = 8, units = "in", res = 600)
     print(
-      plot(mgcViz::getViz(gamModel)) +
+      plot(mgcViz::getViz(gamModel), select = 1) +
+        geom_vline(xintercept = prdData$meanX, linetype = 2, color = "blue", size = 0.5) +
+        ggrepel::geom_text_repel(
+          nudge_x = 10
+          , nudge_y = 0
+          , aes(x = meanX, y = meanY, label = sprintf("(%s, %s)", round(prdData$meanX, 2), round(prdData$meanY, 2)))
+          , color = "blue"
+          , data = prdData
+          ) +
         scale_x_continuous(breaks = seq(0, 2400, 400)) +
         # scale_y_continuous(breaks = c(seq(-0.6, 1, 0.4), 0)) +
         xlim(0, 2400) +
@@ -7820,22 +7836,358 @@ for (grpInfo in grpList) {
         theme_bw() +
         labs(subtitle = mainTitle, x = "Elevation (m)", y = "Normalized probability of occupancy") +
         theme(text = element_text(size = 18))
-      , pages = 1
-    )
-    
+      , pages = 1)
     dev.off()
     
     fs::file_copy(saveTmp, saveImg, overwrite = TRUE)
     
     
+    # **************************************************************************
+    # juvenile
+    # **************************************************************************
+    prdData = data %>%
+      dplyr::filter(Groups == "juvenile") %>% 
+      dplyr::mutate(
+        x = Elevation
+        , y = predict(gamModel, newdata = .)
+      ) %>%
+      dplyr::filter(y == max(y, na.rm = TRUE)) %>%
+      dplyr::group_by(x, y) %>%
+      dplyr::summarise(
+        meanX = mean(x, na.rm = TRUE)
+        , meanY = mean(y, na.rm = TRUE)
+      )
+
+
+    mainTitle = sprintf("Groups 및 Species에 따른 Elevation 결과 (%s, %s)", "juvenile", speInfo)
+    saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, mainTitle)
+    saveTmp = tempfile(fileext = "png")
+
+    png(file = saveTmp, width = 10, height = 8, units = "in", res = 600)
+    print(
+      plot(mgcViz::getViz(gamModel), select = 2) +
+        geom_vline(xintercept = prdData$meanX, linetype = 2, color = "blue", size = 0.5) +
+        ggrepel::geom_text_repel(
+          nudge_x = 10
+          , nudge_y = 0
+          , aes(x = meanX, y = meanY, label = sprintf("(%s, %s)", round(prdData$meanX, 2), round(prdData$meanY, 2)))
+          , color = "blue"
+          , data = prdData
+        ) +
+        scale_x_continuous(breaks = seq(0, 2400, 400)) +
+        # scale_y_continuous(breaks = c(seq(-0.6, 1, 0.4), 0)) +
+        xlim(0, 2400) +
+        # ylim(-0.6, 1) +
+        theme_bw() +
+        labs(subtitle = mainTitle, x = "Elevation (m)", y = "Normalized probability of occupancy") +
+        theme(text = element_text(size = 18))
+    , pages = 1)
+    dev.off()
+
+    fs::file_copy(saveTmp, saveImg, overwrite = TRUE)
+    
   }
 }
 
 
+#   
+#   
+#   # 
+#   # 
+#   # png(file = saveTmp, width = 10, height = 8, units = "in", res = 600, pointsize = 25)
+#   # plot(mgcViz::getViz(gamModel), select = 1) +
+#   #   geom_vline(xintercept = prdDataL1$meanX, linetype = 2, color = "blue", size = 0.5) +
+#   #   # annotate("text", x = prdDataL1$meanX, y = prdDataL1$meanY, label = sprintf("maxVal : %s", round(prdDataL1$meanY, 2)), size = 5, hjust = 0, color = "blue", fontface = "bold") +
+#   #   ggrepel::geom_label_repel(nudge_x = 0.2, aes(x = meanX, y = meanY, label = sprintf("maxVal : %s", round(prdDataL1$meanY, 2))), data = prdDataL1) +
+#   #   scale_x_continuous(breaks = seq(0, 2400, 400)) +
+#   #   # scale_y_continuous(breaks = c(seq(-0.6, 1, 0.4), 0)) +
+#   #   xlim(0, 2400) +
+#   #   # ylim(-0.6, 1) +
+#   #   theme_bw() +
+#   #   labs(subtitle = mainTitle, x = "Elevation (m)", y = "Normalized probability of occupancy") +
+#   #   theme(text = element_text(size = 18))
+#   # dev.off()
+#   # 
+#   # fs::file_copy(saveTmp, saveImg, overwrite = TRUE)
+#   # 
+#   # 
+#   # 
+#   # print(
+#   #   plot(mgcViz::getViz(gamModel)) +
+#   #     scale_x_continuous(breaks = seq(0, 2400, 400)) +
+#   #     # scale_y_continuous(breaks = c(seq(-0.6, 1, 0.4), 0)) +
+#   #     xlim(0, 2400) +
+#   #     # ylim(-0.6, 1) +
+#   #     theme_bw() +
+#   #     labs(subtitle = mainTitle, x = "Elevation (m)", y = "Normalized probability of occupancy") +
+#   #     theme(text = element_text(size = 18))
+#   #   , select = 1
+#   # )
+#   
+# 
+#   
+# 
+#   plot(mgcViz::getViz(gamModel)) +
+#     scale_x_continuous(breaks = seq(0, 2400, 400)) +
+#     # scale_y_continuous(breaks = c(seq(-0.6, 1, 0.4), 0)) +
+#     xlim(0, 2400) +
+#     # ylim(-0.6, 1) +
+#     theme_bw() +
+#     labs(subtitle = mainTitle, x = "Elevation (m)", y = "Normalized probability of occupancy") +
+#     theme(text = element_text(size = 18))
+#   
+#   
+#   
+#   
+#   
+#   plot(gamModel,  se)
+#   summary(gamModel)
+#   
+#   print(plot(gamModel, allTerms = T), pages = 1) 
+#   
+#   
+#   mgcViz::getViz(gamModel)
+#   
+#   
+#  
+#   
+#   
+#   
+# 
+#   # data$grpFac = ifelse(data$Groups == grpInfo, 1, 0)
+#   # data$speFac = ifelse(data$Species == speInfo, 1, 0)
+#   # 
+#   # dataL1$speFac = ifelse(dataL1$Species == speInfo, 1, 0)
+#   # 
+# 
+#   gamModel = mgcv::gam(
+#     Species ~ Groups + s(Elevation)
+#     , data = data
+#   )
+#   
+#   # gamModel = mgcv::gam(
+#   #   Groups == grpInfo ~ s(Species) + s(Elevation)
+#   #   , data = data
+#   # )
+#   
+#   b <- getViz(gamModel)
+#   plot(gamModel)
+#   
+#   # 
+#   # 
+#   # gamModel = mgcv::gam(
+#   #   Species == speInfo ~ s(Elevation) + Groups
+#   #   , data = data
+#   #   , family = gaussian
+#   # )
+#   
+#   
+#   set.seed(6898)
+#   dat <- gamSim(1,n=1500,dist="normal",scale=20)
+#   dat$fac <- as.factor( sample(c("A1", "A2", "A3"), nrow(dat), replace = TRUE) ) 
+#   bs <- "cr"; k <- 12
+#   b <- gam(y ~ s(x2,bs=bs,by = fac), data=dat)
+#   b <- getViz(b)
+#   plot(b)
+#   plotDiff(s1 = sm(b, 1), s2 = sm(b, 2)) + l_ciPoly() + 
+#     l_fitLine() + geom_hline(yintercept = 0, linetype = 2)
+#   
+#   # 
+#   gamModel = mgcv::gam(
+#     Species == speInfo ~ s(Elevation, bs = "cr", by = Groups)
+#     , data = data
+#   )
+#   
+#   o <- getViz(gamModel, nsim = 0)
+#   plot(o)
+#   
+#   pl <- plotDiff(s1 = sm(o, 1), s2 = sm(o, 2))
+#   pl + l_fitRaster() + l_fitContour()
+#   
+#   
+#   plot(pl)
+#   
+#   pl + l_fitRaster() + l_fitContour()
+#   
+#   plot(getViz(gamModel))
+#   
+#   # o <- getViz(gamModel), nsim = 0)
+#   
+#   
+#   library(mgcViz)
+#   set.seed(235)
+#   dat <- gamSim(1,n=1500,dist="normal",scale=20)
+#   #> Gu & Wahba 4 term additive model
+#   dat$fac <- as.factor( sample(c("A1", "A2", "A3"), nrow(dat), replace = TRUE) )
+#   dat$logi <- as.logical( sample(c(TRUE, FALSE), nrow(dat), replace = TRUE) )
+#   bs <- "cr"; k <- 12
+#   b <- gam(y ~ s(x2, x1, by = fac), data=dat)
+#   o <- getViz(b, nsim = 0)
+#   
+#   # Extract the smooths correspoding to "A1" and "A2" and plot their difference
+#   pl <- plotDiff(s1 = sm(o, 1), s2 = sm(o, 2))
+#   pl + l_fitRaster() + l_fitContour()
+#   
+#   gamModel = gam(
+#     Species ~ s(Elevation, by = Groups) + factor(Species)
+#     , data = data
+#     # , family = gaussian
+#   )
+#   
+# # gamModel = mgcv::gam(
+# #     Groups ~ s(Elevation, by = Species) + s(Species)
+# #     , data = data
+# #     # , family = gaussian
+# #   )
+#   
+#   # gam(y ~ s(x2,bs=bs,by = fac), data=dat)
+#   
+#   # gamModel = mgcv::gam(
+#   #   Groups ~ s(Elevation, by = Species)
+#   #   , data = data
+#   #   , family = gaussian
+#   # )
+#   
+#   summary(gamModel)
+#   
+#   b <- getViz(gamModel)
+#   plot(b)
+#   
+#   s1 = sm(b, 1)
+#   s2 = sm(b, 2)
+#   plotDiff(s1 = sm(b, 1), s2 = sm(b, 2)) 
+#   
+#   # data$prd = predict(gamModel, newdata = data)
+#   # max(data$prd, na.rm = TRUE)
+#   
+#   plot(data$Elevation, data$prd)
+#   
+#   dataL1 = data.frame(data$Elevation, data$prd)
+#   
+#   # 정규화 (0, 1)
+#   dd = caret::preProcess(x = dataL1, method = "range") %>% predict(newdata = dataL1)
+#   plot(data$Elevation, dd$data.prd)
+#   
+#   # 표준화 (평균, 표준편차)
+#   dd = caret::preProcess(x = dataL1, method = c("center", "scale")) %>% predict(newdata = dataL1)
+#   
+#   
+#   plot(data$Elevation, dd$data.prd)
+#   
+#   plotDiff(s1 = sm(b, 1), s2 = sm(b, 2)) + l_ciPoly() + 
+#     l_fitLine() + geom_hline(yintercept = 0, linetype = 2)
+#   
+#   # set.seed(6898)
+#   # dat <- gamSim(1,n=1500,dist="normal",scale=20)
+#   # dat$fac <- as.factor( sample(c("A1", "A2", "A3"), nrow(dat), replace = TRUE) ) 
+#   # bs <- "cr"; k <- 12
+#   # b <- gam(y ~ s(x2,bs=bs,by = fac), data=dat)
+#   # b <- getViz(b)
+#   
+#   # plot(mgcViz::getViz(gamModel))
+#   
+#   # 종속 변수가 0 아니면 1인 경우: Logistic regression
+#   # 종속 변수가 순위나 선호도와 같이 순서만 있는 데이터인 경우: Ordinal regression
+#   # 종속 변수가 개수(count)를 나타내는 경우: Poisson regression
+#   # gamModel = mgcv::gam(
+#   #   grpFac == 1 & speFac == 1 ~ s(Elevation)
+#   #   , data = data
+#   #   , family = gaussian
+#   #   # , family = binomial
+#   #   # , method = "REML"
+#   #   # , method = "ML"
+#   #   # , method = "P-ML"
+#   #   # , method = "P-REML"
+#   # )
+# 
+#   # Gaussian distribution
+#   # gamModel = mgcv::gam(
+#   #   speFac == 1 ~ s(Elevation)
+#   #   , data = dataL1
+#   #   , family = binomial
+#   # #   , family = gaussian
+#   # #   # , method = "REML"
+#   # #   # , method = "ML"
+#   # #   # , method = "P-ML"
+#   # #   # , method = "P-REML"
+#   # )
+# 
+# 
+#   mainTitle = sprintf("Groups 및 Species에 따른 Elevation 결과 (%s, %s)", grpInfo, speInfo)
+#   saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, mainTitle)
+#   saveTmp = tempfile()
+#   
+#   png(file = saveTmp, width = 10, height = 8, units = "in", res = 600, pointsize = 25)
+#   
+#   print(
+#     plot(mgcViz::getViz(gamModel)) +
+#       scale_x_continuous(breaks = seq(0, 2400, 400)) +
+#       # scale_y_continuous(breaks = c(seq(-0.6, 1, 0.4), 0)) +
+#       xlim(0, 2400) +
+#       # ylim(-0.6, 1) +
+#       theme_bw() +
+#       labs(subtitle = mainTitle, x = "Elevation (m)", y = "Normalized probability of occupancy") +
+#       theme(text = element_text(size = 18))
+#     , pages = 1
+#   )
+#   
+#   dev.off()
+#   
+#   fs::file_copy(saveTmp, saveImg, overwrite = TRUE)
 
-# plot(gamModel, select = 1)
 
-# Groups == grpInfo & 
+b = mgcViz::getViz(gamModel)
+plot(b)
+
+o = sm(b, 1)
+plot(o)
+
+
+b <- getViz(gamModel)
+o <- plot( sm(b, 1) )
+o + l_fitLine(colour = "red") + l_rug(mapping = aes(x=x, y=y), alpha = 0.8) +
+  l_ciLine(mul = 5, colour = "blue", linetype = 2) + 
+  l_points(shape = 19, size = 1, alpha = 0.1) + theme_classic()
+
+
+
+
+
+
+
+
+plot(sm(b, 1)) + l_fitRaster() + l_fitContour() + l_points()
+
+
+
+b <- getViz(b)
+print(plot(b, allTerms = T), pages = 1) 
+plot(b, select = 1)
+
+plot(b, select = 1) + l_dens(type = "cond") + l_fitLine() + l_ciLine()
+
+
+plotRGL(sm(b, 1), fix = c("z" = 0), residuals = TRUE)
+
+plot(b, allTerms = TRUE, select = 4) + geom_hline(yintercept = 0)
+
+b <- getViz(b)
+plot(b)
+
+check(b,
+      a.qq = list(method = "tnorm", 
+                  a.cipoly = list(fill = "light blue")), 
+      a.respoi = list(size = 0.5), 
+      a.hist = list(bins = 10))
+
+b <- getViz(b, nsim = 50)
+gridPrint(check1D(b, "x") + l_gridCheck1D(gridFun = sd, show.reps = TRUE), 
+          check1D(b, "z") + l_gridCheck1D(gridFun = sd, show.reps = TRUE), ncol = 2)
+
+
+plot(gamModel, select = 1)
+
+# Groups == grpInfo & s
 # 
 #     gamModel = mgcv::gam(
 #       Species == speInfo ~ s(Elevation)
@@ -7852,22 +8204,22 @@ for (grpInfo in grpList) {
 #     plot(getViz(gamModel))
 
 # 
-# mgcViz::check.gamViz(getViz(gamModel))
-# mgcViz::gridPrint(getViz(gamModel))
-# mgcViz::check0D(getViz(gamModel))
-# mgcViz::check2D(getViz(gamModel))
-# mgcViz::plot.gamViz(getViz(gamModel))
-# mgcViz::plot.sos.smooth(getViz(gamModel))
-# 
-# 
-# dat <- gamSim(1,n=1e3,dist="normal",scale=2)
-# dat$fac <- as.factor( sample(letters[1:6], nrow(dat), replace = TRUE) )
-# b <- gam(y~s(x0)+s(x1, x2)+s(x3)+fac, data=dat)
-# # To plot all the effects we do:
-#   
-#   b <- getViz(b)
-# print(plot(b, allTerms = T), pages = 1) # Calls print.plotGam()
-# 
+mgcViz::check.gamViz(getViz(gamModel))
+mgcViz::gridPrint(getViz(gamModel))
+mgcViz::check0D(getViz(gamModel))
+mgcViz::check2D(getViz(gamModel))
+mgcViz::plot.gamViz(getViz(gamModel))
+mgcViz::plot.sos.smooth(getViz(gamModel))
+
+
+dat <- gamSim(1,n=1e3,dist="normal",scale=2)
+dat$fac <- as.factor( sample(letters[1:6], nrow(dat), replace = TRUE) )
+b <- gam(y~s(x0)+s(x1, x2)+s(x3)+fac, data=dat)
+# To plot all the effects we do:
+
+  b <- getViz(b)
+print(plot(b, allTerms = T), pages = 1) # Calls print.plotGam()
+
 
 
 # summary(gamModel)
@@ -7876,3 +8228,423 @@ for (grpInfo in grpList) {
 # png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
 # plot(mgcViz::getViz(gamModel), select = 2)
 # dev.off()
+
+
+
+gamModel = gam(
+  Species == speInfo ~ s(Elevation, by = Groups) + Groups
+  , data = data
+)
+print(plot(gamModel, allTerms = TRUE), pages = 1) 
+
+
+# ******************************************************************************
+# 기상관측소 (ASOS) 자료 병합 및 저장
+# ******************************************************************************
+# fileList = Sys.glob(file.path(globalVar$inpPath, serviceName, "ASOS_ORG/*.csv"))
+# 
+# asosData = fileList %>%
+#   purrr::map(read.csv) %>%
+#   purrr::reduce(dplyr::bind_rows)
+# 
+# saveFile = sprintf("%s/%s/%s.csv", globalVar$inpPath, serviceName, "ASOS_2008-2021")
+# readr::write_csv(x = asosData, file = saveFile)
+
+
+fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "JIRIMOUNTAIN.csv"))
+data = readr::read_csv(file = fileInfo, locale = locale("ko", encoding = "EUC-KR"))
+
+# 기상관측소 (ASOS) 읽기
+asosFile = Sys.glob(file.path(globalVar$inpPath, serviceName, "ASOS_2008-2021.csv"))
+asosData =  readr::read_csv(file = asosFile, locale = locale("ko", encoding = "UTF-8"))
+
+colnames(asosData)
+# [1] "지점"                          "일시"                          "평균기온..C."                 
+# [4] "최저기온..C."                  "최저기온.시각.hhmi."           "최고기온..C."                 
+# [7] "최고기온.시각.hhmi."           "강수.계속시간.hr."             "X10분.최다.강수량.mm."        
+# [10] "X10분.최다강수량.시각.hhmi."   "X1시간.최다강수량.mm."         "X1시간.최다.강수량.시각.hhmi."
+# [13] "일강수량.mm."                  "최대.순간.풍속.m.s."           "최대.순간.풍속.풍향.16방위."  
+# [16] "최대.순간풍속.시각.hhmi."      "최대.풍속.m.s."                "최대.풍속.풍향.16방위."       
+# [19] "최대.풍속.시각.hhmi."          "평균.풍속.m.s."                "풍정합.100m."                 
+# [22] "평균.이슬점온도..C."           "최소.상대습도..."              "최소.상대습도.시각.hhmi."     
+# [25] "평균.상대습도..."              "평균.증기압.hPa."              "평균.현지기압.hPa."           
+# [28] "최고.해면기압.hPa."            "최고.해면기압.시각.hhmi."      "최저.해면기압.hPa."           
+# [31] "최저.해면기압.시각.hhmi."      "평균.해면기압.hPa."            "가조시간.hr."                 
+# [34] "합계.일조.시간.hr."            "X1시간.최다일사.시각.hhmi."    "X1시간.최다일사량.MJ.m2."     
+# [37] "합계.일사.MJ.m2."              "일.최심신적설.cm."             "일.최심신적설.시각.hhmi."     
+# [40] "일.최심적설.cm."               "일.최심적설.시각.hhmi."        "합계.3시간.신적설.cm."        
+# [43] "평균.전운량.1.10."             "평균.중하층운량.1.10."         "평균.지면온도..C."            
+# [46] "최저.초상온도..C."             "평균.5cm.지중온도..C."         "평균.10cm.지중온도..C."       
+# [49] "평균.20cm.지중온도..C."        "평균.30cm.지중온도..C."        "X0.5m.지중온도..C."           
+# [52] "X1.0m.지중온도..C."            "X1.5m.지중온도..C."            "X3.0m.지중온도..C."           
+# [55] "X5.0m.지중온도..C."            "합계.대형증발량.mm."           "합계.소형증발량.mm."          
+# [58] "X9.9강수.mm."                  "안개.계속시간.hr."             "합계.일조시간.hr."            
+# [61] "합계.일사량.MJ.m2."
+
+
+stnFile = Sys.glob(file.path(globalVar$inpPath, serviceName, "ASOS_STN_INFO.csv"))
+stnData =  readr::read_csv(file = stnFile, locale = locale("ko", encoding = "UTF-8")) %>% 
+  dplyr::rename(
+    STN = STN...1
+  )
+
+
+dataL1 = data %>% 
+  dplyr::mutate(
+    dtDate = lubridate::make_date(year= Year, month = Month, day = Day)
+    , posId = paste(Lon, Lat, sep = "-")
+  )
+
+
+posIdList = dataL1$posId %>% unique() %>% sort() %>% 
+  as.tibble() %>% 
+  tidyr::separate(col = value, into = c("lon", "lat"), sep = "-") %>% 
+  readr::type_convert()
+
+for (i in 1:nrow(posIdList)) {
+  posIdInfo = posIdList[i, ]
+  
+  
+  for (j in 1:nrow(stnData)) {
+    stnInfo = stnData[j, ]
+    stnData[j, "distKm"] = geosphere::distm(c(posIdInfo$lon, posIdInfo$lat), c(stnInfo$LON, stnInfo$LAT), fun = distGeo) / 1000.0
+  }
+  
+  stnDataL1 = stnData %>% 
+    dplyr::filter(distKm == min(stnData$distKm, na.rm = TRUE))
+  
+  
+  posIdList[i, "stn"] = stnDataL1$STN
+  posIdList[i, "distKm"] = stnDataL1$distKm
+}
+
+
+# 수목 자료 및 기상관측소 (ASOS) 데이터 병합
+dataL2 = dataL1 %>% 
+  dplyr::left_join(posIdList, by = c("Lon" = "lon", "Lat" = "lat")) %>%
+  dplyr::left_join(asosData, by = c("stn" = "지점", "dtDate" = "일시"))
+
+# 자료 저장
+saveFile = sprintf("%s/%s_%s.csv", globalVar$outPath, serviceName, "수목 및 기상관측소 데이터")
+saveTmp = tempfile(fileext = "csv")
+
+readr::write_excel_csv(x = dataL2, file = saveTmp)
+fs::file_copy(saveTmp, saveFile, overwrite = TRUE)
+
+
+# ******************************************************************************
+# 온도와 강수량이 가장 중요합니다!
+# 서로 고도에 따라 다른 분포를 나타내면 그것을 통해 juvenile과 adult의 고도분포 현황을 볼 수 있습니다!
+# 고도분포의 경우 구상나무을 예로들면 adult의 경우 몇 십년 동안 한 자리에서 자랐고 
+# juvenile의 경우 최근에 생성된 것이기 때문에 구상나무의 기후변화로 인한 고도 변화를 파악할 수 있게됩니다!!
+# ******************************************************************************
+
+dataL2$Groups = as.factor(dataL2$Groups)
+dataL2$Species = as.factor(dataL2$Species)
+
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# 평균 기온
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+gamModel = gam(Groups == grpInfo ~ s(Elevation, 평균기온..C., by = Groups) + Groups, data=dataL2)
+
+mainTitle = sprintf("Groups에 따른 Elevation 및 평균기온 (%s)", "adult")
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, mainTitle)
+saveTmp = tempfile(fileext = "png")
+
+png(file = saveTmp, width = 10, height = 8, units = "in", res = 600)
+print(
+  plot(mgcViz::getViz(gamModel), select = 1) +
+    geom_vline(xintercept = prdData$meanX, linetype = 2, color = "blue", size = 0.5) +
+    scale_x_continuous(breaks = seq(0, 2400, 400)) +
+    xlim(0, 2400) +
+    # ylim(-0.6, 1) +
+    theme_bw() +
+    labs(title = NULL, subtitle = mainTitle, x = "Elevation (m)", y = "평균 기온 [℃]") +
+    theme(text = element_text(size = 18))
+  , pages = 1)
+dev.off()
+
+fs::file_copy(saveTmp, saveImg, overwrite = TRUE)
+
+
+
+mainTitle = sprintf("Groups에 따른 Elevation 및 평균기온 (%s)", "juvenile")
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, mainTitle)
+saveTmp = tempfile(fileext = "png")
+
+png(file = saveTmp, width = 10, height = 8, units = "in", res = 600)
+print(
+  plot(mgcViz::getViz(gamModel), select = 2) +
+    geom_vline(xintercept = prdData$meanX, linetype = 2, color = "blue", size = 0.5) +
+    scale_x_continuous(breaks = seq(0, 2400, 400)) +
+    # scale_y_continuous(breaks = c(seq(-0.6, 1, 0.4), 0)) +
+    xlim(0, 2400) +
+    # ylim(-0.6, 1) +
+    theme_bw() +
+    labs(title = NULL, subtitle = mainTitle, x = "Elevation (m)", y = "평균 기온 [℃]") +
+    theme(text = element_text(size = 18))
+  , pages = 1)
+dev.off()
+
+fs::file_copy(saveTmp, saveImg, overwrite = TRUE)
+
+
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# 평균 일강수
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+gamModel = gam(Groups == grpInfo ~ s(Elevation, 일강수량.mm., by = Groups) + Groups, data=dataL2)
+
+mainTitle = sprintf("Groups에 따른 Elevation 및 평균일강수 (%s)", "adult")
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, mainTitle)
+saveTmp = tempfile(fileext = "png")
+
+png(file = saveTmp, width = 10, height = 8, units = "in", res = 600)
+print(
+  plot(mgcViz::getViz(gamModel), select = 1) +
+    scale_x_continuous(breaks = seq(0, 2400, 400)) +
+    xlim(0, 2400) +
+    # ylim(-0.6, 1) +
+    theme_bw() +
+    labs(title = NULL, subtitle = mainTitle, x = "Elevation (m)", y = "평균 일강수 [mm]") +
+    theme(text = element_text(size = 18))
+  , pages = 1)
+dev.off()
+
+fs::file_copy(saveTmp, saveImg, overwrite = TRUE)
+
+
+
+mainTitle = sprintf("Groups에 따른 Elevation 및 평균일강수 (%s)", "juvenile")
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, mainTitle)
+saveTmp = tempfile(fileext = "png")
+
+png(file = saveTmp, width = 10, height = 8, units = "in", res = 600)
+print(
+  plot(mgcViz::getViz(gamModel), select = 2) +
+    scale_x_continuous(breaks = seq(0, 2400, 400)) +
+    # scale_y_continuous(breaks = c(seq(-0.6, 1, 0.4), 0)) +
+    xlim(0, 2400) +
+    # ylim(-0.6, 1) +
+    theme_bw() +
+    labs(title = NULL, subtitle = mainTitle, x = "Elevation (m)", y = "평균 일강수 [mm]") +
+    theme(text = element_text(size = 18))
+  , pages = 1)
+dev.off()
+
+fs::file_copy(saveTmp, saveImg, overwrite = TRUE)
+
+
+
+# ******************************************************************************
+# 또한 gps 자료를 통해 기상과 종분포와의 관계를 예측 및 파악하고 싶습니다!!
+# ******************************************************************************
+subTitle = "Groups 및 Species에 따른 평균기온 분포"
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, subTitle)
+saveTmp = tempfile(fileext = ".png")
+
+ggplot(dataL2, aes(x = Species, y = 평균기온..C., fill = Groups)) +
+  geom_boxplot(alpha=1.0, outlier.shape = NA, width = 0.5, position = position_dodge(0.7)) +
+  stat_boxplot(geom ='errorbar', width = 0.5, position = position_dodge(0.7)) +
+  geom_boxplot(alpha=1.0, outlier.shape = NA, width = 0.5, position = position_dodge(0.7)) +
+  stat_summary(fun=mean, geom="point", shape=20, size=2, color="black", position = position_dodge(width = 0.7)) +
+  labs(title = NULL, x = "Species", y = "평균 기온 [℃]", colour = NULL, fill = NULL, subtitle = subTitle) +
+  theme_bw() +
+  theme(
+    text = element_text(size = 16)
+    , panel.grid.major.x = element_blank()
+    , panel.grid.major.y = element_blank()
+    , panel.grid.minor.x = element_blank()
+    , panel.grid.minor.y = element_blank()
+    , panel.border = element_rect(size=1.5)
+    , axis.text.x = element_text(angle = 45, hjust = 1)
+    , legend.position = "top"
+  ) +
+  # facet_wrap(~Groups) +
+  ggsave(filename = saveTmp, width = 12, height = 6, dpi = 600)
+
+fs::file_copy(saveTmp, saveImg, overwrite = TRUE)
+
+
+subTitle = "Groups 및 Species에 따른 평균풍속 분포"
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, subTitle)
+saveTmp = tempfile(fileext = ".png")
+
+ggplot(dataL2, aes(x = Species, y = 평균.풍속.m.s., fill = Groups)) +
+  geom_boxplot(alpha=1.0, outlier.shape = NA, width = 0.5, position = position_dodge(0.7)) +
+  stat_boxplot(geom ='errorbar', width = 0.5, position = position_dodge(0.7)) +
+  geom_boxplot(alpha=1.0, outlier.shape = NA, width = 0.5, position = position_dodge(0.7)) +
+  stat_summary(fun=mean, geom="point", shape=20, size=2, color="black", position = position_dodge(width = 0.7)) +
+  labs(title = NULL, x = "Species", y = "평균 풍속 [m/s]", colour = NULL, fill = NULL, subtitle = subTitle) +
+  theme_bw() +
+  theme(
+    text = element_text(size = 16)
+    , panel.grid.major.x = element_blank()
+    , panel.grid.major.y = element_blank()
+    , panel.grid.minor.x = element_blank()
+    , panel.grid.minor.y = element_blank()
+    , panel.border = element_rect(size=1.5)
+    , axis.text.x = element_text(angle = 45, hjust = 1)
+    , legend.position = "top"
+  ) +
+  # facet_wrap(~Groups) +
+  ggsave(filename = saveTmp, width = 12, height = 6, dpi = 600)
+
+fs::file_copy(saveTmp, saveImg, overwrite = TRUE)
+
+
+
+subTitle = "Groups 및 Species에 따른 평균상대습도 분포"
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, subTitle)
+saveTmp = tempfile(fileext = ".png")
+
+ggplot(dataL2, aes(x = Species, y = 평균.상대습도..., fill = Groups)) +
+  geom_boxplot(alpha=1.0, outlier.shape = NA, width = 0.5, position = position_dodge(0.7)) +
+  stat_boxplot(geom ='errorbar', width = 0.5, position = position_dodge(0.7)) +
+  geom_boxplot(alpha=1.0, outlier.shape = NA, width = 0.5, position = position_dodge(0.7)) +
+  stat_summary(fun=mean, geom="point", shape=20, size=2, color="black", position = position_dodge(width = 0.7)) +
+  labs(title = NULL, x = "Species", y = "평균 상대습도 [%]", colour = NULL, fill = NULL, subtitle = subTitle) +
+  theme_bw() +
+  theme(
+    text = element_text(size = 16)
+    , panel.grid.major.x = element_blank()
+    , panel.grid.major.y = element_blank()
+    , panel.grid.minor.x = element_blank()
+    , panel.grid.minor.y = element_blank()
+    , panel.border = element_rect(size=1.5)
+    , axis.text.x = element_text(angle = 45, hjust = 1)
+    , legend.position = "top"
+  ) +
+  # facet_wrap(~Groups) +
+  ggsave(filename = saveTmp, width = 12, height = 6, dpi = 600)
+
+fs::file_copy(saveTmp, saveImg, overwrite = TRUE)
+
+
+# ******************************************************************************
+# 연평균 데이터
+# ******************************************************************************
+dataL3 = dataL2 %>%
+  dplyr::group_by(Groups, Species, Year) %>% 
+  dplyr::summarise_all(funs(
+    mean(., na.rm = TRUE) # 평균값
+  ))
+
+# 자료 저장
+saveFile = sprintf("%s/%s_%s.csv", globalVar$outPath, serviceName, "수목 및 기상관측소 연평균 데이터")
+saveTmp = tempfile(fileext = "csv")
+
+readr::write_excel_csv(x = dataL3, file = saveTmp)
+fs::file_copy(saveTmp, saveFile, overwrite = TRUE)
+
+grpInfo = grpList[1]
+
+for (grpInfo in grpList) {
+  
+  dataL4 = dataL3 %>% 
+    dplyr::filter(Groups == grpInfo)
+
+  # 또한 gps 자료를 통해 기상과 종분포와의 관계를 예측 및 파악하고 싶습니다!!
+  subTitle = sprintf("%s (%s)", "Groups 및 Species에 따른 연도별 평균기온 분포", grpInfo)
+  saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, subTitle)
+  saveTmp = tempfile(fileext = ".png")
+  
+  makePlot = ggpubr::ggscatter(dataL4, x = "Year", y = "평균기온..C._mean", color = "Species", add = "reg.line") +
+    ggpubr::stat_regline_equation(label.x.npc = 0.0, label.y.npc = 0.95, color = "black") +
+    ggpubr::stat_cor(label.x.npc = 0.0, label.y.npc = 0.80) +
+    labs(title = NULL, x = "연도", y = "평균 기온 [℃]", colour = NULL, fill = NULL, subtitle = subTitle) +
+    theme_bw() +
+    theme(
+      text = element_text(size = 16)
+      , panel.grid.major.x = element_blank()
+      , panel.grid.major.y = element_blank()
+      , panel.grid.minor.x = element_blank()
+      , panel.grid.minor.y = element_blank()
+      , panel.border = element_rect(size=1.5)
+      , axis.text.x = element_text(angle = 45, hjust = 1)
+      # , legend.position = "top"
+      , legend.position = "none"
+    ) +
+    facet_wrap(~Species)
+   
+  ggsave(filename = saveTmp, plot = makePlot, width = 12, height = 10, dpi = 600)
+  fs::file_copy(saveTmp, saveImg, overwrite = TRUE)
+
+    
+  subTitle = sprintf("%s (%s)", "Groups 및 Species에 따른 연도별 평균풍속 분포", grpInfo)
+  saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, subTitle)
+  saveTmp = tempfile(fileext = ".png")
+  
+  makePlot = ggpubr::ggscatter(dataL4, x = "Year", y = "평균.풍속.m.s._mean", color = "Species", add = "reg.line") +
+    ggpubr::stat_regline_equation(label.x.npc = 0.0, label.y.npc = 0.95, color = "black") +
+    ggpubr::stat_cor(label.x.npc = 0.0, label.y.npc = 0.80) +
+    labs(title = NULL, x = "연도", y = "평균 풍속 [m/s]", colour = NULL, fill = NULL, subtitle = subTitle) +
+    theme_bw() +
+    theme(
+      text = element_text(size = 16)
+      , panel.grid.major.x = element_blank()
+      , panel.grid.major.y = element_blank()
+      , panel.grid.minor.x = element_blank()
+      , panel.grid.minor.y = element_blank()
+      , panel.border = element_rect(size=1.5)
+      , axis.text.x = element_text(angle = 45, hjust = 1)
+      # , legend.position = "top"
+      , legend.position = "none"
+    ) +
+    facet_wrap(~Species)
+  
+  ggsave(filename = saveTmp, plot = makePlot, width = 12, height = 10, dpi = 600)
+  fs::file_copy(saveTmp, saveImg, overwrite = TRUE)
+  
+  
+  subTitle = sprintf("%s (%s)", "Groups 및 Species에 따른 연도별 평균상대습도 분포", grpInfo)
+  saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, subTitle)
+  saveTmp = tempfile(fileext = ".png")
+  
+  makePlot = ggpubr::ggscatter(dataL4, x = "Year", y = "평균.상대습도..._mean", color = "Species", add = "reg.line") +
+    ggpubr::stat_regline_equation(label.x.npc = 0.0, label.y.npc = 0.95, color = "black") +
+    ggpubr::stat_cor(label.x.npc = 0.0, label.y.npc = 0.80) +
+    labs(title = NULL, x = "연도", y = "평균 상대습도 [%]", colour = NULL, fill = NULL, subtitle = subTitle) +
+    theme_bw() +
+    theme(
+      text = element_text(size = 16)
+      , panel.grid.major.x = element_blank()
+      , panel.grid.major.y = element_blank()
+      , panel.grid.minor.x = element_blank()
+      , panel.grid.minor.y = element_blank()
+      , panel.border = element_rect(size=1.5)
+      , axis.text.x = element_text(angle = 45, hjust = 1)
+      # , legend.position = "top"
+      , legend.position = "none"
+    ) +
+    facet_wrap(~Species)
+  
+  ggsave(filename = saveTmp, plot = makePlot, width = 12, height = 10, dpi = 600)
+  fs::file_copy(saveTmp, saveImg, overwrite = TRUE)
+  
+  
+  subTitle = sprintf("%s (%s)", "Groups 및 Species에 따른 연도별 평균일강수 분포", grpInfo)
+  saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, subTitle)
+  saveTmp = tempfile(fileext = ".png")
+  
+  makePlot = ggpubr::ggscatter(dataL4, x = "Year", y = "일강수량.mm._mean", color = "Species", add = "reg.line") +
+    ggpubr::stat_regline_equation(label.x.npc = 0.0, label.y.npc = 0.95, color = "black") +
+    ggpubr::stat_cor(label.x.npc = 0.0, label.y.npc = 0.80) +
+    labs(title = NULL, x = "연도", y = "평균 일강수 [mm]", colour = NULL, fill = NULL, subtitle = subTitle) +
+    theme_bw() +
+    theme(
+      text = element_text(size = 16)
+      , panel.grid.major.x = element_blank()
+      , panel.grid.major.y = element_blank()
+      , panel.grid.minor.x = element_blank()
+      , panel.grid.minor.y = element_blank()
+      , panel.border = element_rect(size=1.5)
+      , axis.text.x = element_text(angle = 45, hjust = 1)
+      # , legend.position = "top"
+      , legend.position = "none"
+    ) +
+    facet_wrap(~Species)
+  
+  ggsave(filename = saveTmp, plot = makePlot, width = 12, height = 10, dpi = 600)
+  fs::file_copy(saveTmp, saveImg, overwrite = TRUE)
+}
+

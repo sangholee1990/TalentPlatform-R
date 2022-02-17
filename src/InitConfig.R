@@ -663,3 +663,23 @@ cbPlasma = rev(viridis::plasma(11))
 # dataL4 = fileList %>%
 #   purrr::map(read.csv) %>%
 #   purrr::reduce(dplyr::bind_rows)
+# 
+# saveFile = sprintf("%s/%s_%s.csv", globalVar$outPath, serviceName, "obs-to-idw")
+# readr::write_csv(x = dataL4, file = saveFile)
+
+
+# **************************************************
+# 데이터 좌측 조인
+# # ************************************************
+# dataL2 = data %>%
+#   dplyr::left_join(dataL1, by = c("type" = "type", "Var1" = "Var1")) 
+
+
+# **************************************************
+# 자료 저장
+# **************************************************
+# saveFile = sprintf("%s/%s_%s.csv", globalVar$outPath, serviceName, "수목 및 기상관측소 데이터")
+# saveTmp = tempfile(fileext = "csv")
+# 
+# readr::write_excel_csv(x = dataL2, file = saveTmp)
+# fs::file_copy(saveTmp, saveFile, overwrite = TRUE)
