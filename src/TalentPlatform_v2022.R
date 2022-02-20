@@ -8648,3 +8648,223 @@ for (grpInfo in grpList) {
   fs::file_copy(saveTmp, saveImg, overwrite = TRUE)
 }
 
+
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+#================================================
+# 요구사항
+#================================================
+# R을 이용한 인구예측 (연도별, 연도별 연령별)
+
+#================================================
+# 초기 환경변수 설정
+# ================================================
+# env = "local"   # 로컬 : 원도우 환경, 작업환경 (현재 소스 코드 환경 시 .) 설정
+env = "dev"   # 개발 : 원도우 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+# env = "oper"  # 운영 : 리눅스 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+
+prjName = "test"
+serviceName = "LSH0293"
+contextPath = ifelse(env == "local", ".", getwd())
+
+if (env == "local") {
+  globalVar = list(
+    "inpPath" = contextPath
+    , "figPath" = contextPath
+    , "outPath" = contextPath
+    , "tmpPath" = contextPath
+    , "logPath" = contextPath
+  )
+} else {
+  source(here::here(file.path(contextPath, "src"), "InitConfig.R"), encoding = "UTF-8")
+}
+
+#================================================
+# 비즈니스 로직 수행
+#================================================
+# 라이브러리 읽기
+library(tidyverse)
+library(readr)
+library(httr)
+library(rvest)
+library(jsonlite)
+library(RCurl)
+library(dplyr)
+library(data.table)
+library(Rcpp)
+library(philentropy)
+library(h2o)
+library(scales)
+
+# 초기화
+h2o::h2o.init()
+defaultColor = scales::hue_pal()(3)
+
+#===============================================================================
+# 연도별 인구
+#===============================================================================
+fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "yd21_population.xlsx"))
+trainData = openxlsx::read.xlsx(fileInfo, sheet = 2)
+
+prdData = tibble(year = seq(min(trainData$year, na.rm = TRUE), 2025, 1)) %>% 
+  dplyr::left_join(trainData, by = c("year" = "year"))
+
+# ******************************************************************************
+# 딥러닝 모형
+# ******************************************************************************
+# 모델 학습
+saveModel = sprintf("%s/%s-%s-%s-%s.model", globalVar$outPath, serviceName, 'final', 'h2o', 'pop')
+
+# 모델 학습이 있을 경우
+if (fs::file_exists(saveModel)) {
+  amlModel = h2o::h2o.loadModel(saveModel)
+} else {
+  # C모델 학습
+  amlModel = h2o::h2o.automl(
+    x = c("year")
+    , y = c("val")
+    , training_frame = as.h2o(trainData)
+    , nfolds = 10
+    , sort_metric = "RMSE"
+    , stopping_metric = "RMSE"
+    , seed = 1
+    , max_models = 40
+  )
+    
+  amlBestModel = h2o.get_best_model(amlModel)
+  h2o::h2o.saveModel(object = amlBestModel, path = fs::path_dir(saveModel), filename = fs::path_file(saveModel), force = TRUE)
+}
+
+# summary(amlModel)
+
+prdData$prd = as.data.frame(h2o::h2o.predict(object = amlModel, newdata = as.h2o(prdData)))$predict
+
+prdDataL1 = prdData %>% 
+  tidyr::gather(-year, key = "key", value = "val")
+
+subTitle = "2001-2025년 연도별 인구 실측 및 예측 시계열"
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, subTitle)
+saveTmp = tempfile(fileext = ".png")
+
+makePlot = ggplot(data = prdDataL1, aes(x = year, y = val, color = key)) +
+  geom_point() +
+  geom_line() +
+  labs(title = NULL, x = "연도", y = "인구 [명]", colour = NULL, fill = NULL, subtitle = subTitle) +
+  scale_color_manual(
+    name = NULL
+    , na.value = "transparent"
+    , values = c("val" = defaultColor[1], "prd" = defaultColor[2])
+    , labels = c("실측", "예측")
+  ) +
+  theme(
+    text = element_text(size = 18)
+    , legend.position = "top"
+    )
+
+ggsave(filename = saveTmp, plot = makePlot, width = 10, height = 8, dpi = 600)
+fs::file_copy(saveTmp, saveImg, overwrite = TRUE)
+
+# ******************************************************************************
+# 예측 결과 저장
+# ******************************************************************************
+saveXlsxFile = sprintf("%s/%s_%s.xlsx", globalVar$outPath, serviceName, "연도별 인구예측 분석")
+wb = openxlsx::createWorkbook()
+openxlsx::addWorksheet(wb, "Sheet1")
+openxlsx::writeData(wb, "Sheet1", prdData, startRow = 1, startCol = 1, colNames = TRUE, rowNames = FALSE)
+openxlsx::saveWorkbook(wb, file = saveXlsxFile, overwrite = TRUE)
+
+#===============================================================================
+# 연도별 연령별 인구
+#===============================================================================
+fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "yd21_population.xlsx"))
+data = openxlsx::read.xlsx(fileInfo, sheet = 1)
+
+dataL1 = data %>% 
+  tidyr::gather(-year, key = "key", value = "val")
+
+prdDataL2 = tibble::tibble()
+
+keyList = dataL1$key %>% unique() %>% sort()
+# keyInfo = keyList[1]
+
+for (keyInfo in keyList) {
+  
+  key = gsub("[세|세이상|-]", "", keyInfo)
+  
+  trainData = dataL1 %>% 
+    dplyr::filter(key == keyInfo)
+
+  prdData = tibble(year = seq(min(trainData$year, na.rm = TRUE), 2025, 1)) %>% 
+    dplyr::left_join(trainData, by = c("year" = "year"))
+    
+  # ******************************************************************************
+  # 딥러닝 모형
+  # ******************************************************************************
+  # 모델 학습
+  saveModel = sprintf("%s/%s-%s-%s-%s-%s.model", globalVar$outPath, serviceName, 'final', 'h2o', 'pop', key)
+  
+  # 모델 학습이 있을 경우
+  if (fs::file_exists(saveModel)) {
+    amlModel = h2o::h2o.loadModel(saveModel)
+  } else {
+    # C모델 학습
+    amlModel = h2o::h2o.automl(
+      x = c("year")
+      , y = c("val")
+      , training_frame = as.h2o(trainData)
+      , nfolds = 10
+      , sort_metric = "RMSE"
+      , stopping_metric = "RMSE"
+      , seed = 1
+      , max_models = 40
+    )
+    
+    amlBestModel = h2o.get_best_model(amlModel)
+    h2o::h2o.saveModel(object = amlBestModel, path = fs::path_dir(saveModel), filename = fs::path_file(saveModel), force = TRUE)
+  }
+  
+  prdData$prd = as.data.frame(h2o::h2o.predict(object = amlModel, newdata = as.h2o(prdData)))$predict
+  prdDataL2 = dplyr::bind_rows(prdDataL2, prdData)
+  
+  prdDataL1 = prdData %>% 
+    tidyr::gather(-year, -key, key = "key", value = "val")
+  
+  subTitle = sprintf("2001-2025년 연도별 연령별 (%s) 인구 실측 및 예측 시계열", keyInfo)
+  saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, subTitle)
+  saveTmp = tempfile(fileext = ".png")
+  
+  makePlot = ggplot(data = prdDataL1, aes(x = year, y = val, color = key)) +
+    geom_point() +
+    geom_line() +
+    labs(title = NULL, x = "연도", y = "인구 [명]", colour = NULL, fill = NULL, subtitle = subTitle) +
+    scale_color_manual(
+      name = NULL
+      , na.value = "transparent"
+      , values = c("val" = defaultColor[1], "prd" = defaultColor[2])
+      , labels = c("실측", "예측")
+    ) +
+    theme(
+      text = element_text(size = 18)
+      , legend.position = "top"
+    )
+  
+  ggsave(filename = saveTmp, plot = makePlot, width = 10, height = 8, dpi = 600)
+  fs::file_copy(saveTmp, saveImg, overwrite = TRUE)
+}
+
+# ******************************************************************************
+# 예측 결과 저장
+# ******************************************************************************
+saveXlsxFile = sprintf("%s/%s_%s.xlsx", globalVar$outPath, serviceName, "연도별 연령별 인구예측 분석")
+wb = openxlsx::createWorkbook()
+openxlsx::addWorksheet(wb, "Sheet1")
+openxlsx::writeData(wb, "Sheet1", prdDataL2, startRow = 1, startCol = 1, colNames = TRUE, rowNames = FALSE)
+openxlsx::saveWorkbook(wb, file = saveXlsxFile, overwrite = TRUE)
