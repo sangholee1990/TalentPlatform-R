@@ -6584,6 +6584,7 @@ for (j in 1:length(filename)){
 #================================================
 # R을 이용한 선거 데이터 (서울특별시 용산구) 3단계 시각화 및 도표 삽입
 # R을 이용한 선거 데이터 (경상남도 남해군) 3단계 시각화 및 도표 삽입
+# R을 이용한 선거 데이터 (충청남도 아산시) 3단계 시각화 및 도표 삽입
 
 #================================================
 # 초기 환경변수 설정
@@ -6656,19 +6657,21 @@ library(cowplot)
 # addrName = "서울특별시"
 # addrDtlName = "용산구"
 
-addrName = "경상남도"
-addrDtlName = "남해군"
+# addrName = "경상남도"
+# addrDtlName = "남해군"
 
 # addrName = "경기도"
 # addrDtlName = "안성시"
 
-pick(fileInfo)
+addrName = "충청남도"
+addrDtlName = "아산시"
 
 fileInfoPattern = sprintf("선거분석 (%s %s).xlsx", addrName, addrDtlName)
 fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, fileInfoPattern))
 # data = openxlsx::read.xlsx(fileInfo, sheet = 1)
 # data = readxl::read_excel(fileInfo, sheet = 1)
-data = xlsx::read.xlsx(fileInfo, sheetIndex = 1, encoding="UTF-8")
+data = xlsx::read.xlsx(fileInfo, sheetIndex = 2, encoding="UTF-8")
+colnames(data) = c("종류", "투표구", "세부투표구", "투표자수", "자유한국당", "더불어민주당",  "%자유한국당", "%더불어민주당",	 "중도층",	"%중도층")
 
 # 세부 투표구에 대한 위/경도 반환
 # dataGeoL1 = dataGeo %>% 
@@ -6759,9 +6762,6 @@ mapGlobal = sf::st_read(mapInfo, quiet = TRUE, options = "ENCODING=EUC-KR") %>%
 codeInfo = Sys.glob(file.path(globalVar$mapPath, "admCode/admCode.xlsx"))
 codeData = openxlsx::read.xlsx(codeInfo, sheet = 1, startRow = 2)
 
-stringr::str_detect(codeData$시도명칭, regex("경상북도")) %>% 
-  unique()
-
 
 codeDataL1 = codeData %>%
   dplyr::filter(
@@ -6771,8 +6771,6 @@ codeDataL1 = codeData %>%
    , grepl(addrDtlName, 시군구명칭)
   ) 
 
-
-codeData$시도명칭 %>% unique()
 
 # 통합 데이터셋
 dataL5 = mapGlobal %>%
@@ -6785,7 +6783,8 @@ dataL5 = mapGlobal %>%
 # 선거 주제도
 # ************************************************
 plotSubTitle = sprintf("%s %s 선거 주제도",addrName, addrDtlName)
-saveImg2 = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, plotSubTitle)
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, plotSubTitle)
+saveTmp = tempfile(fileext = ".png")
 
 # ggplotDefaultColor = hue_pal()(3)
 ggplotDefaultColor = c("red", "blue", "grey")
@@ -6810,14 +6809,12 @@ ggplot() +
   scale_fill_manual(
     name = NULL
     , na.value = "transparent"
-    # , values = c("1" = ggplotDefaultColor[1], "2" = ggplotDefaultColor[3], "3" = "gray")
     , values = c("1" = ggplotDefaultColor[1], "2" = ggplotDefaultColor[2], "3" = ggplotDefaultColor[3])
     , labels = c("자유한국당", "더불어민주당", "중도층")
   ) +
   scale_color_manual(
     name = NULL
     , na.value = "transparent"
-    # , values = c("1" = ggplotDefaultColor[1], "2" = ggplotDefaultColor[3], "3" = "gray")
     , values = c("1" = ggplotDefaultColor[1], "2" = ggplotDefaultColor[2], "3" = ggplotDefaultColor[3])
     , labels = c("자유한국당", "더불어민주당", "중도층")
   ) +
@@ -6839,7 +6836,9 @@ ggplot() +
     , plot.subtitle = element_text(hjust = 1)
     , legend.position = "top"
   ) +
-  ggsave(filename = saveImg2, width = 8, height = 8, dpi = 600)
+  ggsave(filename = saveTmp, width = 8, height = 8, dpi = 600)
+
+fs::file_copy(saveTmp, saveImg, overwrite = TRUE)
 
 
 # ************************************************
@@ -6850,15 +6849,23 @@ dataDtlL4 = data %>%
   # rowwise(투표구) %>%
   dplyr::mutate(
     투표구2 = dplyr::case_when(
-      stringr::str_detect(투표구, regex("원효로제1동")) ~ "원효로1동"
-      , stringr::str_detect(투표구, regex("원효로제2동")) ~ "원효로2동"
-      , stringr::str_detect(투표구, regex("이촌제1동")) ~ "이촌1동"
-      , stringr::str_detect(투표구, regex("이촌제2동")) ~ "이촌2동"
-      , stringr::str_detect(투표구, regex("이태원제1동")) ~ "이태원1동"
-      , stringr::str_detect(투표구, regex("이태원제2동")) ~ "이태원2동"
+      # stringr::str_detect(투표구, regex("원효로제1동")) ~ "원효로1동"
+      # , stringr::str_detect(투표구, regex("원효로제2동")) ~ "원효로2동"
+      # , stringr::str_detect(투표구, regex("이촌제1동")) ~ "이촌1동"
+      # , stringr::str_detect(투표구, regex("이촌제2동")) ~ "이촌2동"
+      # , stringr::str_detect(투표구, regex("이태원제1동")) ~ "이태원1동"
+      # , stringr::str_detect(투표구, regex("이태원제2동")) ~ "이태원2동"
+
+      grepl("원효로제1동", 투표구) ~ "원효로1동"
+      , grepl("원효로제2동", 투표구) ~ "원효로2동"
+      , grepl("이촌제1동", 투표구) ~ "이촌1동"
+      , grepl("이촌제2동", 투표구) ~ "이촌2동"
+      , grepl("이태원제1동", 투표구) ~ "이태원1동"
+      , grepl("이태원제2동", 투표구) ~ "이태원2동"
       , TRUE ~ 투표구
     )
-    , label = str_match_all(세부투표구, "제[[:digit:]]+투") %>% unlist()
+    # , label = stringr::str_match_all(세부투표구, "제[[:digit:]]+투") %>% unlist() %>% stringr::str_conv("EUC-KR")
+    , label = gsub("제[[:digit:]]+투", "", 세부투표구) %>% str_replace(세부투표구, ., "")
   ) %>% 
   dplyr::na_if(0) %>% 
   dplyr::select(투표구2, 세부투표구, `%자유한국당`, `%더불어민주당`, `%중도층`, label) %>% 
@@ -6870,10 +6877,10 @@ dataDtlL4$key = forcats::fct_relevel(dataDtlL4$key, rev(c("%자유한국당", "%
 
 selLabel = paste0("제", c(1:99), "투")
 dataDtlL4$label = forcats::fct_relevel(dataDtlL4$label, selLabel)
-# dataDtlL4$label = forcats::fct_relevel(dataDtlL4$label, rev(selLabel))
 
 plotSubTitle = sprintf("%s %s 선거 빈도분포", addrName, addrDtlName)
 saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, plotSubTitle)
+saveTmp = tempfile(fileext = ".png")
 
 ggplot(dataDtlL4, aes(x = label, y = val, fill = key, group = key, label = round(val, 0))) +
   geom_bar(position = position_stack(), stat = "identity") +
@@ -6896,8 +6903,9 @@ ggplot(dataDtlL4, aes(x = label, y = val, fill = key, group = key, label = round
   ) +
   # facet_wrap(~투표구2, scale = "free", ncol = 3) +
   facet_wrap(~투표구2, scale = "free", ncol = 4) +
-  ggsave(filename = saveImg, width = 16, height = 12, dpi = 600)
+  ggsave(filename = saveTmp, width = 16, height = 12, dpi = 600)
 
+fs::file_copy(saveTmp, saveImg, overwrite = TRUE)
 
 # ************************************************
 # 스토리 보드
@@ -6991,13 +6999,13 @@ ggplot(dataDtlL4, aes(x = label, y = val, fill = key, group = key, label = round
 #   만 연령구분 (0, 100이상)
 # [다운로드] csv 파일 다운로드
 
-addrName = "경상남도"
-addrDtlName = "남해군"
+# addrName = "경상남도"
+# addrDtlName = "남해군"
 
 # 선거 데이터 읽기
 fileInfoPattern = sprintf("선거분석 (%s %s).xlsx", addrName, addrDtlName)
 fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, fileInfoPattern))
-data = xlsx::read.xlsx(fileInfo, sheetIndex = 2, encoding = "UTF-8")
+data = xlsx::read.xlsx(fileInfo, sheetIndex = 3, encoding = "UTF-8")
 
 # fileInfoPattern = sprintf("선거분석 (%s %s).csv", addrName, addrDtlName)
 # fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, fileInfoPattern))
@@ -7006,7 +7014,10 @@ data = xlsx::read.xlsx(fileInfo, sheetIndex = 2, encoding = "UTF-8")
 dataL1 = data %>%
   as.tibble() %>%
   na.omit() %>%
-  readr::type_convert()
+  readr::type_convert() %>% 
+  dplyr::rename(
+    투표구 = 행정구역
+  )
 
 sexListPattern = c("남", "여", "남|여")
 # sexInfoPattern = "남"
@@ -7034,7 +7045,7 @@ for (sexInfoPattern in sexListPattern) {
     dplyr::filter(isSex == TRUE) %>%
     dplyr::mutate(
       type = dplyr::case_when(
-        16 <= age & age <= 20 ~ "16-20세"
+        18 <= age & age <= 20 ~ "18-20세"
         , 21 <= age & age <= 30 ~ "21-30세"
         , 31 <= age & age <= 40 ~ "31-40세"
         , 41 <= age & age <= 50 ~ "41-50세"
@@ -7109,8 +7120,8 @@ for (sexInfoPattern in sexListPattern) {
       , fill = NULL
       , subtitle = plotSubTitle
     ) +
-    xlim(127.80, 128.08) +
-    ylim(34.69, 34.95) +
+    # xlim(127.80, 128.08) +
+    # ylim(34.69, 34.95) +
     theme(
       text = element_text(size = 14)
       , panel.border = element_blank()
@@ -7169,8 +7180,8 @@ for (sexInfoPattern in sexListPattern) {
       scale_fill_manual(
         name = NULL
         , na.value = "transparent"
-        , values = c("16-20세" = cbSet1[1], "21-30세" = cbSet1[2], "31-40세" = cbSet1[3], "41-50세" = cbSet1[4], "51-60세" = cbSet1[5], "61-70세" = cbSet1[6], "71세 이상" = cbSet1[7])
-        , labels = c("16-20세", "21-30세", "31-40세", "41-50세", "51-60세", "61-70세", "71세 이상")
+        , values = c("18-20세" = cbSet1[1], "21-30세" = cbSet1[2], "31-40세" = cbSet1[3], "41-50세" = cbSet1[4], "51-60세" = cbSet1[5], "61-70세" = cbSet1[6], "71세 이상" = cbSet1[7])
+        , labels = c("18-20세", "21-30세", "31-40세", "41-50세", "51-60세", "61-70세", "71세 이상")
       ) +
       theme_bw() +
       theme(
