@@ -7774,7 +7774,9 @@ library(htmlwidgets)
 
 # fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "Jiri_real+final.csv"))
 # fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "Jiri산.csv"))
-fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "JIRIMOUNTAIN.csv"))
+# fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "JIRIMOUNTAIN.csv"))
+# fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "지리산+고도수정.csv"))
+fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "지리산+고도&좌표수정.csv"))
 
 data = readr::read_csv(file = fileInfo, locale = locale("ko", encoding = "EUC-KR"))
 
@@ -8262,7 +8264,9 @@ print(plot(gamModel, allTerms = TRUE), pages = 1)
 # readr::write_csv(x = asosData, file = saveFile)
 
 
-fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "JIRIMOUNTAIN.csv"))
+# fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "JIRIMOUNTAIN.csv"))
+# fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "지리산+고도수정.csv"))
+fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "지리산+고도&좌표수정.csv"))
 data = readr::read_csv(file = fileInfo, locale = locale("ko", encoding = "EUC-KR"))
 
 # 기상관측소 (ASOS) 읽기
@@ -8311,6 +8315,8 @@ posIdList = dataL1$posId %>% unique() %>% sort() %>%
   as.tibble() %>% 
   tidyr::separate(col = value, into = c("lon", "lat"), sep = "-") %>% 
   readr::type_convert()
+
+summary(posIdList)
 
 for (i in 1:nrow(posIdList)) {
   posIdInfo = posIdList[i, ]
@@ -8879,3 +8885,209 @@ wb = openxlsx::createWorkbook()
 openxlsx::addWorksheet(wb, "Sheet1")
 openxlsx::writeData(wb, "Sheet1", prdDataL2, startRow = 1, startCol = 1, colNames = TRUE, rowNames = FALSE)
 openxlsx::saveWorkbook(wb, file = saveXlsxFile, overwrite = TRUE)
+
+
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+#================================================
+# 요구사항
+#================================================
+# R을 이용한 NetCDF 파일 읽기 및 다중 코어 기반으로 시공간 내삽 (병렬 처리)
+
+#================================================
+# 초기 환경변수 설정
+# ================================================
+# env = "local"   # 로컬 : 원도우 환경, 작업환경 (현재 소스 코드 환경 시 .) 설정
+env = "dev"   # 개발 : 원도우 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+# env = "oper"  # 운영 : 리눅스 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+
+prjName = "test"
+serviceName = "LSH0294"
+contextPath = ifelse(env == "local", ".", getwd())
+
+if (env == "local") {
+  globalVar = list(
+    "inpPath" = contextPath
+    , "figPath" = contextPath
+    , "outPath" = contextPath
+    , "tmpPath" = contextPath
+    , "logPath" = contextPath
+  )
+} else {
+  source(here::here(file.path(contextPath, "src"), "InitConfig.R"), encoding = "UTF-8")
+}
+
+#================================================
+# 비즈니스 로직 수행
+#================================================
+# 라이브러리 읽기
+library(tidyverse)
+library(readr)
+library(raster)
+library(tictoc)
+library(raster)
+library(sf)
+library(doParallel)
+library(parallel)
+library(noncompliance)
+library(tibble)
+library(dplyr)
+library(multidplyr)
+library(vroom)
+library(Rcpp)
+library(ncdf4)
+library(noncompliance)
+
+# fileInfo = Sys.glob(file.path(globalVar$inpPath, servic
+
+# rm(list = ls())
+# setwd("E:/TESTPARREL")
+
+# globalVar = list()
+# globalVar$inpPath = "."
+# globalVar$figPath = "."
+# globalVar$outPath = "."
+
+fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "pr_Amon_MRI-ESM2-0_ssp585_r1i1p1f1_gn_201501-210012.nc"))
+r = raster::brick(fileInfo, hurrname = "t", level=1, stopIfNotEqualSpaced = FALSE)
+
+latList = seq(from=0, to=10, by=0.5)
+lonList = seq(from=18, to=25, by=0.5)
+saveFile = NA
+hurls = NA
+MyName = "lA"
+
+#======================================================
+# 다중 코어 기반으로 시/공간 내삽 (병렬 처리)
+#======================================================
+tictoc::tic()
+
+# oSocCluCnt = 100
+oSocCluCnt = parallel::detectCores() - 1
+oSocClu = parallel::makePSOCKcluster(oSocCluCnt)
+doParallel::registerDoParallel(oSocClu)
+
+parallel::clusterExport(oSocClu, "r")
+parallel::clusterExport(oSocClu, "hurls")
+parallel::clusterExport(oSocClu, "data")
+parallel::clusterExport(oSocClu, "saveFile")
+parallel::clusterExport(oSocClu, "globalVar")
+parallel::clusterExport(oSocClu, "MyName")
+parallel::clusterExport(oSocClu, "oSocCluCnt")
+parallel::clusterExport(oSocClu, "serviceName")
+
+parallel::clusterEvalQ(oSocClu, library(raster))
+parallel::clusterEvalQ(oSocClu, library(readr))
+parallel::clusterEvalQ(oSocClu, library(dplyr))
+
+data = tibble::tibble(
+  noncompliance::expand.grid.DT(
+    latList
+    , lonList
+    , col.names = c("lon", "lat"))
+) %>%
+  tibble::rowid_to_column() %>% 
+  dplyr::mutate(
+    dtaCnt = rowid %/% oSocCluCnt
+    , sortKey = paste(lon, lat, sep="p")
+  )
+
+# x = 1
+# parallel::parSapply(oSocClu, X = 1:nrow(data), function(x) {
+# parallel::parSapply(oSocClu, X = 1:120, function(x) {
+parallel::parSapply(oSocClu, X = 1:nrow(data), function(x) {
+  
+  hurls = raster::extract(r, cbind(data$lat[x], data$lon[x]), df = TRUE, na.rm = TRUE) %>%
+    tidyr::gather(key = "key", value = "val") %>%
+    dplyr::filter(key != "ID") %>%
+    dplyr::select(-key) %>%
+    # dplyr::mutate(val = val * 86400) %>%
+    tibble::rowid_to_column() %>%
+    dplyr::select(rowid, val)
+  
+  hurlsL1 = tibble::tibble(
+    lat = data$lat[x]
+    , lon = data$lon[x]
+    , hurls
+    ) %>% 
+    dplyr::select(rowid, lat, lon, val)
+
+  selDtaCnt = data$dtaCnt[x]
+  # selCore = x %% oSocCluCnt
+  selSortKey = data$sortKey[x]
+  
+  # saveFile = sprintf("%s/OUTPUT/%s_%s.csv", globalVar$outPath, MyName, selCore)
+  saveFile = sprintf("%s/%s/%s/%s_%s_%s.csv", globalVar$outPath, serviceName, "dtl", MyName, selDtaCnt, selSortKey)
+  fs::dir_create(fs::path_dir(saveFile))
+  readr::write_csv(x = hurlsL1, file = saveFile, append = FALSE, col_names = FALSE)
+})
+
+parallel::stopCrluster(oSocClu)
+tictoc::toc()
+
+#======================================================
+# 다중 코어 기반으로 파일 읽기 (병렬 처리)
+#======================================================
+# 15 > 9999 변경
+# trace(multidplyr::new_cluster, edit=TRUE) 
+
+tictoc::tic()
+
+dtaCntList = data$dtaCnt %>% unique() %>% sort()
+# dtaCntList = 1:10
+resDataL1 = tibble()
+
+# dtaCntInfo = 1
+for (dtaCntInfo in dtaCntList) {
+  
+  # 데이터 조회
+  filePattern = sprintf("%s/%s/%s/lA_%s_*.csv", globalVar$outPath, serviceName, "dtl", dtaCntInfo)
+  fileList = Sys.glob(filePattern)
+  
+  # 이 부분의 경우 동적으로 생성되기 때문에 다소 오랜 시간 소요
+  # 따라서 추후 100, 100, 100, 20으로 설정하시고 20의 경우 동적으로 코어 할당
+  mSocCluCnt = length(fileList)
+  mSocClu = multidplyr::new_cluster(mSocCluCnt)
+  
+  multidplyr::cluster_library(mSocClu, "dplyr")
+  multidplyr::cluster_library(mSocClu, "vroom")
+  multidplyr::cluster_library(mSocClu, "readr")
+  
+  multidplyr::cluster_assign_each(mSocClu, filename = fileList)
+  multidplyr::cluster_send(mSocClu, resData <- vroom::vroom(filename, col_names = FALSE, col_types = c(.default = "d")))
+  
+  resData = multidplyr::party_df(mSocClu, "resData") %>%
+    dplyr::collect() %>%
+    magrittr::set_colnames(c("rowid", "lon", "lat", "val")) %>%
+    dplyr::mutate(
+      key = paste(lat, lon, sep="p")
+    ) %>%
+    dplyr::select(-lon, -lat) %>%
+    tidyr::spread(key = "key", value = "val") %>%
+    dplyr::select(-rowid)
+  
+  if (nrow(resDataL1) == 0) {
+    resDataL1 = resData
+  } else {
+    resDataL1 = dplyr::bind_cols(resDataL1, resData)
+  }
+  
+}
+tictoc::toc()
+
+saveFile = sprintf("%s/%s/%s_fnl.csv", globalVar$outPath, serviceName, MyName)
+readr::write_csv(x = resDataL1, file = saveFile)
+
+resDataL2 = resDataL1 %>% 
+  dplyr::select(data$sortKey)
+
+saveFile = sprintf("%s/%s/%s_fnl_sort.csv", globalVar$outPath, serviceName, MyName)
+readr::write_csv(x = resDataL2, file = saveFile)
