@@ -6838,7 +6838,7 @@ ggplot() +
   ) +
   ggsave(filename = saveTmp, width = 8, height = 8, dpi = 600)
 
-fs::file_copy(saveTmp, saveImg, overwrite = TRUE)
+fs::file_move(saveTmp, saveImg)
 
 
 # ************************************************
@@ -6905,7 +6905,7 @@ ggplot(dataDtlL4, aes(x = label, y = val, fill = key, group = key, label = round
   facet_wrap(~투표구2, scale = "free", ncol = 4) +
   ggsave(filename = saveTmp, width = 16, height = 12, dpi = 600)
 
-fs::file_copy(saveTmp, saveImg, overwrite = TRUE)
+fs::file_move(saveTmp, saveImg)
 
 # ************************************************
 # 스토리 보드
@@ -7142,7 +7142,7 @@ for (sexInfoPattern in sexListPattern) {
     )
   
   ggsave(makePlotBg, filename = saveTmp, width = 8, height = 8, dpi = 600)
-  fs::file_copy(saveTmp, saveImg, overwrite = TRUE)
+  fs::file_move(saveTmp, saveImg)
 
   
   # ****************************************************************************
@@ -7207,7 +7207,7 @@ for (sexInfoPattern in sexListPattern) {
     
     ggsave(makePlot, filename = saveTmp, width = 2, height = 2, dpi = 600)
     
-    fs::file_copy(saveTmp, saveImg, overwrite = TRUE)
+    fs::file_move(saveTmp, saveImg)
   }
 }
 
@@ -7247,7 +7247,7 @@ grid::grid.newpage()
 png(file = saveTmp, width = 2, height = 2, units = "in", res = 600, bg = "transparent")
 grid::grid.draw(getLegend)
 dev.off()
-fs::file_copy(saveTmp, saveImg, overwrite = TRUE)
+fs::file_move(saveTmp, saveImg)
 
 
 
@@ -7842,9 +7842,9 @@ for (grpInfo in grpList) {
           , color = "blue"
           , data = prdData
           ) +
-        scale_x_continuous(breaks = seq(0, 2400, 400)) +
+        scale_x_continuous(breaks = seq(0, 12000, 400)) +
         # scale_y_continuous(breaks = c(seq(-0.6, 1, 0.4), 0)) +
-        xlim(0, 2400) +
+        # xlim(0, 2400) +
         # ylim(-0.6, 1) +
         theme_bw() +
         labs(subtitle = mainTitle, x = "Elevation (m)", y = "Normalized probability of occupancy") +
@@ -7852,8 +7852,7 @@ for (grpInfo in grpList) {
       , pages = 1)
     dev.off()
     
-    fs::file_copy(saveTmp, saveImg, overwrite = TRUE)
-    
+    fs::file_move(saveTmp, saveImg)
     
     # **************************************************************************
     # juvenile
@@ -7887,9 +7886,9 @@ for (grpInfo in grpList) {
           , color = "blue"
           , data = prdData
         ) +
-        scale_x_continuous(breaks = seq(0, 2400, 400)) +
+        scale_x_continuous(breaks = seq(0, 12000, 400)) +
         # scale_y_continuous(breaks = c(seq(-0.6, 1, 0.4), 0)) +
-        xlim(0, 2400) +
+        # xlim(0, 2400) +
         # ylim(-0.6, 1) +
         theme_bw() +
         labs(subtitle = mainTitle, x = "Elevation (m)", y = "Normalized probability of occupancy") +
@@ -7897,7 +7896,7 @@ for (grpInfo in grpList) {
     , pages = 1)
     dev.off()
 
-    fs::file_copy(saveTmp, saveImg, overwrite = TRUE)
+    fs::file_move(saveTmp, saveImg)
     
   }
 }
@@ -7921,7 +7920,7 @@ for (grpInfo in grpList) {
 #   #   theme(text = element_text(size = 18))
 #   # dev.off()
 #   # 
-#   # fs::file_copy(saveTmp, saveImg, overwrite = TRUE)
+#   # fs::file_move(saveTmp, saveImg)
 #   # 
 #   # 
 #   # 
@@ -8146,7 +8145,7 @@ for (grpInfo in grpList) {
 #   
 #   dev.off()
 #   
-#   fs::file_copy(saveTmp, saveImg, overwrite = TRUE)
+#   fs::file_move(saveTmp, saveImg)
 
 
 b = mgcViz::getViz(gamModel)
@@ -8381,7 +8380,7 @@ print(
   , pages = 1)
 dev.off()
 
-fs::file_copy(saveTmp, saveImg, overwrite = TRUE)
+fs::file_move(saveTmp, saveImg)
 
 
 
@@ -8403,7 +8402,7 @@ print(
   , pages = 1)
 dev.off()
 
-fs::file_copy(saveTmp, saveImg, overwrite = TRUE)
+fs::file_move(saveTmp, saveImg)
 
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -8427,7 +8426,7 @@ print(
   , pages = 1)
 dev.off()
 
-fs::file_copy(saveTmp, saveImg, overwrite = TRUE)
+fs::file_move(saveTmp, saveImg)
 
 
 
@@ -8448,7 +8447,7 @@ print(
   , pages = 1)
 dev.off()
 
-fs::file_copy(saveTmp, saveImg, overwrite = TRUE)
+fs::file_move(saveTmp, saveImg)
 
 
 
@@ -8479,7 +8478,7 @@ ggplot(dataL2, aes(x = Species, y = 평균기온..C., fill = Groups)) +
   # facet_wrap(~Groups) +
   ggsave(filename = saveTmp, width = 12, height = 6, dpi = 600)
 
-fs::file_copy(saveTmp, saveImg, overwrite = TRUE)
+fs::file_move(saveTmp, saveImg)
 
 
 subTitle = "Groups 및 Species에 따른 평균풍속 분포"
@@ -8506,7 +8505,7 @@ ggplot(dataL2, aes(x = Species, y = 평균.풍속.m.s., fill = Groups)) +
   # facet_wrap(~Groups) +
   ggsave(filename = saveTmp, width = 12, height = 6, dpi = 600)
 
-fs::file_copy(saveTmp, saveImg, overwrite = TRUE)
+fs::file_move(saveTmp, saveImg)
 
 
 
@@ -8534,7 +8533,7 @@ ggplot(dataL2, aes(x = Species, y = 평균.상대습도..., fill = Groups)) +
   # facet_wrap(~Groups) +
   ggsave(filename = saveTmp, width = 12, height = 6, dpi = 600)
 
-fs::file_copy(saveTmp, saveImg, overwrite = TRUE)
+fs::file_move(saveTmp, saveImg)
 
 
 # ******************************************************************************
@@ -8553,19 +8552,21 @@ saveTmp = tempfile(fileext = "csv")
 readr::write_excel_csv(x = dataL3, file = saveTmp)
 fs::file_copy(saveTmp, saveFile, overwrite = TRUE)
 
-grpInfo = grpList[1]
-
+# grpInfo = grpList[1]
 for (grpInfo in grpList) {
   
   dataL4 = dataL3 %>% 
-    dplyr::filter(Groups == grpInfo)
+    dplyr::filter(Groups == grpInfo) %>% 
+    dplyr::filter(
+      Year >= 2010
+    )
 
   # 또한 gps 자료를 통해 기상과 종분포와의 관계를 예측 및 파악하고 싶습니다!!
   subTitle = sprintf("%s (%s)", "Groups 및 Species에 따른 연도별 평균기온 분포", grpInfo)
   saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, subTitle)
   saveTmp = tempfile(fileext = ".png")
   
-  makePlot = ggpubr::ggscatter(dataL4, x = "Year", y = "평균기온..C._mean", color = "Species", add = "reg.line") +
+  makePlot = ggpubr::ggscatter(dataL4, x = "Year", y = "평균기온..C.", color = "Species", add = "reg.line") +
     ggpubr::stat_regline_equation(label.x.npc = 0.0, label.y.npc = 0.95, color = "black") +
     ggpubr::stat_cor(label.x.npc = 0.0, label.y.npc = 0.80) +
     labs(title = NULL, x = "연도", y = "평균 기온 [℃]", colour = NULL, fill = NULL, subtitle = subTitle) +
@@ -8584,14 +8585,14 @@ for (grpInfo in grpList) {
     facet_wrap(~Species)
    
   ggsave(filename = saveTmp, plot = makePlot, width = 12, height = 10, dpi = 600)
-  fs::file_copy(saveTmp, saveImg, overwrite = TRUE)
+  fs::file_move(saveTmp, saveImg)
 
     
   subTitle = sprintf("%s (%s)", "Groups 및 Species에 따른 연도별 평균풍속 분포", grpInfo)
   saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, subTitle)
   saveTmp = tempfile(fileext = ".png")
   
-  makePlot = ggpubr::ggscatter(dataL4, x = "Year", y = "평균.풍속.m.s._mean", color = "Species", add = "reg.line") +
+  makePlot = ggpubr::ggscatter(dataL4, x = "Year", y = "평균.풍속.m.s.", color = "Species", add = "reg.line") +
     ggpubr::stat_regline_equation(label.x.npc = 0.0, label.y.npc = 0.95, color = "black") +
     ggpubr::stat_cor(label.x.npc = 0.0, label.y.npc = 0.80) +
     labs(title = NULL, x = "연도", y = "평균 풍속 [m/s]", colour = NULL, fill = NULL, subtitle = subTitle) +
@@ -8610,14 +8611,14 @@ for (grpInfo in grpList) {
     facet_wrap(~Species)
   
   ggsave(filename = saveTmp, plot = makePlot, width = 12, height = 10, dpi = 600)
-  fs::file_copy(saveTmp, saveImg, overwrite = TRUE)
+  fs::file_move(saveTmp, saveImg)
   
   
   subTitle = sprintf("%s (%s)", "Groups 및 Species에 따른 연도별 평균상대습도 분포", grpInfo)
   saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, subTitle)
   saveTmp = tempfile(fileext = ".png")
   
-  makePlot = ggpubr::ggscatter(dataL4, x = "Year", y = "평균.상대습도..._mean", color = "Species", add = "reg.line") +
+  makePlot = ggpubr::ggscatter(dataL4, x = "Year", y = "평균.상대습도...", color = "Species", add = "reg.line") +
     ggpubr::stat_regline_equation(label.x.npc = 0.0, label.y.npc = 0.95, color = "black") +
     ggpubr::stat_cor(label.x.npc = 0.0, label.y.npc = 0.80) +
     labs(title = NULL, x = "연도", y = "평균 상대습도 [%]", colour = NULL, fill = NULL, subtitle = subTitle) +
@@ -8636,14 +8637,14 @@ for (grpInfo in grpList) {
     facet_wrap(~Species)
   
   ggsave(filename = saveTmp, plot = makePlot, width = 12, height = 10, dpi = 600)
-  fs::file_copy(saveTmp, saveImg, overwrite = TRUE)
+  fs::file_move(saveTmp, saveImg)
   
   
   subTitle = sprintf("%s (%s)", "Groups 및 Species에 따른 연도별 평균일강수 분포", grpInfo)
   saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, subTitle)
   saveTmp = tempfile(fileext = ".png")
   
-  makePlot = ggpubr::ggscatter(dataL4, x = "Year", y = "일강수량.mm._mean", color = "Species", add = "reg.line") +
+  makePlot = ggpubr::ggscatter(dataL4, x = "Year", y = "일강수량.mm.", color = "Species", add = "reg.line") +
     ggpubr::stat_regline_equation(label.x.npc = 0.0, label.y.npc = 0.95, color = "black") +
     ggpubr::stat_cor(label.x.npc = 0.0, label.y.npc = 0.80) +
     labs(title = NULL, x = "연도", y = "평균 일강수 [mm]", colour = NULL, fill = NULL, subtitle = subTitle) +
@@ -8662,7 +8663,7 @@ for (grpInfo in grpList) {
     facet_wrap(~Species)
   
   ggsave(filename = saveTmp, plot = makePlot, width = 12, height = 10, dpi = 600)
-  fs::file_copy(saveTmp, saveImg, overwrite = TRUE)
+  fs::file_move(saveTmp, saveImg)
 }
 
 
@@ -8787,7 +8788,7 @@ makePlot = ggplot(data = prdDataL1, aes(x = year, y = val, color = key)) +
     )
 
 ggsave(filename = saveTmp, plot = makePlot, width = 10, height = 8, dpi = 600)
-fs::file_copy(saveTmp, saveImg, overwrite = TRUE)
+fs::file_move(saveTmp, saveImg)
 
 # ******************************************************************************
 # 예측 결과 저장
@@ -8874,7 +8875,7 @@ for (keyInfo in keyList) {
     )
   
   ggsave(filename = saveTmp, plot = makePlot, width = 10, height = 8, dpi = 600)
-  fs::file_copy(saveTmp, saveImg, overwrite = TRUE)
+  fs::file_move(saveTmp, saveImg)
 }
 
 # ******************************************************************************
@@ -8945,6 +8946,16 @@ library(vroom)
 library(Rcpp)
 library(ncdf4)
 library(noncompliance)
+library(RNetCDF)
+library(tidyverse)
+library(metR)
+library(colorRamps)
+library(ggrepel)
+library(extrafont)
+library(sf)
+# library(udunits2)
+# library(metR)
+# library(RCMIP5)
 
 # fileInfo = Sys.glob(file.path(globalVar$inpPath, servic
 
@@ -8956,11 +8967,161 @@ library(noncompliance)
 # globalVar$figPath = "."
 # globalVar$outPath = "."
 
+# MyName = "lA"
+
+# fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "pr_Amon_MRI-ESM2-0_ssp585_r1i1p1f1_gn_201501-210012.nc"))
+# ncFile = RNetCDF::open.nc(fileInfo)
+# 
+# RNetCDF::print.nc(ncFile)
+# 
+# ncData = RNetCDF::read.nc(ncFile)
+# 
+# # Get Time Unit
+# fileNumber = dim.inq.nc(ncFile, "time")$length
+# timeUnit = att.get.nc(ncFile, "time", "units")
+# 
+# # Get Variable
+# dtDateTime = utcal.nc(timeUnit, ncData$time) %>%
+#   as.tibble()
+# 
+# lon = ncData[["lon"]]
+# lat = ncData[["lat"]]
+# pr = ncData[["pr"]]
+# 
+# #============================s==========================
+# # 다중 코어 기반으로 시/공간 내삽 (병렬 처리)
+# #======================================================
+# tictoc::tic()
+# 
+# # oSocCluCnt = 100
+# oSocCluCnt = parallel::detectCores() - 1
+# oSocClu = parallel::makePSOCKcluster(oSocCluCnt)
+# doParallel::registerDoParallel(oSocClu)
+# 
+# data = dtDateTime %>%
+#   tibble::rowid_to_column() %>%
+#   dplyr::mutate(
+#     dtYmdHms = lubridate::make_datetime(year, month, day, hour, minute, second)
+#     , sortKey = format(dtYmdHms, "%Y%m%d%H%M%S")
+#     , dtaCnt = rowid %/% oSocCluCnt
+#   )
+# 
+# parallel::clusterExport(oSocClu, "dtDateTime")
+# parallel::clusterExport(oSocClu, "lon")
+# parallel::clusterExport(oSocClu, "lat")
+# parallel::clusterExport(oSocClu, "pr")
+# parallel::clusterExport(oSocClu, "saveFile")
+# parallel::clusterExport(oSocClu, "globalVar")
+# parallel::clusterExport(oSocClu, "MyName")
+# parallel::clusterExport(oSocClu, "oSocCluCnt")
+# parallel::clusterExport(oSocClu, "serviceName")
+# parallel::clusterExport(oSocClu, "data")
+# parallel::clusterExport(oSocClu, "dataL1")
+# parallel::clusterExport(oSocClu, "selDtaCnt")
+# parallel::clusterExport(oSocClu, "selSortKey")
+# 
+# parallel::clusterEvalQ(oSocClu, library(raster))
+# parallel::clusterEvalQ(oSocClu, library(readr))
+# parallel::clusterEvalQ(oSocClu, library(dplyr))
+# parallel::clusterEvalQ(oSocClu, library(RNetCDF))
+# 
+# # x = 1
+# # x = 1032
+# # parallel::parSapply(oSocClu, X = 1:nrow(data), function(x) {
+# # parallel::parSapply(oSocClu, X = 1:120, function(x) {
+# parallel::parSapply(oSocClu, X = 1:nrow(dtDateTime), function(x) {
+# 
+#   selDtaCnt = data$dtaCnt[x]
+#   selSortKey = data$sortKey[x]
+# 
+#   dataL1 = tibble::tibble(
+#     noncompliance::expand.grid.DT(
+#       lat
+#       , lon
+#       , col.names = c("lat", "lon"))
+#     , val = c(pr[, , x])
+#     , sDateTime = selSortKey
+#   ) %>%
+#   tibble::rowid_to_column()
+# 
+# 
+#   # saveFile = sprintf("%s/OUTPUT/%s_%s.csv", globalVar$outPath, MyName, selCore)
+#   # saveFile = sprintf("%s/%s/%s/%s_%s.csv", globalVar$outPath, serviceName, "dtl", MyName, selInfo$sYmdHms)
+#   saveFile = sprintf("%s/%s/%s/%s_%s_%s.csv", globalVar$outPath, serviceName, "dtl", MyName, selDtaCnt, selSortKey)
+#   fs::dir_create(fs::path_dir(saveFile))
+#   readr::write_csv(x = dataL1, file = saveFile, append = FALSE, col_names = FALSE)
+# 
+# })
+# 
+# parallel::stopCrluster(oSocClu)
+# tictoc::toc()
+# 
+# #======================================================
+# # 다중 코어 기반으로 파일 읽기 (병렬 처리)
+# #======================================================
+# # 15 > 9999 변경
+# # trace(multidplyr::new_cluster, edit=TRUE)
+# 
+# # e10 미 표출
+# options(scipen = 999)
+# 
+# tictoc::tic()
+# 
+# dtaCntList = data$dtaCnt %>% unique() %>% sort()
+# dtaCntList = 1:10
+# resDataL1 = tibble()
+# 
+# # dtaCntInfo = 1
+# for (dtaCntInfo in dtaCntList) {
+# 
+#   # 데이터 조회
+#   filePattern = sprintf("%s/%s/%s/lA_%s_*.csv", globalVar$outPath, serviceName, "dtl", dtaCntInfo)
+#   fileList = Sys.glob(filePattern)
+# 
+#   # 이 부분의 경우 동적으로 생성되기 때문에 다소 오랜 시간 소요
+#   # 따라서 추후 100, 100, 100, 20으로 설정하시고 20의 경우 동적으로 코어 할당
+#   mSocCluCnt = length(fileList)
+#   mSocClu = multidplyr::new_cluster(mSocCluCnt)
+# 
+#   multidplyr::cluster_library(mSocClu, "dplyr")
+#   multidplyr::cluster_library(mSocClu, "vroom")
+#   multidplyr::cluster_library(mSocClu, "readr")
+# 
+#   multidplyr::cluster_assign_each(mSocClu, filename = fileList)
+#   multidplyr::cluster_send(mSocClu, resData <- vroom::vroom(filename, col_names = FALSE, col_types = c(.default = "d")))
+# 
+#   resData = multidplyr::party_df(mSocClu, "resData") %>%
+#     dplyr::collect() %>%
+#     magrittr::set_colnames(c("rowid", "lat", "lon", "val", "sDateTime")) %>%
+#     tidyr::spread(-lon, -lat, key = "sDateTime", value = "val") %>%
+#     dplyr::select(-rowid)
+# 
+#   if (nrow(resDataL1) == 0) {
+#     resDataL1 = resData
+#   } else {
+#     tmpData = resData %>% dplyr::select(-lon, -lat)
+#     resDataL1 = dplyr::bind_cols(resDataL1, tmpData)
+#   }
+# 
+# }
+# 
+# tictoc::toc()
+# 
+# saveFile = sprintf("%s/%s/%s_fnl.csv", globalVar$outPath, serviceName, MyName)
+# readr::write_csv(x = resDataL1, file = saveFile)
+# 
+# # resDataL2 = resDataL1 %>%
+# #   dplyr::select(data$sortKey)
+# #
+# # saveFile = sprintf("%s/%s/%s_fnl_sort.csv", globalVar$outPath, serviceName, MyName)
+# # readr::write_csv(x = resDataL2, file = saveFile)
+
+
 fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "pr_Amon_MRI-ESM2-0_ssp585_r1i1p1f1_gn_201501-210012.nc"))
 r = raster::brick(fileInfo, hurrname = "t", level=1, stopIfNotEqualSpaced = FALSE)
 
-latList = seq(from=0, to=10, by=0.5)
-lonList = seq(from=18, to=25, by=0.5)
+latList = seq(from=-80, to=80, by=1.0)
+lonList = seq(from=-1, to=358, by=1.0)
 saveFile = NA
 hurls = NA
 MyName = "lA"
@@ -8968,12 +9129,29 @@ MyName = "lA"
 #======================================================
 # 다중 코어 기반으로 시/공간 내삽 (병렬 처리)
 #======================================================
+# 15 > 9999 변경
+# trace(multidplyr::new_cluster, edit=TRUE)
+
 tictoc::tic()
 
 # oSocCluCnt = 100
 oSocCluCnt = parallel::detectCores() - 1
 oSocClu = parallel::makePSOCKcluster(oSocCluCnt)
 doParallel::registerDoParallel(oSocClu)
+
+data = tibble::tibble(
+  noncompliance::expand.grid.DT(
+    latList
+    , lonList
+    , col.names = c("lat", "lon"))
+  ) %>%
+  tibble::rowid_to_column() %>%
+  dplyr::mutate(
+    dtaCnt = rowid %/% oSocCluCnt
+    , sortKey = paste(lon, lat, sep="p")
+  )
+
+# summary(data)
 
 parallel::clusterExport(oSocClu, "r")
 parallel::clusterExport(oSocClu, "hurls")
@@ -8988,42 +9166,29 @@ parallel::clusterEvalQ(oSocClu, library(raster))
 parallel::clusterEvalQ(oSocClu, library(readr))
 parallel::clusterEvalQ(oSocClu, library(dplyr))
 
-data = tibble::tibble(
-  noncompliance::expand.grid.DT(
-    latList
-    , lonList
-    , col.names = c("lon", "lat"))
-) %>%
-  tibble::rowid_to_column() %>% 
-  dplyr::mutate(
-    dtaCnt = rowid %/% oSocCluCnt
-    , sortKey = paste(lon, lat, sep="p")
-  )
-
 # x = 1
 # parallel::parSapply(oSocClu, X = 1:nrow(data), function(x) {
-# parallel::parSapply(oSocClu, X = 1:120, function(x) {
-parallel::parSapply(oSocClu, X = 1:nrow(data), function(x) {
-  
-  hurls = raster::extract(r, cbind(data$lat[x], data$lon[x]), df = TRUE, na.rm = TRUE) %>%
+parallel::parSapply(oSocClu, X = 1:100, function(x) {
+# parallel::parSapply(oSocClu, X = 1:nrow(data), function(x) {
+
+  hurls = raster::extract(r, cbind(data$lon[x], data$lat[x]), df = TRUE, na.rm = TRUE) %>%
     tidyr::gather(key = "key", value = "val") %>%
     dplyr::filter(key != "ID") %>%
     dplyr::select(-key) %>%
     # dplyr::mutate(val = val * 86400) %>%
     tibble::rowid_to_column() %>%
     dplyr::select(rowid, val)
-  
+
   hurlsL1 = tibble::tibble(
     lat = data$lat[x]
     , lon = data$lon[x]
     , hurls
-    ) %>% 
+    ) %>%
     dplyr::select(rowid, lat, lon, val)
 
   selDtaCnt = data$dtaCnt[x]
-  # selCore = x %% oSocCluCnt
   selSortKey = data$sortKey[x]
-  
+
   # saveFile = sprintf("%s/OUTPUT/%s_%s.csv", globalVar$outPath, MyName, selCore)
   saveFile = sprintf("%s/%s/%s/%s_%s_%s.csv", globalVar$outPath, serviceName, "dtl", MyName, selDtaCnt, selSortKey)
   fs::dir_create(fs::path_dir(saveFile))
@@ -9037,7 +9202,7 @@ tictoc::toc()
 # 다중 코어 기반으로 파일 읽기 (병렬 처리)
 #======================================================
 # 15 > 9999 변경
-# trace(multidplyr::new_cluster, edit=TRUE) 
+# trace(multidplyr::new_cluster, edit=TRUE)
 
 tictoc::tic()
 
@@ -9045,25 +9210,28 @@ dtaCntList = data$dtaCnt %>% unique() %>% sort()
 # dtaCntList = 1:10
 resDataL1 = tibble()
 
-# dtaCntInfo = 1
+# dtaCntInfo = 10
 for (dtaCntInfo in dtaCntList) {
-  
+
   # 데이터 조회
   filePattern = sprintf("%s/%s/%s/lA_%s_*.csv", globalVar$outPath, serviceName, "dtl", dtaCntInfo)
   fileList = Sys.glob(filePattern)
-  
+
   # 이 부분의 경우 동적으로 생성되기 때문에 다소 오랜 시간 소요
   # 따라서 추후 100, 100, 100, 20으로 설정하시고 20의 경우 동적으로 코어 할당
   mSocCluCnt = length(fileList)
-  mSocClu = multidplyr::new_cluster(mSocCluCnt)
   
+  if (mSocCluCnt < 1) next
+  
+  mSocClu = multidplyr::new_cluster(mSocCluCnt)
+
   multidplyr::cluster_library(mSocClu, "dplyr")
   multidplyr::cluster_library(mSocClu, "vroom")
   multidplyr::cluster_library(mSocClu, "readr")
-  
+
   multidplyr::cluster_assign_each(mSocClu, filename = fileList)
   multidplyr::cluster_send(mSocClu, resData <- vroom::vroom(filename, col_names = FALSE, col_types = c(.default = "d")))
-  
+
   resData = multidplyr::party_df(mSocClu, "resData") %>%
     dplyr::collect() %>%
     magrittr::set_colnames(c("rowid", "lon", "lat", "val")) %>%
@@ -9073,21 +9241,22 @@ for (dtaCntInfo in dtaCntList) {
     dplyr::select(-lon, -lat) %>%
     tidyr::spread(key = "key", value = "val") %>%
     dplyr::select(-rowid)
-  
+
   if (nrow(resDataL1) == 0) {
     resDataL1 = resData
   } else {
     resDataL1 = dplyr::bind_cols(resDataL1, resData)
   }
-  
+
 }
 tictoc::toc()
 
 saveFile = sprintf("%s/%s/%s_fnl.csv", globalVar$outPath, serviceName, MyName)
 readr::write_csv(x = resDataL1, file = saveFile)
 
-resDataL2 = resDataL1 %>% 
-  dplyr::select(data$sortKey)
 
-saveFile = sprintf("%s/%s/%s_fnl_sort.csv", globalVar$outPath, serviceName, MyName)
-readr::write_csv(x = resDataL2, file = saveFile)
+# resDataL2 = resDataL1 %>%
+#   dplyr::select(data$sortKey)
+# 
+# saveFile = sprintf("%s/%s/%s_fnl_sort.csv", globalVar$outPath, serviceName, MyName)
+# readr::write_csv(x = resDataL2, file = saveFile)
