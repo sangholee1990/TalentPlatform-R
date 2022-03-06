@@ -7750,14 +7750,15 @@ speList = data$Species %>% unique() %>% sort()
 
 # grpInfo = "adult"
 # grpInfo = "juvenile"
-# speInfo = "구상"
+# speInfo = "구상나무"
 # speInfo = "고로쇠"
+# speInfo = "고로쇠나무"
 
-for (grpInfo in grpList) {
-  for (speInfo in speList) {
+# for (grpInfo in grpList) {
+for (speInfo in speList) {
     
-    data$Groups = as.factor(data$Groups)
-    data$Species = as.factor(data$Species)
+    # data$Groups = as.factor(data$Groups)
+    # data$Species = as.factor(data$Species)
 
     
     # gamModel = gam(
@@ -7765,16 +7766,36 @@ for (grpInfo in grpList) {
     #   , data = data
     # )
     
+    # gamModel = gam(
+    #   Species == speInfo ~ s(Elevation, by = Groups) + Groups
+    #   , data = data
+    # )
+    
+    # data$Species %>% sort() %>% unique()
+    
+    dataL1 = data %>% 
+      dplyr::filter(
+        Species == speInfo
+      )
+    
+    if (nrow(dataL1) < 1) next
+    
+    dataL1$Groups = as.factor(dataL1$Groups)
+    dataL1$Species = as.factor(dataL1$Species)
+    
     gamModel = gam(
-      Species == speInfo ~ s(Elevation, by = Groups) + Groups
-      , data = data
+      Species == speInfo & Groups == "adult" ~ s(Elevation)
+      , data = dataL1
     )
+    
+    # plot(mgcViz::getViz(gamModel), select = 1)
+    # plot(mgcViz::getViz(gamModel), select = 2)
     
     
     # **************************************************************************
     # adult
     # **************************************************************************
-    prdData = data %>% 
+    prdData = dataL1 %>% 
       dplyr::filter(Groups == "adult") %>% 
       dplyr::mutate(
         x = Elevation
@@ -7818,7 +7839,12 @@ for (grpInfo in grpList) {
     # **************************************************************************
     # juvenile
     # **************************************************************************
-    prdData = data %>%
+    gamModel = gam(
+      Species == speInfo & Groups == "juvenile" ~ s(Elevation)
+      , data = dataL1
+    )
+    
+    prdData = dataL1 %>%
       dplyr::filter(Groups == "juvenile") %>% 
       dplyr::mutate(
         x = Elevation
@@ -7838,7 +7864,7 @@ for (grpInfo in grpList) {
 
     png(file = saveTmp, width = 10, height = 8, units = "in", res = 600)
     print(
-      plot(mgcViz::getViz(gamModel), select = 2) +
+      plot(mgcViz::getViz(gamModel), select = 1) +
         geom_vline(xintercept = prdData$meanX, linetype = 2, color = "blue", size = 0.5) +
         ggrepel::geom_text_repel(
           nudge_x = 10
@@ -7858,9 +7884,9 @@ for (grpInfo in grpList) {
     dev.off()
 
     fs::file_move(saveTmp, saveImg)
-    
-  }
 }
+
+# }
 
 
 #   
@@ -8318,6 +8344,146 @@ fs::file_copy(saveTmp, saveFile, overwrite = TRUE)
 
 dataL2$Groups = as.factor(dataL2$Groups)
 dataL2$Species = as.factor(dataL2$Species)
+
+# speInfo = "물푸레나무"
+
+for (speInfo in speList) {
+  for (grpInfo in grpList) {
+  
+  # 기온
+  dataL3 = dataL2 %>% 
+    dplyr::filter(
+      Species == speInfo
+    ) %>% 
+    dplyr::select(Species, Groups, 평균기온..C.) %>% 
+    na.omit()
+  
+  if (nrow(dataL3) < 1) next
+  
+  gamModel = gam(
+    Species == speInfo & Groups == grpInfo ~ s(평균기온..C.)
+    , data = dataL3
+  )
+  
+  pVal = summary(gamModel)['p.pv']$p.pv
+  
+  prdData = dataL3 %>% 
+    dplyr::filter(
+      Groups == grpInfo
+      , Species == speInfo
+      ) %>% 
+    dplyr::mutate(
+      x = 평균기온..C.
+      , y = predict(gamModel, newdata = .)
+    ) %>% 
+    dplyr::filter(y == max(y, na.rm = TRUE)) %>% 
+    dplyr::group_by(x, y) %>% 
+    dplyr::summarise(
+      meanX = mean(x, na.rm = TRUE)
+      , meanY = mean(y, na.rm = TRUE)
+    )
+  
+  mainTitle = sprintf("Groups 및 Species에 따른 평균기온 결과 (%s, %s)", grpInfo, speInfo)
+  saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, mainTitle)
+  saveTmp = tempfile(fileext = "png")
+  
+  png(file = saveTmp, width = 10, height = 8, units = "in", res = 600)
+  print(
+    plot(mgcViz::getViz(gamModel), select = 1) +
+      geom_vline(xintercept = prdData$meanX, linetype = 2, color = "blue", size = 0.5) +
+      ggrepel::geom_text_repel(
+        nudge_x = 10
+        , nudge_y = 0
+        , aes(x = meanX, y = meanY, label = sprintf("(%s, %s)", round(prdData$meanX, 2), round(prdData$meanY, 2)))
+        , color = "blue"
+        , data = prdData
+      ) +
+      ggrepel::geom_text_repel(
+        nudge_x = 10
+        , nudge_y = 10
+        , aes(x = meanX, y = 0, label = sprintf("P-Value : %s", round(pVal, 4)))
+        , color = "red"
+        , data = prdData
+      ) +
+      scale_x_continuous(breaks = seq(-100, 100, 5)) +
+      theme_bw() +
+      labs(subtitle = mainTitle, x = "평균 기온 [Celsius]", y = "Normalized probability of occupancy") +
+      theme(text = element_text(size = 18))
+    , pages = 1)
+  dev.off()
+  
+  fs::file_move(saveTmp, saveImg)
+  
+  
+  # 일강수량.mm.
+  dataL3 = dataL2 %>% 
+    dplyr::filter(
+      Species == speInfo
+    ) %>% 
+    dplyr::select(Species, Groups, 일강수량.mm.) %>% 
+    # dplyr::na_if(0) %>% 
+    na.omit()
+  
+  if (nrow(dataL3) < 1) next
+  
+  gamModel = mgcv::gam(
+    Species == speInfo & Groups == grpInfo ~ s(일강수량.mm., k = 3)
+    # Species == speInfo & Groups == grpInfo ~ 일강수량.mm.
+    , data = dataL3
+  )
+  
+  pVal = summary(gamModel)['p.pv']$p.pv
+  
+  prdData = dataL3 %>% 
+    dplyr::filter(
+      Groups == grpInfo
+      , Species == speInfo
+    ) %>% 
+    dplyr::mutate(
+      x = 일강수량.mm.
+      , y = predict(gamModel, newdata = .)
+    ) %>% 
+    dplyr::filter(y == max(y, na.rm = TRUE)) %>% 
+    dplyr::group_by(x, y) %>% 
+    dplyr::summarise(
+      meanX = mean(x, na.rm = TRUE)
+      , meanY = mean(y, na.rm = TRUE)
+    )
+  
+  mainTitle = sprintf("Groups 및 Species에 따른 평균일강수 결과 (%s, %s)", grpInfo, speInfo)
+  saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, mainTitle)
+  saveTmp = tempfile(fileext = "png")
+  
+  png(file = saveTmp, width = 10, height = 8, units = "in", res = 600)
+  print(
+    plot(mgcViz::getViz(gamModel), select = 1) +
+      geom_vline(xintercept = prdData$meanX, linetype = 2, color = "blue", size = 0.5) +
+      ggrepel::geom_text_repel(
+        nudge_x = 10
+        , nudge_y = 0
+        , aes(x = meanX, y = meanY, label = sprintf("(%s, %s)", round(prdData$meanX, 2), round(prdData$meanY, 2)))
+        , color = "blue"
+        , data = prdData
+      ) +
+      ggrepel::geom_text_repel(
+        nudge_x = 10
+        , nudge_y = 10
+        , aes(x = meanX, y = 0, label = sprintf("P-Value : %s", round(pVal, 4)))
+        , color = "red"
+        , data = prdData
+      ) +
+      scale_x_continuous(breaks = seq(-100, 100, 5)) +
+      theme_bw() +
+      labs(subtitle = mainTitle, x = "평균 일강수 [mm]", y = "Normalized probability of occupancy") +
+      theme(text = element_text(size = 18))
+    , pages = 1)
+  dev.off()
+  
+  fs::file_move(saveTmp, saveImg)
+  
+  } 
+}
+
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # 평균 기온
