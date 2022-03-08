@@ -6649,24 +6649,63 @@ library(ggplot2)
 library(grid)
 library(gridExtra) 
 library(cowplot) 
+library(RSelenium)
+library(rvest)
+library(stringr)
+library(XML)
+library(tidyverse)
+library(httr)
+library(AER)
+library(forcats)
+
 
 #=================================================
-# 선거 주제도
+# 시군구/읍면동 설정
 #=================================================
 # 선거 데이터 읽기
 addrName = "서울특별시"
 # addrDtlName = "용산구"
-addrDtlName = "동대문구"
+# addrDtlName = "동대문구"
+addrDtlName = "강서구"
 
 # addrName = "경상남도"
 # addrDtlName = "남해군"
 
 # addrName = "경기도"
 # addrDtlName = "안성시"
+# addrDtlName = "동두천시"
 
 # addrName = "충청남도"
 # addrDtlName = "아산시"
 
+
+# **********************************************
+# 20대 대선 다운로드
+# **********************************************
+# 셀레늄 이용
+# rD = RSelenium::rsDriver(port = 5001L, browser="chrome", chromever=binman::list_versions("chromedriver")$win32[2])
+# remDr = rD[["client"]]
+# remDr$navigate("http://info.nec.go.kr/main/showDocument.xhtml?electionId=0020220309&topMenuId=VC&secondMenuId=VCCP08")
+
+
+# Sys.setlocale("LC_ALL", "English")
+# 
+# data = remDr$getPageSource()[[1]] %>%
+#   xml2::read_html() %>% 
+#   rvest::html_nodes(xpath = '/html/body/div[2]/div/div[4]/div/div/div[2]/div[2]/div[2]/table') %>%
+#   rvest::html_table() %>%
+#   as.data.frame()
+# 
+# Sys.setlocale("LC_ALL", "Korean")
+# 
+# saveFile = sprintf("%s/%s_%s_%s_%s.csv", globalVar$outPath, serviceName, "20대선", addrName, addrDtlName)
+# saveTmp = tempfile(fileext = "csv")
+# readr::write_excel_csv(x = data, file = saveTmp, col_names = FALSE)
+# fs::file_copy(saveTmp, saveFile, overwrite = TRUE)
+
+#=================================================
+# 선거 주제도
+#=================================================
 fileInfoPattern = sprintf("*%s %s* 선거분석.xlsx", addrName, addrDtlName)
 fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, fileInfoPattern))
 # data = openxlsx::read.xlsx(fileInfo, sheet = 1)
@@ -6733,6 +6772,8 @@ dataL3 = data %>%
       , 더불어민주당 == maxVal ~ 2
       , 중도층 == maxVal ~ 3
       )
+    # , 투표구3 = gsub("*제[[:digit:]]+동", "", 투표구)# %>% str_replace(투표구, ., "")
+    # , 투표구3 = ifelse(grepl("제[[:digit:]]+동", 투표구), str_replace(투표구, ., ""), 투표구)
     , 투표구2 = dplyr::case_when(
       # stringr::str_detect(투표구, regex("원효로제1동")) ~ "원효로1동"
       # , stringr::str_detect(투표구, regex("원효로제2동")) ~ "원효로2동"
@@ -6742,14 +6783,14 @@ dataL3 = data %>%
       # , stringr::str_detect(투표구, regex("이태원제2동")) ~ "이태원2동"
       # , TRUE ~ 투표구
       
-      # grepl("원효로제1동", 투표구) ~ "원효로1동"
-      # , grepl("원효로제2동", 투표구) ~ "원효로2동"
-      # , grepl("이촌제1동", 투표구) ~ "이촌1동"
-      # , grepl("이촌제2동", 투표구) ~ "이촌2동"
-      # , grepl("이태원제1동", 투표구) ~ "이태원1동"
-      # , grepl("이태원제2동", 투표구) ~ "이태원2동"
+      grepl("원효로제1동", 투표구) ~ "원효로1동"
+      , grepl("원효로제2동", 투표구) ~ "원효로2동"
+      , grepl("이촌제1동", 투표구) ~ "이촌1동"
+      , grepl("이촌제2동", 투표구) ~ "이촌2동"
+      , grepl("이태원제1동", 투표구) ~ "이태원1동"
+      , grepl("이태원제2동", 투표구) ~ "이태원2동"
       
-      grepl("휘경제1동", 투표구) ~ "휘경1동"
+      , grepl("휘경제1동", 투표구) ~ "휘경1동"
       , grepl("휘경제2동", 투표구) ~ "휘경2동"
       , grepl("전농제1동", 투표구) ~ "전농1동"
       , grepl("전농제2동", 투표구) ~ "전농2동"
@@ -6760,9 +6801,29 @@ dataL3 = data %>%
       , grepl("장안제2동", 투표구) ~ "장안2동"
       , grepl("이문제1동", 투표구) ~ "이문1동"
       , grepl("이문제2동", 투표구) ~ "이문2동"
+      
+      , grepl("가양제1동", 투표구) ~ "가양1동"
+      , grepl("가양제2동", 투표구) ~ "가양2동"
+      , grepl("가양제3동", 투표구) ~ "가양3동"
+      , grepl("등촌제1동", 투표구) ~ "등촌1동"
+      , grepl("등촌제2동", 투표구) ~ "등촌2동"
+      , grepl("등촌제3동", 투표구) ~ "등촌3동"
+      , grepl("발산제1동", 투표구) ~ "발산1동"
+      , grepl("방화제1동", 투표구) ~ "방화1동"
+      , grepl("방화제2동", 투표구) ~ "방화2동"
+      , grepl("방화제3동", 투표구) ~ "방화3동"
+      , grepl("화곡제1동", 투표구) ~ "화곡1동"
+      , grepl("화곡제2동", 투표구) ~ "화곡2동"
+      , grepl("화곡제3동", 투표구) ~ "화곡3동"
+      , grepl("화곡제4동", 투표구) ~ "화곡4동"
+      , grepl("화곡제6동", 투표구) ~ "화곡6동"
+      , grepl("화곡제8동", 투표구) ~ "화곡8동"
+      
       , TRUE ~ 투표구
     )
   )
+
+# data$투표구 %>% unique() %>% sort()
 
 # 읍면동 지도 읽기
 mapInfo = Sys.glob(file.path(globalVar$mapPath, "koreaInfo/bnd_dong_00_2019_2019_2Q.shp"))
@@ -6774,7 +6835,6 @@ mapGlobal = sf::st_read(mapInfo, quiet = TRUE, options = "ENCODING=EUC-KR") %>%
 # 법정동 코드 읽기 (2)
 codeInfo = Sys.glob(file.path(globalVar$mapPath, "admCode/admCode.xlsx"))
 codeData = openxlsx::read.xlsx(codeInfo, sheet = 1, startRow = 2)
-
 
 codeDataL1 = codeData %>%
   dplyr::filter(
@@ -6790,7 +6850,7 @@ dataL5 = mapGlobal %>%
   dplyr::inner_join(codeDataL1, by = c("adm_dr_cd" = "읍면동코드")) %>%
   dplyr::left_join(dataL3, by = c("adm_dr_nm" = "투표구2")) 
 
-
+dplyr::tbl_df(dataL5)
 
 # ************************************************
 # 선거 주제도
@@ -6801,7 +6861,6 @@ saveTmp = tempfile(fileext = ".png")
 
 # ggplotDefaultColor = hue_pal()(3)
 ggplotDefaultColor = c("red", "blue", "grey")
-
 
 ggplot() +
   theme_bw() +
@@ -6832,7 +6891,7 @@ ggplot() +
     , labels = c("자유한국당", "더불어민주당", "중도층")
   ) +
   # xlim(127.80, 128.08) +
-  # ylim(34.69, 34.95) + 
+  # ylim(34.69, 34.95) +
   labs(title = plotSubTitle, x = NULL, y = NULL, colour = NULL, fill = NULL, subtitle = NULL) +
   theme(
     text = element_text(size = 16)
@@ -6869,23 +6928,42 @@ dataDtlL4 = data %>%
       # , stringr::str_detect(투표구, regex("이태원제1동")) ~ "이태원1동"
       # , stringr::str_detect(투표구, regex("이태원제2동")) ~ "이태원2동"
 
-      # grepl("원효로제1동", 투표구) ~ "원효로1동"
-      # , grepl("원효로제2동", 투표구) ~ "원효로2동"
-      # , grepl("이촌제1동", 투표구) ~ "이촌1동"
-      # , grepl("이촌제2동", 투표구) ~ "이촌2동"
-      # , grepl("이태원제1동", 투표구) ~ "이태원1동"
-      # , grepl("이태원제2동", 투표구) ~ "이태원2동"
-
-      grepl("휘경제1동", 투표구) ~ "휘경1동"
+      grepl("원효로제1동", 투표구) ~ "원효로1동"
+      , grepl("원효로제2동", 투표구) ~ "원효로2동"
+      , grepl("이촌제1동", 투표구) ~ "이촌1동"
+      , grepl("이촌제2동", 투표구) ~ "이촌2동"
+      , grepl("이태원제1동", 투표구) ~ "이태원1동"
+      , grepl("이태원제2동", 투표구) ~ "이태원2동"
+      
+      , grepl("휘경제1동", 투표구) ~ "휘경1동"
       , grepl("휘경제2동", 투표구) ~ "휘경2동"
       , grepl("전농제1동", 투표구) ~ "전농1동"
       , grepl("전농제2동", 투표구) ~ "전농2동"
       , grepl("답십리제1동", 투표구) ~ "답십리1동"
       , grepl("답십리제2동", 투표구) ~ "답십리2동"
+      
       , grepl("장안제1동", 투표구) ~ "장안1동"
       , grepl("장안제2동", 투표구) ~ "장안2동"
       , grepl("이문제1동", 투표구) ~ "이문1동"
       , grepl("이문제2동", 투표구) ~ "이문2동"
+      
+      , grepl("가양제1동", 투표구) ~ "가양1동"
+      , grepl("가양제2동", 투표구) ~ "가양2동"
+      , grepl("가양제3동", 투표구) ~ "가양3동"
+      , grepl("등촌제1동", 투표구) ~ "등촌1동"
+      , grepl("등촌제2동", 투표구) ~ "등촌2동"
+      , grepl("등촌제3동", 투표구) ~ "등촌3동"
+      , grepl("발산제1동", 투표구) ~ "발산1동"
+      , grepl("방화제1동", 투표구) ~ "방화1동"
+      , grepl("방화제2동", 투표구) ~ "방화2동"
+      , grepl("방화제3동", 투표구) ~ "방화3동"
+      , grepl("화곡제1동", 투표구) ~ "화곡1동"
+      , grepl("화곡제2동", 투표구) ~ "화곡2동"
+      , grepl("화곡제3동", 투표구) ~ "화곡3동"
+      , grepl("화곡제4동", 투표구) ~ "화곡4동"
+      , grepl("화곡제6동", 투표구) ~ "화곡6동"
+      , grepl("화곡제8동", 투표구) ~ "화곡8동"
+      
       , TRUE ~ 투표구
     )
     # , label = stringr::str_match_all(세부투표구, "제[[:digit:]]+투") %>% unlist() %>% stringr::str_conv("EUC-KR")
@@ -6894,6 +6972,9 @@ dataDtlL4 = data %>%
   dplyr::na_if(0) %>% 
   dplyr::select(투표구2, 세부투표구, `%자유한국당`, `%더불어민주당`, `%중도층`, label) %>% 
   tidyr::gather(-c(투표구2, 세부투표구, label), key = "key", value = "val") 
+
+dplyr::tbl_df(dataDtlL4)
+
 
 
 # 정당에 따른 정렬
@@ -7034,16 +7115,42 @@ for (sexInfoPattern in sexListPattern) {
         # , stringr::str_detect(투표구, regex("이태원제2동")) ~ "이태원2동"
         # , TRUE ~ 투표구
         
-        grepl("휘경제1동", 투표구) ~ "휘경1동"
+        grepl("원효로제1동", 투표구) ~ "원효로1동"
+        , grepl("원효로제2동", 투표구) ~ "원효로2동"
+        , grepl("이촌제1동", 투표구) ~ "이촌1동"
+        , grepl("이촌제2동", 투표구) ~ "이촌2동"
+        , grepl("이태원제1동", 투표구) ~ "이태원1동"
+        , grepl("이태원제2동", 투표구) ~ "이태원2동"
+        
+        , grepl("휘경제1동", 투표구) ~ "휘경1동"
         , grepl("휘경제2동", 투표구) ~ "휘경2동"
         , grepl("전농제1동", 투표구) ~ "전농1동"
         , grepl("전농제2동", 투표구) ~ "전농2동"
         , grepl("답십리제1동", 투표구) ~ "답십리1동"
         , grepl("답십리제2동", 투표구) ~ "답십리2동"
+        
         , grepl("장안제1동", 투표구) ~ "장안1동"
         , grepl("장안제2동", 투표구) ~ "장안2동"
         , grepl("이문제1동", 투표구) ~ "이문1동"
         , grepl("이문제2동", 투표구) ~ "이문2동"
+        
+        , grepl("가양제1동", 투표구) ~ "가양1동"
+        , grepl("가양제2동", 투표구) ~ "가양2동"
+        , grepl("가양제3동", 투표구) ~ "가양3동"
+        , grepl("등촌제1동", 투표구) ~ "등촌1동"
+        , grepl("등촌제2동", 투표구) ~ "등촌2동"
+        , grepl("등촌제3동", 투표구) ~ "등촌3동"
+        , grepl("발산제1동", 투표구) ~ "발산1동"
+        , grepl("방화제1동", 투표구) ~ "방화1동"
+        , grepl("방화제2동", 투표구) ~ "방화2동"
+        , grepl("방화제3동", 투표구) ~ "방화3동"
+        , grepl("화곡제1동", 투표구) ~ "화곡1동"
+        , grepl("화곡제2동", 투표구) ~ "화곡2동"
+        , grepl("화곡제3동", 투표구) ~ "화곡3동"
+        , grepl("화곡제4동", 투표구) ~ "화곡4동"
+        , grepl("화곡제6동", 투표구) ~ "화곡6동"
+        , grepl("화곡제8동", 투표구) ~ "화곡8동"
+        
         , TRUE ~ 투표구
       )
     )
