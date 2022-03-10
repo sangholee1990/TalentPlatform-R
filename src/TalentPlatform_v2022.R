@@ -6663,17 +6663,17 @@ library(forcats)
 # 시군구/읍면동 설정
 #=================================================
 # 선거 데이터 읽기
-addrName = "서울특별시"
+# addrName = "서울특별시"
 # addrDtlName = "용산구"
 # addrDtlName = "동대문구"
-addrDtlName = "강서구"
+# addrDtlName = "강서구"
+
+addrName = "경기도"
+# addrDtlName = "안성시"
+addrDtlName = "동두천시"
 
 # addrName = "경상남도"
 # addrDtlName = "남해군"
-
-# addrName = "경기도"
-# addrDtlName = "안성시"
-# addrDtlName = "동두천시"
 
 # addrName = "충청남도"
 # addrDtlName = "아산시"
@@ -6850,7 +6850,7 @@ dataL5 = mapGlobal %>%
   dplyr::inner_join(codeDataL1, by = c("adm_dr_cd" = "읍면동코드")) %>%
   dplyr::left_join(dataL3, by = c("adm_dr_nm" = "투표구2")) 
 
-dplyr::tbl_df(dataL5)
+# dplyr::tbl_df(dataL5)
 
 # ************************************************
 # 선거 주제도
@@ -6973,8 +6973,7 @@ dataDtlL4 = data %>%
   dplyr::select(투표구2, 세부투표구, `%자유한국당`, `%더불어민주당`, `%중도층`, label) %>% 
   tidyr::gather(-c(투표구2, 세부투표구, label), key = "key", value = "val") 
 
-dplyr::tbl_df(dataDtlL4)
-
+# dplyr::tbl_df(dataDtlL4)
 
 
 # 정당에 따른 정렬
@@ -7236,7 +7235,7 @@ for (sexInfoPattern in sexListPattern) {
     
     makePlot = ggplot(dataL6, aes(x=key, y=per, group=key, fill=key, label = round(per, 0))) +
       geom_bar(position="dodge", stat="identity", show.legend = FALSE, alpha = 1) +
-      geom_text(nudge_y = -1.50, color = "black", size = 3) +
+      geom_text(nudge_y = -1.50, color = "black", size = 4) +
       labs(
         x = NULL
         , y = NULL
@@ -7244,7 +7243,9 @@ for (sexInfoPattern in sexListPattern) {
         , fill = NULL
         , subtitle = NULL
       ) +
-      scale_y_continuous(breaks = seq(0, 50, 10), minor_breaks = NULL) +
+      geom_label(data=dataL6, aes(x = "41-50세", y = 0, label = 투표구2)
+                 , color = alpha("white", 1), vjust=0, nudge_x = 0, nudge_y = 0, label.size = NA
+                 , fill = alpha("black", 0.25), size = 5) +
       scale_fill_manual(
         name = NULL
         , na.value = "transparent"
@@ -7274,8 +7275,8 @@ for (sexInfoPattern in sexListPattern) {
       )
     
     ggsave(makePlot, filename = saveTmp, width = 2, height = 2, dpi = 600)
-    
     fs::file_move(saveTmp, saveImg)
+    
   }
 }
 
@@ -7301,16 +7302,16 @@ for (sexInfoPattern in sexListPattern) {
 # saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, plotSubTitle)
 # saveTmp = tempfile(fileext = ".png")
 # 
-# makePlotLegend = ggplot(legendData, aes(x = x, y = y, fill = legend)) +   
+# makePlotLegend = ggplot(legendData, aes(x = x, y = y, fill = legend)) +
 #   geom_bar(position="dodge", stat="identity", rsize = 7) +
 #   scale_fill_manual(
 #     name = NULL
 #     , na.value = "transparent"
 #     , values = c("18-20세" = cbSet1[1], "21-30세" = cbSet1[2], "31-40세" = cbSet1[3], "41-50세" = cbSet1[4], "51-60세" = cbSet1[5], "61-70세" = cbSet1[6], "71세 이상" = cbSet1[7])
 #     , labels = c("18-20세", "21-30세", "31-40세", "41-50세", "51-60세", "61-70세", "71세 이상")
-#   ) 
+#   )
 # 
-# getLegend = cowplot::get_legend(makePlotLegend)                    
+# getLegend = cowplot::get_legend(makePlotLegend)
 # grid::grid.newpage()
 # png(file = saveTmp, width = 2, height = 2, units = "in", res = 600, bg = "transparent")
 # grid::grid.draw(getLegend)
