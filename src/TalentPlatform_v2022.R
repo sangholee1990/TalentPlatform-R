@@ -7891,12 +7891,58 @@ for (speInfo in speList) {
     dataL1$Groups = as.factor(dataL1$Groups)
     dataL1$Species = as.factor(dataL1$Species)
     
-    gamModel = gam(
+    gamModel = mgcv::gam(
       Species == speInfo & Groups == "adult" ~ s(Elevation)
       , data = dataL1
+      # , sp = 1e-6
+      # , method="reml"
+      # , method = "GCV.Cp"
     )
     
-    # plot(mgcViz::getViz(gamModel), select = 1)
+    # dataL1 = data %>% 
+    #   dplyr::filter(
+    #     Species == speInfo
+    #   )
+    # 
+    
+    dataL1$Groups = as.factor(dataL1$Groups)
+    dataL1$Species = as.factor(dataL1$Species)
+    
+    
+    gamModel = mgcv::gam(
+      # Species == speInfo & Groups == "adult" ~ s(Elevation, k = 1)
+      Species == speInfo ~ Groups + s(Elevation) + s(Elevation, by = Groups)
+      , data = dataL1
+      , nfold = 10
+      # , method = "REML"
+    )
+    
+    # gamModel = mgcv::gam(
+    #   # Species == speInfo & Groups == "adult" ~ s(Elevation, k = 1)
+    #   Species == speInfo & Groups == "adult" ~ s(Elevation)
+    #   , data = dataL1
+    #   , nfold = 10
+    #   # , sp = 1e-6
+    #   # , method="reml"
+    #   # , method = "GCV.Cp"
+    # )
+    # 
+    
+    # library(gamclass)
+    # gamCvModel = gamclass::CVgam(formula=Species == speInfo & Groups == "adult" ~ s(Elevation),
+          # data = dataL1, nfold = 10)
+
+    summary(gamModel)
+    # summary(gamCvModel)
+    
+    # plot(gamModel)
+    # plot(gamCvModel)
+    # 
+    
+    
+    # plot(dataL1$Elevation, gamModel$fitted)
+    
+    plot(mgcViz::getViz(gamModel), select = 1)
     # plot(mgcViz::getViz(gamModel), select = 2)
     
     
@@ -8917,6 +8963,13 @@ for (grpInfo in grpList) {
 #================================================
 # R을 이용한 인구예측 (연도별, 연도별 연령별)
 
+# 안녕하세요.
+# 첨부된 자료 중~
+# 1. 보정한 시트(년도별)
+# 2. 고령화 비율(시트명)
+# 전체인구감소와 65세이상 증가 추이 관계
+# 살펴주세요.
+
 #================================================
 # 초기 환경변수 설정
 # ================================================
@@ -8964,10 +9017,11 @@ defaultColor = scales::hue_pal()(3)
 #===============================================================================
 # 연도별 인구
 #===============================================================================
-fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "yd21_population.xlsx"))
+# fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "yd21_population.xlsx"))
+fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "yd21_population_20220306.xlsx"))
 trainData = openxlsx::read.xlsx(fileInfo, sheet = 2)
 
-prdData = tibble(year = seq(min(trainData$year, na.rm = TRUE), 2025, 1)) %>% 
+prdData = tibble(year = seq(min(trainData$year, na.rm = TRUE), 2030, 1)) %>% 
   dplyr::left_join(trainData, by = c("year" = "year"))
 
 # ******************************************************************************
@@ -9037,7 +9091,8 @@ openxlsx::saveWorkbook(wb, file = saveXlsxFile, overwrite = TRUE)
 #===============================================================================
 # 연도별 연령별 인구
 #===============================================================================
-fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "yd21_population.xlsx"))
+# fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "yd21_population.xlsx"))
+fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "yd21_population_20220306.xlsx"))
 data = openxlsx::read.xlsx(fileInfo, sheet = 1)
 
 dataL1 = data %>% 
@@ -9055,8 +9110,9 @@ for (keyInfo in keyList) {
   trainData = dataL1 %>% 
     dplyr::filter(key == keyInfo)
 
-  prdData = tibble(year = seq(min(trainData$year, na.rm = TRUE), 2025, 1)) %>% 
-    dplyr::left_join(trainData, by = c("year" = "year"))
+  prdData = tibble(year = seq(min(trainData$year, na.rm = TRUE), 2030, 1)) %>% 
+    dplyr::left_join(trainData, by = c("year" = "year")) %>% 
+    dplyr::mutate(key = keyInfo)
     
   # ******************************************************************************
   # 딥러닝 모형
@@ -9121,6 +9177,132 @@ wb = openxlsx::createWorkbook()
 openxlsx::addWorksheet(wb, "Sheet1")
 openxlsx::writeData(wb, "Sheet1", prdDataL2, startRow = 1, startCol = 1, colNames = TRUE, rowNames = FALSE)
 openxlsx::saveWorkbook(wb, file = saveXlsxFile, overwrite = TRUE)
+
+
+#===============================================================================
+# 고령화 비율 예측 및 증가추이 관계
+#===============================================================================
+# fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "yd21_population.xlsx"))
+fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "yd21_population_20220306.xlsx"))
+data = openxlsx::read.xlsx(fileInfo, sheet = 3)
+
+dataL1 = data %>% 
+  dplyr::select(-cnt, -cnt65) %>% 
+  tidyr::gather(-year, key = "key", value = "val")
+
+prdDataL2 = tibble::tibble()
+
+keyList = dataL1$key %>% unique() %>% sort()
+# keyInfo = keyList[1]
+
+for (keyInfo in keyList) {
+  
+  key = gsub("[세|세이상|-]", "", keyInfo)
+  
+  trainData = dataL1 %>% 
+    dplyr::filter(key == keyInfo)
+  
+  prdData = tibble(year = seq(min(trainData$year, na.rm = TRUE), 2030, 1)) %>% 
+    dplyr::left_join(trainData, by = c("year" = "year")) %>% 
+    dplyr::mutate(key = keyInfo)
+  
+  # ******************************************************************************
+  # 딥러닝 모형
+  # ******************************************************************************
+  # 모델 학습
+  saveModel = sprintf("%s/%s-%s-%s-%s-%s.model", globalVar$outPath, serviceName, 'final', 'h2o', 'pop', key)
+  
+  # 모델 학습이 있을 경우
+  if (fs::file_exists(saveModel)) {
+    amlModel = h2o::h2o.loadModel(saveModel)
+  } else {
+    # C모델 학습
+    amlModel = h2o::h2o.automl(
+      x = c("year")
+      , y = c("val")
+      , training_frame = as.h2o(trainData)
+      , nfolds = 10
+      , sort_metric = "RMSE"
+      , stopping_metric = "RMSE"
+      , seed = 1
+      , max_models = 40
+    )
+    
+    amlBestModel = h2o.get_best_model(amlModel)
+    h2o::h2o.saveModel(object = amlBestModel, path = fs::path_dir(saveModel), filename = fs::path_file(saveModel), force = TRUE)
+  }
+  
+  prdData$prd = as.data.frame(h2o::h2o.predict(object = amlModel, newdata = as.h2o(prdData)))$predict
+  prdDataL2 = dplyr::bind_rows(prdDataL2, prdData)
+  
+  prdDataL1 = prdData %>% 
+    tidyr::gather(-year, -key, key = "key", value = "val")
+  
+  subTitle = sprintf("2001-2030년 연도별 고령화비율 실측 및 예측 시계열", keyInfo)
+  saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, subTitle)
+  saveTmp = tempfile(fileext = ".png")
+  
+  makePlot = ggplot(data = prdDataL1, aes(x = year, y = val, color = key)) +
+    geom_point() +
+    geom_line() +
+    labs(title = NULL, x = "연도", y = "고령화 비율 [%]", colour = NULL, fill = NULL, subtitle = subTitle) +
+    scale_color_manual(
+      name = NULL
+      , na.value = "transparent"
+      , values = c("val" = defaultColor[1], "prd" = defaultColor[2])
+      , labels = c("실측", "예측")
+    ) +
+    theme(
+      text = element_text(size = 18)
+      , legend.position = "top"
+    )
+  
+  ggsave(filename = saveTmp, plot = makePlot, width = 10, height = 8, dpi = 600)
+  fs::file_move(saveTmp, saveImg)
+  
+}
+
+
+# ******************************************************************************
+# 예측 결과 저장
+# ******************************************************************************
+saveXlsxFile = sprintf("%s/%s_%s.xlsx", globalVar$outPath, serviceName, "연도별 고령화비율 예측 분석")
+wb = openxlsx::createWorkbook()
+openxlsx::addWorksheet(wb, "Sheet1")
+openxlsx::writeData(wb, "Sheet1", prdDataL2, startRow = 1, startCol = 1, colNames = TRUE, rowNames = FALSE)
+openxlsx::saveWorkbook(wb, file = saveXlsxFile, overwrite = TRUE)
+
+
+#===============================================================================
+# 전체인구감소와 65세이상 증가 추이 관계
+#===============================================================================
+ggData = data %>% 
+  dplyr::select(-ration) %>% 
+  dplyr::rename(
+    "전체 인구" = cnt
+    ,  "65세 연령" = cnt65
+  ) %>% 
+  tidyr::gather(-year, key = "key", value = "val")
+
+plotSubTitle = sprintf("%s", "전체인구 대비 65세연령 추이")
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, plotSubTitle)
+
+ggpubr::ggscatter(
+  ggData, x = "year", y = "val", color = "key"
+  , add = "reg.line", conf.int = TRUE
+  ) +
+  labs(
+    title = NULL
+    , x = "연도"
+    , y = NULL
+    , color = NULL
+    , subtitle = plotSubTitle
+  ) +
+  theme_bw() +
+  ggpubr::stat_regline_equation(aes(color = key), label.x.npc = 0.0, label.y.npc = 0.6, size = 5) +
+  ggpubr::stat_cor(aes(color = key), label.x.npc = 0.5, label.y.npc = 0.6, p.accuracy  =  0.01,  r.accuracy  =  0.01, size = 5) +
+  theme(text = element_text(size = 18)) +
+  ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
 
 
 #===============================================================================================
