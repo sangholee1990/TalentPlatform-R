@@ -85,13 +85,13 @@ rm(list = setdiff(ls(), c("env", "prjName", "serviceName", "contextPath")))
 # options(encoding = "UTF-8")
 # Sys.setenv(LANG = "ko_KR.UTF-8")
 
-Sys.setlocale("LC_ALL", "Korean")
-options(encoding = "UTF-8")
-Sys.setenv(LANG = "ko_KR.UTF-8")
-
-# Sys.setlocale("LC_ALL", "English")
+# Sys.setlocale("LC_ALL", "Korean")
 # options(encoding = "UTF-8")
-# Sys.setenv(LANG = "en_US.UTF-8")
+# Sys.setenv(LANG = "ko_KR.UTF-8")
+
+Sys.setlocale("LC_ALL", "English")
+options(encoding = "UTF-8")
+Sys.setenv(LANG = "en_US.UTF-8")
 
 # Sys.setlocale("LC_CTYPE", ".1251")
 

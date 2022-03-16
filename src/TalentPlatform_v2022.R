@@ -874,7 +874,7 @@ keywordData = data %>%
   ) %>% 
   dplyr::arrange(desc(freq)) %>%
   dplyr::top_n(100)
-  
+
 # 워드 클라우드
 fig = wordcloud2::wordcloud2(data = keywordData)
 
@@ -1731,28 +1731,28 @@ dataL3 = dataL2 %>%
       , 중도층 == maxVal ~ 3
     )
     , 투표구2 = dplyr::case_when(
-        stringr::str_detect(투표구, regex("가양제1동")) ~ "가양1동"
-        , stringr::str_detect(투표구, regex("가양제2동")) ~ "가양2동"
-        , stringr::str_detect(투표구, regex("가양제3동")) ~ "가양3동"
-        , stringr::str_detect(투표구, regex("등촌제1동")) ~ "등촌1동"
-        , stringr::str_detect(투표구, regex("등촌제2동")) ~ "등촌2동"
-        , stringr::str_detect(투표구, regex("등촌제3동")) ~ "등촌3동"
-        , stringr::str_detect(투표구, regex("발산제1동")) ~ "발산1동"
-        , stringr::str_detect(투표구, regex("방화제1동")) ~ "방화1동"
-        , stringr::str_detect(투표구, regex("방화제2동")) ~ "방화2동"
-        , stringr::str_detect(투표구, regex("방화제3동")) ~ "방화3동"
-        , stringr::str_detect(투표구, regex("화곡제1동")) ~ "화곡1동"
-        , stringr::str_detect(투표구, regex("화곡제2동")) ~ "화곡2동"
-        , stringr::str_detect(투표구, regex("화곡제3동")) ~ "화곡3동"
-        , stringr::str_detect(투표구, regex("화곡제4동")) ~ "화곡4동"
-        , stringr::str_detect(투표구, regex("화곡제5동")) ~ "화곡5동"
-        , stringr::str_detect(투표구, regex("화곡제6동")) ~ "화곡6동"
-        , stringr::str_detect(투표구, regex("화곡제8동")) ~ "화곡8동"
-        , stringr::str_detect(투표구, regex("염창동")) ~ "염창동"
-        , stringr::str_detect(투표구, regex("화곡본동")) ~ "화곡본동"
-        , stringr::str_detect(투표구, regex("공항동")) ~ "공항동"
-        , stringr::str_detect(투표구, regex("우장산동")) ~ "우장산동"
-      )
+      stringr::str_detect(투표구, regex("가양제1동")) ~ "가양1동"
+      , stringr::str_detect(투표구, regex("가양제2동")) ~ "가양2동"
+      , stringr::str_detect(투표구, regex("가양제3동")) ~ "가양3동"
+      , stringr::str_detect(투표구, regex("등촌제1동")) ~ "등촌1동"
+      , stringr::str_detect(투표구, regex("등촌제2동")) ~ "등촌2동"
+      , stringr::str_detect(투표구, regex("등촌제3동")) ~ "등촌3동"
+      , stringr::str_detect(투표구, regex("발산제1동")) ~ "발산1동"
+      , stringr::str_detect(투표구, regex("방화제1동")) ~ "방화1동"
+      , stringr::str_detect(투표구, regex("방화제2동")) ~ "방화2동"
+      , stringr::str_detect(투표구, regex("방화제3동")) ~ "방화3동"
+      , stringr::str_detect(투표구, regex("화곡제1동")) ~ "화곡1동"
+      , stringr::str_detect(투표구, regex("화곡제2동")) ~ "화곡2동"
+      , stringr::str_detect(투표구, regex("화곡제3동")) ~ "화곡3동"
+      , stringr::str_detect(투표구, regex("화곡제4동")) ~ "화곡4동"
+      , stringr::str_detect(투표구, regex("화곡제5동")) ~ "화곡5동"
+      , stringr::str_detect(투표구, regex("화곡제6동")) ~ "화곡6동"
+      , stringr::str_detect(투표구, regex("화곡제8동")) ~ "화곡8동"
+      , stringr::str_detect(투표구, regex("염창동")) ~ "염창동"
+      , stringr::str_detect(투표구, regex("화곡본동")) ~ "화곡본동"
+      , stringr::str_detect(투표구, regex("공항동")) ~ "공항동"
+      , stringr::str_detect(투표구, regex("우장산동")) ~ "우장산동"
+    )
   )
 
 # ******************************************************************************
@@ -1780,7 +1780,7 @@ writeData = dataL1 %>%
   ) %>%
   dplyr::select(-c(maxVal, 세부투표구)) %>% 
   dplyr::arrange(종류, 투표구)
-    
+
 
 writeDataL2 = dataL3 %>%
   dplyr::rename(
@@ -2241,7 +2241,7 @@ ggplot() +
     dataL8$sumVal/5000000
     , x =  min(posData$lon, na.rm = TRUE) - 0.02
     , y = min(posData$lat, na.rm = TRUE)
-    ) +
+  ) +
   labs(
     x = NULL
     , y = NULL
@@ -2397,7 +2397,7 @@ dataL2 = data.frame()
 paramData = tibble::tibble()
 
 for (colInfo in colList) {
-
+  
   # 변수 선택
   selData = get(colInfo, data)
   
@@ -2433,7 +2433,7 @@ dataL3 = dataL2 %>%
     cdf >= 0.95
   )
 
-  
+
 # CDF 그림
 subTitle = "CDF 그래프"
 saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, subTitle)
@@ -2461,7 +2461,7 @@ ggplot(dataL2, aes(x = obs, y = pdf, colour = type, size = type)) +
   scale_size_manual(values = 2:1) +
   scale_colour_manual(values = c("black", "green")) +
   ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
-  
+
 # 95 이상 CDF 그림
 subTitle = "95 이상 CDF 그래프"
 saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, subTitle)
@@ -3264,7 +3264,7 @@ ggcorrplot::ggcorrplot(
   , p.mat = pvalRes
   , sig.level = 0.05
   , colors = c("#6D9EC1", "white", "#E46726")
-  ) +
+) +
   ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
 
 #=====================================================================
@@ -3602,7 +3602,7 @@ env = "dev"   # 개발 : 원도우 환경, 작업환경 (사용자 환경 시 co
 prjName = "test"
 serviceName = "LSH0258"
 contextPath = ifelse(env == "local", ".", getwd())
- 
+
 if (env == "local") {
   globalVar = list(
     "inpPath" = contextPath
@@ -5492,7 +5492,7 @@ ggcorrplot::ggcorrplot(
   , p.mat = pvalRes
   , sig.level = 0.05
   , colors = c("#6D9EC1", "white", "#E46726")
-  ) +
+) +
   theme(text = element_text(size = 18)) +
   ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
 
@@ -5544,7 +5544,7 @@ ggpubr::ggscatter(
   dataL3, x = "yHat", y = "yObs"
   , add = "reg.line", conf.int = TRUE, scales = "free_x"
   , add.params = list(color = "blue", fill = "lightblue")
-  ) +
+) +
   labs(
     title = NULL
     , x = "진로결정몰입척도 예측"
@@ -5645,7 +5645,7 @@ reqStrSrch = stringr::str_c("&strSrch=", searchBusRouteNm)
 
 resData = httr::GET(
   stringr::str_c(reqBusRouteInfoUrl, reqKey, reqResultType)
-  ) %>%
+) %>%
   httr::content(as = "text", encoding = "UTF-8") %>%
   jsonlite::fromJSON() 
 
@@ -5720,7 +5720,7 @@ map = ggmap::get_googlemap(
   center = c(lon = mean(dataL3$lon, na.rm = TRUE), lat = mean(dataL3$lat, na.rm = TRUE))
   , zoom = 12
   , markers = dataL3 %>% dplyr::select(lon, lat)
-  )
+)
 
 # 구글맵 시각화
 plotSubTitle = sprintf("%s", "서울특별시 버스위치 및 노선정보 구글맵 시각화")
@@ -5734,7 +5734,7 @@ ggmap::ggmap(map, extent = "device") +
     , legend.position = c(0.80, 0.80)
     , legend.title = element_text(size = 12)
     , legend.text = element_text(size = 10)
-    ) +
+  ) +
   ggsave(filename = saveImg, width = 10, height = 10, dpi = 600)
 
 
@@ -5823,7 +5823,7 @@ dataL2 = dplyr::bind_rows(
   dataL1[ , 1:4]
   , dataL1[ , 5:8]
   , dataL1[ , 9:12]
-  ) %>%
+) %>%
   dplyr::arrange(type, obs)
 
 
@@ -5858,7 +5858,7 @@ for (typeInfo in typeList) {
   # 훈련 데이터
   trainData = dataL2 %>% 
     dplyr::filter(type == typeInfo)
- 
+  
   # CDF/PDF 다중선형회귀모형 학습
   # lmCdfModel = lm(cdf ~ poly(obs, 4), data = trainData)
   # lmPdfModel = lm(pdf ~ poly(obs, 4), data = trainData)
@@ -5866,10 +5866,10 @@ for (typeInfo in typeList) {
   # 요약 결과
   # summary(lmCdfModel)
   # summary(lmPdfModel)
-
+  
   # CDF 학습 모델
   saveCdfFile = sprintf("%s/%s/%s-%s-%s-%s-%s.model", globalVar$inpPath, serviceName, 'final', typeInfo, 'h2o', 'cdf', 'train')
-
+  
   # CDF 학습 모델이 있을 경우
   if (fs::file_exists(saveCdfFile)) {
     amlCdfModel = h2o::h2o.loadModel(saveCdfFile)
@@ -5885,17 +5885,17 @@ for (typeInfo in typeList) {
       , seed = 1
       , max_models = 5
     )
-
+    
     amlCdfBestModel = h2o.get_best_model(amlCdfModel)
     h2o::h2o.saveModel(object = amlCdfBestModel, path = fs::path_dir(saveCdfFile), filename = fs::path_file(saveCdfFile), force = TRUE)
   }
-
+  
   # 요약
   # summary(amlPdfModel)
   #   
   # PDF 학습 모델
   savePdfFile = sprintf("%s/%s/%s-%s-%s-%s-%s.model", globalVar$inpPath, serviceName, 'final', typeInfo, 'h2o', 'pdf', 'train')
-
+  
   # PDF 학습 모델이 있을 경우
   if (fs::file_exists(savePdfFile)) {
     amlPdfModel = h2o::h2o.loadModel(savePdfFile)
@@ -5911,14 +5911,14 @@ for (typeInfo in typeList) {
       , seed = 1
       , max_models = 5
     )
-
+    
     amlPdfBestModel = h2o.get_best_model(amlPdfModel)
     h2o::h2o.saveModel(object = amlPdfBestModel, path = fs::path_dir(savePdfFile), filename = fs::path_file(savePdfFile), force = TRUE)
   }
-
+  
   # 요약
   # summary(amlPdfModel)
-
+  
   # 앞선 테스트 데이터를 이용하되 type를 동적으로 변경
   testDataL2 = testDataL1 %>%
     dplyr::mutate(type = typeInfo)
@@ -6000,12 +6000,12 @@ for (typeInfo in typeList) {
     dplyr::filter(
       type == typeInfo
       , cdf >= sysOpt["probs"]
-      )
+    )
   
   # CDF/PDF 다중선형회귀모형 학습
   # lmCdfModel = lm(cdf ~ poly(obs, 3), data = trainData)
   # lmPdfModel = lm(pdf ~ poly(obs, 3), data = trainData)
-
+  
   # 요약 결과
   # summary(lmCdfModel)
   # summary(lmPdfModel)
@@ -6771,7 +6771,7 @@ dataL3 = data %>%
       자유한국당 == maxVal ~ 1
       , 더불어민주당 == maxVal ~ 2
       , 중도층 == maxVal ~ 3
-      )
+    )
     # , 투표구3 = gsub("*제[[:digit:]]+동", "", 투표구)# %>% str_replace(투표구, ., "")
     # , 투표구3 = ifelse(grepl("제[[:digit:]]+동", 투표구), str_replace(투표구, ., ""), 투표구)
     , 투표구2 = dplyr::case_when(
@@ -6838,10 +6838,10 @@ codeData = openxlsx::read.xlsx(codeInfo, sheet = 1, startRow = 2)
 
 codeDataL1 = codeData %>%
   dplyr::filter(
-  # stringr::str_detect(시도명칭, regex(addrName))
-  # , stringr::str_detect(시군구명칭, regex(addrDtlName))
-   grepl(addrName, 시도명칭)
-   , grepl(addrDtlName, 시군구명칭)
+    # stringr::str_detect(시도명칭, regex(addrName))
+    # , stringr::str_detect(시군구명칭, regex(addrDtlName))
+    grepl(addrName, 시도명칭)
+    , grepl(addrDtlName, 시군구명칭)
   ) 
 
 
@@ -6927,7 +6927,7 @@ dataDtlL4 = data %>%
       # , stringr::str_detect(투표구, regex("이촌제2동")) ~ "이촌2동"
       # , stringr::str_detect(투표구, regex("이태원제1동")) ~ "이태원1동"
       # , stringr::str_detect(투표구, regex("이태원제2동")) ~ "이태원2동"
-
+      
       grepl("원효로제1동", 투표구) ~ "원효로1동"
       , grepl("원효로제2동", 투표구) ~ "원효로2동"
       , grepl("이촌제1동", 투표구) ~ "이촌1동"
@@ -7088,7 +7088,7 @@ for (sexInfoPattern in sexListPattern) {
       , ! is.na(type)
     ) %>% 
     dplyr::select(-age)
-
+  
   statData = dataL2 %>%
     dplyr::group_by(투표구, type) %>%
     dplyr::summarise(
@@ -7210,7 +7210,7 @@ for (sexInfoPattern in sexListPattern) {
   
   ggsave(makePlotBg, filename = saveTmp, width = 8, height = 8, dpi = 600)
   fs::file_move(saveTmp, saveImg)
-
+  
   
   # ****************************************************************************
   # 인구현황 막대 그래프
@@ -7721,8 +7721,8 @@ dataL1 = data %>%
     label = dplyr::case_when(
       fwerArea < 0.05 & isFlag == TRUE ~ TRUE
       , TRUE ~ FALSE
-      )
     )
+  )
 
 
 dataL1$label = as.factor(dataL1$label)
@@ -7848,6 +7848,8 @@ library(htmlwidgets)
 fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "지리산+고도&좌표수정.csv"))
 
 data = readr::read_csv(file = fileInfo, locale = locale("ko", encoding = "EUC-KR"))
+# data = readr::read_csv(file = fileInfo, locale = locale("ko", encoding = "UTF-8"))
+# data = read_csv(file = fileInfo)
 
 
 # ******************************************************************************
@@ -7864,183 +7866,352 @@ speList = data$Species %>% unique() %>% sort()
 
 # for (grpInfo in grpList) {
 for (speInfo in speList) {
-    
-    # data$Groups = as.factor(data$Groups)
-    # data$Species = as.factor(data$Species)
-
-    
-    # gamModel = gam(
-    #   Species == speInfo & Groups == grpInfo ~ s(Elevation, by = Groups)
-    #   , data = data
-    # )
-    
-    # gamModel = gam(
-    #   Species == speInfo ~ s(Elevation, by = Groups) + Groups
-    #   , data = data
-    # )
-    
-    # data$Species %>% sort() %>% unique()
-    
-    dataL1 = data %>% 
-      dplyr::filter(
-        Species == speInfo
-      )
-    
-    if (nrow(dataL1) < 1) next
-    
-    dataL1$Groups = as.factor(dataL1$Groups)
-    dataL1$Species = as.factor(dataL1$Species)
-    
-    gamModel = mgcv::gam(
-      Species == speInfo & Groups == "adult" ~ s(Elevation)
-      , data = dataL1
-      # , sp = 1e-6
-      # , method="reml"
-      # , method = "GCV.Cp"
+  
+  # data$Groups = as.factor(data$Groups)
+  # data$Species = as.factor(data$Species)
+  
+  
+  # gamModel = gam(
+  #   Species == speInfo & Groups == grpInfo ~ s(Elevation, by = Groups)
+  #   , data = data
+  # )
+  
+  # gamModel = gam(
+  #   Species == speInfo ~ s(Elevation, by = Groups) + Groups
+  #   , data = data
+  # )
+  
+  # data$Species %>% sort() %>% unique()
+  
+  dataL1 = data %>% 
+    dplyr::filter(
+      Species == speInfo
     )
-    
-    # dataL1 = data %>% 
-    #   dplyr::filter(
-    #     Species == speInfo
-    #   )
-    # 
-    
-    dataL1$Groups = as.factor(dataL1$Groups)
-    dataL1$Species = as.factor(dataL1$Species)
-    
-    
-    gamModel = mgcv::gam(
-      # Species == speInfo & Groups == "adult" ~ s(Elevation, k = 1)
-      Species == speInfo ~ Groups + s(Elevation) + s(Elevation, by = Groups)
-      , data = dataL1
-      , nfold = 10
-      # , method = "REML"
+  
+  if (nrow(dataL1) < 1) next
+  
+  # dataL1$Groups = as.factor(dataL1$Groups)
+  # dataL1$Species = as.factor(dataL1$Species)
+  # 
+  # gamModel = mgcv::gam(
+  #   Species == speInfo & Groups == "adult" ~ s(Elevation,)
+  #   , data = dataL1
+  #   # , sp = 1e-6
+  #   # , method="reml"
+  #   # , method = "GCV.Cp"
+  # )
+  
+  # dataL1 = data %>% 
+  #   dplyr::filter(
+  #     Species == speInfo
+  #   )
+  # 
+  
+  
+  data$Groups = as.factor(data$Groups)
+  
+  dataL1$Groups = as.factor(dataL1$Groups)
+  dataL1$Species = as.factor(dataL1$Species)
+  
+  
+  gamModel = mgcv::gam(
+    # Species == speInfo & Groups == "adult" ~ s(Elevation, k = 1)
+    # Species == speInfo ~ s(Elevation, by = Groups)
+    # Species == speInfo & Groups == "adult" ~ s(Elevation, by = Groups)
+    # Species == speInfo ~ s(Elevation, by = Groups)
+    # Species == speInfo & Groups == "juvenile" ~ s(Elevation, by = Groups)
+    # Groups == "adult" ~ s(Elevation, by = Species)
+    , data = dataL1
+    , nfold = 10
+    , method = "REML"
+  )
+  
+  summary(gamModel)
+  plot(mgcViz::getViz(gamModel), select = 1)
+  plot(mgcViz::getViz(gamModel), select = 2)
+  
+  # gamModel = mgcv::gam(
+  #   # Species == speInfo & Groups == "adult" ~ s(Elevation, k = 1)
+  #   Species == speInfo & Groups == "adult" ~ s(Elevation)
+  #   , data = dataL1
+  #   , nfold = 10
+  #   # , sp = 1e-6
+  #   # , method="reml"
+  #   # , method = "GCV.Cp"
+  # )
+  # 
+  
+  # library(gamclass)
+  # gamCvModel = gamclass::CVgam(formula=Species == speInfo & Groups == "adult" ~ s(Elevation),
+  # data = dataL1, nfold = 10)
+  
+  # summary(gamModel)
+  # summary(gamCvModel)
+  
+  # plot(gamModel)
+  # plot(gamCvModel)
+  # 
+  
+  # library(gratia)
+  # gratia::draw(gamModel, residuals = TRUE)
+  
+  # plot(dataL1$Elevation, gamModel$fitted)
+  
+  # plot <- visreg(gamModel, type = "contrast")
+  
+
+  # mgcv::plot.gam(gamModel, seWithMean = FALSE, pages = 1)
+  
+  # plot(mgcViz::getViz(gamModel), select = 1)
+  
+  
+  
+  # **************************************************************************
+  # adult
+  # **************************************************************************
+  # prdData = dataL1 %>%
+  #   dplyr::filter(Groups == "adult") %>%
+  #   dplyr::mutate(
+  #     x = Elevation
+  #     , y = predict(gamModel, newdata = .)
+  #   ) %>%
+  #   dplyr::filter(y == max(y, na.rm = TRUE)) %>%
+  #   dplyr::group_by(x, y) %>%
+  #   dplyr::summarise(
+  #     meanX = mean(x, na.rm = TRUE)
+  #     , meanY = mean(y, na.rm = TRUE)
+  #   )
+  
+  getModelInfo = mgcv::plot.gam(gamModel, pages = 1)
+  
+  prdData = data.frame(
+    x = getModelInfo[[1]]$x
+    , y = getModelInfo[[1]]$fit
+    ) %>% 
+    dplyr::filter(y == max(y, na.rm = TRUE)) %>% 
+    dplyr::rename(
+      meanX = x
+      , meanY = y
     )
-    
-    # gamModel = mgcv::gam(
-    #   # Species == speInfo & Groups == "adult" ~ s(Elevation, k = 1)
-    #   Species == speInfo & Groups == "adult" ~ s(Elevation)
-    #   , data = dataL1
-    #   , nfold = 10
-    #   # , sp = 1e-6
-    #   # , method="reml"
-    #   # , method = "GCV.Cp"
-    # )
-    # 
-    
-    # library(gamclass)
-    # gamCvModel = gamclass::CVgam(formula=Species == speInfo & Groups == "adult" ~ s(Elevation),
-          # data = dataL1, nfold = 10)
-
-    summary(gamModel)
-    # summary(gamCvModel)
-    
-    # plot(gamModel)
-    # plot(gamCvModel)
-    # 
-    
-    
-    # plot(dataL1$Elevation, gamModel$fitted)
-    
-    plot(mgcViz::getViz(gamModel), select = 1)
-    # plot(mgcViz::getViz(gamModel), select = 2)
-    
-    
-    # **************************************************************************
-    # adult
-    # **************************************************************************
-    prdData = dataL1 %>% 
-      dplyr::filter(Groups == "adult") %>% 
-      dplyr::mutate(
-        x = Elevation
-        , y = predict(gamModel, newdata = .)
-      ) %>% 
-      dplyr::filter(y == max(y, na.rm = TRUE)) %>% 
-      dplyr::group_by(x, y) %>% 
-      dplyr::summarise(
-        meanX = mean(x, na.rm = TRUE)
-        , meanY = mean(y, na.rm = TRUE)
-      )
-    
-    
-    mainTitle = sprintf("Groups 및 Species에 따른 Elevation 결과 (%s, %s)", "adult", speInfo)
-    saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, mainTitle)
-    saveTmp = tempfile(fileext = "png")
-      
-    png(file = saveTmp, width = 10, height = 8, units = "in", res = 600)
-    print(
-      plot(mgcViz::getViz(gamModel), select = 1) +
-        geom_vline(xintercept = prdData$meanX, linetype = 2, color = "blue", size = 0.5) +
-        ggrepel::geom_text_repel(
-          nudge_x = 10
-          , nudge_y = 0
-          , aes(x = meanX, y = meanY, label = sprintf("(%s, %s)", round(prdData$meanX, 2), round(prdData$meanY, 2)))
-          , color = "blue"
-          , data = prdData
-          ) +
-        scale_x_continuous(breaks = seq(0, 12000, 400)) +
-        # scale_y_continuous(breaks = c(seq(-0.6, 1, 0.4), 0)) +
-        # xlim(0, 2400) +
-        # ylim(-0.6, 1) +
-        theme_bw() +
-        labs(subtitle = mainTitle, x = "Elevation (m)", y = "Normalized probability of occupancy") +
-        theme(text = element_text(size = 18))
-      , pages = 1)
-    dev.off()
-    
-    fs::file_move(saveTmp, saveImg)
-    
-    # **************************************************************************
-    # juvenile
-    # **************************************************************************
-    gamModel = gam(
-      Species == speInfo & Groups == "juvenile" ~ s(Elevation)
-      , data = dataL1
-    )
-    
-    prdData = dataL1 %>%
-      dplyr::filter(Groups == "juvenile") %>% 
-      dplyr::mutate(
-        x = Elevation
-        , y = predict(gamModel, newdata = .)
-      ) %>%
-      dplyr::filter(y == max(y, na.rm = TRUE)) %>%
-      dplyr::group_by(x, y) %>%
-      dplyr::summarise(
-        meanX = mean(x, na.rm = TRUE)
-        , meanY = mean(y, na.rm = TRUE)
-      )
-
-
-    mainTitle = sprintf("Groups 및 Species에 따른 Elevation 결과 (%s, %s)", "juvenile", speInfo)
-    saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, mainTitle)
-    saveTmp = tempfile(fileext = "png")
-
-    png(file = saveTmp, width = 10, height = 8, units = "in", res = 600)
-    print(
-      plot(mgcViz::getViz(gamModel), select = 1) +
-        geom_vline(xintercept = prdData$meanX, linetype = 2, color = "blue", size = 0.5) +
-        ggrepel::geom_text_repel(
-          nudge_x = 10
-          , nudge_y = 0
-          , aes(x = meanX, y = meanY, label = sprintf("(%s, %s)", round(prdData$meanX, 2), round(prdData$meanY, 2)))
-          , color = "blue"
-          , data = prdData
-        ) +
-        scale_x_continuous(breaks = seq(0, 12000, 400)) +
-        # scale_y_continuous(breaks = c(seq(-0.6, 1, 0.4), 0)) +
-        # xlim(0, 2400) +
-        # ylim(-0.6, 1) +
-        theme_bw() +
-        labs(subtitle = mainTitle, x = "Elevation (m)", y = "Normalized probability of occupancy") +
-        theme(text = element_text(size = 18))
+  
+  mainTitle = sprintf("Groups 및 Species에 따른 Elevation 결과 (%s, %s)", "adult", speInfo)
+  saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, mainTitle)
+  saveTmp = tempfile(fileext = "png")
+  
+  png(file = saveTmp, width = 10, height = 8, units = "in", res = 600)
+  print(
+    plot(mgcViz::getViz(gamModel), select = 1) +
+      geom_vline(xintercept = prdData$meanX, linetype = 2, color = "blue", size = 0.5) +
+      ggrepel::geom_text_repel(
+        nudge_x = 10
+        , nudge_y = 0
+        , aes(x = meanX, y = meanY, label = sprintf("(%s, %s)", round(prdData$meanX, 2), round(prdData$meanY, 2)))
+        , color = "blue"
+        , data = prdData
+      ) +
+      scale_x_continuous(breaks = seq(0, 12000, 400)) +
+      # scale_y_continuous(breaks = c(seq(-0.6, 1, 0.4), 0)) +
+      # xlim(0, 2400) +
+      # ylim(-0.6, 1) +
+      theme_bw() +
+      labs(subtitle = mainTitle, x = "Elevation (m)", y = "Normalized probability of occupancy") +
+      theme(text = element_text(size = 18))
     , pages = 1)
-    dev.off()
-
-    fs::file_move(saveTmp, saveImg)
+  dev.off()
+  
+  fs::file_move(saveTmp, saveImg)
+  
+  # **************************************************************************
+  # juvenile
+  # **************************************************************************
+  # gamModel = gam(
+  #   Species == speInfo & Groups == "juvenile" ~ s(Elevation)
+  #   , data = dataL1
+  # )
+  
+  # gamModel = gam(
+  #   Species == speInfo & Groups == "juvenile" ~ s(Elevation)
+  #   , data = dataL1
+  #   , nfold = 10
+  #   , method = "REML"
+  # )
+  
+  gamModel = gam(
+    Species == speInfo & Groups == "juvenile" ~ s(Elevation, k = 2)
+    , data = dataL1
+    , nfold = 10
+    , method = "REML"
+  )
+  
+  # prdData = dataL1 %>%
+  #   dplyr::filter(Groups == "juvenile") %>% 
+  #   dplyr::mutate(
+  #     x = Elevation
+  #     , y = predict(gamModel, newdata = .)
+  #   ) %>%
+  #   dplyr::filter(y == max(y, na.rm = TRUE)) %>%
+  #   dplyr::group_by(x, y) %>%
+  #   dplyr::summarise(
+  #     meanX = mean(x, na.rm = TRUE)
+  #     , meanY = mean(y, na.rm = TRUE)
+  #   )
+  
+  getModelInfo = mgcv::plot.gam(gamModel, pages = 1)
+  
+  prdData = data.frame(
+    x = getModelInfo[[1]]$x
+    , y = getModelInfo[[1]]$fit
+  ) %>% 
+    dplyr::filter(y == max(y, na.rm = TRUE)) %>% 
+    dplyr::rename(
+      meanX = x
+      , meanY = y
+    )
+  
+  
+  mainTitle = sprintf("Groups 및 Species에 따른 Elevation 결과 (%s, %s)", "juvenile", speInfo)
+  saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, mainTitle)
+  saveTmp = tempfile(fileext = "png")
+  
+  png(file = saveTmp, width = 10, height = 8, units = "in", res = 600)
+  print(
+    plot(mgcViz::getViz(gamModel), select = 1) +
+      geom_vline(xintercept = prdData$meanX, linetype = 2, color = "blue", size = 0.5) +
+      ggrepel::geom_text_repel(
+        nudge_x = 10
+        , nudge_y = 0
+        , aes(x = meanX, y = meanY, label = sprintf("(%s, %s)", round(prdData$meanX, 2), round(prdData$meanY, 2)))
+        , color = "blue"
+        , data = prdData
+      ) +
+      scale_x_continuous(breaks = seq(0, 12000, 400)) +
+      # scale_y_continuous(breaks = c(seq(-0.6, 1, 0.4), 0)) +
+      # xlim(0, 2400) +
+      # ylim(-0.6, 1) +
+      theme_bw() +
+      labs(subtitle = mainTitle, x = "Elevation (m)", y = "Normalized probability of occupancy") +
+      theme(text = element_text(size = 18))
+    , pages = 1)
+  dev.off()
+  
+  fs::file_move(saveTmp, saveImg)
 }
 
-# }
+
+
+
+
+
+
+# for (grpInfo in grpList) {
+for (speInfo in speList) {
+  
+  dataL1 = data %>% 
+    dplyr::filter(
+      Species == speInfo
+    )
+  
+  if (nrow(dataL1) < 1) next
+  
+  dataL1$Groups = as.factor(dataL1$Groups)
+  dataL1$Species = as.factor(dataL1$Species)
+  
+  gamModel = mgcv::gam(
+    Species == speInfo & Groups == "adult" ~ s(Elevation, by = Groups)
+    , data = dataL1
+    , nfold = 10
+    , method = "REML"
+  )
+  
+  summary(gamModel)
+  
+  getModelInfo = mgcv::plot.gam(gamModel, pages = 1)
+
+  # plot(mgcViz::getViz(gamModel), select = 1)
+  # plot(mgcViz::getViz(gamModel), select = 2)
+
+  # **************************************************************************
+  # adult
+  # **************************************************************************
+  prdData = data.frame(
+    x = getModelInfo[[1]]$x
+    , y = getModelInfo[[1]]$fit
+  ) %>% 
+    dplyr::filter(y == max(y, na.rm = TRUE)) %>% 
+    dplyr::rename(
+      meanX = x
+      , meanY = y
+    )
+  
+  mainTitle = sprintf("Groups 및 Species에 따른 Elevation 결과 (%s, %s)", "adult", speInfo)
+  saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, mainTitle)
+  saveTmp = tempfile(fileext = "png")
+  
+  png(file = saveTmp, width = 10, height = 8, units = "in", res = 600)
+  print(
+    plot(mgcViz::getViz(gamModel), select = 1) +
+      geom_vline(xintercept = prdData$meanX, linetype = 2, color = "blue", size = 0.5) +
+      ggrepel::geom_text_repel(
+        nudge_x = 10
+        , nudge_y = 0
+        , aes(x = meanX, y = meanY, label = sprintf("(%s, %s)", round(prdData$meanX, 2), round(prdData$meanY, 2)))
+        , color = "blue"
+        , data = prdData
+      ) +
+      scale_x_continuous(breaks = seq(0, 12000, 400)) +
+      # scale_y_continuous(breaks = c(seq(-0.6, 1, 0.4), 0)) +
+      # xlim(0, 2400) +
+      # ylim(-0.6, 1) +
+      theme_bw() +
+      labs(subtitle = mainTitle, x = "Elevation (m)", y = "Normalized probability of occupancy") +
+      theme(text = element_text(size = 18))
+    , pages = 1)
+  dev.off()
+  
+  fs::file_move(saveTmp, saveImg)
+  
+  # **************************************************************************
+  # juvenile
+  # **************************************************************************
+  prdData = data.frame(
+    x = getModelInfo[[2]]$x
+    , y = getModelInfo[[2]]$fit
+  ) %>% 
+    dplyr::filter(y == max(y, na.rm = TRUE)) %>% 
+    dplyr::rename(
+      meanX = x
+      , meanY = y
+    )
+  
+  mainTitle = sprintf("Groups 및 Species에 따른 Elevation 결과 (%s, %s)", "juvenile", speInfo)
+  saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, mainTitle)
+  saveTmp = tempfile(fileext = "png")
+  
+  png(file = saveTmp, width = 10, height = 8, units = "in", res = 600)
+  print(
+    plot(mgcViz::getViz(gamModel), select = 2) +
+      geom_vline(xintercept = prdData$meanX, linetype = 2, color = "blue", size = 0.5) +
+      ggrepel::geom_text_repel(
+        nudge_x = 10
+        , nudge_y = 0
+        , aes(x = meanX, y = meanY, label = sprintf("(%s, %s)", round(prdData$meanX, 2), round(prdData$meanY, 2)))
+        , color = "blue"
+        , data = prdData
+      ) +
+      scale_x_continuous(breaks = seq(0, 12000, 400)) +
+      # scale_y_continuous(breaks = c(seq(-0.6, 1, 0.4), 0)) +
+      # xlim(0, 2400) +
+      # ylim(-0.6, 1) +
+      theme_bw() +
+      labs(subtitle = mainTitle, x = "Elevation (m)", y = "Normalized probability of occupancy") +
+      theme(text = element_text(size = 18))
+    , pages = 1)
+  dev.off()
+  
+  fs::file_move(saveTmp, saveImg)
+}
+
+
 
 
 #   
@@ -8370,7 +8541,7 @@ dat$fac <- as.factor( sample(letters[1:6], nrow(dat), replace = TRUE) )
 b <- gam(y~s(x0)+s(x1, x2)+s(x3)+fac, data=dat)
 # To plot all the effects we do:
 
-  b <- getViz(b)
+b <- getViz(b)
 print(plot(b, allTerms = T), pages = 1) # Calls print.plotGam()
 
 
@@ -8503,138 +8674,138 @@ dataL2$Species = as.factor(dataL2$Species)
 
 for (speInfo in speList) {
   for (grpInfo in grpList) {
-  
-  # 기온
-  dataL3 = dataL2 %>% 
-    dplyr::filter(
-      Species == speInfo
-    ) %>% 
-    dplyr::select(Species, Groups, 평균기온..C.) %>% 
-    na.omit()
-  
-  if (nrow(dataL3) < 1) next
-  
-  gamModel = gam(
-    Species == speInfo & Groups == grpInfo ~ s(평균기온..C.)
-    , data = dataL3
-  )
-  
-  pVal = summary(gamModel)['p.pv']$p.pv
-  
-  prdData = dataL3 %>% 
-    dplyr::filter(
-      Groups == grpInfo
-      , Species == speInfo
+    
+    # 기온
+    dataL3 = dataL2 %>% 
+      dplyr::filter(
+        Species == speInfo
       ) %>% 
-    dplyr::mutate(
-      x = 평균기온..C.
-      , y = predict(gamModel, newdata = .)
-    ) %>% 
-    dplyr::filter(y == max(y, na.rm = TRUE)) %>% 
-    dplyr::group_by(x, y) %>% 
-    dplyr::summarise(
-      meanX = mean(x, na.rm = TRUE)
-      , meanY = mean(y, na.rm = TRUE)
+      dplyr::select(Species, Groups, 평균기온..C.) %>% 
+      na.omit()
+    
+    if (nrow(dataL3) < 1) next
+    
+    gamModel = gam(
+      Species == speInfo & Groups == grpInfo ~ s(평균기온..C.)
+      , data = dataL3
     )
-  
-  mainTitle = sprintf("Groups 및 Species에 따른 평균기온 결과 (%s, %s)", grpInfo, speInfo)
-  saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, mainTitle)
-  saveTmp = tempfile(fileext = "png")
-  
-  png(file = saveTmp, width = 10, height = 8, units = "in", res = 600)
-  print(
-    plot(mgcViz::getViz(gamModel), select = 1) +
-      geom_vline(xintercept = prdData$meanX, linetype = 2, color = "blue", size = 0.5) +
-      ggrepel::geom_text_repel(
-        nudge_x = 10
-        , nudge_y = 0
-        , aes(x = meanX, y = meanY, label = sprintf("(%s, %s)", round(prdData$meanX, 2), round(prdData$meanY, 2)))
-        , color = "blue"
-        , data = prdData
-      ) +
-      ggrepel::geom_text_repel(
-        nudge_x = 10
-        , nudge_y = 10
-        , aes(x = meanX, y = 0, label = sprintf("P-Value : %s", round(pVal, 4)))
-        , color = "red"
-        , data = prdData
-      ) +
-      scale_x_continuous(breaks = seq(-100, 100, 5)) +
-      theme_bw() +
-      labs(subtitle = mainTitle, x = "평균 기온 [Celsius]", y = "Normalized probability of occupancy") +
-      theme(text = element_text(size = 18))
-    , pages = 1)
-  dev.off()
-  
-  fs::file_move(saveTmp, saveImg)
-  
-  
-  # 일강수량.mm.
-  dataL3 = dataL2 %>% 
-    dplyr::filter(
-      Species == speInfo
-    ) %>% 
-    dplyr::select(Species, Groups, 일강수량.mm.) %>% 
-    # dplyr::na_if(0) %>% 
-    na.omit()
-  
-  if (nrow(dataL3) < 1) next
-  
-  gamModel = mgcv::gam(
-    Species == speInfo & Groups == grpInfo ~ s(일강수량.mm., k = 3)
-    # Species == speInfo & Groups == grpInfo ~ 일강수량.mm.
-    , data = dataL3
-  )
-  
-  pVal = summary(gamModel)['p.pv']$p.pv
-  
-  prdData = dataL3 %>% 
-    dplyr::filter(
-      Groups == grpInfo
-      , Species == speInfo
-    ) %>% 
-    dplyr::mutate(
-      x = 일강수량.mm.
-      , y = predict(gamModel, newdata = .)
-    ) %>% 
-    dplyr::filter(y == max(y, na.rm = TRUE)) %>% 
-    dplyr::group_by(x, y) %>% 
-    dplyr::summarise(
-      meanX = mean(x, na.rm = TRUE)
-      , meanY = mean(y, na.rm = TRUE)
+    
+    pVal = summary(gamModel)['p.pv']$p.pv
+    
+    prdData = dataL3 %>% 
+      dplyr::filter(
+        Groups == grpInfo
+        , Species == speInfo
+      ) %>% 
+      dplyr::mutate(
+        x = 평균기온..C.
+        , y = predict(gamModel, newdata = .)
+      ) %>% 
+      dplyr::filter(y == max(y, na.rm = TRUE)) %>% 
+      dplyr::group_by(x, y) %>% 
+      dplyr::summarise(
+        meanX = mean(x, na.rm = TRUE)
+        , meanY = mean(y, na.rm = TRUE)
+      )
+    
+    mainTitle = sprintf("Groups 및 Species에 따른 평균기온 결과 (%s, %s)", grpInfo, speInfo)
+    saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, mainTitle)
+    saveTmp = tempfile(fileext = "png")
+    
+    png(file = saveTmp, width = 10, height = 8, units = "in", res = 600)
+    print(
+      plot(mgcViz::getViz(gamModel), select = 1) +
+        geom_vline(xintercept = prdData$meanX, linetype = 2, color = "blue", size = 0.5) +
+        ggrepel::geom_text_repel(
+          nudge_x = 10
+          , nudge_y = 0
+          , aes(x = meanX, y = meanY, label = sprintf("(%s, %s)", round(prdData$meanX, 2), round(prdData$meanY, 2)))
+          , color = "blue"
+          , data = prdData
+        ) +
+        ggrepel::geom_text_repel(
+          nudge_x = 10
+          , nudge_y = 10
+          , aes(x = meanX, y = 0, label = sprintf("P-Value : %s", round(pVal, 4)))
+          , color = "red"
+          , data = prdData
+        ) +
+        scale_x_continuous(breaks = seq(-100, 100, 5)) +
+        theme_bw() +
+        labs(subtitle = mainTitle, x = "평균 기온 [Celsius]", y = "Normalized probability of occupancy") +
+        theme(text = element_text(size = 18))
+      , pages = 1)
+    dev.off()
+    
+    fs::file_move(saveTmp, saveImg)
+    
+    
+    # 일강수량.mm.
+    dataL3 = dataL2 %>% 
+      dplyr::filter(
+        Species == speInfo
+      ) %>% 
+      dplyr::select(Species, Groups, 일강수량.mm.) %>% 
+      # dplyr::na_if(0) %>% 
+      na.omit()
+    
+    if (nrow(dataL3) < 1) next
+    
+    gamModel = mgcv::gam(
+      Species == speInfo & Groups == grpInfo ~ s(일강수량.mm., k = 3)
+      # Species == speInfo & Groups == grpInfo ~ 일강수량.mm.
+      , data = dataL3
     )
-  
-  mainTitle = sprintf("Groups 및 Species에 따른 평균일강수 결과 (%s, %s)", grpInfo, speInfo)
-  saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, mainTitle)
-  saveTmp = tempfile(fileext = "png")
-  
-  png(file = saveTmp, width = 10, height = 8, units = "in", res = 600)
-  print(
-    plot(mgcViz::getViz(gamModel), select = 1) +
-      geom_vline(xintercept = prdData$meanX, linetype = 2, color = "blue", size = 0.5) +
-      ggrepel::geom_text_repel(
-        nudge_x = 10
-        , nudge_y = 0
-        , aes(x = meanX, y = meanY, label = sprintf("(%s, %s)", round(prdData$meanX, 2), round(prdData$meanY, 2)))
-        , color = "blue"
-        , data = prdData
-      ) +
-      ggrepel::geom_text_repel(
-        nudge_x = 10
-        , nudge_y = 10
-        , aes(x = meanX, y = 0, label = sprintf("P-Value : %s", round(pVal, 4)))
-        , color = "red"
-        , data = prdData
-      ) +
-      scale_x_continuous(breaks = seq(-100, 100, 5)) +
-      theme_bw() +
-      labs(subtitle = mainTitle, x = "평균 일강수 [mm]", y = "Normalized probability of occupancy") +
-      theme(text = element_text(size = 18))
-    , pages = 1)
-  dev.off()
-  
-  fs::file_move(saveTmp, saveImg)
-  
+    
+    pVal = summary(gamModel)['p.pv']$p.pv
+    
+    prdData = dataL3 %>% 
+      dplyr::filter(
+        Groups == grpInfo
+        , Species == speInfo
+      ) %>% 
+      dplyr::mutate(
+        x = 일강수량.mm.
+        , y = predict(gamModel, newdata = .)
+      ) %>% 
+      dplyr::filter(y == max(y, na.rm = TRUE)) %>% 
+      dplyr::group_by(x, y) %>% 
+      dplyr::summarise(
+        meanX = mean(x, na.rm = TRUE)
+        , meanY = mean(y, na.rm = TRUE)
+      )
+    
+    mainTitle = sprintf("Groups 및 Species에 따른 평균일강수 결과 (%s, %s)", grpInfo, speInfo)
+    saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, mainTitle)
+    saveTmp = tempfile(fileext = "png")
+    
+    png(file = saveTmp, width = 10, height = 8, units = "in", res = 600)
+    print(
+      plot(mgcViz::getViz(gamModel), select = 1) +
+        geom_vline(xintercept = prdData$meanX, linetype = 2, color = "blue", size = 0.5) +
+        ggrepel::geom_text_repel(
+          nudge_x = 10
+          , nudge_y = 0
+          , aes(x = meanX, y = meanY, label = sprintf("(%s, %s)", round(prdData$meanX, 2), round(prdData$meanY, 2)))
+          , color = "blue"
+          , data = prdData
+        ) +
+        ggrepel::geom_text_repel(
+          nudge_x = 10
+          , nudge_y = 10
+          , aes(x = meanX, y = 0, label = sprintf("P-Value : %s", round(pVal, 4)))
+          , color = "red"
+          , data = prdData
+        ) +
+        scale_x_continuous(breaks = seq(-100, 100, 5)) +
+        theme_bw() +
+        labs(subtitle = mainTitle, x = "평균 일강수 [mm]", y = "Normalized probability of occupancy") +
+        theme(text = element_text(size = 18))
+      , pages = 1)
+    dev.off()
+    
+    fs::file_move(saveTmp, saveImg)
+    
   } 
 }
 
@@ -8841,7 +9012,7 @@ for (grpInfo in grpList) {
     dplyr::filter(
       Year >= 2010
     )
-
+  
   # 또한 gps 자료를 통해 기상과 종분포와의 관계를 예측 및 파악하고 싶습니다!!
   subTitle = sprintf("%s (%s)", "Groups 및 Species에 따른 연도별 평균기온 분포", grpInfo)
   saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, subTitle)
@@ -8864,11 +9035,11 @@ for (grpInfo in grpList) {
       , legend.position = "none"
     ) +
     facet_wrap(~Species)
-   
+  
   ggsave(filename = saveTmp, plot = makePlot, width = 12, height = 10, dpi = 600)
   fs::file_move(saveTmp, saveImg)
-
-    
+  
+  
   subTitle = sprintf("%s (%s)", "Groups 및 Species에 따른 연도별 평균풍속 분포", grpInfo)
   saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, subTitle)
   saveTmp = tempfile(fileext = ".png")
@@ -9045,7 +9216,7 @@ if (fs::file_exists(saveModel)) {
     , seed = 1
     , max_models = 40
   )
-    
+  
   amlBestModel = h2o.get_best_model(amlModel)
   h2o::h2o.saveModel(object = amlBestModel, path = fs::path_dir(saveModel), filename = fs::path_file(saveModel), force = TRUE)
 }
@@ -9074,7 +9245,7 @@ makePlot = ggplot(data = prdDataL1, aes(x = year, y = val, color = key)) +
   theme(
     text = element_text(size = 18)
     , legend.position = "top"
-    )
+  )
 
 ggsave(filename = saveTmp, plot = makePlot, width = 10, height = 8, dpi = 600)
 fs::file_move(saveTmp, saveImg)
@@ -9109,11 +9280,11 @@ for (keyInfo in keyList) {
   
   trainData = dataL1 %>% 
     dplyr::filter(key == keyInfo)
-
+  
   prdData = tibble(year = seq(min(trainData$year, na.rm = TRUE), 2030, 1)) %>% 
     dplyr::left_join(trainData, by = c("year" = "year")) %>% 
     dplyr::mutate(key = keyInfo)
-    
+  
   # ******************************************************************************
   # 딥러닝 모형
   # ******************************************************************************
@@ -9124,7 +9295,7 @@ for (keyInfo in keyList) {
   if (fs::file_exists(saveModel)) {
     amlModel = h2o::h2o.loadModel(saveModel)
   } else {
-    # C모델 학습
+    # 모델 학습
     amlModel = h2o::h2o.automl(
       x = c("year")
       , y = c("val")
@@ -9216,7 +9387,7 @@ for (keyInfo in keyList) {
   if (fs::file_exists(saveModel)) {
     amlModel = h2o::h2o.loadModel(saveModel)
   } else {
-    # C모델 학습
+    # 모델 학습
     amlModel = h2o::h2o.automl(
       x = c("year")
       , y = c("val")
@@ -9290,7 +9461,7 @@ saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, plotSubTitle)
 ggpubr::ggscatter(
   ggData, x = "year", y = "val", color = "key"
   , add = "reg.line", conf.int = TRUE
-  ) +
+) +
   labs(
     title = NULL
     , x = "연도"
@@ -9561,7 +9732,7 @@ data = tibble::tibble(
     latList
     , lonList
     , col.names = c("lat", "lon"))
-  ) %>%
+) %>%
   tibble::rowid_to_column() %>%
   dplyr::mutate(
     dtaCnt = rowid %/% oSocCluCnt
@@ -9586,8 +9757,8 @@ parallel::clusterEvalQ(oSocClu, library(dplyr))
 # x = 1
 # parallel::parSapply(oSocClu, X = 1:nrow(data), function(x) {
 parallel::parSapply(oSocClu, X = 1:100, function(x) {
-# parallel::parSapply(oSocClu, X = 1:nrow(data), function(x) {
-
+  # parallel::parSapply(oSocClu, X = 1:nrow(data), function(x) {
+  
   hurls = raster::extract(r, cbind(data$lon[x], data$lat[x]), df = TRUE, na.rm = TRUE) %>%
     tidyr::gather(key = "key", value = "val") %>%
     dplyr::filter(key != "ID") %>%
@@ -9595,17 +9766,17 @@ parallel::parSapply(oSocClu, X = 1:100, function(x) {
     # dplyr::mutate(val = val * 86400) %>%
     tibble::rowid_to_column() %>%
     dplyr::select(rowid, val)
-
+  
   hurlsL1 = tibble::tibble(
     lat = data$lat[x]
     , lon = data$lon[x]
     , hurls
-    ) %>%
+  ) %>%
     dplyr::select(rowid, lat, lon, val)
-
+  
   selDtaCnt = data$dtaCnt[x]
   selSortKey = data$sortKey[x]
-
+  
   # saveFile = sprintf("%s/OUTPUT/%s_%s.csv", globalVar$outPath, MyName, selCore)
   saveFile = sprintf("%s/%s/%s/%s_%s_%s.csv", globalVar$outPath, serviceName, "dtl", MyName, selDtaCnt, selSortKey)
   fs::dir_create(fs::path_dir(saveFile))
@@ -9629,51 +9800,10 @@ resDataL1 = tibble()
 
 # dtaCntInfo = 10
 for (dtaCntInfo in dtaCntList) {
-
+  
   # 데이터 조회
   filePattern = sprintf("%s/%s/%s/lA_%s_*.csv", globalVar$outPath, serviceName, "dtl", dtaCntInfo)
   fileList = Sys.glob(filePattern)
-
+  
   # 이 부분의 경우 동적으로 생성되기 때문에 다소 오랜 시간 소요
   # 따라서 추후 100, 100, 100, 20으로 설정하시고 20의 경우 동적으로 코어 할당
-  mSocCluCnt = length(fileList)
-  
-  if (mSocCluCnt < 1) next
-  
-  mSocClu = multidplyr::new_cluster(mSocCluCnt)
-
-  multidplyr::cluster_library(mSocClu, "dplyr")
-  multidplyr::cluster_library(mSocClu, "vroom")
-  multidplyr::cluster_library(mSocClu, "readr")
-
-  multidplyr::cluster_assign_each(mSocClu, filename = fileList)
-  multidplyr::cluster_send(mSocClu, resData <- vroom::vroom(filename, col_names = FALSE, col_types = c(.default = "d")))
-
-  resData = multidplyr::party_df(mSocClu, "resData") %>%
-    dplyr::collect() %>%
-    magrittr::set_colnames(c("rowid", "lon", "lat", "val")) %>%
-    dplyr::mutate(
-      key = paste(lat, lon, sep="p")
-    ) %>%
-    dplyr::select(-lon, -lat) %>%
-    tidyr::spread(key = "key", value = "val") %>%
-    dplyr::select(-rowid)
-
-  if (nrow(resDataL1) == 0) {
-    resDataL1 = resData
-  } else {
-    resDataL1 = dplyr::bind_cols(resDataL1, resData)
-  }
-
-}
-tictoc::toc()
-
-saveFile = sprintf("%s/%s/%s_fnl.csv", globalVar$outPath, serviceName, MyName)
-readr::write_csv(x = resDataL1, file = saveFile)
-
-
-# resDataL2 = resDataL1 %>%
-#   dplyr::select(data$sortKey)
-# 
-# saveFile = sprintf("%s/%s/%s_fnl_sort.csv", globalVar$outPath, serviceName, MyName)
-# readr::write_csv(x = resDataL2, file = saveFile)
