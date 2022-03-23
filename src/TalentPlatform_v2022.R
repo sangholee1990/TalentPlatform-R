@@ -6669,8 +6669,8 @@ library(forcats)
 # addrDtlName = "강서구"
 
 addrName = "경기도"
-# addrDtlName = "안성시"
-addrDtlName = "동두천시"
+addrDtlName = "안성시"
+# addrDtlName = "동두천시"
 
 # addrName = "경상남도"
 # addrDtlName = "남해군"
@@ -6683,15 +6683,14 @@ addrDtlName = "동두천시"
 # 20대 대선 다운로드
 # **********************************************
 # 셀레늄 이용
-# rD = RSelenium::rsDriver(port = 5001L, browser="chrome", chromever=binman::list_versions("chromedriver")$win32[2])
+# rD = RSelenium::rsDriver(port = 5002L, browser="chrome", chromever=binman::list_versions("chromedriver")$win32[2])
 # remDr = rD[["client"]]
 # remDr$navigate("http://info.nec.go.kr/main/showDocument.xhtml?electionId=0020220309&topMenuId=VC&secondMenuId=VCCP08")
-
-
+# 
 # Sys.setlocale("LC_ALL", "English")
 # 
 # data = remDr$getPageSource()[[1]] %>%
-#   xml2::read_html() %>% 
+#   xml2::read_html() %>%
 #   rvest::html_nodes(xpath = '/html/body/div[2]/div/div[4]/div/div/div[2]/div[2]/div[2]/table') %>%
 #   rvest::html_table() %>%
 #   as.data.frame()
@@ -6699,6 +6698,7 @@ addrDtlName = "동두천시"
 # Sys.setlocale("LC_ALL", "Korean")
 # 
 # saveFile = sprintf("%s/%s_%s_%s_%s.csv", globalVar$outPath, serviceName, "20대선", addrName, addrDtlName)
+# # saveFile = sprintf("%s/%s_%s_%s_%s.csv", globalVar$outPath, serviceName, "39국회의원", addrName, addrDtlName)
 # saveTmp = tempfile(fileext = "csv")
 # readr::write_excel_csv(x = data, file = saveTmp, col_names = FALSE)
 # fs::file_copy(saveTmp, saveFile, overwrite = TRUE)
