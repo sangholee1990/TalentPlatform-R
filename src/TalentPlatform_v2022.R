@@ -9198,14 +9198,15 @@ prdData = tibble(year = seq(min(trainData$year, na.rm = TRUE), 2030, 1)) %>%
 # ******************************************************************************
 # 딥러닝 모형
 # ******************************************************************************
-# 모델 학습
+# 모형 학습
 saveModel = sprintf("%s/%s-%s-%s-%s.model", globalVar$outPath, serviceName, 'final', 'h2o', 'pop')
 
-# 모델 학습이 있을 경우
+# 모형 학습이 있을 경우
 if (fs::file_exists(saveModel)) {
-  amlModel = h2o::h2o.loadModel(saveModel)
+  # amlModel = h2o::h2o.loadModel(saveModel)
+  amlModel = h2o::h2o.import_mojo(saveModel)
 } else {
-  # C모델 학습
+  # 모형 학습
   amlModel = h2o::h2o.automl(
     x = c("year")
     , y = c("val")
@@ -9218,7 +9219,8 @@ if (fs::file_exists(saveModel)) {
   )
   
   amlBestModel = h2o.get_best_model(amlModel)
-  h2o::h2o.saveModel(object = amlBestModel, path = fs::path_dir(saveModel), filename = fs::path_file(saveModel), force = TRUE)
+  # h2o::h2o.saveModel(object = amlBestModel, path = fs::path_dir(saveModel), filename = fs::path_file(saveModel), force = TRUE)
+  h2o::h2o.save_mojo(object = amlBestModel, path = fs::path_dir(saveModel), filename = fs::path_file(saveModel), force = TRUE)
 }
 
 # summary(amlModel)
@@ -9288,14 +9290,15 @@ for (keyInfo in keyList) {
   # ******************************************************************************
   # 딥러닝 모형
   # ******************************************************************************
-  # 모델 학습
+  # 모형 학습
   saveModel = sprintf("%s/%s-%s-%s-%s-%s.model", globalVar$outPath, serviceName, 'final', 'h2o', 'pop', key)
   
-  # 모델 학습이 있을 경우
+  # 모형 학습이 있을 경우
   if (fs::file_exists(saveModel)) {
-    amlModel = h2o::h2o.loadModel(saveModel)
+    # amlModel = h2o::h2o.loadModel(saveModel)
+    amlModel = h2o::h2o.import_mojo(saveModel)
   } else {
-    # 모델 학습
+    # 모형 학습
     amlModel = h2o::h2o.automl(
       x = c("year")
       , y = c("val")
@@ -9308,7 +9311,9 @@ for (keyInfo in keyList) {
     )
     
     amlBestModel = h2o.get_best_model(amlModel)
-    h2o::h2o.saveModel(object = amlBestModel, path = fs::path_dir(saveModel), filename = fs::path_file(saveModel), force = TRUE)
+    # h2o::h2o.saveModel(object = amlBestModel, path = fs::path_dir(saveModel), filename = fs::path_file(saveModel), force = TRUE)
+    h2o::h2o.save_mojo(object = amlBestModel, path = fs::path_dir(saveModel), filename = fs::path_file(saveModel), force = TRUE)
+    
   }
   
   prdData$prd = as.data.frame(h2o::h2o.predict(object = amlModel, newdata = as.h2o(prdData)))$predict
@@ -9380,14 +9385,15 @@ for (keyInfo in keyList) {
   # ******************************************************************************
   # 딥러닝 모형
   # ******************************************************************************
-  # 모델 학습
+  # 모형 학습
   saveModel = sprintf("%s/%s-%s-%s-%s-%s.model", globalVar$outPath, serviceName, 'final', 'h2o', 'pop', key)
   
-  # 모델 학습이 있을 경우
+  # 모형 학습이 있을 경우
   if (fs::file_exists(saveModel)) {
-    amlModel = h2o::h2o.loadModel(saveModel)
+    # amlModel = h2o::h2o.loadModel(saveModel)
+    amlModel = h2o::h2o.import_mojo(saveModel)
   } else {
-    # 모델 학습
+    # 모형 학습
     amlModel = h2o::h2o.automl(
       x = c("year")
       , y = c("val")
@@ -9400,7 +9406,8 @@ for (keyInfo in keyList) {
     )
     
     amlBestModel = h2o.get_best_model(amlModel)
-    h2o::h2o.saveModel(object = amlBestModel, path = fs::path_dir(saveModel), filename = fs::path_file(saveModel), force = TRUE)
+    # h2o::h2o.saveModel(object = amlBestModel, path = fs::path_dir(saveModel), filename = fs::path_file(saveModel), force = TRUE)
+    h2o::h2o.save_mojo(object = amlBestModel, path = fs::path_dir(saveModel), filename = fs::path_file(saveModel), force = TRUE)
   }
   
   prdData$prd = as.data.frame(h2o::h2o.predict(object = amlModel, newdata = as.h2o(prdData)))$predict
