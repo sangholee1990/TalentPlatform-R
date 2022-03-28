@@ -9814,3 +9814,44 @@ for (dtaCntInfo in dtaCntList) {
   
   # 이 부분의 경우 동적으로 생성되기 때문에 다소 오랜 시간 소요
   # 따라서 추후 100, 100, 100, 20으로 설정하시고 20의 경우 동적으로 코어 할당
+  mSocCluCnt = length(fileList)
+  
+  if (mSocCluCnt < 1) next
+  
+  mSocClu = multidplyr::new_cluster(mSocCluCnt)
+  
+  multidplyr::cluster_library(mSocClu, "dplyr")
+  multidplyr::cluster_library(mSocClu, "vroom")
+  multidplyr::cluster_library(mSocClu, "readr")
+  
+  multidplyr::cluster_assign_each(mSocClu, filename = fileList)
+  multidplyr::cluster_send(mSocClu, resData <- vroom::vroom(filename, col_names = FALSE, col_types = c(.default = "d")))
+  
+  resData = multidplyr::party_df(mSocClu, "resData") %>%
+    dplyr::collect() %>%
+    magrittr::set_colnames(c("rowid", "lon", "lat", "val")) %>%
+    dplyr::mutate(
+      key = paste(lat, lon, sep="p")
+    ) %>%
+    dplyr::select(-lon, -lat) %>%
+    tidyr::spread(key = "key", value = "val") %>%
+    dplyr::select(-rowid)
+  
+  if (nrow(resDataL1) == 0) {
+    resDataL1 = resData
+  } else {
+    resDataL1 = dplyr::bind_cols(resDataL1, resData)
+  }
+  
+}
+tictoc::toc()
+
+saveFile = sprintf("%s/%s/%s_fnl.csv", globalVar$outPath, serviceName, MyName)
+readr::write_csv(x = resDataL1, file = saveFile)
+
+
+# resDataL2 = resDataL1 %>%
+#   dplyr::select(data$sortKey)
+# 
+# saveFile = sprintf("%s/%s/%s_fnl_sort.csv", globalVar$outPath, serviceName, MyName)
+# readr::write_csv(x = resDataL2, file = saveFile)
