@@ -9191,8 +9191,9 @@ defaultColor = scales::hue_pal()(3)
 # fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "yd21_population.xlsx"))
 fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "yd21_population_20220306.xlsx"))
 trainData = openxlsx::read.xlsx(fileInfo, sheet = 2)
+# trainData = readxl::read_excel(path = fileInfo, sheet = 2)
 
-prdData = tibble(year = seq(min(trainData$year, na.rm = TRUE), 2030, 1)) %>% 
+prdData = tibble(year = seq(min(trainData$year, na.rm = TRUE), 2040, 1)) %>% 
   dplyr::left_join(trainData, by = c("year" = "year"))
 
 # ******************************************************************************
@@ -9267,6 +9268,7 @@ openxlsx::saveWorkbook(wb, file = saveXlsxFile, overwrite = TRUE)
 # fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "yd21_population.xlsx"))
 fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "yd21_population_20220306.xlsx"))
 data = openxlsx::read.xlsx(fileInfo, sheet = 1)
+# data = readxl::read_excel(path = fileInfo, sheet = 1)
 
 dataL1 = data %>% 
   tidyr::gather(-year, key = "key", value = "val")
@@ -9283,7 +9285,7 @@ for (keyInfo in keyList) {
   trainData = dataL1 %>% 
     dplyr::filter(key == keyInfo)
   
-  prdData = tibble(year = seq(min(trainData$year, na.rm = TRUE), 2030, 1)) %>% 
+  prdData = tibble(year = seq(min(trainData$year, na.rm = TRUE), 2040, 1)) %>% 
     dplyr::left_join(trainData, by = c("year" = "year")) %>% 
     dplyr::mutate(key = keyInfo)
   
@@ -9361,6 +9363,7 @@ openxlsx::saveWorkbook(wb, file = saveXlsxFile, overwrite = TRUE)
 # fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "yd21_population.xlsx"))
 fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "yd21_population_20220306.xlsx"))
 data = openxlsx::read.xlsx(fileInfo, sheet = 3)
+# data = readxl::read_excel(path = fileInfo, sheet = 3)
 
 dataL1 = data %>% 
   dplyr::select(-cnt, -cnt65) %>% 
@@ -9378,7 +9381,7 @@ for (keyInfo in keyList) {
   trainData = dataL1 %>% 
     dplyr::filter(key == keyInfo)
   
-  prdData = tibble(year = seq(min(trainData$year, na.rm = TRUE), 2030, 1)) %>% 
+  prdData = tibble(year = seq(min(trainData$year, na.rm = TRUE), 2040, 1)) %>% 
     dplyr::left_join(trainData, by = c("year" = "year")) %>% 
     dplyr::mutate(key = keyInfo)
   
@@ -9416,7 +9419,7 @@ for (keyInfo in keyList) {
   prdDataL1 = prdData %>% 
     tidyr::gather(-year, -key, key = "key", value = "val")
   
-  subTitle = sprintf("2001-2030년 연도별 고령화비율 실측 및 예측 시계열", keyInfo)
+  subTitle = sprintf("%s %s", "2001-2030년 연도별 고령화비율 실측 및 예측 시계열", keyInfo)
   saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, subTitle)
   saveTmp = tempfile(fileext = ".png")
   
@@ -9855,3 +9858,93 @@ readr::write_csv(x = resDataL1, file = saveFile)
 # 
 # saveFile = sprintf("%s/%s/%s_fnl_sort.csv", globalVar$outPath, serviceName, MyName)
 # readr::write_csv(x = resDataL2, file = saveFile)
+
+
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+#================================================
+# 요구사항
+#================================================
+# R을 이용한 NetCDF 파일 비교 및 검증스코어 계산
+
+# 세부내용은 다음과 같습니다!
+
+# 1.NC파일 형태에서 OBS는 육지만 데이터를 보유하고있습니다.
+# 따라서 바다부분은 데이터가 NA 값입니다!
+# 따라서 Model NC파일과 OBS NC 파일을 비교해주시면 감사합니다 (격자별 비교입니다!).
+
+# 2. 평가지표는 대도록이면 많이 사용하려고합니다.
+# 약 (20개 정도) 여기 평가지표에 기후 인덱스를 몇개 추가하려고합니다.
+# (연간 총 강수량, 월 최대 강수량, 월 최소 강수량, 월 최대 온도, 월 최소 온도)를 제외하고 나머지 16개는 평가지표( 예시 RMSE)를 사용하려고합니다.
+# 여기 평가지표를 정리한 엑셀파일을 보내드리겠습니다!
+
+# 3. 평가지표의 모든 값을 CSV파일로 저장해주시고,
+# 이후 mcdm 패키지에 있는 TOPSIS 방법을 이용해서 계산해주시고 저장해주시면됩니다!
+# 여기서 우선순위를 선정하는 기준은 모델 격자의 평가지표 결과의 평균 입니다!
+
+#================================================
+# 초기 환경변수 설정
+# ================================================
+# env = "local"   # 로컬 : 원도우 환경, 작업환경 (현재 소스 코드 환경 시 .) 설정
+env = "dev"   # 개발 : 원도우 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+# env = "oper"  # 운영 : 리눅스 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+
+prjName = "test"
+serviceName = "LSH0296"
+contextPath = ifelse(env == "local", ".", getwd())
+
+if (env == "local") {
+  globalVar = list(
+    "inpPath" = contextPath
+    , "figPath" = contextPath
+    , "outPath" = contextPath
+    , "tmpPath" = contextPath
+    , "logPath" = contextPath
+  )
+} else {
+  source(here::here(file.path(contextPath, "src"), "InitConfig.R"), encoding = "UTF-8")
+}
+
+#================================================
+# 비즈니스 로직 수행
+#================================================
+# 라이브러리 읽기
+library(tidyverse)
+library(readr)
+library(raster)
+library(tictoc)
+library(raster)
+library(sf)
+library(doParallel)
+library(parallel)
+library(noncompliance)
+library(tibble)
+library(dplyr)
+library(multidplyr)
+library(vroom)
+library(Rcpp)
+library(ncdf4)
+library(noncompliance)
+library(RNetCDF)
+library(tidyverse)
+library(metR)
+library(colorRamps)
+library(ggrepel)
+library(extrafont)
+library(sf)
+library(HydroErr)
+library(api)
+library(SkillMetrics)
+
+
+
+
+
