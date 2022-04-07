@@ -1,4 +1,4 @@
-#===============================================================================================
+##===============================================================================================
 # Routine : Main R program
 #
 # Purpose : 재능상품 오투잡
@@ -9873,22 +9873,7 @@ readr::write_csv(x = resDataL1, file = saveFile)
 #================================================
 # 요구사항
 #================================================
-# R을 이용한 NetCDF 파일 비교 및 검증스코어 계산
-
-# 세부내용은 다음과 같습니다!
-
-# 1.NC파일 형태에서 OBS는 육지만 데이터를 보유하고있습니다.
-# 따라서 바다부분은 데이터가 NA 값입니다!
-# 따라서 Model NC파일과 OBS NC 파일을 비교해주시면 감사합니다 (격자별 비교입니다!).
-
-# 2. 평가지표는 대도록이면 많이 사용하려고합니다.
-# 약 (20개 정도) 여기 평가지표에 기후 인덱스를 몇개 추가하려고합니다.
-# (연간 총 강수량, 월 최대 강수량, 월 최소 강수량, 월 최대 온도, 월 최소 온도)를 제외하고 나머지 16개는 평가지표( 예시 RMSE)를 사용하려고합니다.
-# 여기 평가지표를 정리한 엑셀파일을 보내드리겠습니다!
-
-# 3. 평가지표의 모든 값을 CSV파일로 저장해주시고,
-# 이후 mcdm 패키지에 있는 TOPSIS 방법을 이용해서 계산해주시고 저장해주시면됩니다!
-# 여기서 우선순위를 선정하는 기준은 모델 격자의 평가지표 결과의 평균 입니다!
+# R을 이용한 데이터 논문 분석에 대한 오류사항 수정
 
 #================================================
 # 초기 환경변수 설정
@@ -9898,7 +9883,562 @@ env = "dev"   # 개발 : 원도우 환경, 작업환경 (사용자 환경 시 co
 # env = "oper"  # 운영 : 리눅스 환경, 작업환경 (사용자 환경 시 contextPath) 설정
 
 prjName = "test"
-serviceName = "LSH0296"
+serviceName = "LSH0299"
+contextPath = ifelse(env == "local", ".", getwd())
+
+if (env == "local") {
+  globalVar = list(
+    "inpPath" = contextPath
+    , "figPath" = contextPath
+    , "outPath" = contextPath
+    , "tmpPath" = contextPath
+    , "logPath" = contextPath
+  )
+} else {
+  source(here::here(file.path(contextPath, "src"), "InitConfig.R"), encoding = "UTF-8")
+}
+
+#================================================
+# 비즈니스 로직 수행
+#================================================
+# 에러검출 풀코드
+# 데이터 논문 분석
+# 7a부터 10까지 에러가 발생. 어떤땐 되다가 어떤땐 안되서 수정 필요.
+
+# install.packages("tidyverse")
+# install.packages("reshape")
+# install.packages("NbClust")
+# install.packages("gmodels")
+
+library(readxl)
+library(NbClust)
+library(gmodels)
+library(tidyverse)
+library(dplyr)
+library(reshape)
+
+#파일 로드 경로지정
+
+# LSH
+# All_Data <- read_excel("C:/Users/jason/Desktop/players_21.xlsx")
+# data <- read_excel("./players_21.xlsx")
+fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "players_21.xlsx"))
+Data <- read_excel(fileInfo)
+
+
+DataL1 = Data[c("short_name", "age", "club_name", "league_name", "overall", "potential", "wage_eur", 
+                "player_positions", "pace", "shooting", "passing", "international_reputation", "height_cm", 
+                "weight_kg", "value_eur","dribbling", "defending", "physic")]
+
+All_Data = DataL1 %>% 
+  mutate(
+    cluster = dplyr::case_when(
+      grepl("Spain Primera", league_name) ~ "Spain1"
+      , grepl("Spanish Segunda", league_name) ~ "Spain2"
+      , grepl("German 1. Bundesliga", league_name) ~ "Germany1"
+      , grepl("German 2. Bundesliga", league_name) ~ "Germany2"
+      , grepl("English Premier League", league_name) ~ "England1"
+      , grepl("English League Championship", league_name) ~ "England2"
+      , grepl("Korean K League Classic", league_name) ~ "Korea1"
+      , TRUE ~ 'Del'
+    )
+  ) %>% 
+  filter(
+    cluster != "Del"
+  )
+
+All_Data %>% group_by(cluster) %>% summarise(n())
+#1a
+# 각 그룹별 플레이어 수
+# # A tibble: 7 x 2
+#   cluster  `n()`
+#   <chr>    <int>
+# 1 England1   654
+# 2 England2   709
+# 3 Germany1   548
+# 4 Germany2   507
+# 5 Korea1     336
+# 6 Spain1     645
+# 7 Spain2     619
+
+# # A tibble: 7 x 2
+# cluster  `n()`
+# <chr>    <int>
+#   1 England1   653
+# 2 England2   709
+# 3 Germany1   543
+# 4 Germany2   502
+# 5 Korea1     166
+# 6 Spain1     645
+# 7 Spain2     618
+
+#####################################################################################################################################################################
+All_Data %>% group_by(cluster) %>% summarise('mean_overall'=mean(overall)) %>% arrange(mean_overall)
+
+#1b
+# 각 그룹별 평균 overall
+# # A tibble: 7 x 2
+# cluster  mean_overall
+# <chr>           <dbl>
+# 1 Korea1           62.6
+# 2 Germany2         65.7
+# 3 England2         66.2
+# 4 Spain2           66.6
+# 5 Germany1         71.7
+# 6 Spain1           72.8
+# 7 England1         73.1
+
+#####################################################################################################################################################################
+All_Data %>% group_by(cluster) %>% summarise('mean_potential'=mean(potential)) %>% arrange(mean_potential)
+
+#1c
+
+# 각 그룹별 평균 potential
+# A tibble: 7 x 2
+# cluster  mean_potential
+# <chr>             <dbl>
+# 1 Korea1             66.4
+# 2 Germany2           71.2
+# 3 Spain2             72.3
+# 4 England2           72.6
+# 5 Germany1           77.8
+# 6 Spain1             77.9
+# 7 England1           78.6
+
+#####################################################################################################################################################################
+colSums(is.na(All_Data))
+All_Data[is.na(All_Data$pace),] # 우선 pace 가 결측인 데이터들만 확인해보기
+#1d
+# 결측 패턴
+# pace, shooting, passing, dribbling, defending, physic 총 6개의 변수가 동시에 결측이 발생했음
+
+All_Data=All_Data[!is.na(All_Data$pace),] # pace 가 결측인 데이터를 제거함
+All_Data=All_Data[complete.cases(All_Data),] # 결측이 존재하는 거 모두 제거  
+
+colSums(is.na(All_Data)) # 제거가 되는것을 볼 수 있음
+
+
+#####################################################################################################################################################################
+# # 1e
+
+# 결측이 발생한 변수의 평균값을 대입하는 평균대치를 진행하거나, 
+# 결측이 발생한 변수를 종속변수로 설정한 후 회귀분석을 진행해 회귀대치를 진행할 수 있음
+
+
+
+#####################################################################################################################################################################
+# # 2a
+
+# 100개의 bin과 density distribution 
+
+# Histogram with density plot
+ggplot(All_Data, aes(x=overall)) + 
+  geom_histogram(aes(y=..density..), colour="black", fill="white",bins=100)+
+  geom_density(alpha=.2, fill="#FF6666") 
+
+
+#####################################################################################################################################################################
+# # 2b
+ggplot(All_Data, aes(x=overall,y=..density..,fill=cluster)) + geom_density(alpha=1)  
+
+#####################################################################################################################################################################
+# # 2c
+
+# 크게 3개의 그룹으로 나눌 수 있으며
+# 1부리그(Germany1, Spain1,England1)의 overall 이 전반적으로 높아 상위 그룹을 차지하고 있으며
+# 2부리그(Germany2, Spain2,England3)의 overall 이 다음으로 높아 중위 그룹을 차지하고 있는것을 볼 수 있음
+# 다만 Korea1의 경우 1부리그이지만 overall이 가장 낮은것을 볼 수 있음
+
+#####################################################################################################################################################################
+### 3a
+player_positions_split=strsplit(All_Data$player_positions,', ')
+
+Get_PC=function(x){
+  if(sum(x %in% c('GK',"CB","LB","RB","LWB",'RWB')) > 0){return('Def')}
+  else if (sum(x %in% c('CDM',"CAM",'LM','RM','CM')) > 0){return('Mid')}
+  else if (sum(x %in% c('CF',"LW",'RW','ST')) > 0){return('Att')}
+  else {return('ETC')}
+}
+
+All_Data$PC=unlist(lapply(player_positions_split, Get_PC))
+Data_3=All_Data %>% group_by(cluster ,PC) %>% summarise(n()) %>% data.frame()
+cast(Data_3, cluster ~ PC, fun = mean)
+
+
+#####################################################################################################################################################################
+###3b
+CrossTable(All_Data$cluster, All_Data$PC,chisq = T)
+# 카이스퀘어 분석을 진행했을 경우 p값이0.1517222로 나타났다.
+# 따라서 유의수준이 0.05보다 높기 때문에 리그별로 포지션의 차이는 없는것이라고 판단 할 수 있다.
+
+#####################################################################################################################################################################
+###3c
+
+ggplot(Data_3, aes(fill=cluster, y=n.., x=PC  )) + 
+  geom_bar(position="dodge", stat="identity")
+# 전반적으로 공격수의 비율이 작은것을 볼 수 있으며 대부분의 포지션은 dif와 mid에 집중된다
+# 그중 mid가 dif에 비해 조금 더 높은 비율을 보이는 것을 볼 수 있다.
+# 이는 리그의 크기에 따라서 다소 차이가 있지만 전반적으로 모든 리그에 통용된다고 볼 수 있다.
+
+#####################################################################################################################################################################
+####4a
+Data_4=All_Data[c('overall','potential','age','pace','shooting','passing','dribbling','defending','physic')]
+
+Data_4
+
+
+summary(lm(data=Data_4,overall~age+pace+shooting+passing+dribbling+defending+physic))
+
+# 회귀분석 결과 age, pace, shooting, passing, dribbling, defending, physic 모든 변수가 유의확률이 0.05보다 낮게 나타나 의미가 있는 변수로 파악되었으며
+# overall에 가장 영향이 큰 변수는 dribbling 로 dribbling이 1 상승할때마다 overall이 0.342899씩 상승하는것을 확인 할 수 있었다.
+
+#####################################################################################################################################################################
+####4b
+
+summary(lm(data=Data_4,overall~age+pace+shooting+passing+dribbling+defending+physic))
+
+# 회귀분석 결과 age, pace, shooting, passing, dribbling, defending, physic 모든 변수가 유의확률이 0.05보다 낮게 나타나 의미가 있는 변수로 파악되었으며
+# overall에 가장 영향이 작은 변수는 pace 로 pace이 1 상승 할 때 마다 overall이 0.016162씩 상승하는것을 확인 할 수 있었다.
+
+
+#####################################################################################################################################################################
+####4c
+summary(lm(data=Data_4,potential~age+pace+shooting+passing+dribbling+defending+physic))
+
+# 회귀분석 결과 age, pace, shooting, passing, dribbling, defending, physic 모든 변수가 유의확률이 0.05보다 낮게 나타나 의미가 있는 변수로 파악되었으며
+# potential 가장 영향이 큰 변수는 age 로 age가 1 상승할때마다 potential이 0.90034씩 감소하는것을 확인 할 수 있었다.
+#####################################################################################################################################################################
+
+####4d
+summary(lm(data=Data_4,potential~age+pace+shooting+passing+dribbling+defending+physic))
+
+# 회귀분석 결과 age, pace, shooting, passing, dribbling, defending, physic 모든 변수가 유의확률이 0.05보다 낮게 나타나 의미가 있는 변수로 파악되었으며
+# potential 가장 영향이 작은 변수는 pace 로 pace가 1 상승할때마다 potential이 0.028369씩 감소하는것을 확인 할 수 있었다.
+
+
+#####################################################################################################################################################################
+####4e
+
+J=data.frame(age=18,pace = 95,shooting = 80,passing = 75,dribbling = 75,defending = 50,physic = 70)
+
+Lm1=lm(data=Data_4,overall~age+pace+shooting+passing+dribbling+defending+physic)
+
+predict(Lm1, J, interval ='confidence')
+
+# 예측된 overall은 74.28019 이며 95% 신뢰구간 하한은 73.75285, 상한은 74.80752 로 측정됨
+
+#####################################################################################################################################################################
+#### 4f
+
+
+Lm2=lm(data=Data_4,potential~age+pace+shooting+passing+dribbling+defending+physic)
+
+predict(Lm2,J,interval = 'confidence')
+# 예측된 potential 85.14072 이며 95% 신뢰구간 하한은 84.55303, 상한은 85.72841 로 측정되었음.
+
+#####################################################################################################################################################################
+
+#####5a
+Data_5=All_Data[c('age','overall','potential')]
+
+Data_5$del = Data_5$potential-Data_5$overall
+
+plot(Data_5)
+
+lm(data = All_Data,age~potential)
+lm(data = All_Data,age~overall)
+
+# overall과 potential은 정비례 관계에 있으며 potential은 overall보다 같거나 큰것으로 나타났다.
+# 또한 age와 overall의 경우 우상향 하는 형상이며 기울기는 0.27로 나타났다. 이는 나이가 올라갈수록 overall은 증가하지만
+# age와 potential을 볼때 우하양하는 형상으로(기울기는 -0.1869) 로 나이가 들수록 potential이 감소하는것으로 나타났다.
+# 따라서 overall과 potential이 동시에 높은 선수를 찾기 위해서는 적절한 나이를 찾는게 우선으로 보인다.
+
+#####################################################################################################################################################################
+#####*5a
+Data_5 %>% group_by(age) %>% summarise(mean=mean(del),n=n())
+Data_5 %>% group_by(age) %>% summarise(mean=mean(potential),n=n())
+
+# potential 이 가장 높을때는 17살일때 78.6으로 나타났으며 21살때 낮아졌다가 22살부터 다시 높아지는것을 확인 할 수 있었다.
+
+#####################################################################################################################################################################
+
+#####5b
+# 잠재력을 최대한 발휘한다는것은 overall과 potential의 차이가 큰것을 의미하며 16살과 17살때 overall과 potential의차이가 각 24, 18.5로 매우 큰것을 볼 수 있었다.
+
+#####################################################################################################################################################################
+
+#####6a
+Get_PC2=function(x){
+  if(sum(x %in% c('GK','CB','LB','RB','LWB','RWB','CDM')) > 0){return('Def')}
+  else if (sum(x %in% c('CF','LW','RW','ST','CAM','LM','RM','CM')) > 0){return('Att')}
+  else {return('ETC')}
+}
+
+All_Data$PC2=unlist(lapply(player_positions_split, Get_PC2))
+
+table(All_Data$PC2)
+# Att의 수는 1617명이며 Def의 수는1959명임
+#####################################################################################################################################################################
+
+######6b
+
+J = data.frame(age=18,pace = 95,shooting = 80,passing = 75,dribbling = 75,defending = 50,physic = 70)
+
+table(All_Data[All_Data$age==18,]$PC2)
+table(All_Data[All_Data$pace==95,]$PC2)
+table(All_Data[All_Data$shooting==80,]$PC2)
+table(All_Data[All_Data$passing==75,]$PC2)
+table(All_Data[All_Data$dribbling==75,]$PC2)
+table(All_Data[All_Data$defending==50,]$PC2)
+table(All_Data[All_Data$physic==70,]$PC2)
+12+16+7+22+12
+# John과 유사한 스팩을 가진 사람들은 Att와 Def 에 고루 분포하지만 Att가 조금 더 많은 것을 볼 수 있음으로 Att라고 할 수 있다.
+
+
+Result<-glm(data=All_Data, as.factor(PC2) ~ age+pace+shooting+passing+dribbling+defending+physic, family='binomial')
+
+summary(Result)
+as.factor(All_Data$PC2)
+predict(Result, data.frame(age=18, pace = 95,shooting = 80,passing = 75,dribbling = 75,defending = 50,physic = 70),type = "response")
+
+# Glm 결과 0.5보다 낮게 나타났음으로 att이라고 할 수 있다.
+
+
+#####################################################################################################################################################################
+
+######6c
+predict(Result, data.frame(age=18,pace = 50,shooting = 30,passing = 75,dribbling = 40,defending = 80,physic = 90),type = "response")
+# Hong Gil Dong은 glm 분석결과 0.5보다 높게 나타났기 때문에 Def라고 할 수 있다.
+
+#####################################################################################################################################################################
+
+head(Data_4)
+dim(Data_4)
+
+#######7a
+
+set.seed(333)
+
+
+# 3분 이상 시간 소요
+
+NC=NbClust(scale(Data_4[,1:9]),method = "kmeans")
+NC
+# centers가 3일때 가장 효율적인것으로 확인된다.
+
+Data_4$PC=All_Data$PC
+
+Data_K <- kmeans(Data_4[,1:9], centers = 3, iter.max = 10000)
+Data_4$cluster=Data_K$cluster
+
+
+qplot(age, potential, colour = cluster, data = Data_4)
+
+#####################################################################################################################################################################
+#7b
+
+cor(cast(reshape2::melt(id.vars = 'cluster' , Data_4), value ~ cluster ))
+cor(cast(reshape2::melt(id.vars = 'PC' , Data_4), value ~ PC ))
+
+#####################################################################################################################################################################
+# # 7c
+
+
+# 결측값 (NA)으로 인해 경고 발생하나 수행 가능
+Data_4_mean=aggregate(Data_4,list(Data_4$cluster), mean)[,1:10]
+Data_4_sd=aggregate(Data_4,list(Data_4$cluster), sd)[,1:10]
+
+Data_4_1=reshape2::melt(id.vars = 'Group.1' ,Data_4_mean)
+Data_4_2=reshape2::melt(id.vars = 'Group.1' ,Data_4_sd)
+
+names(Data_4_1)=c('cluster',"variable",'mean')
+names(Data_4_2)=c('cluster',"variable",'sd')
+
+Data_4_3=merge(Data_4_1, Data_4_2)
+Data_4_3=Data_4_3[complete.cases(Data_4_3),]
+
+Data_4_3 %>%
+  ggplot(aes(fill= as.factor(cluster), y = mean, x = as.factor(variable)))+
+  geom_col(position = "dodge")+
+  geom_errorbar(aes(ymin = mean-sd, ymax = mean+sd), position = position_dodge(0.9), width = .3)
+
+#####################################################################################################################################################################
+# # 8a
+# ANOVA Analysis
+
+
+#####################################################################################################################################################################
+# # 8b
+All_Data
+summary(aov(All_Data$overall~All_Data$cluster))
+# 리그별로 평균 선수 능력치에 차이가 있다.
+
+#####################################################################################################################################################################
+# # 8c
+boxplot(All_Data$overall~All_Data$cluster)
+# 리그별로 차이가 심한것을 볼 수 있으며 Q2에서 나눴던 상위그룹,중위그룹 간에는 크게 차이가 없는것을 볼 수 있다.
+
+#####################################################################################################################################################################
+# # 8d
+summary(aov(All_Data$potential~All_Data$cluster))
+# ANOVA 분석 결과 p값이 0.05보다 낮게 나타났기 때문에 리그별로 potential에 차이가 있는것을 볼 수 있다.
+
+#####################################################################################################################################################################
+# # 8e
+boxplot(All_Data$potential~All_Data$cluster)
+# 리그별로 차이가 심한것을 볼 수 있으며 Q2에서 나눴던 상위그룹,중위그룹 간에는 크게 차이가 없는것을 볼 수 있다.
+
+#####################################################################################################################################################################
+# # 8f
+All_Data$age2=All_Data$age
+All_Data$age2=ifelse(All_Data$age2<22,'Y',ifelse(All_Data$age2<28,'P','E'))
+All_Data
+summary(aov(All_Data$potential~All_Data$cluster+All_Data$age2))
+# ANOVA 분석 결과 p값이 0.05보다 낮게 확인되었음으로
+# 그룹별, 나이별로 선수의 잠재력에 영향이 있는것으로 확인된다.
+#####################################################################################################################################################################
+# # 9a
+
+# LSH
+All_Data$wage_eur = as.numeric(All_Data$wage_eur)
+
+boxplot(All_Data$wage_eur~All_Data$cluster)
+
+# t.test(All_Data$wage_eur)
+t.test(All_Data$wage_eur)
+# 일반적인 연봉을 받는 선수의 경우 연봉 평균치가 가장 높은 England1으로 이적을 할 때 가장 많은 연봉을 받을것으로 예상 할 수 있다.
+# 하지만 이상치에 해당하는 연봉을 받는 선수의 경우 분산이큰 Spain1으로 이적을 하면 더 많은 연봉을 받을 수 있을것으로 기대할 수 있다.
+
+#####################################################################################################################################################################
+# # 9b
+boxplot(wage_eur~PC, All_Data[All_Data$cluster=='England1',])
+summary(aov(wage_eur~PC, All_Data[All_Data$cluster=='England1',]))
+# boxplot으로 확인할때는 약간 상이하긴 하지만 큰 차이가 없는것으로 볼 수 있다.
+# 하지만 ANOVA분석을 진행 해 볼 경우 포지션별로 차이는 크다는것을 확인 할 수 있다.
+
+
+
+# # 10a
+# wage_eur를 많이 받기 위해서는 어떤요소가 중요한가?
+
+# # 10b
+# (Multivariate) Linear Regression Model 
+
+# Independent Variable(X features) : age, overall, potential, pace+shooting+passing+international_reputation+height_cm+weight_kg+value_eur+dribbling+defending+physic+cluster+PC
+# Dependent Variable(Y) : wage_eur 
+
+# (1) 상관계수 행렬
+# 종속변수-독립변수 간의 관계성 찾기 (-1.0 ~ 1.0)
+CorMatData = All_Data[c("age", "overall", "potential", "pace", "shooting", "passing", "international_reputation", 
+                        "height_cm", "value_eur", "dribbling", "defending", "physic", "wage_eur")]
+
+cor(CorMatData)[, "wage_eur"]
+
+# 종속변수 (wage_eur) ~ 독립변수 (-) # 1에 가까울수록 양의 상관관계, -1에 가까울수록 음의 상관관계
+# 0은 관계가 없음. 
+# age                  overall                potential                     pace 
+# 0.248712692              0.673051226              0.548272207              0.174782472 
+# shooting                  passing international_reputation                height_cm 
+# 0.356693949              0.513584240              0.685431525              0.005342256 
+# value_eur                dribbling                defending                   physic 
+# 0.851867110              0.466764476              0.209048101              0.310248526 
+# wage_eur 
+# 1.000000000 
+
+# 상관계수 행렬 시각화
+CorRes = cor(CorMatData)
+PvalRes = cor_pmat(CorMatData)
+
+ggcorrplot(
+  CorRes
+  , outline.col = "white"
+  , lab = TRUE
+  , p.mat = PvalRes
+  , sig.level = 0.05
+  , colors = c("#6D9EC1", "white", "#E46726")
+)
+
+# 10c
+#  (Multivariate) Linear Regression Model
+
+summary(lm(data=All_Data, wage_eur~age+overall+potential+pace+shooting+passing+international_reputation+height_cm+weight_kg+value_eur+dribbling+defending+physic+cluster+PC))
+
+LmFit = lm(data=All_Data, wage_eur~age+overall+potential+pace+shooting+passing+international_reputation+height_cm+weight_kg+value_eur+dribbling+defending+physic+cluster+PC)
+coef(LmFit) %>% round(2)
+summary(LmFit)
+
+# 유의수준 = P값 = P value = 유의값
+# 유의수준 = 0.05, 0.80
+# 통계적으로 100번 무작위 랜덤으로 수행했을 때 5번은 나올수 있는 확률
+
+# '''
+# 10d
+# 회귀분석 결과 이 다중선형 회귀모형의 수정된 결정계수 (Adjusted R-squared)는 0.80로서 80%의 설명력을 가진다. 유의수준인 p 값이 0.05보다 낮기 때문에 통계적으로 유의하다고판단된다.
+# 다중선형 회귀계수의 경우 각 계수에 따른 유의수준 (P값)이 0.05 이하로 선별하어 통계 해석을 수행하였다.
+# 즉 제외 변수 (overall, potential, height_cm, weight_kg, dribbling, defending, physic)는 다음과 같다.
+# pace가 높을수록 연봉 (wage_eur)가 높아지는것을 볼 수 있다.
+# 또한 나이 (age)가 많을수록 wage_eur가 높아지는데 이는 연차(경력)이 쌓이면서 올라가는것으로 유추되며 
+# 마지막으로 height_cm, weight_kg 변수가 의미가 없는것으로 보아 선수의 피지컬 자체는 큰 의미가 없으며 선수의 실력에 해당하는 pace와 shooting이
+# 중요하다는 것을 볼 수 있다.
+
+# 현재 회귀모형의 경우 축구 관련 기본 정보만을 이용한 회귀 결과이기 때문에 향후 타 부가 정보 (사회, 뉴스 등)를 융합하면 성능 향상을 기대할 수 있다. 
+
+# 연봉 예측
+# 전세계 축구 리그 데이터를 이용하여 앞선 다중선형회귀모형으로 연봉을 예측하고 그 결과를 산점도로 시각화하였다.
+# 상관계수는 0.90로서 양의 관계를 띠며 0.01(p<2.2e-16) 이하에서 통계적으로 유의한 결과를 보였다.
+# 또한 회귀선의 경우 기울기는 0.95이고 절편 310로 나타났고 이는 기울기 1에 가까울수록, 절편 0에 가까울수록 높은 예측을 보인다.
+All_Data$Prd = predict(LmFit, newdata = All_Data)
+
+summary(All_Data$Prd)
+
+ggscatter(
+  All_Data, x = "Prd", y = "wage_eur"
+  , add = "reg.line", conf.int = TRUE, scales = "free_x"
+  , add.params = list(color = "blue", fill = "lightblue")
+) +
+  labs(
+    title = NULL
+    , x = "예측 연봉"
+    , y = "실측 연봉"
+    , color = NULL
+    , subtitle = "실측 및 예측에 따른 연봉 산점도"
+  ) +
+  xlim(0, 300000) +
+  ylim(0, 300000) +
+  theme_bw() +
+  stat_regline_equation(label.x.npc = 0.0, label.y.npc = 1.0, size = 5) +
+  stat_cor(label.x.npc = 0.0, label.y.npc = 0.90, size = 5) +
+  theme(text = element_text(size = 18)) 
+
+
+# 해당 결과는 전체 데이터를 사용했기 때문에 과적합일 수도 판단됨
+# 따라서 추후에 훈련/검증 데이터셋 (7:3) 및 훈련/테스트/검증 (6:2:2) 을 분할하는 방안 및 교차검증 (K-Fold)을 통해 수행가능.
+
+
+#===============================================================================================
+# Routine : Main R program
+#
+# Purpose : 재능상품 오투잡
+#
+# Author : 해솔
+#
+# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
+#===============================================================================================
+
+#================================================
+# 요구사항
+#================================================
+# R을 이용한 leaflet 시각화 및 마크다운 생성
+
+#================================================
+# 초기 환경변수 설정
+# ================================================
+# env = "local"   # 로컬 : 원도우 환경, 작업환경 (현재 소스 코드 환경 시 .) 설정
+env = "dev"   # 개발 : 원도우 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+# env = "oper"  # 운영 : 리눅스 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+
+prjName = "test"
+serviceName = "LSH0294"
 contextPath = ifelse(env == "local", ".", getwd())
 
 if (env == "local") {
@@ -9918,33 +10458,58 @@ if (env == "local") {
 #================================================
 # 라이브러리 읽기
 library(tidyverse)
+library(leaflet)
+library(jsonlite)
+library(RCurl)
 library(readr)
-library(raster)
-library(tictoc)
-library(raster)
-library(sf)
-library(doParallel)
-library(parallel)
-library(noncompliance)
-library(tibble)
-library(dplyr)
-library(multidplyr)
-library(vroom)
-library(Rcpp)
-library(ncdf4)
-library(noncompliance)
-library(RNetCDF)
-library(tidyverse)
-library(metR)
-library(colorRamps)
-library(ggrepel)
-library(extrafont)
-library(sf)
-library(HydroErr)
-library(api)
-library(SkillMetrics)
+
+# 공공데이터포털을 비롯한 다양한 데이터 제공 사이트에서 데이터를 2개 이상 사용하시오.
+# 반드시 출처를 표기하시오.
+
+# 지도 시각화
+# 위도 경도 정보를 포함하고 있는 데이터 프레임을 사용해 지도에 위치 정보를 간단하게
+# 시각해보기 위한 것으로 다음의 지시사항을 따라주세요.
+
+# 한국의 COVID-19 확진자 발생 정보를 지도에 표시할 것
+# 데이터 URL :
+# 데이터 출처 : 
+covid_case <- read.csv("https://bit.ly/2SoEaYF")
+head(covid_case)
+
+covidData = covid_case %>% 
+  dplyr::filter(
+    ! latitude == "-"
+    , ! latitude == "-"
+  ) %>% 
+  readr::type_convert()
+
+summary(covidData)
 
 
+covidVis = leaflet::leaflet(data = covidData) %>% 
+  leaflet::addTiles() %>% 
+  leaflet::addMarkers(lng = ~longitude, lat = ~latitude, popup = ~city, label = ~city) %>% 
+  leaflet::addCircles(lng = ~longitude, lat = ~latitude, weight = 1, radius = ~sqrt(confirmed) * 500, popup = ~city)
 
+covidVis
+
+# 경기도 동두천시 부동산중개업 현황
+# 데이터 URL : https://www.data.go.kr/tcs/dss/selectFileDataDetailView.do?publicDataPk=3080844
+# 요청 주소 : https://api.odcloud.kr/api/3080844/v1/uddi:da6b34a9-aa4e-4138-9476-93fbd9c81f15?page=1&perPage=10&serviceKey=bf9fH0KLgr65zXKT5D%2FdcgUBIj1znJKnUPrzDVZEe6g4gquylOjmt65R5cjivLPfOKXWcRcAWU0SN7KKXBGDKA%3D%3D
+# 데이터 출처 : 경기도 동두천시 공보전산과 (공공데이터포털)
+
+jsonFile = RCurl::getURL("https://api.odcloud.kr/api/3080844/v1/uddi:da6b34a9-aa4e-4138-9476-93fbd9c81f15?page=1&perPage=99999&serviceKey=bf9fH0KLgr65zXKT5D%2FdcgUBIj1znJKnUPrzDVZEe6g4gquylOjmt65R5cjivLPfOKXWcRcAWU0SN7KKXBGDKA%3D%3D")
+jsonData = jsonlite::fromJSON(jsonFile)
+realEstateData = jsonData$data
+
+realEstateDataL1 = realEstateData %>% 
+  readr::type_convert()
+
+realEstateVis = leaflet::leaflet(data = realEstateDataL1) %>% 
+  leaflet::addTiles() %>% 
+  leaflet::addMarkers(lng = ~경도, lat = ~위도, popup = ~사무소명, label = ~사무소명) %>% 
+  leaflet::addCircles(lng = ~경도, lat = ~위도, weight = 1, radius = 50, popup = ~사무소명)
+
+realEstateVis
 
 
