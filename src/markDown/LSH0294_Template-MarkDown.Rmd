@@ -1,0 +1,116 @@
+---
+title: "R을 이용한 leaflet 시각화 및 마크다운 생성"
+date: "Submission date: `r Sys.setlocale('LC_TIME','C'); format(Sys.Date(), format='%B %d, %Y')`"
+output:
+ rmdformats::readthedown:
+  highlight: kate
+  self_contained: true
+  gallery: true
+  lightbox: true
+  number_section: true
+  toc_depth: 6
+subtitle: "<p><font size='4'><span style='line-height: 100%'> 
+  작성자
+  </span></font></p>"
+editor_options: 
+  chunk_output_type: inline
+---
+
+# 요구사항
+- R을 이용한 leaflet 시각화 및 마크다운 생성
+- 공공데이터포털을 비롯한 다양한 데이터 제공 사이트에서 데이터를 2개 이상 사용하시오.
+- 반드시 출처를 표기하시오.
+
+
+# R 프로그래밍을 위한 초기 환경변수 설정
+
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+#================================================
+# 초기 환경변수 설정
+#================================================
+env = "local"   # 로컬 : 원도우 환경, 작업환경 (현재 소스 코드 환경 시 .) 설정
+# env = "dev"   # 개발 : 원도우 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+# env = "oper"  # 운영 : 리눅스 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+
+prjName = "test"
+serviceName = "LSH0294"
+contextPath = ifelse(env == "local", ".", "E:/04. TalentPlatform/Github/TalentPlatform-R")
+
+if (env == "local") {
+  globalVar = list(
+    "inpPath" = contextPath
+    , "figPath" = contextPath
+    , "outPath" = contextPath
+    , "tmpPath" = contextPath
+    , "logPath" = contextPath
+  )
+} else {
+  source(here::here(file.path(contextPath, "src"), "InitConfig.R"), encoding = "UTF-8")
+}
+```
+
+# 비즈니스 로직 수행
+
+## 라이브러리 읽기
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+#================================================
+# 비즈니스 로직 수행
+#================================================
+# 라이브러리 읽기
+library(tidyverse)
+library(leaflet)
+library(jsonlite)
+library(RCurl)
+library(readr)
+```
+<br>
+<br>
+
+## 한국 COVID-19 데이터 읽기
+- 한국의 COVID-19 확진자 발생 정보를 지도에 표시할 것
+- 데이터 URL : https://bit.ly/2SoEaYF
+- 데이터 출처 : 코로나 확진자 데이터 (구글 드라이브)
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+# 데이터 읽기
+covid_case <- read.csv("https://bit.ly/2SoEaYF")
+head(covid_case)
+
+covidData = covid_case %>% 
+  dplyr::filter(
+    ! latitude == "-"
+    , ! latitude == "-"
+  ) %>% 
+  readr::type_convert()
+
+summary(covidData)
+
+
+covidVis = leaflet::leaflet(data = covidData) %>% 
+  leaflet::addTiles() %>% 
+  leaflet::addMarkers(lng = ~longitude, lat = ~latitude, popup = ~city, label = ~city) %>% 
+  leaflet::addCircles(lng = ~longitude, lat = ~latitude, weight = 1, radius = ~sqrt(confirmed) * 500, popup = ~city)
+
+covidVis
+```
+
+<br>
+<br>
+
+## 경기도 동두천시 부동산중개업 현황
+- 데이터 URL : https://www.data.go.kr/tcs/dss/selectFileDataDetailView.do?publicDataPk=3080844
+- 요청 주소 : https://api.odcloud.kr/api/3080844/v1/uddi:da6b34a9-aa4e-4138-9476-93fbd9c81f15?page=1&perPage=10&serviceKey=bf9fH0KLgr65zXKT5D%2FdcgUBIj1znJKnUPrzDVZEe6g4gquylOjmt65- 데이터 출처 : 경기도 동두천시 공보전산과 (공공데이터포털)
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+jsonFile = RCurl::getURL("https://api.odcloud.kr/api/3080844/v1/uddi:da6b34a9-aa4e-4138-9476-93fbd9c81f15?page=1&perPage=99999&serviceKey=bf9fH0KLgr65zXKT5D%2FdcgUBIj1znJKnUPrzDVZEe6g4gquylOjmt65R5cjivLPfOKXWcRcAWU0SN7KKXBGDKA%3D%3D")
+jsonData = jsonlite::fromJSON(jsonFile)
+realEstateData = jsonData$data
+
+realEstateDataL1 = realEstateData %>% 
+  readr::type_convert()
+
+realEstateVis = leaflet::leaflet(data = realEstateDataL1) %>% 
+  leaflet::addTiles() %>% 
+  leaflet::addMarkers(lng = ~경도, lat = ~위도, popup = ~사무소명, label = ~사무소명) %>% 
+  leaflet::addCircles(lng = ~경도, lat = ~위도, weight = 1, radius = 50, popup = ~사무소명)
+
+realEstateVis
+```

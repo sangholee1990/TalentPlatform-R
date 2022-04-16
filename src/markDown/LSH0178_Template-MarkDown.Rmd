@@ -1,0 +1,775 @@
+---
+title: "[자유 주제] R을 이용한 서울시 아파트 실거래가 회귀분석 및 주택가격 결정 요인"
+date: "Submission date: `r Sys.setlocale('LC_TIME','C'); format(Sys.Date(), format='%B %d, %Y')`"
+output:
+ rmdformats::readthedown:
+  highlight: kate
+  self_contained: true
+  gallery: true
+  lightbox: true
+  number_section: true
+  toc_depth: 6
+subtitle: "<p><font size='4'><span style='line-height: 100%'> 
+  이종호
+  </span></font></p>"
+editor_options: 
+  chunk_output_type: inline
+---
+
+# 개요
+
+- 2016년 2월 1일부터 국토교통부를 통해 수집된 아파트매매 실거래 자료를 공공데이터포털 홈페이지 (https://www.data.go.kr/data/15058747/openapi.do)에 공개하고 있어 부동산 거래 가격 및 거래 동향을 정확하고 빠르게 파악할 수 있음∙ 
+
+- 특히, 전국 주소기반 부동산 거래 자료가 온라인상에서 투명하게 공개되고 있어 부동산 시장에 대한 흐름을 한눈에 파악할 수 있는 충분한 양의 공간데이터가 구축된 상황 (아파트의 경우 매년 약 50만 개의 데이터가 등록되고 있으며 자세한 주소 정보와 상세 거래월 등을 포함하고 있기 때문에 부동산 흐름에 대한 시기별 변화를 공간상에 표출할 수 있어 부동산에 대한 정보를 국민들에게 보다 쉽게 전달할 수 있게 되었음)
+
+- 따라서 데이터로의 접근이 용이하고 부동산 시장에 대한 흐름을 파악할 수 있는 좋은 데이터가 구축되었음에 따라 실거래 가격 자료를 활용하여 2017년부터 2021년까지 (간격: 매월)의 부동산 시장의 변화를 정책적 함의를 배제한 시간과 공간만의 접근 방식으로 부동산 시장의 변화를 파악해 보고자 함
+
+- 특히 데이터 통계값을 활용하여 차트나 그래프로 세밀한 부동산 시장 흐름을 파악
+
+- 더 나아가 데이터의 고차원화를 통해 부동산 시장의 공간과 시간상의 변화를 한눈에 볼 수 있는 지도 시각화 수행
+
+
+# 주요 내용
+
+- 약 364,917개의 데이터 처리를 위해 빅데이터 처리 연산프로그램인 R 프로그래밍 (+ Pyhon 동일)을 활용
+
+- 아파트 실거래 가격 데이터를 이용하여 연소득당 거래금액 (주택 가격 결정 요인) 계산 및 기초통계 분석
+
+- 특히 전체 및 법정동을 구분하여 히스토그램, 상자, 산점도 그래프뿐만 아니라 공간 분포  시각화 수행
+
+- 또한 주택 가격 결정 요인을 분석하기 위해서 다음과 같은 독립변수 및 종속변수를 설정하여 회귀분석을 수행
+
+- 독립변수 : 건축년도, 전용면적, 층, 법정동, 면적당 거래금액
+
+- 종속변수 : 연소득당 거래금액 (주택 가격 결정 요인)
+
+
+# 자료 정제
+
+## R 프로그래밍을 위한 환경 변수 설정
+
+```{r include=FALSE, warning=FALSE}
+#================================================
+# Set Env
+#================================================
+globalVar = list()
+globalVar$inpPath = "."
+globalVar$figPath = "."
+globalVar$outPath = "."
+globalVar$mapPath = "."
+globalVar$systemPath = "./system.cfg"
+
+serviceName = "LSH0178"
+```
+
+##	필요한 라이브러리 및 변수명 읽기
+
+```{r include=FALSE, warning=FALSE}
+#================================================
+# Main
+#================================================
+library(ggplot2)
+library(tidyverse)
+library(httr)
+library(rvest)
+library(jsonlite)
+library(RCurl)
+library(readr)
+library(magrittr)
+library(ggrepel)
+library(colorRamps)
+library(ggpubr)
+library(lm.beta)
+library(ggpmisc)
+unloadNamespace('raster')
+library(gstat)
+library(sf)
+library(yaml)
+library(ggmap)
+library(htmltools)
+
+cbMatlab = colorRamps::matlab.like(11)
+
+configInfo = yaml::yaml.load_file(globalVar$systemPath)
+globalVar$googleKey = configInfo$default$googleKey
+globalVar$dataKey = configInfo$default$dataKey
+
+# 공공데이터포털 API키
+reqDataKey = globalVar$dataKey
+
+# 구글 API키
+ggmap::register_google(key = globalVar$googleKey)
+
+# 요청 URL
+reqUrl = "http://openapi.molit.go.kr:8081/OpenAPI_ToolInstallPackage/service/rest/RTMSOBJSvc/getRTMSDataSvcAptTrade"
+# 요청 키
+reqKey = stringr::str_c("?serviceKey=", RCurl::curlEscape(stringr::str_conv(reqDataKey, encoding = "UTF-8")))
+
+```
+
+## 서울특별시 법정동 코드 읽기
+- 자료 설명 : 법정동 코드 목록
+- 수집 방법 : 해당 URL에서 자료 다운로드
+- 자료 개수 : 46,180개
+- URL : https://www.code.go.kr/stdcode/regCodeL.do
+- 출처 : 행정표준코드관리시스템
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+codeInfo = Sys.glob(paste(globalVar$mapPath, "/admCode/법정동코드_전체자료.txt", sep = "/"))
+
+codeList = readr::read_delim(codeInfo, delim = "\t", locale = locale("ko", encoding = "EUC-KR"), col_types = "ccc") %>%
+  magrittr::set_colnames(c("EMD_CD", "addr", "isUse")) %>% 
+  tidyr::separate(col = "addr", into = c("d1", "d2", "d3", "d4"), sep = " ") %>%
+  dplyr::mutate(
+    emdCd = stringr::str_sub(EMD_CD, 1, 5)
+  ) %>% 
+  dplyr::filter(
+    stringr::str_detect(d1, regex("서울특별시"))
+    , stringr::str_detect(isUse, regex("존재"))
+    , is.na(d3)
+    , is.na(d4)
+  )
+
+codeDistList = codeList %>%
+  dplyr::distinct(emdCd)
+
+# 날짜 기간
+# dtDateList = seq(as.Date("2017-01-01"), as.Date(format(Sys.time(), "%Y-%m-%d")), "1 month")
+dtDateList = seq(as.Date("2018-12-01"), as.Date(format(Sys.time(), "%Y-%m-%d")), "1 month")
+```
+<br>
+<br>
+
+## 법정동 소득 자료 읽기
+- 자료 설명 : 가구 특성정보 (+소득정보)
+- 자료 개수 : 39,094개
+- URL : https://www.bigdata-environment.kr/user/data_market/detail.do?id=8cee0160-2dff-11ea-9713-eb3e5186fb38
+- 출처 : 공공데이터포털 (국토교통부)
+
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+fileInfo = Sys.glob(paste(globalVar$inpPath, "LSH0178_가구_특성정보_(+소득정보)_201211.csv", sep = "/"))
+costData = readr::read_csv(file = fileInfo) %>%
+  dplyr::mutate(
+    emdCd = stringr::str_sub(as.character(raw_dn_cd), 1, 5)
+  ) %>% 
+  dplyr::group_by(emdCd) %>% 
+  dplyr::summarise(
+    meanCost = mean(avrg_income_amount_am, na.rm = TRUE)
+  )
+```
+<br>
+<br>
+
+## 아파트 실거래 데이터 수집 및 읽기
+- 자료 설명 : 국토교통부_아파트매매 실거래자료
+- 수집 방법 : 공공데이터포털에서 오픈 API 자료 수집
+- 자료 기간 : 2017년 – 2020년 05월
+- 자료 개수 : 364,917개
+- URL : https://www.data.go.kr/data/15058747/openapi.do
+- 출처 : 공공데이터포털 (국토교통부)
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+#***********************************************
+# 공공데이터포털 API (자료 수집)
+#***********************************************
+# dataL1 = tibble::tibble()
+# 
+# for (i in 1:length(dtDateList)) {
+#   for (j in 1:nrow(codeDistList)) {
+#     
+#     sDate = format(dtDateList[i], "%Y%m")
+#     
+#     # 요청 법정동
+#     reqLawdCd = stringr::str_c("&LAWD_CD=", codeDistList[j, 'emdCd'])
+#     
+#     # 요청 날짜
+#     reqYmd = stringr::str_c("&DEAL_YMD=", sDate)
+#     
+#     resData = httr::GET(
+#       stringr::str_c(reqUrl, reqKey, reqLawdCd, reqYmd)
+#     ) %>%
+#       httr::content(as = "text", encoding = "UTF-8") %>%
+#       jsonlite::fromJSON()
+#     
+#     resCode = resData$response$header$resultCode
+#     if (resCode != "00") { next }
+#     
+#     resItems = resData$response$body$items
+#     if (resItems == "") { next }
+#     
+#     cat(sprintf(
+#       "dtDate : %10s | code : %5s"
+#       , sDate
+#       , codeList[j, 'emdCd']
+#     ), "\n")
+#     
+#     resItem = resItems$item %>%
+#       as.data.frame()
+#     # readr::type_convert()
+#     
+#     dataL1 = dplyr::bind_rows(
+#       dataL1
+#       , data.frame(
+#         'dtYm' = sDate
+#         , 'emdCd' = codeDistList[j, 'emdCd']
+#         , resItem
+#       )
+#     )
+#   }
+# }
+
+#***********************************************
+# 자료 저장
+#***********************************************
+# saveFile = sprintf("%s/%s_%s", globalVar$outPath, serviceName, "seoul apartment transaction.csv")
+# readr::write_csv(x = dataL1, file = saveFile)
+```
+<br>
+<br>
+
+# 데이터 전처리
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+fileInfo = Sys.glob(paste(globalVar$inpPath, "LSH0178_seoul apartment transaction.csv", sep = "/"))
+
+dataL2 = readr::read_csv(file = fileInfo) %>% 
+  readr::type_convert() %>% 
+  dplyr::mutate(
+    지번2 = readr::parse_number(지번)
+    , emdCd = as.character(emdCd)
+  ) %>% 
+  dplyr::left_join(codeList, by = c("emdCd" = "emdCd")) %>%
+  dplyr::left_join(costData, by = c("emdCd" = "emdCd")) %>% 
+  dplyr::mutate(
+    addr = stringr::str_trim(paste(d1, d2, 아파트, 지번, seq = ' '))
+    , val = 거래금액 / meanCost # 연소득당 거래금액
+    , val2 = 거래금액 / 전용면적 # 면적당 거래금액
+    , dtYear = lubridate::year(lubridate::ym(dtYm))
+  )
+
+
+dataL3 = dataL2 %>% 
+  dplyr::group_by(d2) %>% 
+  dplyr::summarise(
+    meanVal = mean(val, na.rm = TRUE)
+  )
+```
+<br>
+<br>
+
+# 데이터 요약 (기초 통계량, 표/그래프 활용)
+## 요약 통계량
+### 연소득당 거래 금액에 대해서 평균값, 중앙값, 표준편차, 최대값, 최소값 계산
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+# 연소득당 거래금액 따른 기초 통계량
+dataL2 %>%
+  dplyr::summarise(
+    meanVal = mean(val, na.rm = TRUE) # 평균값
+    , medianVal = median(val, na.rm = TRUE) # 중앙값
+    , sdVal = sd(val, na.rm = TRUE) # 표준편차
+    , maxVal = max(val, na.rm = TRUE) # 최대값
+    , minVal = min(val, na.rm = TRUE) # 최소값
+    , cnt = n() # 개수
+  ) %>%
+  dplyr::arrange(desc(meanVal))
+
+# 법정동에 따른 연소득당 거래금액 따른 기초 통계량
+dataL2 %>%
+  dplyr::group_by(d2) %>% 
+  dplyr::summarise(
+    meanVal = mean(val, na.rm = TRUE) # 평균값
+    , medianVal = median(val, na.rm = TRUE) # 중앙값
+    , sdVal = sd(val, na.rm = TRUE) # 표준편차
+    , maxVal = max(val, na.rm = TRUE) # 최대값
+    , minVal = min(val, na.rm = TRUE) # 최소값
+    , cnt = n() # 개수
+  ) %>%
+  dplyr::arrange(desc(meanVal))
+```
+<br>
+<br>
+
+## 표/그래프 활용
+
+### 연소득당 거래금액 따른 히스토그램
+
+- 서울특별시 아파트 가격 동향을 살펴보기 위해서 2017-2020년 05월 기간 동안 연소득당 거래금액에 따른 히스트그램으로 나타냄. 그 결과  0-150으로 다양하게 형성되고 있으며 특히 중간값 (12.55)을 기준으로 평균 (14.14)로서 우측 편향됨. 이는 교환가치 측면에서 중･대형 아파트와 비교하여 60㎡ 이하의 소형아파트는 투자가치가 높아 수요가 증가함을 확인할 수 있음 (장동훈 외, 2013)
+
+
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+# 연소득당 거래금액 따른 히스토그램
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "연소득당 거래금액 따른 히스토그램")
+
+ggplot(dataL2, aes(x = val)) +
+  geom_histogram(aes(y = ..density..), colour = "black", fill = "white") +
+  geom_density(alpha = 0.2) +
+  geom_rug(aes(x = val, y = 0), position = position_jitter(height = 0)) +
+  labs(x = "연소득당 거래금액", y = "밀도 함수", colour = NULL, fill = NULL, subtitle = "연소득당 거래금액 따른 히스토그램") +
+  theme(text = element_text(size = 16)) # +
+  # ggsave(filename = saveImg, width = 12, height = 6, dpi = 600)
+```
+<br>
+<br>
+
+### 법정동에 따른 연소득당 거래금액 히스토그램
+
+- 서울특별시 지역구 (법정동)에 대한 아파트 가격 동향을 살펴보기 위해서 2017-2020년 05월 기간 동안 연소득당 거래금액에 따른 히스트그램으로 나타냄. 그 결과 지역구마다 9-24로 다양하게 형성되고 있으며 서울시 전역에 걸쳐 꾸준히 거래 이루어짐 (김정희, 서울시 아파트 실거래가의 변화패턴 분석) 
+
+- 특히 서울 중심 지역구의 경우 다른 지역보다 2-2.5배의 연소득당 거래금액을 보였고 특히 용산구는 최대값 (24)을 보였다. 반면에 서울 외곽 지역구 (금천구, 도봉구 등)에서는 낮은값 (9-10)을 보였다. 이는 용산구의 경우 2019년 9월 13일 정부 부동산 정책 이후로 저소득 계층이 사용하던 주택 (재개발 구역 노후 주택)이 재개발되면서 고소득 계층이 밀려오는 현상으로 판단됨 (장희순 강원대 부동산학과 교수)
+
+
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+# 법정동에 따른 연소득당 거래금액 히스토그램
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "법정동에 따른 연소득당 거래금액 히스토그램")
+
+ggplot(dataL3, aes(x = d2, y = meanVal, fill = meanVal)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  geom_text(aes(label = round(meanVal, 0)), vjust = 1.6, color = "white", size = 4) +
+  labs(x = "법정동", y = "연소득당 거래금액", fill = NULL, subtitle = "법정동에 따른 연소득당 거래금액 히스토그램") +
+  scale_fill_gradientn(colours = cbMatlab, na.value = NA) +
+  theme(
+    text = element_text(size = 16)
+    , axis.text.x = element_text(angle = 45, hjust = 1)
+  ) # +
+  # ggsave(filename = saveImg, width = 12, height = 8, dpi = 600)
+```
+<br>
+<br>
+
+### 연소득당 거래금액 따른 상자 그림
+
+- 서울특별시에 대한 아파트의 과도한 가격 및 안정화 여부를 살펴보기 위해서 2017-2020년 05월 기간 동안 연소득당 거래금액에 따른 상자그림으로 나타냄. 그 결과 중간값 (12.55)에 대비하여 최대 150까지 분포되고 있으며 이는 연봉 1억 고소득자가 150년 동안 한푼도 안써야 살 수 있는 아파트이다. 즉 이는 정부의 잇다른 정책 실패와 전세난에 지친 무주택자들이 서울 중저가 아파트를 중심으로 매수로 나선 영향을 판단된다.
+
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+# 연소득당 거래금액 따른 상자 그림
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "연소득당 거래금액 따른 상자 그림")
+
+ggplot(dataL2, aes(y = val)) +
+  geom_boxplot() +
+  labs(x = NULL, y = "연소득당 거래금액", colour = NULL, fill = NULL, subtitle = "연소득당 거래금액 따른 상자 그림") +
+  theme(text = element_text(size = 16)) # +
+  # ggsave(filename = saveImg, width = 12, height = 6, dpi = 600)
+
+```
+<br>
+<br>
+
+### 법정동에 따른 연소득당 거래금액 상자 그림
+
+- 서울특별시 지역구별로 상자 그림을 시각화 수행
+
+- 앞선 히스토그램에서와 같이 서울 중심 지역구의 경우 다른 지역보다 높은 이상치 (IQR 75% 이상)를 보였고 특히 용산구는 큰 범위 (2-150)을 보였다.
+
+- 반면에 서울 외곽 지역구 (노원구, 도봉구 등)에서는 낮은 거래 금액 (1.4-36)을 보였다. 
+
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+# 법정동에 따른 연소득당 거래금액 상자 그림
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "법정동에 따른 연소득당 거래금액 상자 그림")
+
+ggplot(dataL2, aes(x = d2, y = val, color = d2)) +
+  geom_boxplot() +
+  labs(x = "법정동", y = "연소득당 거래금액", color = "법정동", fill = NULL, subtitle = "법정동에 따른 연소득당 거래금액 상자 그림") +
+  # scale_colour_gradientn(colours = cbMatlab, na.value = NA) +
+  theme(
+    text = element_text(size = 16)
+    , axis.text.x = element_text(angle = 45, hjust = 1)
+  ) # +
+  # ggsave(filename = saveImg, width = 12, height = 8, dpi = 600)
+```
+<br>
+<br>
+
+### 연소득당 거래금액 산점도
+- 서울특별시에 대한 연소득과 아파트 가격 가격과의 관계성을 파악하기 위해서 2017-2020년 05월 기간 동안 지역구의 연소득 및 거래금액을 산점도로 나타냄. 그 결과 연소득이 증가할수록 거래금액도 증가 경향 (상관계수 = 0.59)이고 이는 유의수준 0.01 이하로서 통계적으로 유의미함을 보임. 이와 더불어 선형회귀곡선에서는 연봉대비 27배의 거래금액으로 파악되며 특히 95% 신뢰구간의 이상값의 경우 비교적 낮은 연봉임에도 불구하고 정부 정책의 대출 규제 완화되면서 70% 이상의 빚 보증과 더불어 영끌로 내집 마련자로 파악된다.
+
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "연소득당 거래금액 산점도")
+
+ggpubr::ggscatter(
+  dataL2, x = "meanCost", y = "거래금액"
+  , add = "reg.line", conf.int = TRUE, scales = "free_x"
+  # , facet.by = "전체 법정동"
+  , add.params = list(color = "blue", fill = "lightblue")
+) +
+  labs(
+    title = NULL
+    , x = "연소득"
+    , y = "거래금액"
+    , color = NULL
+    , subtitle = "연소득당 거래금액 산점도"
+  ) +
+  theme_bw() +
+  ggpubr::stat_regline_equation(label.x.npc = 0.0, label.y.npc = 1.0, size = 5) +
+  ggpubr::stat_cor(label.x.npc = 0.0, label.y.npc = 0.90, p.accuracy  =  0.01,  r.accuracy  =  0.01, size = 5) +
+  theme(text = element_text(size = 16)) # +
+  # ggsave(filename = saveImg, width = 8, height = 8, dpi = 600)
+```
+<br>
+<br>
+
+
+## 공간 분석 (ggmap, idw, tmap 활용)
+
+### ggmap를 활용하여 연소득당 거래금액 지도 시각화
+
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+
+addrList = dataL2$addr %>% unique() %>% sort() %>%
+  as.tibble()
+
+# 구글 API 하루 제한
+# addrData = ggmap::mutate_geocode(addrList, value, source = "google")
+
+# 각 주소에 따라 위/경도 반환
+# for (i in 1:nrow(addrList)) {
+#   addrData = ggmap::mutate_geocode(addrList[i, 'value'], value, source = "google")
+# 
+#   if (nrow(addrData) < 1) { next }
+# 
+#   readr::write_csv(x = addrData, file = saveFile, append = TRUE)
+# }
+
+saveFile = sprintf("%s/%s_%s.csv", globalVar$inpPath, serviceName, "seoul apartment transaction-addrData")
+addrData =  readr::read_csv(file = saveFile, col_names = c("value", "lon", "lat"))
+
+dataL4 = dataL2 %>% 
+  dplyr::left_join(addrData, by = c("addr" = "value")) %>% 
+  dplyr::filter(
+    ! is.na(lon)
+    , ! is.na(lat)
+    , dplyr::between(lon, 120, 130)
+    , dplyr::between(lat, 30, 40)
+  ) %>% 
+  dplyr::group_by(lon, lat, addr) %>% 
+  dplyr::summarise(
+    meanVal = mean(val, na.rm = TRUE)
+  )
+
+
+map = ggmap::get_map(
+  location = c(lon = mean(dataL4$lon, na.rm = TRUE), lat = mean(dataL4$lat, na.rm = TRUE))
+  , zoom = 12
+  , maptype = "hybrid"
+)
+
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "연소득당 거래금액 지도 매핑")
+
+ggmap(map, extent = "device") +
+  geom_point(data = dataL4, aes(x = lon, y = lat, color = meanVal, size = meanVal, alpha = 0.3)) +
+  scale_color_gradientn(colours = cbMatlab, na.value = NA) +
+  labs(
+    subtitle = NULL
+    , x = NULL
+    , y = NULL
+    , fill = NULL
+    , colour = NULL
+    , title = NULL
+    , size = NULL
+  ) +
+  scale_alpha(guide = 'none') +
+  theme(
+    text = element_text(size = 18)
+  ) # +
+  # ggsave(filename = saveImg, width = 10, height = 10, dpi = 600)
+```
+<br>
+<br>
+
+### idw를 활용하여 연도별 연소득당 거래금액 지도 시각화
+
+```{r, results='asis', message=FALSE, warning=FALSE, paged.print=TRUE}
+#***********************************************
+# IDW 지도 그리기
+#***********************************************
+dtYearList = dataL2$dtYear %>% unique() %>% sort()
+
+# dtYearInfo = 2017
+for (dtYearInfo in dtYearList) {
+  
+  dataL5 = dataL2 %>% 
+    dplyr::left_join(addrData, by = c("addr" = "value")) %>% 
+    dplyr::filter(
+      ! is.na(lon)
+      , ! is.na(lat)
+      , dplyr::between(lon, 120, 130)
+      , dplyr::between(lat, 30, 40)
+      , dtYear == dtYearInfo
+    ) %>% 
+    dplyr::group_by(lon, lat, addr) %>% 
+    dplyr::summarise(
+      meanVal = mean(val, na.rm = TRUE)
+    )
+  
+  # 면적당 거래금액 지도 집중도
+  spNewData = expand.grid(
+    x = seq(from = min(dataL5$lon, na.rm = TRUE), to = max(dataL5$lon, na.rm = TRUE), by = 0.003)
+    , y = seq(from = min(dataL5$lat, na.rm = TRUE), to = max(dataL5$lat, na.rm = TRUE), by = 0.003)
+  )
+  sp::coordinates(spNewData) = ~ x + y
+  sp::gridded(spNewData) = TRUE
+  
+  spData = dataL5
+  sp::coordinates(spData) = ~ lon + lat
+  
+  # IDW 학습 및 전처리수행
+  spDataL1 = gstat::idw(
+    formula = meanVal ~ 1
+    , locations = spData
+    , newdata = spNewData
+    , nmax = 4
+  ) %>%
+    as.data.frame() %>%
+    dplyr::rename(
+      lon = x
+      , lat = y
+      , val = var1.pred
+    ) %>%
+    dplyr::select(-var1.var) %>% 
+    as.tibble()
+  
+  summary(spDataL1)
+  saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, stringr::str_c(dtYearInfo, "년 연소득당 거래금액 IDW 지도 매핑"))
+  
+resPlot = ggmap(map, extent = "device") +
+    geom_tile(data = spDataL1, aes(x = lon, y = lat, fill = val, alpha = 0.2)) +
+    # geom_raster(data = spDataL1, aes(x = lon, y = lat, fill = val, alpha = 0.2)) +
+    # scale_color_gradientn(colours = cbMatlab, na.value = NA) +
+    scale_fill_gradientn(colours = cbMatlab, na.value = NA) +
+    labs(
+      subtitle = stringr::str_c(dtYearInfo, "년 연소득당 거래금액 IDW 지도 매핑")
+      , x = NULL
+      , y = NULL
+      , fill = NULL
+      , colour = NULL
+      , title = NULL
+      , size = NULL
+    ) +
+    scale_alpha(guide = 'none') +
+    theme(
+      text = element_text(size = 16)
+    ) # +
+    # ggsave(filename = saveImg, width = 10, height = 10, dpi = 600)
+
+    print(resPlot)
+}
+```
+<br>
+<br>
+
+### tmap를 활용하여 전체/연도별 연소득당 거래금액 지도 시각화
+```{r, message=FALSE, warning=FALSE, paged.print=TRUE}
+#==========================================
+# TMAP 주제도 그리기
+#==========================================
+mapInfo = Sys.glob(paste(globalVar$mapPath, "/admCode/TL_SCCO_SIG.shp", sep = "/"))
+mapShape = sf::st_read(mapInfo, options = "ENCODING=EUC-KR")
+
+# 전체 법정동에 따른 연소득당 거래금액 주제도
+dataL6 = dataL2 %>% 
+  dplyr::left_join(addrData, by = c("addr" = "value")) %>% 
+  dplyr::filter(
+    ! is.na(lon)
+    , ! is.na(lat)
+    , dplyr::between(lon, 120, 130)
+    , dplyr::between(lat, 30, 40)
+  ) %>% 
+  dplyr::group_by(emdCd) %>%
+  dplyr::summarise(
+    meanVal = mean(val, na.rm = TRUE)
+  )
+
+mapShapeL1 = mapShape %>% 
+  dplyr::inner_join(dataL6, by = c("SIG_CD" = "emdCd"))
+
+setTilte = "전체 법정동에 따른 연소득당 거래금액 주제도"
+# saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName,  setTilte)
+
+tmap::tmap_mode("view")
+
+tmap::tm_shape(mapShapeL1) +
+  tmap::tm_polygons(col = "meanVal", alpha = 0.5, palette = cbMatlab, legend.hist = TRUE, style = "cont") +
+  tmap::tm_text(text = "SIG_KOR_NM") +
+  tmap::tm_legend(outside = TRUE) + 
+  tmap::tm_layout(title = setTilte)
+  # tmap_save(filename = saveImg, width = 10, height = 10, dpi = 600)
+```
+
+```{r, results='asis', message=FALSE, warning=FALSE, paged.print=TRUE}
+# 연도별 법정동에 따른 연소득당 거래금액 주제도
+
+# dtYearInfo = 2017
+for (i in 1:length(dtYearList)) {
+
+  dataL7 = dataL2 %>% 
+    dplyr::left_join(addrData, by = c("addr" = "value")) %>% 
+    dplyr::filter(
+      ! is.na(lon)
+      , ! is.na(lat)
+      , dplyr::between(lon, 120, 130)
+      , dplyr::between(lat, 30, 40)
+      , dtYear == dtYearList[i]
+    ) %>% 
+    dplyr::group_by(emdCd) %>%
+    dplyr::summarise(
+      meanVal = mean(val, na.rm = TRUE)
+    )
+  
+  mapShapeL1 = mapShape %>% 
+    dplyr::inner_join(dataL7, by = c("SIG_CD" = "emdCd"))
+
+  setTilte = stringr::str_c(dtYearList[i], "년 법정동에 따른 연소득당 거래금액 주제도")
+  # saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, setTilte)
+  
+  tmap::tmap_mode("view")
+  
+  resPlot = tmap::tm_shape(mapShapeL1) +
+    tmap::tm_polygons(col = "meanVal", alpha = 0.5, palette = cbMatlab, legend.hist = TRUE, style = "cont") +
+    tmap::tm_text(text = "SIG_KOR_NM") +
+    tmap::tm_legend(outside = TRUE) + 
+    tmap::tm_layout(title = setTilte)
+    # tmap_save(filename = saveImg, width = 10, height = 10, dpi = 600)
+
+  print(resPlot)  
+}
+
+```
+
+<br>
+<br>
+
+
+# 주택 가격 결정 요인에 대한 회귀분석
+## 이 연구에서는 서울특별시를 사례로 2017년부터 현재 (2021년 05월)까지의 기간 동안 건축년도, 전용면적, 층, 법정동, 면적당 거래금액 등 5개 독립변수 및 종속변수인 연소득당 거래금액 (주택 가격 결정 요인)의 상대적 영향력 분석을 수행하였다.
+
+## 주택 가격 결정 요인 (거래금액)를 기준으로 독립변수들 간의 관계성을 시각화
+
+- 상관계수의 경우 면적당 거래금액, 전용면적, 층, 건축년도 순으로 낮았고 0.01 이하의 통계적인 유의수준으로 보임
+
+- 서울특별시에 대한 주택 가격 결정 요인 (거래금액)에 대한 회귀분석하기 앞서 각 독립변수 및 종속 변수들 간의 관계성을 확인하기 위해서 2017-2020년 05월 기간 동안 산점도 행렬을 나타내었다.
+
+- 이러한 산점도 행렬은 여러 변수와 변수 간의 관계를 확인할 수 있으며 상단, 하단, 대각선으로 나타낸다. 즉 상단의 경우 상관계수 (연속량 x 연속량), 상자 그림 (연속량 x 이산량)이고 하단에서는 산점도 (연속량 × 연속량), factor 별 히스토그램 (연속량 × 이산량)이고 대각선의 경우 밀도 분포 (연속량), 막대 그래프 (이산량)으로 나타냈다.
+
+- 그 결과 상관계수의 경우 면적당 거래금액, 전용면적, 층, 건축년도 순으로 낮았고 0.01 이하의 통계적인 유의수준으로 보임. 밀도함수의 경우 건축년도에서는 대부분  1990 및 2000년대를 기준으로 이봉 분포를 지니고 전용 면적에서는 대형보다 중/소형의 분포가 많은 것을 알 수 있다. 더 나아가 층, 면적당 거래금액, 주택 가격 결정 요인 (연소득당 거래금액)에서는 평균 대비 좌측으로 편향됨을 보이며 이는 비이상적인 분포를 확인할 수 있었다.
+
+
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+
+# 주택 가격 결정 요인을 위한 관계성
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "주택 가격 결정 요인을 위한 관계성")
+
+dataL2 %>%
+  dplyr::select(건축년도, 전용면적, 층, val2, val) %>% 
+  dplyr::rename(
+    "면적당거래금액" = val2
+    , "연소득당거래금액" = val
+  ) %>% 
+  GGally::ggpairs(.) +
+  theme(text = element_text(size = 18)) # +
+  # ggsave(filename = saveImg, width = 12, height = 8, dpi = 600)
+```
+
+
+## 주택 가격 결정 요인에 대한 상대적 영향을 분석하기 위해 베타 분석을 수행
+
+- 그 결과 상대적인 영향의 경우 면적당 거래금액, 전용면적, 지역구 (노원구, 강서구, 성북구 등), 층, 건축년도 순으로 낮았다 (아래 표 참조).
+
+- 특히 면적 관련 변수 (전용면적, 면적당 거래금액)는 0.7-0.86%를 차지하며 지역구 별로 약간의 차이를 보였다.
+
+- 반면에 층, 건축년도는 상대적으로 낮은 영향도를 보였다.
+
+## 앞서 상대적 영향 분석을 토대로 독립변수 및 종속변수를 선정하여 단계별 소거법으로 다중선형회귀모형을 수행
+
+- 독립변수: 건축년도, 전용면적, 층, 지역구, 면적당 거래금액 (5개)
+
+- 종속변수: 연소득당 거래금액 (주택 가격 결정 요인)
+
+- 그 결과 수정된 결정계수는 0.89로서 0.01 이하의 유의수준을 보일 뿐만 아니라 각 회귀계수의 통계치도 유의함
+
+
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+
+dataL4 = dataL2 %>%
+  dplyr::select(건축년도, 전용면적, 층, val2, d2, val)
+
+#+++++++++++++++++++++++++++++++++++++++++++++++
+# 전체 아파트
+dataL5 = dataL4
+
+# 중형 이상 아파트 (66 m2 이상)
+# dataL5 = dataL4 %>% 
+#   dplyr::filter(전용면적 >= 66) %>% 
+#   dplyr::select(-전용면적)
+
+# 소형 아파트 (66 m2 미만)
+# dataL5 = dataL4 %>% 
+#   dplyr::filter(전용면적 < 66) %>% 
+#   dplyr::select(-전용면적)
+#+++++++++++++++++++++++++++++++++++++++++++++++
+
+# 선형회귀분석
+lmFit = lm(val ~ ., data = dataL5)
+summary(lmFit)
+
+# 단계별 소거법
+lmFitStep = MASS::stepAIC(lmFit, direction = "both")
+summary(lmFitStep)
+
+# Beta 회귀계수
+lmBetaFit = lm.beta::lm.beta(lmFitStep)
+lmBetaFit$standardized.coefficients %>% round(2) %>% sort() %>% rev()
+```
+
+## 앞서 학습한 회귀모형을 통해 예측하여 실측과 비교한 결과
+
+- 향후 서울특별시에 대한 주택가격 결정 요인 (연소득당 거래금액)의 동태 효과를 보기위해 앞서 학습한 회귀모형 및 2017-2020년 05월 기간 동안 입력 자료를 기반으로 예측하여 실측과 비교함. 그 결과 상관계수 0.95로서 0.01 이하의 통계적으로 유의한 결과를 보였으나 평균제곱근오차는 2.55로서 약간의 오차를 나타냈다. 또한 연소득당 거래금액이 선형적인 관계보다 비선형 (로그, 다항함수)와 같이 급격한 상승 경향임을 알 수 있다. 
+
+
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+# 산점도 그림
+validData = data.frame(
+  xAxis = predict(lmFitStep)
+  , yAxis = dataL5$val
+  , type = "전체 아파트"
+  # , type = "중형 아파트"
+  # , type = "소형 아파트"
+  
+)
+
+# corVal = cor(validData$xAxis, validData$yAxis)
+biasVal = Metrics::bias(validData$xAxis, validData$yAxis)
+rmseVal = Metrics::rmse(validData$xAxis, validData$yAxis)
+
+# 전체 아파트에 대한 주택가격 결정요인 (연소득당 거래금액) 예측 산점도
+# saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "전체 아파트에 대한 주택가격 결정요인 예측 산점도")
+# saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "중형 아파트에 대한 주택가격 결정요인 예측 산점도")
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "소형 아파트에 대한 주택가격 결정요인 예측 산점도")
+
+ggscatter(
+  validData, x = "xAxis", y = "yAxis", color = "black"
+  , add = "reg.line", conf.int = TRUE
+  , facet.by = "type"
+  , add.params = list(color = "blue", fill = "lightblue")
+) +
+  theme_bw() +
+  ggpubr::stat_regline_equation(label.x.npc = 0.0, label.y.npc = 1.0, size = 4) +
+  ggpubr::stat_cor(label.x.npc = 0.0, label.y.npc = 0.9, size = 4) +
+  ggpp::annotate("text_npc", npcx = 0.05, npcy = 0.8, label = sprintf("Bias = %s", round(biasVal, 2)), hjust = 0, size = 4) +
+  ggpp::annotate("text_npc", npcx = 0.05, npcy = 0.7, label = sprintf("RMSE = %s", round(rmseVal, 2)), hjust = 0, size = 4) +
+  # ggpp::annotate("text_npc", npcx = 0.05, npcy = 0.60, label = sprintf("Bias = %s", round(biasVal, 2)), hjust = 0, size = 4) +
+  # ggpp::annotate("text_npc", npcx = 0.05, npcy = 0.55, label = sprintf("RMSE = %s", round(rmseVal, 2)), hjust = 0, size = 4) +
+  labs(
+    title = NULL
+    , x = "예측"
+    , y = "실측"
+    # , subtitle = "전체 아파트에 대한 주택가격 결정요인 예측 산점도"
+    # , subtitle = "중형 아파트에 대한 주택가격 결정요인 예측 산점도"
+    , subtitle = "소형 아파트에 대한 주택가격 결정요인 예측 산점도"
+  ) +
+  theme(text = element_text(size = 16)) # +
+  # ggsave(filename = saveImg, width = 6, height = 6, dpi = 600)
+
+```
+
+# 결론
+
+- 이러한 결과를 토대로 정부의 부동산 정책 개편되지 않을 경우 주택 시장이 점차 과열될 것으로 생각한다.
+
+- 그러나 최근 2021년 정부 주택 정책 (수요억제대책, 대규모 공급 대책)을 통해 주택 시장은 하락 안정세를 보일 뿐만 아니라 과대 평가된 주택시장의 거품이 빠지면서 본격적으로 주택 가격이 하락할 것으로 사료됩니다.
+

@@ -1,0 +1,123 @@
+---
+title: "Assignment"
+date: "Submission date: `r Sys.setlocale('LC_TIME','C'); format(Sys.Date(), format='%B %d, %Y')`"
+output:
+ rmdformats::readthedown:
+  highlight: kate
+  self_contained: true
+  gallery: true
+  lightbox: true
+  number_section: true
+  toc_depth: 6
+subtitle: "<p><font size='4'><span style='line-height: 100%'> 
+  실습 (1) ~ (7)까지의 그래프를 표출하는 R 코드를 작성하시오
+  </span></font></p>"
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r include=FALSE, warning=FALSE}
+library(faraway)
+library(ggplot2)
+library(tidyverse)
+library(readr)
+```
+
+# 자료 읽기
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+data(nepali)
+
+nepali <- nepali %>% 
+  dplyr::select(id, sex, wt, ht, age) %>% 
+  dplyr::mutate(
+    id = factor(id)
+    , sex = factor(sex, levels = c(1, 2), labels = c("Male", "Female"))
+  ) %>% 
+  dplyr::distinct(id, .keep_all = TRUE)
+```
+<br>
+<br>
+
+# 실습 1
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+# 체중을 기준으로 히스토그램을 시각화
+ggplot(nepali, aes(x = ht)) +
+  geom_histogram()
+```
+<br>
+<br>
+
+# 실습 2
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+# 체중을 기준으로 히스토그램을 시각화
+# fill (채우기) 및 color (테두리)를 통해 설정
+# 그림 제목, x축 이름, x축의 범위를 추가
+ggplot(nepali, aes(x = ht)) +
+  geom_histogram(fill = "lightblue", color = "black")+
+  ggtitle("Height of children") +
+  xlab("Height (cm)") +
+  xlim(c(0, 120))
+```
+<br>
+<br>
+
+# 실습 3
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+# 키 (x축) 및 체중 (y축)을 기준으로 산점도를 시각화
+ggplot(nepali, aes(x = ht, y = wt)) +
+  geom_point()
+```
+<br>
+<br>
+
+# 실습 4
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+# 키 (x축) 및 체중 (y축)을 기준으로 산점도를 시각화
+# size (크기) 및 color (테두리)를 통해 설정
+# 그림 제목, x축 이름, y축 이름을 추가
+ggplot(nepali, aes(x = ht, y = wt)) +
+  geom_point(color = "blue", size = 0.5) +
+  ggtitle("Weight vsrsus Height") +
+  xlab("Height (cm)") +
+  ylab("Weight (kg)")
+```
+<br>
+<br>
+
+# 실습 5
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+# 키 (x축) 및 체중 (y축) 및 컬러 (성별)를 기준으로 산점도를 시각화
+# size (크기)를 통해 설정
+# 그림 제목, x축 이름, y축 이름을 추가
+ggplot(nepali, aes(x = ht, y = wt, color = sex)) +
+  geom_point(size = 0.5) +
+  ggtitle("Weight vsrsus Height") +
+  xlab("Height (cm)") +
+  ylab("Weight (kg)")
+```
+<br>
+<br>
+
+# 실습 6
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+# 임의의 상수 (x축) 및 키 (y축)를 기준으로 상자 그림을 시각화
+# x축 이름, y축 이름을 추가
+ggplot(nepali, aes(x = 1, y = ht)) +
+  geom_boxplot() +
+  xlab("") +
+  ylab("Height (kg)")
+```
+<br>
+<br>
+
+# 실습 7
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+# 성별 (x축) 및 키 (y축)를 기준으로 상자 그림을 시각화
+# x축 이름, y축 이름을 추가
+ggplot(nepali, aes(x = sex, y = ht)) +
+  geom_boxplot() +
+  xlab("Sex") +
+  ylab("Height (kg)")
+```
+<br>
+<br>

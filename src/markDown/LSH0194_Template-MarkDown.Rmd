@@ -1,0 +1,819 @@
+---
+title: "R을 이용한 머신러닝 및 딥러닝 기반으로 예측 모형 개발"
+date: "Submission date: `r Sys.setlocale('LC_TIME','C'); format(Sys.Date(), format='%B %d, %Y')`"
+output:
+ rmdformats::readthedown:
+  highlight: kate
+  self_contained: true
+  gallery: true
+  lightbox: true
+  number_section: true
+  toc_depth: 6
+subtitle: "<p><font size='4'><span style='line-height: 100%'> 
+  작성자
+  </span></font></p>"
+editor_options: 
+  chunk_output_type: inline
+---
+
+# 요구사항
+- R을 이용한 머신러닝 및 딥러닝 기반으로 예측 모형 개발
+
+# R 프로그래밍을 위한 초기 환경변수 설정
+
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+#================================================
+# 초기 환경변수 설정
+#================================================
+env = "local"   # 로컬 : 원도우 환경, 작업환경 (현재 소스 코드 환경 시 .) 설정
+# env = "dev"   # 개발 : 원도우 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+# env = "oper"  # 운영 : 리눅스 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+
+prjName = "test"
+serviceName = "LSH0194"
+contextPath = ifelse(env == "local", ".", "E:/04. TalentPlatform/Github/TalentPlatform-R")
+
+if (env == "local") {
+  globalVar = list(
+    "inpPath" = contextPath
+    , "figPath" = contextPath
+    , "outPath" = contextPath
+    , "tmpPath" = contextPath
+    , "logPath" = contextPath
+  )
+} else {
+  source(here::here(file.path(contextPath, "src"), "InitConfig.R"), encoding = "UTF-8")
+}
+```
+
+# 함수 정의
+
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+#================================================
+# 함수 정의
+#================================================
+perfEval = function(x, y) {
+  
+  if (length(x) < 1) { return(sprintf("%s", "x 값 없음")) }
+  if (length(y) < 1) { return(sprintf("%s", "y 값 없음")) }
+  
+  slope = coef(lm(y ~ x))[2]
+  interp = coef(lm(y ~ x))[1]
+  xMean = mean(x, na.rm = TRUE)
+  yMean = mean(y, na.rm = TRUE)
+  xSd = sd(x, na.rm = TRUE)
+  ySd = sd(y, na.rm = TRUE)
+  cnt = length(x)
+  bias = mean(x - y, na.rm = TRUE)
+  rBias = (bias / yMean) * 100.0
+  rmse = sqrt(mean((x - y)^2, na.rm = TRUE))
+  rRmse = (rmse / yMean) * 100.0
+  r = cor.test(x, y)$estimate
+  p = cor.test(x, y)$p.value
+  diffMean = mean(x - y, na.rm = TRUE)
+  diffSd = sd(x - y, na.rm = TRUE)
+  # perDiffMean = mean((x - y) / y, na.rm = TRUE) * 100.0
+  
+  return(c(slope, interp, xMean, yMean, xSd, ySd, cnt, bias, rBias, rmse, rRmse, r, p, diffMean, diffSd))
+}
+
+biasCorr = function(actu, pred, minVal, maxVal, interVal, isPlot = FALSE) {
+  
+  factorVal = seq(minVal, maxVal, by = interVal)
+  
+  # RMSE Fitting
+  liResult = lapply(1:length(factorVal), function(i) Metrics::rmse(actu, pred * factorVal[i])) %>%
+    unlist()
+  
+  ind = which(liResult == min(liResult, na.rm = TRUE))
+  
+  if (isPlot == TRUE) {
+    plot(liResult)
+  }
+  
+  # Best Factor Index
+  ind = which(liResult == min(liResult, na.rm = TRUE))
+  
+  calibFactor = factorVal[[ind]]
+  calPred = calibFactor * pred
+  
+  meanDiff = mean(actu, na.rm = TRUE) - mean(calPred, na.rm = TRUE)
+  newPred = (calPred) + meanDiff
+  
+  cat(
+    sprintf("%s : %.2f", "[보정 X] RMSE", Metrics::rmse(actu, pred))
+    , sprintf("%s : %.2f", "[보정 O] RMSE", Metrics::rmse(actu, newPred))
+    , "\n"
+  )
+  
+  return(c(newPred))
+}
+```
+
+# 비즈니스 로직 수행
+
+## 라이브러리 읽기, 로그 설정, 검증 지수 테이블 생성
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+#================================================
+# 비즈니스 로직 수행
+#================================================
+# 라이브러리 읽기
+library(readxl)
+library(tidyverse)
+library(ggplot2)
+library(ggmap)
+library(lubridate)
+library(MASS)
+library(scales)
+library(dplyr)
+library(hrbrthemes)
+library(data.table)
+library(ggpubr)
+library(forcats)
+library(lubridate)
+library(openxlsx)
+library(vroom)
+library(RQuantLib)
+library(caret)
+library(tictoc)
+library(caret)
+library(glmnet)
+library(Metrics)
+library(randomForest)
+library(mgcv)
+library(nima)
+library(h2o)
+library(stringr)
+library(RQuantLib)
+library(mgcViz)
+
+# 로그 설정
+saveLogFile = sprintf("%s/%s_%s_%s_%s.log", globalVar$logPath, Sys.info()["sysname"], Sys.info()["nodename"], prjName, format(Sys.time(), "%Y%m%d"))
+
+log = log4r::create.logger()
+log4r::logfile(log) = saveLogFile
+log4r::level(log) = "INFO"
+
+# 검증 지수 테이블 생성
+rowNum = 1
+colNum = 8
+perfTable = data.frame(matrix(0, nrow = rowNum * colNum, ncol = 15))
+# rownames(perfTable) = c("MLR", "RF", "GAM", "SARIMA", "SVM", "GBM", "EL", "DNN", "AML")
+rownames(perfTable) = c("MLR", "RF", "GAM", "SVM", "GBM", "EL", "DNN", "AML")
+# rownames(perfTable) = c(
+#   paste0("MLR-", 1:rowNum), paste0("RF-", 1:rowNum), paste0("GAM-", 1:rowNum)
+#   , paste0("SARIMA-", 1:rowNum), paste0("SVM-", 1:rowNum), paste0("DNN-", 1:rowNum)
+# )
+colnames(perfTable) = c("slope", "interp", "xMean", "yMean", "xSd", "ySd", "cnt", "bias", "rBias", "rmse", "rRmse", "r", "pVal", "diffMean", "diffSd")
+```
+<br>
+<br>
+
+# 데이터 읽기
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+# 데이터 읽기
+fileInfo = Sys.glob(paste(globalVar$inpPath, "LSH0194_PAhourlyCHW.csv", sep = "/"))
+
+data = vroom::vroom(
+  file = fileInfo
+  , col_select = c(YMDH, Uvalue_Wall, Uvalue_Window, Uvalue_Roof, WWR, Height, Year.y, AgeAfterRenov, Equipment, Lighting, Solar, HD, CD, Humidity, Pressure, WindSpeed, type2, CHWEUI)
+  , col_names = TRUE
+)
+
+# PAHourlyCHW = data.table::fread(file = fileInfo)
+# summary(data)
+# summary(PAHourlyCHW)
+
+# RQuantLib::isBusinessDay("UnitedStates/NYSE", seq(from=lubridate::as_date(min(data$YMDH, na.rm = TRUE)), to=lubridate::as_date(max(data$YMDH, na.rm = TRUE)), by=1))
+
+# PAHourlyCHW = data.table::fread(file = fileInfo)
+# summary(data)
+# summary(PAHourlyCHW)
+
+# RQuantLib::isBusinessDay("UnitedStates/NYSE", seq(from=lubridate::as_date(min(data$YMDH, na.rm = TRUE)), to=lubridate::as_date(max(data$YMDH, na.rm = TRUE)), by=1))
+# data$type2 %>% unique() %>% sort()
+# dataL1$type2 %>% unique() %>% sort()
+
+dataL1 = data %>%
+  dplyr::mutate(
+    isType2 = dplyr::case_when(
+      # type2 %in% c("Education", "Lab", "Lodge", "office ", "public")
+      stringr::str_detect(type2, regex("Education|Lab|Lodge|office|public")) ~ TRUE
+      , TRUE ~ FALSE
+    )
+  ) %>% 
+  dplyr::filter(
+    0.01 < WWR & WWR < 0.9
+    , isType2 == TRUE
+  ) %>%
+  dplyr::mutate(
+    nMonth = lubridate::month(YMDH)
+    , nDay = lubridate::day(YMDH)
+    , nHour = lubridate::hour(YMDH)
+    , refYmd = lubridate::make_date(year = 2000, month = nMonth, day = nDay)
+    
+    #  교호작용 변수
+    , interTerm1 = Uvalue_Wall * WWR
+    , interTerm2 = Uvalue_Window * WWR
+    , interTerm3 = Year.y * AgeAfterRenov
+    
+    , isTrainValid = dplyr::between(lubridate::as_date(YMDH), lubridate::date("2015-07-01"), lubridate::date("2016-07-01"))
+    
+    # 펜실레니아 근처 뉴욕 기준으로 비즈니스 여부 판단
+    # , isBizDay = bizdays::is.bizday(YMDH, "QuantLib/UnitedStates/NYSE")
+    , isBizDay = RQuantLib::isBusinessDay("UnitedStates/NYSE", lubridate::as_date(YMDH))
+    
+    , seasonType = dplyr::case_when(
+      dplyr::between(refYmd, lubridate::date("2000-01-13"), lubridate::date("2000-05-10")) ~ "spring"
+      , dplyr::between(refYmd, lubridate::date("2000-05-11"), lubridate::date("2000-08-25")) ~ "summer"
+      , dplyr::between(refYmd, lubridate::date("2000-08-26"), lubridate::date("2000-12-18")) ~ "fall"
+      , lubridate::date("2000-12-19") <= refYmd | refYmd <= lubridate::date("2000-01-12") ~ "winter"
+    )
+    
+    , bizDayType =  dplyr::case_when(
+      isBizDay == TRUE ~ "Business day"
+      , isBizDay == FALSE ~ "non-business day"
+    )
+    
+    , hourType = dplyr::case_when(
+      dplyr::between(nHour, 7, 17) ~ "working"
+      , 17 < nHour & nHour <= 22 ~ "evening"
+      , 22 < nHour | nHour < 7 ~ "night"
+    )
+  ) %>% 
+  dplyr::mutate_if(is.character, as.factor)
+
+# dplyr::select(YMDH, nMonth, nDay, nHour, WWR, refYmd, hourType, businessDay, seasonType)
+# dplyr::tbl_df(dataL1)
+
+# summary(data)
+summary(dataL1)
+```
+
+<br>
+<br>
+
+## 모형 구성
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+#*******************************************
+# 모형 구성
+#*******************************************
+dataL2 = dataL1 %>% 
+  dplyr::select(-c(YMDH, nMonth, nDay, nHour, refYmd, isTrainValid, isBizDay))
+
+# 선형회귀분석
+lmFit = lm(CHWEUI ~ ., data = dataL2)
+summary(lmFit)
+
+# plot(lmFit)
+
+# 단계별 소거법
+lmFitStep = MASS::stepAIC(lmFit, direction = "both")
+summary(lmFitStep)
+
+# 독립변수 및 종속변수 선정
+# modelForm = as.formula(lmFit$call$formula)
+modelForm = as.formula(lmFitStep$call$formula)
+
+modelFormSep = modelForm %>% paste(sep = " ~ ") 
+modelFormY = modelFormSep[2]
+modelFormX = modelFormSep[3] %>% stringr::str_split(" \\+ ") %>% unlist()
+
+# 오래 시간 소요
+# nima::lm_plot(lmFit)
+
+# Residuals vs Fitted : 선형 회귀분석에서 오차는 평균이 0이고 분산이 일정한 정규분 분포를 가정하였으므로 잔차가 특별한 경향을 보이지 않는 것이 이상적이다.
+# Gaussian Q-Q : 잔차가 정규분포를 따르는지 확인. 기울기 1인 직선이 되는 것이 이상적이다.
+# Scale-Location : 또한 표준화 잔차가 특별한 경향을 보이지 않는 것이 이상적이다.
+# Cook’s distance, Residuals vs Leverage,  Cook’s distance vs Leverage : 영향점의 유무를 검사하는데 유용하다. (중회귀분석 시간에 다시)
+```
+<br>
+<br>
+
+## 훈련/검증/테스트 셋 설정
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+#*******************************************
+# 훈련/검증/테스트 셋 설정
+#*******************************************
+set.seed(1)
+
+trainData = dataL1 %>% 
+  dplyr::filter(isTrainValid == TRUE) %>% 
+  dplyr::select(-c(YMDH, nMonth, nDay, nHour, refYmd, isTrainValid, isBizDay))
+
+# 테스트용
+trainData = trainData %>% 
+  dplyr::sample_n(1000)
+
+# 훈련 데이터셋 확인
+dplyr::tbl_df(trainData)
+
+# 훈련 및 데이터 셋을 80:20으로 나누기 위한 인덱스 설정
+# idx = caret::createDataPartition(y = dataL3$CHWEUI, p = 0.8, list = FALSE)   
+
+# 해당 인덱스에 따라 자료 할당
+# trainData = dataL3[idx, ]
+# validData = dataL3[-idx, ]
+
+testData = dataL1 %>% 
+  dplyr::filter(isTrainValid == FALSE) %>% 
+  dplyr::select(-c(YMDH, nMonth, nDay, nHour, refYmd, isTrainValid, isBizDay))
+
+# 검증 데이터셋 확인
+# dplyr::tbl_df(validData)
+
+# 테스트 데이터셋 확인
+dplyr::tbl_df(testData)
+```
+<br>
+<br>
+
+## 학습 파라미터 설정
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+#**********************************************************
+# 학습 파라미터 설정
+#**********************************************************
+# method : 데이터 샘플링 기법로서  boot(부트스트래핑), boot632(부트스트래핑의 개선된 버전), cv(교차 검증), repeatedcv(교차 검증의 반복), LOOCV(Leave One Out Cross Validation) 
+# repeats : 데이터 샘플링 반복 횟수
+# number : 분할 횟수 
+# controlInfo = caret::trainControl(
+#   method = 'repeatedcv'
+#   , repeats = 10
+#   , number = 10
+#   , p = 0.8
+# )
+
+controlInfo = caret::trainControl(
+  method = 'repeatedcv'
+  , repeats = 1
+  , number = 10
+  , p = 0.8
+)
+```
+<br>
+<br>
+
+## 머신러닝 (MLR, RF, GAM, SARIMA, SVR, GBM)
+
+### 3. Multiple Linear Regression (MLR) model
+
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+#++++++++++++++++++++++++++++++++++++++++++++++++++
+# 3. Multiple Linear Regression (MLR) model
+#++++++++++++++++++++++++++++++++++++++++++++++++++
+# form : 모델 형식
+# data : 모델 적용 데이터
+# preProc : 데이터 전처리로서 center (평균이 0이 되게 함), scale (분산이 1이 되게 함), pca(주성분 분석) 설정 가능
+# metric : 분류 문제의 경우 정확도(accuracy), 회귀 문제일 경우 RMSE로 자동 지정
+# tuneGrid : 하이퍼 파라미터 설정
+# trControl : 학습 파라미터 설정
+
+# 모델 학습
+mlrModel = caret::train(
+  form = modelForm
+  , data = trainData
+  , method = "lm"
+  , preProc = c("center", "scale")
+  , metric = "RMSE"
+  , tuneGrid = expand.grid(
+    intercept = c(TRUE, FALSE)
+    )
+  , trControl = controlInfo
+)
+
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "MLR RMSE Results Across Tuning Parameters")
+
+ggplot(mlrModel) +
+  theme(text = element_text(size = 18)) # +
+  # ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
+
+# 요약
+summary(mlrModel)
+
+# 최적 모형의 회귀계수
+mlrModel$finalModel 
+
+# 변수 중요도
+# 서로 다른 모델의 변수 중요도는 다르기 때문에 전체적인 관점에서 중요 변수를 파악할 수 있음
+# 즉 앞서 단계별 소거법 (lmFitStep)의 결과와 비교하여 분석 필요
+# 즉 대부분 50% 이상 변수는 주로 파악 (CD, Height, WWR, type2Lab, HD, interTerm2)
+mlrVarImp = varImp(mlrModel)
+
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "MLR Variable Importance")
+png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
+plot(mlrVarImp)
+dev.off()
+
+# 모델 검증
+perfTable["MLR", ] = perfEval(
+  predict(mlrModel, newdata = testData)
+  , testData$CHWEUI
+) %>% 
+  round(2)
+```
+<br>
+<br>
+
+### 5. Random Forest (RF)
+
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+#+++++++++++++++++++++++++++++++++++++++++++
+# 5. Random Forest (RF)
+#+++++++++++++++++++++++++++++++++++++++++++
+# 모델 학습
+rfModel = caret::train(
+  form = modelForm
+  , data = trainData
+  , method = "rf"
+  , preProc = c("center", "scale")
+  , metric = "RMSE"
+  , tuneGrid = expand.grid(
+    mtry = 1:2
+  )
+  , trControl = controlInfo
+)
+
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "RF RMSE Results Across Tuning Parameters")
+
+ggplot(rfModel) +
+  theme(text = element_text(size = 18)) # +
+  # ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
+
+# 요약
+summary(rfModel)
+
+# 최적 모형의 회귀계수
+rfModel$finalModel 
+
+# 변수 중요도
+# 서로 다른 모델의 변수 중요도는 다르기 때문에 전체적인 관점에서 중요 변수를 파악할 수 있음
+# 즉 앞서 단계별 소거법 (lmFitStep)의 결과와 비교하여 분석 필요
+# 즉 대부분 50% 이상 변수는 주로 파악 (HD, CD, Height, Year.y)
+rfVarImp = varImp(rfModel)
+
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "RF Variable Importance")
+png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
+plot(rfVarImp)
+dev.off()
+
+# 모델 검증
+perfTable["RF", ] = perfEval(
+  predict(rfModel, newdata = testData)
+  , testData$CHWEUI
+) %>% 
+  round(2)
+```
+<br>
+<br>
+
+### 6. Generalized addictive model (GAM)
+
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+#+++++++++++++++++++++++++++++++++++++++++++
+# 6. Generalized addictive model (GAM)
+#+++++++++++++++++++++++++++++++++++++++++++
+
+# # Factor 자료형 제외하여 모델 구성
+# modelFormExceptFactor = as.formula("CHWEUI ~ Uvalue_Wall + Uvalue_Window + Uvalue_Roof + WWR + Height + Year.y + AgeAfterRenov + Equipment + Lighting + Solar + HD + CD + Humidity + Pressure + WindSpeed + interTerm1 + interTerm2")
+# 
+# # 현재 학습 과정에서 에러 발생 (Factor 자료형 포함 시 에러 발생)
+# gamModel = caret::train(
+#   form = modelFormExceptFactor
+#   , data = trainData
+#   , method = "gam"
+#   , preProc = c("center", "scale")
+#   , metric = "RMSE"
+#   , tuneGrid = expand.grid(
+#     method = "GCV.Cp"
+#     , select = c(TRUE, FALSE)
+#   )
+#   , trControl = controlInfo
+# )
+
+# saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "GAM RMSE Results Across Tuning Parameters")
+# 
+# ggplot(gamModel) +
+#   theme(text = element_text(size = 18)) +
+#   ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
+# 
+# # 최적 모형의 회귀계수
+# gamModel$finalModel 
+# 
+# # 모델 검증
+# perfTable["GAM", ] = perfEval(
+#   predict(gamModel, newdata = testData)
+#   , testData$CHWEUI
+# ) %>% 
+#   round(2)
+
+gamModel = mgcv::gam(
+  CHWEUI ~ s(Uvalue_Window) + s(Uvalue_Roof) + s(Uvalue_Wall) 
+  + s(WWR) + s(Year.y) + s(Lighting) + s(Height) + s(interTerm2)
+  + s(Equipment) + s(interTerm1) + s(AgeAfterRenov) + s(WindSpeed)
+  + s(CD) + s(HD) + s(Solar) + s(Pressure) + s(Humidity)
+  + seasonType + bizDayType + hourType
+  , data = trainData
+  )
+
+# 요약
+summary(gamModel)
+
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "GAM Results Across Tuning Parameters")
+png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
+print(plot(mgcViz::getViz(gamModel), allTerms = TRUE), pages = 1)
+dev.off()
+
+# 모델 검증
+perfTable["GAM", ] = perfEval(
+  predict(gamModel, newdata = testData)
+  , testData$CHWEUI
+) %>%
+  round(2)
+
+```
+<br>
+<br>
+
+### 7. Seasonal autoregressive integrated moving average (SARIMA)
+
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# 7. Seasonal autoregressive integrated moving average (SARIMA)
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# 제외
+```
+<br>
+<br>
+
+### 8. Support Vector Regression (SVM)
+
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+#+++++++++++++++++++++++++++++++++++++++++++
+# 8. Support Vector Regression (SVM)
+#+++++++++++++++++++++++++++++++++++++++++++
+# 모델 학습
+svmModel = caret::train(
+  form = modelForm
+  , data = trainData
+  , method = "svmLinear"
+  , preProc = c("center", "scale")
+  , metric = "RMSE"
+  , tuneGrid = expand.grid(
+    C = 2^(seq(-5, 5, 2))
+  )
+  , trControl = controlInfo
+)
+
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "SVM RMSE Results Across Tuning Parameters")
+
+ggplot(svmModel) +
+  theme(text = element_text(size = 18)) # +
+  # ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
+
+# 요약
+summary(svmModel)
+
+# 최적 모형의 회귀계수
+svmModel$finalModel 
+
+# 모델 검증
+perfTable["SVM", ] = perfEval(
+  predict(svmModel, newdata = testData)
+  , testData$CHWEUI
+) %>% 
+  round(2)
+```
+<br>
+<br>
+
+
+### 12. Gradient boosting machine (GBM)
+
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+#+++++++++++++++++++++++++++++++++++++++++++
+# 12. Gradient boosting machine (GBM)
+#+++++++++++++++++++++++++++++++++++++++++++
+# 모델 학습
+gbmModel = caret::train(
+  form = modelForm
+  , data = trainData
+  , method = "gbm"
+  , preProc = c("center", "scale")
+  , metric = "RMSE"
+  , tuneGrid = expand.grid(
+    interaction.depth = 1:5
+    , n.trees = (1:6) * 500
+    , shrinkage = c(0.001, 0.01, 0.1)
+    , n.minobsinnode = 10
+  )
+  , trControl = controlInfo
+)
+
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "GBM RMSE Results Across Tuning Parameters")
+
+ggplot(gbmModel) +
+  theme(text = element_text(size = 18)) # +
+  # ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
+
+# 요약
+summary(gbmModel)
+
+# 최적 모형의 회귀계수
+gbmModel$finalModel 
+
+# 모델 검증
+perfTable["GBM", ] = perfEval(
+  predict(gbmModel, newdata = testData)
+  , testData$CHWEUI
+) %>% 
+  round(2)
+```
+<br>
+<br>
+
+
+### Heterogeneous Ensemble Learning (EL)
+
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+#+++++++++++++++++++++++++++++++++++++++++++
+# Heterogeneous Ensemble Learning (EL)
+#+++++++++++++++++++++++++++++++++++++++++++
+# 상위 3개 조합
+elModelList = caretEnsemble::caretList(
+  modelForm
+  , data = trainData
+  , trControl = controlInfo
+  , methodList = c("svmLinear", "rf", "gbm")
+)
+
+# 앙상블 모델 결합
+elModel = caretEnsemble::caretEnsemble(
+  elModelList
+  , trControl = controlInfo
+  , metric = "RMSE"
+)
+
+# 요약
+summary(elModel)
+
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "EL RMSE Results Across Tuning Parameters")
+png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
+plot(elModel)
+dev.off()
+
+# 최적 모형의 회귀계수
+elModel$ens_model$finalModel
+
+# 모델 검증
+perfTable["EL", ] = perfEval(
+  predict(elModel, newdata = testData)
+  , testData$CHWEUI
+) %>% 
+  round(2)
+```
+<br>
+<br>
+
+
+## 딥러닝
+
+### 11. Deep Neural Network (DNN)
+
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+#+++++++++++++++++++++++++++++++++++++++++++
+# 11. Deep Neural Network (DNN)
+#+++++++++++++++++++++++++++++++++++++++++++ 
+# 초기화
+h2o::h2o.init()
+
+# activation : 활성화 함수로서 Rectifier 정규화 선형 함수 (즉 Keras의 ReLU 동일)
+# hidden : 숨겨진 레이어의 수와 뉴런 수 (일반적으로 입력 차원의 1/10 or 1/100 단위)
+# epochs : 반복 횟수 (기본 10-40)
+# nfolds : 훈련 반복 수
+
+layerNum = as.integer(nrow(trainData) / 10)
+layerInfo = 10
+epochsInfo = 1000
+
+# 모델 학습
+dnnModel = h2o::h2o.deeplearning(
+  x = modelFormX
+  , y = modelFormY
+  , training_frame = as.h2o(trainData)
+  , activation = "Rectifier"
+  , hidden = rep(layerNum, layerInfo)
+  , nfolds = 10
+  , epochs = epochsInfo
+  , seed = 1
+)
+
+# 요약
+summary(dnnModel)
+
+saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, "Training-Scoring-History")
+png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
+plot(dnnModel, timestep = "epochs", metric = "rmse")
+dev.off()
+
+# 모델 검증
+perfTable["DNN", ] = perfEval(
+  as.data.frame(h2o::h2o.predict(object = dnnModel, newdata = as.h2o(testData)))$predict
+  , testData$CHWEUI
+) %>% 
+  round(2)
+```
+<br>
+<br>
+
+### 99. Automated Machine Learning (AML)
+
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+#+++++++++++++++++++++++++++++++++++++++++++
+# 99. Automated Machine Learning (AML)
+#+++++++++++++++++++++++++++++++++++++++++++
+# 앞선 설정된 모델뿐만 아니라 자동화 모델로 학습 수행
+# 오랜 시간이 소요됨
+
+# 초기화
+h2o::h2o.init()
+
+# 모델 학습
+amlModel = h2o::h2o.automl(
+  x = modelFormX
+  , y = modelFormY
+  , training_frame = as.h2o(trainData)
+  , nfolds = 5
+  , sort_metric = "RMSE"
+  , stopping_metric = "RMSE"
+  , seed = 1
+)
+
+# 요약
+summary(amlModel)
+
+# 모델 성능
+amlModel@leaderboard %>%
+  as.data.frame() %>%
+  DT::datatable()
+
+# 기여도 평가
+modelId = as.data.frame(amlModel@leaderboard$model_id)[,1]
+stackEnsembleModel = h2o::h2o.getModel(grep("StackedEnsemble_AllModels", modelId, value = TRUE)[1])
+metaRes = h2o.getModel(stackEnsembleModel@model$metalearner$name)
+
+h2o.varimp(metaRes) %>%
+  DT::datatable()
+
+
+# 모델 검증
+perfTable["AML", ] = perfEval(
+  as.data.frame(h2o::h2o.predict(object = amlModel, newdata = as.h2o(testData)))$predict
+  , testData$CHWEUI
+) %>%
+  round(2)
+
+```
+<br>
+<br>
+
+# 모델 결과
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+print(perfTable)
+```
+
+# 모델 결과 (테스트 결과)
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+# 성능 평가 결과
+# perfTable
+# slope interp xMean yMean   xSd   ySd   cnt  bias  rBias  rmse rRmse    r pVal diffMean diffSd
+# MLR     1.95 -17.07 20.70 23.37  7.34 19.12 26400 -2.68 -11.45 14.71 62.92 0.75    0    -2.68  14.46
+# RF      1.68  -6.09 17.51 23.37 10.48 19.12 26400 -5.87 -25.11 11.84 50.66 0.92    0    -5.87  10.29
+# GAM     2.05 -18.88 20.56 23.37  7.94 19.12 26400 -2.81 -12.03 13.32 56.97 0.85    0    -2.81  13.02
+# SVM     2.42 -17.57 16.90 23.37  5.51 19.12 26400 -6.47 -27.70 17.06 72.97 0.70    0    -6.47  15.78
+# GBM     1.19  -1.97 21.29 23.37 14.83 19.12 26400 -2.08  -8.92  8.15 34.87 0.92    0    -2.08   7.88
+# EL      1.21  -1.54 20.52 23.37 14.43 19.12 26400 -2.86 -12.23  8.74 37.37 0.92    0    -2.86   8.25
+# DNN     1.16  -2.56 22.42 23.37 14.76 19.12 26400 -0.96  -4.10  8.95 38.28 0.89    0    -0.96   8.90
+# AML     1.03  -0.30 22.98 23.37 17.06 19.12 26400 -0.40  -1.71  7.54 32.26 0.92    0    -0.40   7.53
+
+# 성능 평가에서는 기울기, 절편, x축 평균, y축 평균, x 표준편차, y 표준편차, 개수, 편이, 
+# 상대적인 편이, 평균제곱근오차, 상대적인 평균제곱근오차, 상관계수, 유의수준, 평균 차이, 
+# 표준편차 차이로 나타냄
+# 주요 검증 스코어인 상관계수 (r) 및 평균제곱근오차 (rmse)를 토대로  시 SVM, MLR, GAM, RF, DNN, EL, GBM, AML 순으로 좋음
+
+# 일반적으로 머신러닝/딥러닝의 역사에 따라 성능이 예상된다.
+# 즉 머신러닝 : MLR, GAM (1983), SVM (1992), RF (1995), GBM (2001), EL (2003)
+# 딥러닝 : DNN (1943-2019) 
+# 머신러닝 + 딥러닝 : AML (2013-2021)
+
+# 일반적으로 SVM의 경우 일반적인 MLR, GAM보다 우수한 사례를 확인할 수 있으나 이 연구에서는 다소 성능 저하가 보임
+# 이는 SVM의 성능에 매개변수로 인한 오차로 판단됨. 즉 최적화된 매개변수를 조절하여 최적화 과정이 요구됨 
+# (기계학습 응용 및 학습 알고리즘 성능 개선방안 사례연구, https://www.koreascience.or.kr/article/JAKO201609562998505.pdf)
+
+# 또한 EL의 경우 일반적으로 GBM보다 우수한 사례를 확인할 수 있으나 이 연구에서는 약간 좋지 못한 결과를 보임
+# 이는 앙상블에서 사용된 모형 (SVM, RF, GBM) 중에서 상당한 성능 오차를 보인 SVM 때문으로 판된됨
+
+# 결과적으로 머신러닝보단 딥러닝이 좋은 결과를 보이고 단일 모델보다 앙상블 모델이 높은 성능을 유지하기 때문에
+# 최근에 AML을 활용하여 자동 머신러닝/딥러닝뿐만 아니라 앙상블로 최적의 모형을 보여줌
+# 다소 시간을 오래걸릴지라도 사용자 측면에서는 고려할 수 있는 경우에서 최적의 결과 도출
+# 이는 작업스케쥴링 (srun), 병렬처리 또는 리눅스 기반을 수행 필연
+```

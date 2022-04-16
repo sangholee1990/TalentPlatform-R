@@ -1,0 +1,1900 @@
+---
+title: "Untitled"
+author: ""
+date: ""
+output: 
+  html_document:
+    fig_height: 3
+    fig_width: 5
+---
+<!-- Don't edit in between this line and the one below -->
+```{r include=FALSE}
+# library(DataComputing)
+library(ggplot2)
+library(tidyverse)
+```
+<!-- *Source file*  -->
+```{r, results='asis', echo=FALSE}
+# includeSourceDocuments()
+```
+<!-- Don't edit the material above this line -->
+
+
+#Nikkei225 & Global Dow index data arrangement + Join
+
+
+```{r}
+# NKI <-read.csv("./Desktop/NIKKEI225.csv")
+NKI <-read.csv("NIKKEI225.csv")
+```
+
+```{r}
+library(xlsx)
+```
+
+```{r}
+library(xlsx)
+library(rJava)
+library(xlsxjars)
+# GDI <- read.csv("~/Desktop/research data/csv files/PerformanceGraphExport1.csv")
+GDI <- read.csv("NASDAQCOM.csv")
+```
+
+```{r}
+# LIBOR <- read.csv("~/Desktop/LIBOR2.csv")
+LIBOR <- read.csv("DGS10.csv")
+LIBOR <- LIBOR %>%
+  filter(DGS10 != ".")
+# View(LIBOR)
+```
+
+
+```{r}
+# View(GDI)
+```
+
+```{r}
+# library(DataComputing)
+library(dplyr)
+# GDIDX <- GDI %>%
+  # dplyr::select(As.of.,X)
+GDIDX <- GDI
+colnames(GDIDX)[1] <- "DATE"
+colnames(GDIDX)[2] <- "The Global Dow"
+GDIDX <- GDIDX[-1,]
+```
+
+```{r}
+Inner_chart <- GDIDX %>%
+  inner_join(NKI)
+```
+
+```{r}
+Inner_chartc <- Inner_chart%>%
+  filter(NIKKEI225 != ".")
+```
+  
+```{r}
+full_chart <- Inner_chartc %>%
+  inner_join(LIBOR)
+View(full_chart)
+```
+
+```{r}
+Inner_chartc$`The Global Dow` <- as.numeric(as.character(Inner_chartc$`The Global Dow`))
+Inner_chartc$NIKKEI225 <- as.numeric(as.character(Inner_chartc$NIKKEI225))
+```
+
+#Dividing the data into quarterly bases and rearrange to a list
+
+###07_Q2
+```{r}
+fy07_Q2 <- Inner_chartc %>%
+  filter(row_number() >= 1 & row_number() <= 83)
+Dow07_Q2 <- fy07_Q2%>%
+  select(`The Global Dow`)
+NKI07_Q2 <- fy07_Q2%>%
+  select(NIKKEI225)
+```
+
+```{r}
+Dowlist07_Q2 <- as.list(as.data.frame(Dow07_Q2))
+NKIlist07_Q2 <- as.list(as.data.frame(NKI07_Q2))
+```
+
+###07_Q3
+```{r}
+fy07_Q3 <- Inner_chartc %>%
+  filter(row_number() >= 84 & row_number() <= 144)
+Dow07_Q3 <- fy07_Q3%>%
+  select(`The Global Dow`)
+NKI07_Q3 <- fy07_Q3%>%
+  select(NIKKEI225)
+```
+
+```{r}
+Dowlist07_Q3 <- as.list(as.data.frame(Dow07_Q3))
+NKIlist07_Q3 <- as.list(as.data.frame(NKI07_Q3))
+```
+
+###07_Q4
+```{r}
+fy07_Q4 <- Inner_chartc %>%
+  filter(row_number() >= 145 & row_number() <= 203)
+Dow07_Q4 <- fy07_Q4%>%
+  select(`The Global Dow`)
+NKI07_Q4 <- fy07_Q4%>%
+  select(NIKKEI225)
+```
+
+```{r}
+Dowlist07_Q4 <- as.list(as.data.frame(Dow07_Q4))
+NKIlist07_Q4 <- as.list(as.data.frame(NKI07_Q4))
+```
+
+
+###08_Q1
+```{r}
+fy08_Q1 <- Inner_chartc %>%
+  filter(row_number() >= 204 & row_number() <= 265)
+Dow08_Q1 <- fy08_Q1%>%
+  select(`The Global Dow`)
+NKI08_Q1 <- fy08_Q1%>%
+  select(NIKKEI225)
+```
+
+```{r}
+Dowlist08_Q1 <- as.list(as.data.frame(Dow08_Q1))
+NKIlist08_Q1 <- as.list(as.data.frame(NKI08_Q1))
+```
+
+
+###08_Q2
+```{r}
+fy08_Q2 <- Inner_chartc %>%
+  filter(row_number() >= 266 & row_number() <= 328)
+Dow08_Q2 <- fy08_Q2%>%
+  select(`The Global Dow`)
+NKI08_Q2 <- fy08_Q2%>%
+  select(NIKKEI225)
+```
+
+```{r}
+Dowlist08_Q2 <- as.list(as.data.frame(Dow08_Q2))
+NKIlist08_Q2 <- as.list(as.data.frame(NKI08_Q2))
+```
+
+
+###08_Q3
+```{r}
+fy08_Q3 <- Inner_chartc %>%
+  filter(row_number() >= 329 & row_number() <= 388)
+Dow08_Q3 <- fy08_Q3%>%
+  select(`The Global Dow`)
+NKI08_Q3 <- fy08_Q3%>%
+  select(NIKKEI225)
+```
+
+```{r}
+Dowlist08_Q3 <- as.list(as.data.frame(Dow08_Q3))
+NKIlist08_Q3 <- as.list(as.data.frame(NKI08_Q3))
+```
+
+
+###08_Q4
+```{r}
+fy08_Q4 <- Inner_chartc %>%
+  filter(row_number() >= 389 & row_number() <= 447)
+Dow08_Q4 <- fy08_Q4%>%
+  select(`The Global Dow`)
+NKI08_Q4 <- fy08_Q4%>%
+  select(NIKKEI225)
+```
+
+```{r}
+Dowlist08_Q4 <- as.list(as.data.frame(Dow08_Q4))
+NKIlist08_Q4 <- as.list(as.data.frame(NKI08_Q4))
+```
+
+
+###09_Q1
+```{r}
+fy09_Q1 <- Inner_chartc %>%
+  filter(row_number() >= 448 & row_number() <= 508)
+Dow09_Q1 <- fy09_Q1%>%
+  select(`The Global Dow`)
+NKI09_Q1 <- fy09_Q1%>%
+  select(NIKKEI225)
+```
+
+```{r}
+Dowlist09_Q1 <- as.list(as.data.frame(Dow09_Q1))
+NKIlist09_Q1 <- as.list(as.data.frame(NKI09_Q1))
+```
+
+
+###09_Q2
+```{r}
+fy09_Q2 <- Inner_chartc %>%
+  filter(row_number() >= 509 & row_number() <= 570)
+Dow09_Q2 <- fy09_Q2%>%
+  select(`The Global Dow`)
+NKI09_Q2 <- fy09_Q2%>%
+  select(NIKKEI225)
+```
+
+```{r}
+Dowlist09_Q2 <- as.list(as.data.frame(Dow09_Q2))
+NKIlist09_Q2 <- as.list(as.data.frame(NKI09_Q2))
+```
+
+
+###09_Q3
+```{r}
+fy09_Q3 <- Inner_chartc %>%
+  filter(row_number() >= 571 & row_number() <= 631)
+Dow09_Q3 <- fy09_Q3%>%
+  select(`The Global Dow`)
+NKI09_Q3 <- fy09_Q3%>%
+  select(NIKKEI225)
+```
+
+
+```{r}
+Dowlist09_Q3 <- as.list(as.data.frame(Dow09_Q3))
+NKIlist09_Q3 <- as.list(as.data.frame(NKI09_Q3))
+```
+
+
+###09_Q4
+```{r}
+fy09_Q4 <- Inner_chartc %>%
+  filter(row_number() >= 632 & row_number() <= 691)
+Dow09_Q4 <- fy09_Q4%>%
+  select(`The Global Dow`)
+NKI09_Q4 <- fy09_Q4%>%
+  select(NIKKEI225)
+```
+
+```{r}
+Dowlist09_Q4 <- as.list(as.data.frame(Dow09_Q4))
+NKIlist09_Q4 <- as.list(as.data.frame(NKI09_Q4))
+```
+
+
+###10_Q1
+```{r}
+fy10_Q1 <- Inner_chartc %>%
+  filter(row_number() >= 692 & row_number() <= 752)
+Dow10_Q1 <- fy10_Q1%>%
+  select(`The Global Dow`)
+NKI10_Q1 <- fy10_Q1%>%
+  select(NIKKEI225)
+```
+
+```{r}
+Dowlist10_Q1 <- as.list(as.data.frame(Dow10_Q1))
+NKIlist10_Q1 <- as.list(as.data.frame(NKI10_Q1))
+```
+
+
+###10_Q2
+```{r}
+fy10_Q2 <- Inner_chartc %>%
+  filter(row_number() >= 753 & row_number() <= 815)
+Dow10_Q2 <- fy10_Q2%>%
+  select(`The Global Dow`)
+NKI10_Q2 <- fy10_Q2%>%
+  select(NIKKEI225)
+```
+
+```{r}
+Dowlist10_Q2 <- as.list(as.data.frame(Dow10_Q2))
+NKIlist10_Q2 <- as.list(as.data.frame(NKI10_Q2))
+```
+
+###10_Q3
+```{r}
+fy10_Q3 <- Inner_chartc %>%
+  filter(row_number() >= 816 & row_number() <= 876)
+Dow10_Q3 <- fy10_Q3%>%
+  select(`The Global Dow`)
+NKI10_Q3 <- fy10_Q3%>%
+  select(NIKKEI225)
+```
+
+```{r}
+Dowlist10_Q3 <- as.list(as.data.frame(Dow10_Q3))
+NKIlist10_Q3 <- as.list(as.data.frame(NKI10_Q3))
+```
+
+
+###10_Q4
+```{r}
+fy10_Q4 <- Inner_chartc %>%
+  filter(row_number() >= 877 & row_number() <= 938)
+Dow10_Q4 <- fy10_Q4%>%
+  select(`The Global Dow`)
+NKI10_Q4 <- fy10_Q4%>%
+  select(NIKKEI225)
+```
+
+```{r}
+Dowlist10_Q4 <- as.list(as.data.frame(Dow10_Q4))
+NKIlist10_Q4 <- as.list(as.data.frame(NKI10_Q4))
+```
+
+
+###11_Q1
+```{r}
+fy11_Q1 <- Inner_chartc %>%
+  filter(row_number() >= 939 & row_number() <= 997)
+Dow11_Q1 <- fy11_Q1%>%
+  select(`The Global Dow`)
+NKI11_Q1 <- fy11_Q1%>%
+  select(NIKKEI225)
+```
+
+```{r}
+Dowlist11_Q1 <- as.list(as.data.frame(Dow11_Q1))
+NKIlist11_Q1 <- as.list(as.data.frame(NKI11_Q1))
+```
+
+
+###11_Q2
+```{r}
+fy11_Q2 <- Inner_chartc %>%
+  filter(row_number() >= 998 & row_number() <= 1060)
+Dow11_Q2 <- fy11_Q2%>%
+  select(`The Global Dow`)
+NKI11_Q2 <- fy11_Q2%>%
+  select(NIKKEI225)
+```
+
+```{r}
+Dowlist11_Q2 <- as.list(as.data.frame(Dow11_Q2))
+NKIlist11_Q2 <- as.list(as.data.frame(NKI11_Q2))
+```
+
+
+
+###11_Q3
+```{r}
+fy11_Q3 <- Inner_chartc %>%
+  filter(row_number() >= 1061 & row_number() <= 1121)
+Dow11_Q3 <- fy11_Q3%>%
+  select(`The Global Dow`)
+NKI11_Q3 <- fy11_Q3%>%
+  select(NIKKEI225)
+```
+
+```{r}
+Dowlist11_Q3 <- as.list(as.data.frame(Dow11_Q3))
+NKIlist11_Q3 <- as.list(as.data.frame(NKI11_Q3))
+```
+
+
+
+###11_Q4
+```{r}
+fy11_Q4 <- Inner_chartc %>%
+  filter(row_number() >= 1122 & row_number() <= 1182)
+Dow11_Q4 <- fy11_Q4%>%
+  select(`The Global Dow`)
+NKI11_Q4 <- fy11_Q4%>%
+  select(NIKKEI225)
+```
+
+```{r}
+Dowlist11_Q4 <- as.list(as.data.frame(Dow11_Q4))
+NKIlist11_Q4 <- as.list(as.data.frame(NKI11_Q4))
+```
+
+
+
+###12_Q1
+```{r}
+fy12_Q1 <- Inner_chartc %>%
+  filter(row_number() >= 1183 & row_number() <= 1244)
+Dow12_Q1 <- fy12_Q1%>%
+  select(`The Global Dow`)
+NKI12_Q1 <- fy12_Q1%>%
+  select(NIKKEI225)
+```
+
+```{r}
+Dowlist12_Q1 <- as.list(as.data.frame(Dow12_Q1))
+NKIlist12_Q1 <- as.list(as.data.frame(NKI12_Q1))
+```
+
+
+###12_Q2
+```{r}
+fy12_Q2 <- Inner_chartc %>%
+  filter(row_number() >= 1245 & row_number() <= 1307)
+Dow12_Q2 <- fy12_Q2%>%
+  select(`The Global Dow`)
+NKI12_Q2 <- fy12_Q2%>%
+  select(NIKKEI225)
+```
+
+```{r}
+Dowlist12_Q2 <- as.list(as.data.frame(Dow12_Q2))
+NKIlist12_Q2 <- as.list(as.data.frame(NKI12_Q2))
+```
+
+
+###12_Q3
+```{r}
+fy12_Q3 <- Inner_chartc %>%
+  filter(row_number() >= 1308 & row_number() <= 1369)
+Dow12_Q3 <- fy12_Q3%>%
+  select(`The Global Dow`)
+NKI12_Q3 <- fy12_Q3%>%
+  select(NIKKEI225)
+```
+
+```{r}
+Dowlist12_Q3 <- as.list(as.data.frame(Dow12_Q3))
+NKIlist12_Q3 <- as.list(as.data.frame(NKI12_Q3))
+```
+
+
+###12_Q4
+```{r}
+fy12_Q4 <- Inner_chartc %>%
+  filter(row_number() >= 1370 & row_number() <= 1427)
+Dow12_Q4 <- fy12_Q4%>%
+  select(`The Global Dow`)
+NKI12_Q4 <- fy12_Q4%>%
+  select(NIKKEI225)
+```
+
+```{r}
+Dowlist12_Q4 <- as.list(as.data.frame(Dow12_Q4))
+NKIlist12_Q4 <- as.list(as.data.frame(NKI12_Q4))
+```
+
+
+###13_Q1
+```{r}
+fy13_Q1 <- Inner_chartc %>%
+  filter(row_number() >= 1428 & row_number() <= 1487)
+Dow13_Q1 <- fy13_Q1%>%
+  select(`The Global Dow`)
+NKI13_Q1 <- fy13_Q1%>%
+  select(NIKKEI225)
+```
+
+```{r}
+Dowlist13_Q1 <- as.list(as.data.frame(Dow13_Q1))
+NKIlist13_Q1 <- as.list(as.data.frame(NKI13_Q1))
+```
+
+
+
+###13_Q2
+```{r}
+fy13_Q2 <- Inner_chartc %>%
+  filter(row_number() >= 1488 & row_number() <= 1550)
+Dow13_Q2 <- fy13_Q2%>%
+  select(`The Global Dow`)
+NKI13_Q2 <- fy13_Q2%>%
+  select(NIKKEI225)
+```
+
+```{r}
+Dowlist13_Q2 <- as.list(as.data.frame(Dow13_Q2))
+NKIlist13_Q2 <- as.list(as.data.frame(NKI13_Q2))
+```
+
+
+
+
+###13_Q3
+```{r}
+fy13_Q3 <- Inner_chartc %>%
+  filter(row_number() >= 1551 & row_number() <= 1612)
+Dow13_Q3 <- fy13_Q3%>%
+  select(`The Global Dow`)
+NKI13_Q3 <- fy13_Q3%>%
+  select(NIKKEI225)
+```
+
+```{r}
+Dowlist13_Q3 <- as.list(as.data.frame(Dow13_Q3))
+NKIlist13_Q3 <- as.list(as.data.frame(NKI13_Q3))
+```
+
+
+
+
+###13_Q4
+```{r}
+fy13_Q4 <- Inner_chartc %>%
+  filter(row_number() >= 1613 & row_number() <= 1670)
+Dow13_Q4 <- fy13_Q4%>%
+  select(`The Global Dow`)
+NKI13_Q4 <- fy13_Q4%>%
+  select(NIKKEI225)
+```
+
+```{r}
+Dowlist13_Q4 <- as.list(as.data.frame(Dow13_Q4))
+NKIlist13_Q4 <- as.list(as.data.frame(NKI13_Q4))
+```
+
+
+
+
+###14_Q1
+```{r}
+fy14_Q1 <- Inner_chartc %>%
+  filter(row_number() >= 1671 & row_number() <= 1732)
+Dow14_Q1 <- fy14_Q1%>%
+  select(`The Global Dow`)
+NKI14_Q1 <- fy14_Q1%>%
+  select(NIKKEI225)
+```
+
+```{r}
+Dowlist14_Q1 <- as.list(as.data.frame(Dow14_Q1))
+NKIlist14_Q1 <- as.list(as.data.frame(NKI14_Q1))
+```
+
+
+###14_Q2
+```{r}
+fy14_Q2 <- Inner_chartc %>%
+  filter(row_number() >= 1733 & row_number() <= 1795)
+Dow14_Q2 <- fy14_Q2%>%
+  select(`The Global Dow`)
+NKI14_Q2 <- fy14_Q2%>%
+  select(NIKKEI225)
+```
+
+```{r}
+Dowlist14_Q2 <- as.list(as.data.frame(Dow14_Q2))
+NKIlist14_Q2 <- as.list(as.data.frame(NKI14_Q2))
+```
+
+
+###14_Q3
+```{r}
+fy14_Q3 <- Inner_chartc %>%
+  filter(row_number() >= 1796 & row_number() <= 1856)
+Dow14_Q3 <- fy14_Q3%>%
+  select(`The Global Dow`)
+NKI14_Q3 <- fy14_Q3%>%
+  select(NIKKEI225)
+```
+
+```{r}
+Dowlist14_Q3 <- as.list(as.data.frame(Dow14_Q3))
+NKIlist14_Q3 <- as.list(as.data.frame(NKI14_Q3))
+```
+
+
+
+###14_Q4
+```{r}
+fy14_Q4 <- Inner_chartc %>%
+  filter(row_number() >= 1857 & row_number() <= 1915)
+Dow14_Q4 <- fy14_Q4%>%
+  select(`The Global Dow`)
+NKI14_Q4 <- fy14_Q4%>%
+  select(NIKKEI225)
+```
+
+```{r}
+Dowlist14_Q4 <- as.list(as.data.frame(Dow14_Q4))
+NKIlist14_Q4 <- as.list(as.data.frame(NKI14_Q4))
+```
+
+
+
+###15_Q1
+```{r}
+fy15_Q1 <- Inner_chartc %>%
+  filter(row_number() >= 1916 & row_number() <= 1976)
+Dow15_Q1 <- fy15_Q1%>%
+  select(`The Global Dow`)
+NKI15_Q1 <- fy15_Q1%>%
+  select(NIKKEI225)
+```
+
+```{r}
+Dowlist15_Q1 <- as.list(as.data.frame(Dow15_Q1))
+NKIlist15_Q1 <- as.list(as.data.frame(NKI15_Q1))
+```
+
+
+###15_Q2
+```{r}
+fy15_Q2 <- Inner_chartc %>%
+  filter(row_number() >= 1977 & row_number() <= 2038)
+Dow15_Q2<- fy15_Q2%>%
+  select(`The Global Dow`)
+NKI15_Q2 <- fy15_Q2%>%
+  select(NIKKEI225)
+```
+
+```{r}
+Dowlist15_Q2 <- as.list(as.data.frame(Dow15_Q2))
+NKIlist15_Q2 <- as.list(as.data.frame(NKI15_Q2))
+```
+
+
+###15_Q3
+```{r}
+fy15_Q3 <- Inner_chartc %>%
+  filter(row_number() >= 2039 & row_number() <= 2099)
+Dow15_Q3 <- fy15_Q3%>%
+  select(`The Global Dow`)
+NKI15_Q3 <- fy15_Q3%>%
+  select(NIKKEI225)
+```
+
+```{r}
+Dowlist15_Q3 <- as.list(as.data.frame(Dow15_Q3))
+NKIlist15_Q3 <- as.list(as.data.frame(NKI15_Q3))
+```
+
+
+###15_Q4
+```{r}
+fy15_Q4 <- Inner_chartc %>%
+  filter(row_number() >= 2100 & row_number() <= 2159)
+Dow15_Q4 <- fy15_Q4%>%
+  select(`The Global Dow`)
+NKI15_Q4 <- fy15_Q4%>%
+  select(NIKKEI225)
+```
+
+```{r}
+Dowlist15_Q4 <- as.list(as.data.frame(Dow15_Q4))
+NKIlist15_Q4 <- as.list(as.data.frame(NKI15_Q4))
+```
+
+
+###16_Q1
+```{r}
+fy16_Q1 <- Inner_chartc %>%
+  filter(row_number() >= 2160 & row_number() <= 2220)
+Dow16_Q1 <- fy16_Q1%>%
+  select(`The Global Dow`)
+NKI16_Q1 <- fy16_Q1%>%
+  select(NIKKEI225)
+```
+
+```{r}
+Dowlist16_Q1 <- as.list(as.data.frame(Dow16_Q1))
+NKIlist16_Q1 <- as.list(as.data.frame(NKI16_Q1))
+```
+
+
+###16_Q2
+```{r}
+fy16_Q2 <- Inner_chartc %>%
+  filter(row_number() >= 2221 & row_number() <= 2282)
+Dow16_Q2 <- fy16_Q2%>%
+  select(`The Global Dow`)
+NKI16_Q2 <- fy16_Q2%>%
+  select(NIKKEI225)
+```
+
+```{r}
+Dowlist16_Q2 <- as.list(as.data.frame(Dow16_Q2))
+NKIlist16_Q2 <- as.list(as.data.frame(NKI16_Q2))
+```
+
+
+###16_Q3
+```{r}
+fy16_Q3 <- Inner_chartc %>%
+  filter(row_number() >= 2283 & row_number() <= 2343)
+Dow16_Q3 <- fy16_Q3%>%
+  select(`The Global Dow`)
+NKI16_Q3 <- fy16_Q3%>%
+  select(NIKKEI225)
+```
+
+```{r}
+Dowlist16_Q3 <- as.list(as.data.frame(Dow16_Q3))
+NKIlist16_Q3 <- as.list(as.data.frame(NKI16_Q3))
+```
+
+
+###16_Q4
+```{r}
+fy16_Q4 <- Inner_chartc %>%
+  filter(row_number() >= 2344 & row_number() <= 2405)
+Dow16_Q4 <- fy16_Q4%>%
+  select(`The Global Dow`)
+NKI16_Q4 <- fy16_Q4%>%
+  select(NIKKEI225)
+```
+
+```{r}
+Dowlist16_Q4 <- as.list(as.data.frame(Dow16_Q4))
+NKIlist16_Q4 <- as.list(as.data.frame(NKI16_Q4))
+```
+
+
+#Function that will give us "Daily Return Rate"
+
+```{r}
+percent_func <- function(x){       #x is the name of the list
+  a <- 1
+  b <- numeric()
+  while(length(x[1][[1]]) >= a){
+    d <- (x[1][[1]][a+1]-x[1][[1]][a])/x[1][[1]][a] #this is (Today's stock price - yesterday's stock price)/(yesterday's stock price)
+    k <- d*100 #in order to get ratio I multiplied 100
+    b <- append(b, k)
+    a <- a + 1
+  }
+  return(b)
+}
+```
+
+###Raio chart and scatterplots 07_Q2
+```{r}
+Dow_rate07_Q2 <- as.data.frame(percent_func(Dowlist07_Q2)) # I have put Quarterly based Dow dataset into function that I have created
+NKI_rate07_Q2 <- as.data.frame(percent_func(NKIlist07_Q2)) # I have put Quarterly based Nikkei dataset into function that I have created
+```
+
+```{r}
+chart_rate07_Q2 <- data.frame(Dow_rate07_Q2$`percent_func(Dowlist07_Q2)`, NKI_rate07_Q2$`percent_func(NKIlist07_Q2)`) # I have made new data table call chart_rate
+colnames(chart_rate07_Q2)[1] <- "Dow daily return rate 07 Q2" # I have changed the column name of it's table
+colnames(chart_rate07_Q2)[2] <- "Nikkei daily return rate 07 Q2"
+View(chart_rate07_Q2)
+```
+
+
+```{r, echo=FALSE, warning=FALSE}
+Beta_plot07_Q2 <- chart_rate07_Q2%>%
+  ggplot(aes(x= `Dow daily return rate 07 Q2`, y= `Nikkei daily return rate 07 Q2`)) + geom_point() + stat_summary(fun.data=mean_cl_normal) + 
+  geom_smooth(method='lm',formula=y~x)
+Beta_plot07_Q2
+```
+
+```{r, echo=FALSE}
+mod07_Q2<-lm(`Nikkei daily return rate 07 Q2` ~ `Dow daily return rate 07 Q2`, data = chart_rate07_Q2)
+mod07_Q2
+```
+
+### scatterplots 07_Q3
+```{r, echo=FALSE}
+Dow_rate07_Q3 <- as.data.frame(percent_func(Dowlist07_Q3))
+NKI_rate07_Q3 <- as.data.frame(percent_func(NKIlist07_Q3))
+chart_rate07_Q3 <- data.frame(Dow_rate07_Q3$`percent_func(Dowlist07_Q3)`, NKI_rate07_Q3$`percent_func(NKIlist07_Q3)`)
+colnames(chart_rate07_Q3)[1] <- "Dow daily return rate 07 Q3"
+colnames(chart_rate07_Q3)[2] <- "Nikkei daily return rate 07 Q3"
+```
+
+
+```{r, echo=FALSE,warning=FALSE}
+Beta_plot07_Q3 <- chart_rate07_Q3%>%
+  ggplot(aes(x= `Dow daily return rate 07 Q3`, y= `Nikkei daily return rate 07 Q3`)) + geom_point() + stat_summary(fun.data=mean_cl_normal) + 
+  geom_smooth(method='lm',formula=y~x)
+Beta_plot07_Q3
+```
+
+```{r, echo=FALSE}
+mod07_Q3<-lm(`Nikkei daily return rate 07 Q3` ~ `Dow daily return rate 07 Q3`, data = chart_rate07_Q3)
+mod07_Q3
+```
+
+
+
+
+
+
+### scatterplots 07_Q4
+```{r, echo=FALSE}
+Dow_rate07_Q4 <- as.data.frame(percent_func(Dowlist07_Q4))
+NKI_rate07_Q4 <- as.data.frame(percent_func(NKIlist07_Q4))
+chart_rate07_Q4 <- data.frame(Dow_rate07_Q4$`percent_func(Dowlist07_Q4)`, NKI_rate07_Q4$`percent_func(NKIlist07_Q4)`)
+colnames(chart_rate07_Q4)[1] <- "Dow daily return rate 07 Q4"
+colnames(chart_rate07_Q4)[2] <- "Nikkei daily return rate 07 Q4"
+```
+
+
+```{r, echo=FALSE, warning=FALSE}
+Beta_plot07_Q4 <- chart_rate07_Q4%>%
+  ggplot(aes(x= `Dow daily return rate 07 Q4`, y= `Nikkei daily return rate 07 Q4`)) + geom_point() + stat_summary(fun.data=mean_cl_normal) + 
+  geom_smooth(method='lm',formula=y~x)
+Beta_plot07_Q4
+```
+
+```{r, echo=FALSE}
+mod07_Q4<-lm(`Nikkei daily return rate 07 Q4` ~ `Dow daily return rate 07 Q4`, data = chart_rate07_Q4)
+mod07_Q4
+```
+
+### scatterplots 08_Q1
+```{r, echo=FALSE}
+Dow_rate08_Q1 <- as.data.frame(percent_func(Dowlist08_Q1))
+NKI_rate08_Q1 <- as.data.frame(percent_func(NKIlist08_Q1))
+chart_rate08_Q1 <- data.frame(Dow_rate08_Q1$`percent_func(Dowlist08_Q1)`, NKI_rate08_Q1$`percent_func(NKIlist08_Q1)`)
+colnames(chart_rate08_Q1)[1] <- "Dow daily return rate 08 Q1"
+colnames(chart_rate08_Q1)[2] <- "Nikkei daily return rate 08 Q1"
+```
+
+
+```{r, echo=FALSE, warning=FALSE}
+Beta_plot08_Q1 <- chart_rate08_Q1%>%
+  ggplot(aes(x= `Dow daily return rate 08 Q1`, y= `Nikkei daily return rate 08 Q1`)) + geom_point() + stat_summary(fun.data=mean_cl_normal) + 
+  geom_smooth(method='lm',formula=y~x)
+Beta_plot08_Q1
+```
+
+```{r, echo=FALSE}
+mod08_Q1<-lm(`Nikkei daily return rate 08 Q1` ~ `Dow daily return rate 08 Q1`, data = chart_rate08_Q1)
+mod08_Q1
+```
+
+### scatterplots 08_Q2
+```{r, echo=FALSE}
+Dow_rate08_Q2 <- as.data.frame(percent_func(Dowlist08_Q2))
+NKI_rate08_Q2 <- as.data.frame(percent_func(NKIlist08_Q2))
+chart_rate08_Q2 <- data.frame(Dow_rate08_Q2$`percent_func(Dowlist08_Q2)`, NKI_rate08_Q2$`percent_func(NKIlist08_Q2)`)
+colnames(chart_rate08_Q2)[1] <- "Dow daily return rate 08 Q2"
+colnames(chart_rate08_Q2)[2] <- "Nikkei daily return rate 08 Q2"
+```
+
+
+```{r, echo=FALSE, warning=FALSE}
+Beta_plot08_Q2 <- chart_rate08_Q2%>%
+  ggplot(aes(x= `Dow daily return rate 08 Q2`, y= `Nikkei daily return rate 08 Q2`)) + geom_point() + stat_summary(fun.data=mean_cl_normal) + 
+  geom_smooth(method='lm',formula=y~x)
+Beta_plot08_Q2
+```
+
+```{r, echo=FALSE}
+mod08_Q2<-lm(`Nikkei daily return rate 08 Q2` ~ `Dow daily return rate 08 Q2`, data = chart_rate08_Q2)
+mod08_Q2
+```
+
+### scatterplots 08_Q3
+
+```{r, echo=FALSE}
+Dow_rate08_Q3 <- as.data.frame(percent_func(Dowlist08_Q3))
+NKI_rate08_Q3 <- as.data.frame(percent_func(NKIlist08_Q3))
+chart_rate08_Q3 <- data.frame(Dow_rate08_Q3$`percent_func(Dowlist08_Q3)`, NKI_rate08_Q3$`percent_func(NKIlist08_Q3)`)
+colnames(chart_rate08_Q3)[1] <- "Dow daily return rate 08 Q3"
+colnames(chart_rate08_Q3)[2] <- "Nikkei daily return rate 08 Q3"
+```
+
+
+```{r, echo=FALSE, warning=FALSE}
+Beta_plot08_Q3 <- chart_rate08_Q3%>%
+  ggplot(aes(x= `Dow daily return rate 08 Q3`, y= `Nikkei daily return rate 08 Q3`)) + geom_point() + stat_summary(fun.data=mean_cl_normal) + 
+  geom_smooth(method='lm',formula=y~x)
+Beta_plot08_Q3
+```
+
+```{r, echo=FALSE}
+mod08_Q3<-lm(`Nikkei daily return rate 08 Q3` ~ `Dow daily return rate 08 Q3`, data = chart_rate08_Q3)
+mod08_Q3
+```
+
+### scatterplots 08_Q4
+
+```{r, echo=FALSE}
+Dow_rate08_Q4 <- as.data.frame(percent_func(Dowlist08_Q4))
+NKI_rate08_Q4 <- as.data.frame(percent_func(NKIlist08_Q4))
+chart_rate08_Q4 <- data.frame(Dow_rate08_Q4$`percent_func(Dowlist08_Q4)`, NKI_rate08_Q4$`percent_func(NKIlist08_Q4)`)
+colnames(chart_rate08_Q4)[1] <- "Dow daily return rate 08 Q4"
+colnames(chart_rate08_Q4)[2] <- "Nikkei daily return rate 08 Q4"
+```
+
+
+```{r, echo=FALSE, warning=FALSE}
+Beta_plot08_Q4 <- chart_rate08_Q4%>%
+  ggplot(aes(x= `Dow daily return rate 08 Q4`, y= `Nikkei daily return rate 08 Q4`)) + geom_point() + stat_summary(fun.data=mean_cl_normal) + 
+  geom_smooth(method='lm',formula=y~x)
+Beta_plot08_Q4
+```
+
+```{r, echo=FALSE}
+mod08_Q4<-lm(`Nikkei daily return rate 08 Q4` ~ `Dow daily return rate 08 Q4`, data = chart_rate08_Q4)
+mod08_Q4
+```
+
+### scatterplots 09_Q1
+
+```{r, echo=FALSE}
+Dow_rate09_Q1 <- as.data.frame(percent_func(Dowlist09_Q1))
+NKI_rate09_Q1 <- as.data.frame(percent_func(NKIlist09_Q1))
+chart_rate09_Q1 <- data.frame(Dow_rate09_Q1$`percent_func(Dowlist09_Q1)`, NKI_rate09_Q1$`percent_func(NKIlist09_Q1)`)
+colnames(chart_rate09_Q1)[1] <- "Dow daily return rate 09 Q1"
+colnames(chart_rate09_Q1)[2] <- "Nikkei daily return rate 09 Q1"
+```
+
+
+```{r, echo=FALSE, warning=FALSE}
+Beta_plot09_Q1 <- chart_rate09_Q1%>%
+  ggplot(aes(x= `Dow daily return rate 09 Q1`, y= `Nikkei daily return rate 09 Q1`)) + geom_point() + stat_summary(fun.data=mean_cl_normal) + 
+  geom_smooth(method='lm',formula=y~x)
+Beta_plot09_Q1
+```
+
+```{r, echo=FALSE}
+mod09_Q1<-lm(`Nikkei daily return rate 09 Q1` ~ `Dow daily return rate 09 Q1`, data = chart_rate09_Q1)
+mod09_Q1
+```
+
+### scatterplots 09_Q2
+
+```{r, echo=FALSE}
+Dow_rate09_Q2 <- as.data.frame(percent_func(Dowlist09_Q2))
+NKI_rate09_Q2 <- as.data.frame(percent_func(NKIlist09_Q2))
+chart_rate09_Q2 <- data.frame(Dow_rate09_Q2$`percent_func(Dowlist09_Q2)`, NKI_rate09_Q2$`percent_func(NKIlist09_Q2)`)
+colnames(chart_rate09_Q2)[1] <- "Dow daily return rate 09 Q2"
+colnames(chart_rate09_Q2)[2] <- "Nikkei daily return rate 09 Q2"
+```
+
+
+```{r, echo=FALSE, warning=FALSE}
+Beta_plot09_Q2 <- chart_rate09_Q2%>%
+  ggplot(aes(x= `Dow daily return rate 09 Q2`, y= `Nikkei daily return rate 09 Q2`)) + geom_point() + stat_summary(fun.data=mean_cl_normal) + 
+  geom_smooth(method='lm',formula=y~x)
+Beta_plot09_Q2
+```
+
+```{r, echo=FALSE}
+mod09_Q2<-lm(`Nikkei daily return rate 09 Q2` ~ `Dow daily return rate 09 Q2`, data = chart_rate09_Q2)
+mod09_Q2
+```
+
+### scatterplots 09_Q3
+
+```{r, echo=FALSE}
+Dow_rate09_Q3 <- as.data.frame(percent_func(Dowlist09_Q3))
+NKI_rate09_Q3 <- as.data.frame(percent_func(NKIlist09_Q3))
+chart_rate09_Q3 <- data.frame(Dow_rate09_Q3$`percent_func(Dowlist09_Q3)`, NKI_rate09_Q3$`percent_func(NKIlist09_Q3)`)
+colnames(chart_rate09_Q3)[1] <- "Dow daily return rate 09 Q3"
+colnames(chart_rate09_Q3)[2] <- "Nikkei daily return rate 09 Q3"
+```
+
+
+```{r, echo=FALSE, warning=FALSE}
+Beta_plot09_Q3 <- chart_rate09_Q3%>%
+  ggplot(aes(x= `Dow daily return rate 09 Q3`, y= `Nikkei daily return rate 09 Q3`)) + geom_point() + stat_summary(fun.data=mean_cl_normal) + 
+  geom_smooth(method='lm',formula=y~x)
+Beta_plot09_Q3
+```
+
+```{r, echo=FALSE}
+mod09_Q3<-lm(`Nikkei daily return rate 09 Q3` ~ `Dow daily return rate 09 Q3`, data = chart_rate09_Q3)
+mod09_Q3
+```
+
+### scatterplots 09_Q4
+
+```{r, echo=FALSE}
+Dow_rate09_Q4 <- as.data.frame(percent_func(Dowlist09_Q4))
+NKI_rate09_Q4 <- as.data.frame(percent_func(NKIlist09_Q4))
+chart_rate09_Q4 <- data.frame(Dow_rate09_Q4$`percent_func(Dowlist09_Q4)`, NKI_rate09_Q4$`percent_func(NKIlist09_Q4)`)
+colnames(chart_rate09_Q4)[1] <- "Dow daily return rate 09 Q4"
+colnames(chart_rate09_Q4)[2] <- "Nikkei daily return rate 09 Q4"
+```
+
+
+```{r, echo=FALSE, warning=FALSE}
+Beta_plot09_Q4 <- chart_rate09_Q4%>%
+  ggplot(aes(x= `Dow daily return rate 09 Q4`, y= `Nikkei daily return rate 09 Q4`)) + geom_point() + stat_summary(fun.data=mean_cl_normal) + 
+  geom_smooth(method='lm',formula=y~x)
+Beta_plot09_Q4
+```
+
+```{r, echo=FALSE}
+mod09_Q4<-lm(`Nikkei daily return rate 09 Q4` ~ `Dow daily return rate 09 Q4`, data = chart_rate09_Q4)
+mod09_Q4
+```
+
+
+### scatterplots 10_Q1
+
+```{r, echo=FALSE}
+Dow_rate10_Q1 <- as.data.frame(percent_func(Dowlist10_Q1))
+NKI_rate10_Q1 <- as.data.frame(percent_func(NKIlist10_Q1))
+chart_rate10_Q1 <- data.frame(Dow_rate10_Q1$`percent_func(Dowlist10_Q1)`, NKI_rate10_Q1$`percent_func(NKIlist10_Q1)`)
+colnames(chart_rate10_Q1)[1] <- "Dow daily return rate 10 Q1"
+colnames(chart_rate10_Q1)[2] <- "Nikkei daily return rate 10 Q1"
+```
+
+
+```{r, echo=FALSE, warning=FALSE}
+Beta_plot10_Q1 <- chart_rate10_Q1%>%
+  ggplot(aes(x= `Dow daily return rate 10 Q1`, y= `Nikkei daily return rate 10 Q1`)) + geom_point() + stat_summary(fun.data=mean_cl_normal) + 
+  geom_smooth(method='lm',formula=y~x)
+Beta_plot10_Q1
+```
+
+```{r, echo=FALSE}
+mod10_Q1<-lm(`Nikkei daily return rate 10 Q1` ~ `Dow daily return rate 10 Q1`, data = chart_rate10_Q1)
+mod10_Q1
+```
+
+### scatterplots 10_Q2
+
+```{r, echo=FALSE}
+Dow_rate10_Q2 <- as.data.frame(percent_func(Dowlist10_Q2))
+NKI_rate10_Q2 <- as.data.frame(percent_func(NKIlist10_Q2))
+chart_rate10_Q2 <- data.frame(Dow_rate10_Q2$`percent_func(Dowlist10_Q2)`, NKI_rate10_Q2$`percent_func(NKIlist10_Q2)`)
+colnames(chart_rate10_Q2)[1] <- "Dow daily return rate 10 Q2"
+colnames(chart_rate10_Q2)[2] <- "Nikkei daily return rate 10 Q2"
+```
+
+
+```{r, echo=FALSE, warning=FALSE}
+Beta_plot10_Q2 <- chart_rate10_Q2%>%
+  ggplot(aes(x= `Dow daily return rate 10 Q2`, y= `Nikkei daily return rate 10 Q2`)) + geom_point() + stat_summary(fun.data=mean_cl_normal) + 
+  geom_smooth(method='lm',formula=y~x)
+Beta_plot10_Q2
+```
+
+```{r, echo=FALSE}
+mod10_Q2<-lm(`Nikkei daily return rate 10 Q2` ~ `Dow daily return rate 10 Q2`, data = chart_rate10_Q2)
+mod10_Q2
+```
+
+### scatterplots 10_Q3
+
+```{r, echo=FALSE}
+Dow_rate10_Q3 <- as.data.frame(percent_func(Dowlist10_Q3))
+NKI_rate10_Q3 <- as.data.frame(percent_func(NKIlist10_Q3))
+chart_rate10_Q3 <- data.frame(Dow_rate10_Q3$`percent_func(Dowlist10_Q3)`, NKI_rate10_Q3$`percent_func(NKIlist10_Q3)`)
+colnames(chart_rate10_Q3)[1] <- "Dow daily return rate 10 Q3"
+colnames(chart_rate10_Q3)[2] <- "Nikkei daily return rate 10 Q3"
+```
+
+
+```{r, echo=FALSE, warning=FALSE}
+Beta_plot10_Q3 <- chart_rate10_Q3%>%
+  ggplot(aes(x= `Dow daily return rate 10 Q3`, y= `Nikkei daily return rate 10 Q3`)) + geom_point() + stat_summary(fun.data=mean_cl_normal) + 
+  geom_smooth(method='lm',formula=y~x)
+Beta_plot10_Q3
+```
+
+```{r, echo=FALSE}
+mod10_Q3<-lm(`Nikkei daily return rate 10 Q3` ~ `Dow daily return rate 10 Q3`, data = chart_rate10_Q3)
+mod10_Q3
+```
+
+
+### scatterplots 10_Q4
+
+```{r, echo=FALSE}
+Dow_rate10_Q4 <- as.data.frame(percent_func(Dowlist10_Q4))
+NKI_rate10_Q4 <- as.data.frame(percent_func(NKIlist10_Q4))
+chart_rate10_Q4 <- data.frame(Dow_rate10_Q4$`percent_func(Dowlist10_Q4)`, NKI_rate10_Q4$`percent_func(NKIlist10_Q4)`)
+colnames(chart_rate10_Q4)[1] <- "Dow daily return rate 10 Q4"
+colnames(chart_rate10_Q4)[2] <- "Nikkei daily return rate 10 Q4"
+```
+
+```{r, echo=FALSE, warning=FALSE}
+Beta_plot10_Q4 <- chart_rate10_Q4%>%
+  ggplot(aes(x= `Dow daily return rate 10 Q4`, y= `Nikkei daily return rate 10 Q4`)) + geom_point() + stat_summary(fun.data=mean_cl_normal) + 
+  geom_smooth(method='lm',formula=y~x)
+Beta_plot10_Q4
+```
+
+```{r, echo=FALSE}
+mod10_Q4<-lm(`Nikkei daily return rate 10 Q4` ~ `Dow daily return rate 10 Q4`, data = chart_rate10_Q4)
+mod10_Q4
+```
+
+### scatterplots 11_Q1
+
+```{r, echo=FALSE}
+Dow_rate11_Q1 <- as.data.frame(percent_func(Dowlist11_Q1))
+NKI_rate11_Q1 <- as.data.frame(percent_func(NKIlist11_Q1))
+chart_rate11_Q1 <- data.frame(Dow_rate11_Q1$`percent_func(Dowlist11_Q1)`, NKI_rate11_Q1$`percent_func(NKIlist11_Q1)`)
+colnames(chart_rate11_Q1)[1] <- "Dow daily return rate 11 Q1"
+colnames(chart_rate11_Q1)[2] <- "Nikkei daily return rate 11 Q1"
+```
+
+
+```{r, echo=FALSE, warning=FALSE}
+Beta_plot11_Q1 <- chart_rate11_Q1%>%
+  ggplot(aes(x= `Dow daily return rate 11 Q1`, y= `Nikkei daily return rate 11 Q1`)) + geom_point() + stat_summary(fun.data=mean_cl_normal) + 
+  geom_smooth(method='lm',formula=y~x)
+Beta_plot11_Q1
+```
+
+```{r, echo=FALSE}
+mod11_Q1<-lm(`Nikkei daily return rate 11 Q1` ~ `Dow daily return rate 11 Q1`, data = chart_rate11_Q1)
+mod11_Q1
+```
+
+
+### scatterplots 11_Q2
+```{r, echo=FALSE}
+Dow_rate11_Q2 <- as.data.frame(percent_func(Dowlist11_Q2))
+NKI_rate11_Q2 <- as.data.frame(percent_func(NKIlist11_Q2))
+chart_rate11_Q2 <- data.frame(Dow_rate11_Q2$`percent_func(Dowlist11_Q2)`, NKI_rate11_Q2$`percent_func(NKIlist11_Q2)`)
+colnames(chart_rate11_Q2)[1] <- "Dow daily return rate 11 Q2"
+colnames(chart_rate11_Q2)[2] <- "Nikkei daily return rate 11 Q2"
+```
+
+```{r, echo=FALSE, warning=FALSE}
+Beta_plot11_Q2 <- chart_rate11_Q2%>%
+  ggplot(aes(x= `Dow daily return rate 11 Q2`, y= `Nikkei daily return rate 11 Q2`)) + geom_point() + stat_summary(fun.data=mean_cl_normal) + 
+  geom_smooth(method='lm',formula=y~x)
+Beta_plot11_Q2
+```
+
+```{r, echo=FALSE}
+mod11_Q2<-lm(`Nikkei daily return rate 11 Q2` ~ `Dow daily return rate 11 Q2`, data = chart_rate11_Q2)
+mod11_Q2
+```
+
+
+
+### scatterplots 11_Q3
+```{r, echo=FALSE}
+Dow_rate11_Q3 <- as.data.frame(percent_func(Dowlist11_Q3))
+NKI_rate11_Q3 <- as.data.frame(percent_func(NKIlist11_Q3))
+chart_rate11_Q3 <- data.frame(Dow_rate11_Q3$`percent_func(Dowlist11_Q3)`, NKI_rate11_Q3$`percent_func(NKIlist11_Q3)`)
+colnames(chart_rate11_Q3)[1] <- "Dow daily return rate 11 Q3"
+colnames(chart_rate11_Q3)[2] <- "Nikkei daily return rate 11 Q3"
+```
+
+
+```{r, echo=FALSE, warning=FALSE}
+Beta_plot11_Q3 <- chart_rate11_Q3%>%
+  ggplot(aes(x= `Dow daily return rate 11 Q3`, y= `Nikkei daily return rate 11 Q3`)) + geom_point() + stat_summary(fun.data=mean_cl_normal) + 
+  geom_smooth(method='lm',formula=y~x)
+Beta_plot11_Q3
+```
+
+```{r, echo=FALSE}
+mod11_Q3<-lm(`Nikkei daily return rate 11 Q3` ~ `Dow daily return rate 11 Q3`, data = chart_rate11_Q3)
+mod11_Q3
+```
+
+
+
+### scatterplots 11_Q4
+```{r, echo=FALSE}
+Dow_rate11_Q4 <- as.data.frame(percent_func(Dowlist11_Q4))
+NKI_rate11_Q4 <- as.data.frame(percent_func(NKIlist11_Q4))
+chart_rate11_Q4 <- data.frame(Dow_rate11_Q4$`percent_func(Dowlist11_Q4)`, NKI_rate11_Q4$`percent_func(NKIlist11_Q4)`)
+colnames(chart_rate11_Q4)[1] <- "Dow daily return rate 11 Q4"
+colnames(chart_rate11_Q4)[2] <- "Nikkei daily return rate 11 Q4"
+```
+
+
+```{r, echo=FALSE, warning=FALSE}
+Beta_plot11_Q4 <- chart_rate11_Q4%>%
+  ggplot(aes(x= `Dow daily return rate 11 Q4`, y= `Nikkei daily return rate 11 Q4`)) + geom_point() + stat_summary(fun.data=mean_cl_normal) + 
+  geom_smooth(method='lm',formula=y~x)
+Beta_plot11_Q4
+```
+
+```{r, echo=FALSE}
+mod11_Q4<-lm(`Nikkei daily return rate 11 Q4` ~ `Dow daily return rate 11 Q4`, data = chart_rate11_Q4)
+mod11_Q4
+```
+
+
+### scatterplots 12_Q1
+
+```{r, echo=FALSE}
+Dow_rate12_Q1 <- as.data.frame(percent_func(Dowlist12_Q1))
+NKI_rate12_Q1 <- as.data.frame(percent_func(NKIlist12_Q1))
+chart_rate12_Q1 <- data.frame(Dow_rate12_Q1$`percent_func(Dowlist12_Q1)`, NKI_rate12_Q1$`percent_func(NKIlist12_Q1)`)
+colnames(chart_rate12_Q1)[1] <- "Dow daily return rate 12 Q1"
+colnames(chart_rate12_Q1)[2] <- "Nikkei daily return rate 12 Q1"
+```
+
+
+```{r, echo=FALSE, warning=FALSE}
+Beta_plot12_Q1 <- chart_rate12_Q1%>%
+  ggplot(aes(x= `Dow daily return rate 12 Q1`, y= `Nikkei daily return rate 12 Q1`)) + geom_point() + stat_summary(fun.data=mean_cl_normal) + 
+  geom_smooth(method='lm',formula=y~x)
+Beta_plot12_Q1
+```
+
+```{r, echo=FALSE}
+mod12_Q1<-lm(`Nikkei daily return rate 12 Q1` ~ `Dow daily return rate 12 Q1`, data = chart_rate12_Q1)
+mod12_Q1
+```
+
+
+
+### scatterplots 12_Q2
+
+```{r, echo=FALSE}
+Dow_rate12_Q2 <- as.data.frame(percent_func(Dowlist12_Q2))
+NKI_rate12_Q2 <- as.data.frame(percent_func(NKIlist12_Q2))
+chart_rate12_Q2 <- data.frame(Dow_rate12_Q2$`percent_func(Dowlist12_Q2)`, NKI_rate12_Q2$`percent_func(NKIlist12_Q2)`)
+colnames(chart_rate12_Q2)[1] <- "Dow daily return rate 12 Q2"
+colnames(chart_rate12_Q2)[2] <- "Nikkei daily return rate 12 Q2"
+```
+
+```{r, echo=FALSE, warning=FALSE}
+Beta_plot12_Q2 <- chart_rate12_Q2%>%
+  ggplot(aes(x= `Dow daily return rate 12 Q2`, y= `Nikkei daily return rate 12 Q2`)) + geom_point() + stat_summary(fun.data=mean_cl_normal) + 
+  geom_smooth(method='lm',formula=y~x)
+Beta_plot12_Q2
+```
+
+```{r, echo=FALSE}
+mod12_Q2<-lm(`Nikkei daily return rate 12 Q2` ~ `Dow daily return rate 12 Q2`, data = chart_rate12_Q2)
+mod12_Q2
+```
+
+### scatterplots 12_Q3
+
+```{r, echo=FALSE}
+Dow_rate12_Q3 <- as.data.frame(percent_func(Dowlist12_Q3))
+NKI_rate12_Q3 <- as.data.frame(percent_func(NKIlist12_Q3))
+chart_rate12_Q3 <- data.frame(Dow_rate12_Q3$`percent_func(Dowlist12_Q3)`, NKI_rate12_Q3$`percent_func(NKIlist12_Q3)`)
+colnames(chart_rate12_Q3)[1] <- "Dow daily return rate 12 Q3"
+colnames(chart_rate12_Q3)[2] <- "Nikkei daily return rate 12 Q3"
+```
+
+```{r, echo=FALSE, warning=FALSE}
+Beta_plot12_Q3 <- chart_rate12_Q3%>%
+  ggplot(aes(x= `Dow daily return rate 12 Q3`, y= `Nikkei daily return rate 12 Q3`)) + geom_point() + stat_summary(fun.data=mean_cl_normal) + 
+  geom_smooth(method='lm',formula=y~x)
+Beta_plot12_Q3
+```
+
+```{r, echo=FALSE}
+mod12_Q3<-lm(`Nikkei daily return rate 12 Q3` ~ `Dow daily return rate 12 Q3`, data = chart_rate12_Q3)
+mod12_Q3
+```
+
+
+
+### scatterplots 12_Q4
+
+```{r, echo=FALSE}
+Dow_rate12_Q4 <- as.data.frame(percent_func(Dowlist12_Q4))
+NKI_rate12_Q4 <- as.data.frame(percent_func(NKIlist12_Q4))
+chart_rate12_Q4 <- data.frame(Dow_rate12_Q4$`percent_func(Dowlist12_Q4)`, NKI_rate12_Q4$`percent_func(NKIlist12_Q4)`)
+colnames(chart_rate12_Q4)[1] <- "Dow daily return rate 12 Q4"
+colnames(chart_rate12_Q4)[2] <- "Nikkei daily return rate 12 Q4"
+```
+
+```{r, echo=FALSE, warning=FALSE}
+Beta_plot12_Q4 <- chart_rate12_Q4%>%
+  ggplot(aes(x= `Dow daily return rate 12 Q4`, y= `Nikkei daily return rate 12 Q4`)) + geom_point() + stat_summary(fun.data=mean_cl_normal) + 
+  geom_smooth(method='lm',formula=y~x)
+Beta_plot12_Q4
+```
+
+```{r, echo=FALSE}
+mod12_Q4<-lm(`Nikkei daily return rate 12 Q4` ~ `Dow daily return rate 12 Q4`, data = chart_rate12_Q4)
+mod12_Q4
+```
+
+
+### scatterplots 13_Q1
+
+```{r, echo=FALSE}
+Dow_rate13_Q1 <- as.data.frame(percent_func(Dowlist13_Q1))
+NKI_rate13_Q1 <- as.data.frame(percent_func(NKIlist13_Q1))
+chart_rate13_Q1 <- data.frame(Dow_rate13_Q1$`percent_func(Dowlist13_Q1)`, NKI_rate13_Q1$`percent_func(NKIlist13_Q1)`)
+colnames(chart_rate13_Q1)[1] <- "Dow daily return rate 13 Q1"
+colnames(chart_rate13_Q1)[2] <- "Nikkei daily return rate 13 Q1"
+```
+
+
+```{r, echo=FALSE, warning=FALSE}
+Beta_plot13_Q1 <- chart_rate13_Q1%>%
+  ggplot(aes(x= `Dow daily return rate 13 Q1`, y= `Nikkei daily return rate 13 Q1`)) + geom_point() + stat_summary(fun.data=mean_cl_normal) + 
+  geom_smooth(method='lm',formula=y~x)
+Beta_plot13_Q1
+```
+
+```{r, echo=FALSE}
+mod13_Q1<-lm(`Nikkei daily return rate 13 Q1` ~ `Dow daily return rate 13 Q1`, data = chart_rate13_Q1)
+mod13_Q1
+```
+
+### scatterplots 13_Q2
+
+```{r, echo=FALSE}
+Dow_rate13_Q2 <- as.data.frame(percent_func(Dowlist13_Q2))
+NKI_rate13_Q2 <- as.data.frame(percent_func(NKIlist13_Q2))
+chart_rate13_Q2 <- data.frame(Dow_rate13_Q2$`percent_func(Dowlist13_Q2)`, NKI_rate13_Q2$`percent_func(NKIlist13_Q2)`)
+colnames(chart_rate13_Q2)[1] <- "Dow daily return rate 13 Q2"
+colnames(chart_rate13_Q2)[2] <- "Nikkei daily return rate 13 Q2"
+```
+
+
+```{r, echo=FALSE, warning=FALSE}
+Beta_plot13_Q2 <- chart_rate13_Q2%>%
+  ggplot(aes(x= `Dow daily return rate 13 Q2`, y= `Nikkei daily return rate 13 Q2`)) + geom_point() + stat_summary(fun.data=mean_cl_normal) + 
+  geom_smooth(method='lm',formula=y~x)
+Beta_plot13_Q2
+```
+
+```{r, echo=FALSE}
+mod13_Q2<-lm(`Nikkei daily return rate 13 Q2` ~ `Dow daily return rate 13 Q2`, data = chart_rate13_Q2)
+mod13_Q2
+```
+
+
+### scatterplots 13_Q3
+
+```{r, echo=FALSE}
+Dow_rate13_Q3 <- as.data.frame(percent_func(Dowlist13_Q3))
+NKI_rate13_Q3 <- as.data.frame(percent_func(NKIlist13_Q3))
+chart_rate13_Q3 <- data.frame(Dow_rate13_Q3$`percent_func(Dowlist13_Q3)`, NKI_rate13_Q3$`percent_func(NKIlist13_Q3)`)
+colnames(chart_rate13_Q3)[1] <- "Dow daily return rate 13 Q3"
+colnames(chart_rate13_Q3)[2] <- "Nikkei daily return rate 13 Q3"
+```
+
+```{r, echo=FALSE, warning=FALSE}
+Beta_plot13_Q3 <- chart_rate13_Q3%>%
+  ggplot(aes(x= `Dow daily return rate 13 Q3`, y= `Nikkei daily return rate 13 Q3`)) + geom_point() + stat_summary(fun.data=mean_cl_normal) + 
+  geom_smooth(method='lm',formula=y~x)
+Beta_plot13_Q3
+```
+
+```{r, echo=FALSE}
+mod13_Q3<-lm(`Nikkei daily return rate 13 Q3` ~ `Dow daily return rate 13 Q3`, data = chart_rate13_Q3)
+mod13_Q3
+```
+
+### scatterplots 13_Q4
+
+```{r, echo=FALSE}
+Dow_rate13_Q4 <- as.data.frame(percent_func(Dowlist13_Q4))
+NKI_rate13_Q4 <- as.data.frame(percent_func(NKIlist13_Q4))
+chart_rate13_Q4 <- data.frame(Dow_rate13_Q4$`percent_func(Dowlist13_Q4)`, NKI_rate13_Q4$`percent_func(NKIlist13_Q4)`)
+colnames(chart_rate13_Q4)[1] <- "Dow daily return rate 13 Q4"
+colnames(chart_rate13_Q4)[2] <- "Nikkei daily return rate 13 Q4"
+```
+
+```{r, echo=FALSE, warning=FALSE}
+Beta_plot13_Q4 <- chart_rate13_Q4%>%
+  ggplot(aes(x= `Dow daily return rate 13 Q4`, y= `Nikkei daily return rate 13 Q4`)) + geom_point() + stat_summary(fun.data=mean_cl_normal) + 
+  geom_smooth(method='lm',formula=y~x)
+Beta_plot13_Q4
+```
+
+```{r, echo=FALSE}
+mod13_Q4<-lm(`Nikkei daily return rate 13 Q4` ~ `Dow daily return rate 13 Q4`, data = chart_rate13_Q4)
+mod13_Q4
+```
+
+### scatterplots 14_Q1
+
+```{r, echo=FALSE}
+Dow_rate14_Q1 <- as.data.frame(percent_func(Dowlist14_Q1))
+NKI_rate14_Q1 <- as.data.frame(percent_func(NKIlist14_Q1))
+chart_rate14_Q1 <- data.frame(Dow_rate14_Q1$`percent_func(Dowlist14_Q1)`, NKI_rate14_Q1$`percent_func(NKIlist14_Q1)`)
+colnames(chart_rate14_Q1)[1] <- "Dow daily return rate 14 Q1"
+colnames(chart_rate14_Q1)[2] <- "Nikkei daily return rate 14 Q1"
+```
+
+```{r, echo=FALSE, warning=FALSE}
+Beta_plot14_Q1 <- chart_rate14_Q1%>%
+  ggplot(aes(x= `Dow daily return rate 14 Q1`, y= `Nikkei daily return rate 14 Q1`)) + geom_point() + stat_summary(fun.data=mean_cl_normal) + 
+  geom_smooth(method='lm',formula=y~x)
+Beta_plot14_Q1
+```
+
+```{r, echo=FALSE}
+mod14_Q1<-lm(`Nikkei daily return rate 14 Q1` ~ `Dow daily return rate 14 Q1`, data = chart_rate14_Q1)
+mod14_Q1
+```
+
+
+### scatterplots 14_Q2
+
+```{r, echo=FALSE}
+Dow_rate14_Q2 <- as.data.frame(percent_func(Dowlist14_Q2))
+NKI_rate14_Q2 <- as.data.frame(percent_func(NKIlist14_Q2))
+chart_rate14_Q2 <- data.frame(Dow_rate14_Q2$`percent_func(Dowlist14_Q2)`, NKI_rate14_Q2$`percent_func(NKIlist14_Q2)`)
+colnames(chart_rate14_Q2)[1] <- "Dow daily return rate 14 Q2"
+colnames(chart_rate14_Q2)[2] <- "Nikkei daily return rate 14 Q2"
+```
+
+```{r, echo=FALSE, warning=FALSE}
+Beta_plot14_Q2 <- chart_rate14_Q2%>%
+  ggplot(aes(x= `Dow daily return rate 14 Q2`, y= `Nikkei daily return rate 14 Q2`)) + geom_point() + stat_summary(fun.data=mean_cl_normal) + 
+  geom_smooth(method='lm',formula=y~x)
+Beta_plot14_Q2
+```
+
+```{r, echo=FALSE}
+mod14_Q2<-lm(`Nikkei daily return rate 14 Q2` ~ `Dow daily return rate 14 Q2`, data = chart_rate14_Q2)
+mod14_Q2
+```
+
+
+### scatterplots 14_Q3
+
+```{r, echo=FALSE}
+Dow_rate14_Q3 <- as.data.frame(percent_func(Dowlist14_Q3))
+NKI_rate14_Q3 <- as.data.frame(percent_func(NKIlist14_Q3))
+chart_rate14_Q3 <- data.frame(Dow_rate14_Q3$`percent_func(Dowlist14_Q3)`, NKI_rate14_Q3$`percent_func(NKIlist14_Q3)`)
+colnames(chart_rate14_Q3)[1] <- "Dow daily return rate 14 Q3"
+colnames(chart_rate14_Q3)[2] <- "Nikkei daily return rate 14 Q3"
+```
+
+
+```{r, echo=FALSE, warning=FALSE}
+Beta_plot14_Q3 <- chart_rate14_Q3%>%
+  ggplot(aes(x= `Dow daily return rate 14 Q3`, y= `Nikkei daily return rate 14 Q3`)) + geom_point() + stat_summary(fun.data=mean_cl_normal) + 
+  geom_smooth(method='lm',formula=y~x)
+Beta_plot14_Q3
+```
+
+```{r, echo=FALSE}
+mod14_Q3<-lm(`Nikkei daily return rate 14 Q3` ~ `Dow daily return rate 14 Q3`, data = chart_rate14_Q3)
+mod14_Q3
+```
+
+### scatterplots 14_Q4
+
+```{r, echo=FALSE}
+Dow_rate14_Q4 <- as.data.frame(percent_func(Dowlist14_Q4))
+NKI_rate14_Q4 <- as.data.frame(percent_func(NKIlist14_Q4))
+chart_rate14_Q4 <- data.frame(Dow_rate14_Q4$`percent_func(Dowlist14_Q4)`, NKI_rate14_Q4$`percent_func(NKIlist14_Q4)`)
+colnames(chart_rate14_Q4)[1] <- "Dow daily return rate 14 Q4"
+colnames(chart_rate14_Q4)[2] <- "Nikkei daily return rate 14 Q4"
+```
+
+```{r, echo=FALSE, warning=FALSE}
+Beta_plot14_Q4 <- chart_rate14_Q4%>%
+  ggplot(aes(x= `Dow daily return rate 14 Q4`, y= `Nikkei daily return rate 14 Q4`)) + geom_point() + stat_summary(fun.data=mean_cl_normal) + 
+  geom_smooth(method='lm',formula=y~x)
+Beta_plot14_Q4
+```
+
+```{r, echo=FALSE}
+mod14_Q4<-lm(`Nikkei daily return rate 14 Q4` ~ `Dow daily return rate 14 Q4`, data = chart_rate14_Q4)
+mod14_Q4
+```
+
+### scatterplots 15_Q1
+
+```{r, echo=FALSE}
+Dow_rate15_Q1 <- as.data.frame(percent_func(Dowlist15_Q1))
+NKI_rate15_Q1 <- as.data.frame(percent_func(NKIlist15_Q1))
+chart_rate15_Q1 <- data.frame(Dow_rate15_Q1$`percent_func(Dowlist15_Q1)`, NKI_rate15_Q1$`percent_func(NKIlist15_Q1)`)
+colnames(chart_rate15_Q1)[1] <- "Dow daily return rate 15 Q1"
+colnames(chart_rate15_Q1)[2] <- "Nikkei daily return rate 15 Q1"
+```
+
+```{r, echo=FALSE, warning=FALSE}
+Beta_plot15_Q1 <- chart_rate15_Q1%>%
+  ggplot(aes(x= `Dow daily return rate 15 Q1`, y= `Nikkei daily return rate 15 Q1`)) + geom_point() + stat_summary(fun.data=mean_cl_normal) + 
+  geom_smooth(method='lm',formula=y~x)
+Beta_plot15_Q1
+```
+
+```{r, echo=FALSE}
+mod15_Q1<-lm(`Nikkei daily return rate 15 Q1` ~ `Dow daily return rate 15 Q1`, data = chart_rate15_Q1)
+mod15_Q1
+```
+
+
+### scatterplots 15_Q2
+
+```{r, echo=FALSE}
+Dow_rate15_Q2 <- as.data.frame(percent_func(Dowlist15_Q2))
+NKI_rate15_Q2 <- as.data.frame(percent_func(NKIlist15_Q2))
+chart_rate15_Q2 <- data.frame(Dow_rate15_Q2$`percent_func(Dowlist15_Q2)`, NKI_rate15_Q2$`percent_func(NKIlist15_Q2)`)
+colnames(chart_rate15_Q2)[1] <- "Dow daily return rate 15 Q2"
+colnames(chart_rate15_Q2)[2] <- "Nikkei daily return rate 15 Q2"
+```
+
+```{r, echo=FALSE, warning=FALSE}
+Beta_plot15_Q2 <- chart_rate15_Q2%>%
+  ggplot(aes(x= `Dow daily return rate 15 Q2`, y= `Nikkei daily return rate 15 Q2`)) + geom_point() + stat_summary(fun.data=mean_cl_normal) + 
+  geom_smooth(method='lm',formula=y~x)
+Beta_plot15_Q2
+```
+
+```{r, echo=FALSE}
+mod15_Q2<-lm(`Nikkei daily return rate 15 Q2` ~ `Dow daily return rate 15 Q2`, data = chart_rate15_Q2)
+mod15_Q2
+```
+
+
+### scatterplots 15_Q3
+
+```{r, echo=FALSE}
+Dow_rate15_Q3 <- as.data.frame(percent_func(Dowlist15_Q3))
+NKI_rate15_Q3 <- as.data.frame(percent_func(NKIlist15_Q3))
+chart_rate15_Q3 <- data.frame(Dow_rate15_Q3$`percent_func(Dowlist15_Q3)`, NKI_rate15_Q3$`percent_func(NKIlist15_Q3)`)
+colnames(chart_rate15_Q3)[1] <- "Dow daily return rate 15 Q3"
+colnames(chart_rate15_Q3)[2] <- "Nikkei daily return rate 15 Q3"
+```
+
+```{r, echo=FALSE, warning=FALSE}
+Beta_plot15_Q3 <- chart_rate15_Q3%>%
+  ggplot(aes(x= `Dow daily return rate 15 Q3`, y= `Nikkei daily return rate 15 Q3`)) + geom_point() + stat_summary(fun.data=mean_cl_normal) + 
+  geom_smooth(method='lm',formula=y~x)
+Beta_plot15_Q3
+```
+
+```{r, echo=FALSE}
+mod15_Q3<-lm(`Nikkei daily return rate 15 Q3` ~ `Dow daily return rate 15 Q3`, data = chart_rate15_Q3)
+mod15_Q3
+```
+
+
+### scatterplots 15_Q4
+
+```{r, echo=FALSE}
+Dow_rate15_Q4 <- as.data.frame(percent_func(Dowlist15_Q4))
+NKI_rate15_Q4 <- as.data.frame(percent_func(NKIlist15_Q4))
+chart_rate15_Q4 <- data.frame(Dow_rate15_Q4$`percent_func(Dowlist15_Q4)`, NKI_rate15_Q4$`percent_func(NKIlist15_Q4)`)
+colnames(chart_rate15_Q4)[1] <- "Dow daily return rate 15 Q4"
+colnames(chart_rate15_Q4)[2] <- "Nikkei daily return rate 15 Q4"
+```
+
+```{r, echo=FALSE, warning=FALSE}
+Beta_plot15_Q4 <- chart_rate15_Q4%>%
+  ggplot(aes(x= `Dow daily return rate 15 Q4`, y= `Nikkei daily return rate 15 Q4`)) + geom_point() + stat_summary(fun.data=mean_cl_normal) + 
+  geom_smooth(method='lm',formula=y~x)
+Beta_plot15_Q4
+```
+
+```{r, echo=FALSE}
+mod15_Q4<-lm(`Nikkei daily return rate 15 Q4` ~ `Dow daily return rate 15 Q4`, data = chart_rate15_Q4)
+mod15_Q4
+```
+
+
+### scatterplots 16_Q1
+
+```{r, echo=FALSE}
+Dow_rate16_Q1 <- as.data.frame(percent_func(Dowlist16_Q1))
+NKI_rate16_Q1 <- as.data.frame(percent_func(NKIlist16_Q1))
+chart_rate16_Q1 <- data.frame(Dow_rate16_Q1$`percent_func(Dowlist16_Q1)`, NKI_rate16_Q1$`percent_func(NKIlist16_Q1)`)
+colnames(chart_rate16_Q1)[1] <- "Dow daily return rate 16 Q1"
+colnames(chart_rate16_Q1)[2] <- "Nikkei daily return rate 16 Q1"
+```
+
+```{r, echo=FALSE, warning=FALSE}
+Beta_plot16_Q1 <- chart_rate16_Q1%>%
+  ggplot(aes(x= `Dow daily return rate 16 Q1`, y= `Nikkei daily return rate 16 Q1`)) + geom_point() + stat_summary(fun.data=mean_cl_normal) + 
+  geom_smooth(method='lm',formula=y~x)
+Beta_plot16_Q1
+```
+
+```{r, echo=FALSE}
+mod16_Q1<-lm(`Nikkei daily return rate 16 Q1` ~ `Dow daily return rate 16 Q1`, data = chart_rate16_Q1)
+mod16_Q1
+```
+
+
+### scatterplots 16_Q2
+
+```{r, echo=FALSE}
+Dow_rate16_Q2 <- as.data.frame(percent_func(Dowlist16_Q2))
+NKI_rate16_Q2 <- as.data.frame(percent_func(NKIlist16_Q2))
+chart_rate16_Q2 <- data.frame(Dow_rate16_Q2$`percent_func(Dowlist16_Q2)`, NKI_rate16_Q2$`percent_func(NKIlist16_Q2)`)
+colnames(chart_rate16_Q2)[1] <- "Dow daily return rate 16 Q2"
+colnames(chart_rate16_Q2)[2] <- "Nikkei daily return rate 16 Q2"
+```
+
+```{r, echo=FALSE, warning=FALSE}
+Beta_plot16_Q2 <- chart_rate16_Q2%>%
+  ggplot(aes(x= `Dow daily return rate 16 Q2`, y= `Nikkei daily return rate 16 Q2`)) + geom_point() + stat_summary(fun.data=mean_cl_normal) + 
+  geom_smooth(method='lm',formula=y~x)
+Beta_plot16_Q2
+```
+
+```{r, echo=FALSE}
+mod16_Q2<-lm(`Nikkei daily return rate 16 Q2` ~ `Dow daily return rate 16 Q2`, data = chart_rate16_Q2)
+mod16_Q2
+```
+
+
+### scatterplots 16_Q3
+
+```{r, echo=FALSE}
+Dow_rate16_Q3 <- as.data.frame(percent_func(Dowlist16_Q3))
+NKI_rate16_Q3 <- as.data.frame(percent_func(NKIlist16_Q3))
+chart_rate16_Q3 <- data.frame(Dow_rate16_Q3$`percent_func(Dowlist16_Q3)`, NKI_rate16_Q3$`percent_func(NKIlist16_Q3)`)
+colnames(chart_rate16_Q3)[1] <- "Dow daily return rate 16 Q3"
+colnames(chart_rate16_Q3)[2] <- "Nikkei daily return rate 16 Q3"
+```
+
+```{r, echo=FALSE, warning=FALSE}
+Beta_plot16_Q3 <- chart_rate16_Q3%>%
+  ggplot(aes(x= `Dow daily return rate 16 Q3`, y= `Nikkei daily return rate 16 Q3`)) + geom_point() + stat_summary(fun.data=mean_cl_normal) + 
+  geom_smooth(method='lm',formula=y~x)
+Beta_plot16_Q3
+```
+
+```{r, echo=FALSE}
+mod16_Q3<-lm(`Nikkei daily return rate 16 Q3` ~ `Dow daily return rate 16 Q3`, data = chart_rate16_Q3)
+mod16_Q3
+```
+
+
+
+
+### scatterplots 16_Q4
+
+```{r, echo=FALSE}
+Dow_rate16_Q4 <- as.data.frame(percent_func(Dowlist16_Q4))
+NKI_rate16_Q4 <- as.data.frame(percent_func(NKIlist16_Q4))
+chart_rate16_Q4 <- data.frame(Dow_rate16_Q4$`percent_func(Dowlist16_Q4)`, NKI_rate16_Q4$`percent_func(NKIlist16_Q4)`)
+colnames(chart_rate16_Q4)[1] <- "Dow daily return rate 16 Q4"
+colnames(chart_rate16_Q4)[2] <- "Nikkei daily return rate 16 Q4"
+```
+
+```{r, echo=FALSE, warning = FALSE}
+Beta_plot16_Q4 <- chart_rate16_Q4%>%
+  ggplot(aes(x= `Dow daily return rate 16 Q4`, y= `Nikkei daily return rate 16 Q4`)) + geom_point() + stat_summary(fun.data=mean_cl_normal) + 
+  geom_smooth(method='lm',formula=y~x)
+Beta_plot16_Q4
+```
+
+```{r, echo=FALSE}
+mod16_Q4<-lm(`Nikkei daily return rate 16 Q4` ~ `Dow daily return rate 16 Q4`, data = chart_rate16_Q4)
+mod16_Q4
+```
+
+```{r, echo=FALSE}
+dataframe_vol <- read.table(text = 
+  "Quarter       slope
+  07_Q2           0.5341
+  07_Q3           0.7450
+  07_Q4           0.8723
+  08_Q1           0.8199
+  08_Q2           0.4303
+  08_Q3           0.85949
+  08_Q4           0.49317
+  09_Q1           0.5449
+  09_Q2           0.48911
+  09_Q3           0.32046
+  09_Q4           0.63946
+  10_Q1           0.5653
+  10_Q2           0.58466
+  10_Q3           0.48290
+  10_Q4           1.2389
+  11_Q1           0.61105
+  11_Q2           0.33321
+  11_Q3           0.25864
+  11_Q4           0.3872
+  12_Q1           0.4939
+  12_Q2           0.66535
+  12_Q3           0.5666
+  12_Q4           0.8978
+  13_Q1           0.9277
+  13_Q2           1.21603
+  13_Q3           0.99975
+  13_Q4           1.0083
+  14_Q1           0.924244
+  14_Q2           0.2541
+  14_Q3           0.7357
+  14_Q4           0.3538
+  15_Q1           0.5085
+  15_Q2           1.03326
+  15_Q3           0.37329
+  15_Q4           0.8703
+  16_Q1           0.95151
+  16_Q2           0.59963
+  16_Q3           0.7534
+  16_Q4           0.8981", header = TRUE
+)
+
+```
+
+
+```{r}
+slope_only <- dataframe_vol$slope
+Average_till2012 <- mean(slope_only[1:22])
+Average_till2012
+Average_after2012 <- mean(slope_only[23:39])
+Average_after2012
+```
+
+```{r}
+plot_slope <- dataframe_vol%>%
+  ggplot(aes(x = Quarter, y = slope)) + geom_line(aes(group=1)) + theme(axis.text.x=element_text(angle=90, hjust=1)) + geom_vline(xintercept = 22)
+plot_slope
+```
+
+
+###CAPM process
+
+```{r}
+BETA <- unlist(as.list(dataframe_vol$slope))
+str(BETA)
+```
+
+```{r}
+LIBOR_rate <- unlist(as.list(as.numeric(as.character(full_chart$USD3MTD156N))))
+```
+
+```{r}
+fy_full <- Inner_chartc %>%
+  filter(row_number() >= 1 & row_number() <= 2405)
+Dowfull <- fy_full%>%
+  select(`The Global Dow`)
+NKIfull <- fy_full%>%
+  select(NIKKEI225)
+```
+
+```{r}
+Dowlist <- as.list(as.data.frame(Dowfull))
+NKIlist <- as.list(as.data.frame(NKIfull))
+```
+
+```{r}
+Dow_fullrate <- percent_func(Dowlist)
+NKI_fullrate <- percent_func(NKIlist)
+DFR07Q2 <- Dow_fullrate[2:83]
+NKI07Q2 <- NKI_fullrate[2:83]
+DFR07Q3 <- Dow_fullrate[85:145]
+NKI07Q3 <- NKI_fullrate[85:145]
+DFR07Q4 <- Dow_fullrate[146:205]
+NKI07Q4 <- NKI_fullrate[146:205]
+DFR08Q1 <- Dow_fullrate[205:267]
+NKI08Q1 <- NKI_fullrate[205:267]
+DFR07Q2[83]
+```
+
+
+```{r}
+percent_func <- function(x){       #x is the name of the list
+  a <- 1
+  b <- numeric()
+  while(length(x[1][[1]]) >= a){
+    d <- (x[1][[1]][a+1]-x[1][[1]][a])/x[1][[1]][a] #this is (Today's stock price - yesterday's stock price)/(yesterday's stock price)
+    k <- d*100 #in order to get ratio I multiplied 100
+    b <- append(b, k)
+    a <- a + 1
+  }
+  return(b)
+}
+```
+
+
+```{r}
+CAPM_func <- function(x, y, z, p){#x is risk free rate list, y is beta list, z is market list and p is quarter restriction number
+  c <- 1
+  j <- numeric()
+  while(c <= p){
+    t <- x[c][1] + y[1]*(z[c]-x[c][1])
+    j <- append(j, t)
+    c <- c + 1
+  }
+  return(j)
+}
+```
+
+```{r}
+
+```
+
+```{r}
+I <- CAPM_func(LIBOR_rate, BETA, DFR07Q2, 82)
+I1 <- as.data.frame(I)
+```
+
+###Comparing with other data
+
+
+<!-- #####Interest Rate -->
+
+<!-- ```{r} -->
+<!-- JPIR <- read.csv("~/Desktop/research data/IR.csv") -->
+<!-- JPIR_list <- unlist(as.list(as.numeric(as.character(JPIR$INTGSBJPM193N)))) -->
+<!-- JPIR_list <-JPIR_list[-c(1,2)] -->
+<!-- JPIR_list[1] -->
+<!-- ``` -->
+
+
+<!-- #####currency -->
+<!-- ```{r} -->
+<!-- currencyUS <- read.csv("~/Desktop/research data/MCRU.csv") -->
+<!-- currencyUS_list <- unlist(as.list(as.numeric(as.character(currencyUS$EXJPUS)))) -->
+<!-- currencyUS_list <- currencyUS_list[-c(1,2)] -->
+<!-- ``` -->
+
+
+<!-- #####BoJ holding JGB -->
+<!-- ```{r} -->
+<!-- BOJ_bond_holding <- read.csv("~/Desktop/research data/JGB by BOJ.csv") -->
+<!-- BOJ_list <- unlist(as.list(as.numeric(as.character(BOJ_bond_holding$Monthly.purchase.of.JGB.by.BoJ...Amount...Book.Value..Trillion.Yen)))) -->
+<!-- BOJ_list <- BOJ_list[-c(1,2)] -->
+<!-- BOJ_list <- append(c(0,0,0,0,0,0,0,0,0),BOJ_list) -->
+<!-- ``` -->
+
+
+<!-- ```{r} -->
+<!-- Quarter_func <- function(x){ -->
+<!--   i <- 1 -->
+<!--   u <- numeric() -->
+<!--   while(length(x) > i){ -->
+<!--   s <- c(x[i], x[i+1], x[i+2]) -->
+<!--   v <- mean(s) -->
+<!--   u <- append(u, v) -->
+<!--   i <- i + 3 -->
+<!--   } -->
+<!-- return(u) -->
+<!-- } -->
+<!-- ``` -->
+
+
+<!-- ```{r} -->
+<!-- JPIR_Qlist<-Quarter_func(JPIR_list) -->
+<!-- currencyUS_Qlist <- Quarter_func(currencyUS_list) -->
+<!-- BOJ_Qlist <- Quarter_func(BOJ_list) -->
+<!-- JPIR_Qlist <- JPIR_Qlist[-40] -->
+<!-- currencyUS_Qlist <- currencyUS_Qlist[-40] -->
+<!-- BOJ_Qlist <- BOJ_Qlist[-40] -->
+<!-- df <- data.frame(BETA,JPIR_Qlist, currencyUS_Qlist, BOJ_Qlist) -->
+<!-- df <- df %>% -->
+<!--   mutate(slope=BETA)%>% -->
+<!--   select(-BETA) -->
+
+<!-- df_compare <- dataframe_vol %>% -->
+<!--   inner_join(df, by="slope") -->
+<!-- head(df_compare) -->
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- df_JPIR <- df_compare %>% -->
+<!--   select(slope, JPIR_Qlist) -->
+
+<!-- df_currency <- df_compare %>% -->
+<!--   select(slope, currencyUS_Qlist) -->
+
+<!-- df_BOJ <- df_compare %>% -->
+<!--   select(slope, BOJ_Qlist)%>% -->
+<!--   filter(BOJ_Qlist > 0) -->
+
+<!-- ``` -->
+
+
+
+<!-- ###relationship between Japanese stock volatility and Interest rate -->
+
+<!-- ```{r} -->
+<!-- JPIR_plot <- df_JPIR %>% -->
+<!--   ggplot(aes(x=JPIR_Qlist, y=slope)) + geom_point() -->
+<!-- JPIR_plot -->
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- JPIR_correlation <- cor(df_JPIR$JPIR_Qlist, df_JPIR$slope) -->
+<!-- JPIR_correlation -->
+<!-- ``` -->
+
+<!-- ###relationship between Japanese stock volatility and currency -->
+
+<!-- ```{r} -->
+<!-- currency_plot <- df_currency %>% -->
+<!--   ggplot(aes(x=currencyUS_Qlist, y=slope)) + geom_point() -->
+<!-- currency_correlation <- cor(df_currency$currencyUS_Qlist, df_currency$slope) -->
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- currency_plot -->
+<!-- currency_correlation -->
+<!-- ``` -->
+
+
+<!-- ###relationship between Japanese stock volatility and amount of JGB that BoJ holding -->
+
+<!-- ```{r} -->
+<!-- BOJ_plot <- df_BOJ%>% -->
+<!--   ggplot(aes(x=BOJ_Qlist, y=slope)) + geom_point() -->
+<!-- BOJ_correlation <- cor(df_BOJ$BOJ_Qlist, df_BOJ$slope) -->
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- BOJ_plot -->
+<!-- BOJ_correlation -->
+<!-- ``` -->
+

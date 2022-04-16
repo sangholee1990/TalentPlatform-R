@@ -1,0 +1,665 @@
+---
+title: "HW10_Tulip"
+date: "Submission date: `r Sys.setlocale('LC_TIME','C'); format(Sys.Date(), format='%B %d, %Y')`"
+output:
+ rmdformats::readthedown:
+  highlight: kate
+  self_contained: true
+  gallery: true
+  lightbox: true
+  number_section: true
+  toc_depth: 6
+subtitle: "<p><font size='4'><span style='line-height: 100%'> 
+  이종호, 배광원, 정지영 </span></font></p>"
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r include=FALSE, warning=FALSE}
+
+library(GGally)
+library(gridExtra)
+library(mosaic)
+library(mosaicData)
+library(reactable)
+library(rmarkdown)
+library(tidyverse)
+library(ggpubr)
+```
+
+# 종속변수 선정
+## 상권 자료(market) 범주 설명_지영님
+
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+market <- readr::read_csv("./market.csv", locale=locale(encoding="EUC-KR"))
+paged_table(market)
+
+code <- readr::read_csv("code.csv", locale=locale(encoding="EUC-KR")) %>%
+  select(-코드_2) %>% rename("코드"="코드_1")
+
+marche <- market %>% unite("연도_분기", 기준_년_코드, 기준_분기_코드) %>%
+  filter(연도_분기 %in% "2019_4") %>%
+  mutate(운영개월 = 서울_운영_영업_개월_평균 - 운영_영업_개월_평균,
+         폐업개월 = -(서울_폐업_영업_개월_평균 - 폐업_영업_개월_평균),
+         영업지수 = 운영개월 + 폐업개월) %>%
+  select(-상권_변화_지표_명, -운영_영업_개월_평균, -폐업_영업_개월_평균,
+         -서울_운영_영업_개월_평균, -서울_폐업_영업_개월_평균,
+         -보정영업지수2, -보정영업지수3, -보정영업지수4) %>%
+  rename("행정동"="행정동_코드_명", "코드"="행정동_코드", "보정영업지수"="보정영업지수1")
+
+markt <- left_join(marche, code, by="코드") %>%
+  select(-행정동.x) %>%
+  unite("자치구_행정동", 구, 행정동.y) %>%
+  relocate(연도_분기, 코드, 자치구_행정동, 상권_변화_지표, 운영개월, 폐업개월, 영업지수)
+paged_table(markt)
+```
+<br>
+<br>
+
+## 영업지수 지표 설명_광원님
+
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+ggplot(markt, aes(x=운영개월, y=폐업개월))+
+  geom_point(mapping=aes(color=상권_변화_지표))+
+  scale_color_manual(values=c("palevioletred2", "lightgoldenrod", "seagreen3", "slateblue"))+
+  theme_minimal()+theme(legend.position=c(0.9, 0.5))
+
+einfach1 <- ggplot(data=markt, mapping=aes(x=reorder(자치구_행정동, 영업지수), y=영업지수, fill=상권_변화_지표))+
+  scale_fill_manual(values=c("palevioletred2", "lightgoldenrod", "seagreen3", "slateblue"))+
+  geom_bar(stat="identity")+
+  theme(axis.text.x=element_blank())+
+  theme(legend.position=c(0.85, 0.2))
+
+einfach2 <- ggplot(data=markt, mapping=aes(x=reorder(자치구_행정동, 보정영업지수), y=보정영업지수, fill=상권_변화_지표))+
+  scale_fill_manual(values=c("palevioletred2", "lightgoldenrod", "seagreen3", "slateblue"))+
+  geom_bar(stat="identity")+
+  theme(axis.text.x=element_blank())+
+  theme(legend.position=c(0.85, 0.2))
+
+grid.arrange(einfach1, einfach2, ncol=2)
+```
+<br>
+<br>
+
+# 독립변수 설정
+## 서비스업 유형 자료(business_type)_광원님
+
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+type <- readr::read_csv("business_type.csv", locale=locale(encoding="EUC-KR"))
+paged_table(type)
+
+sorte <- type %>%
+  filter(!(행정동 %in% c("행정동", "합계", "소계"))) %>%
+  select(-사업체수_1, -종사자수_1, -종사자수_2) %>%
+  unite("자치구_행정동", 구, 행정동) %>%
+  rename("D.전기가스공급업_사업체수"="D. 전기 가스 증기 및 공기조절 공급업",
+         "D.전기가스공급업_종사자수"="D. 전기 가스 증기 및 공기조절 공급업_1",
+         "E.수도하수재생업_사업체수"="E. 수도 하수 및 폐기물 처리 원료 재생업",
+         "E.수도하수재생업_종사자수"="E. 수도 하수 및 폐기물 처리 원료 재생업_1",
+         "F.건설업_사업체수"="F. 건설업", "F.건설업_종사자수"="F. 건설업_1",
+         "G.도소매업_사업체수"="G. 도매 및 소매업", "G.도소매업_종사자수"="G. 도매 및 소매업_1",
+         "H.운수창고업_사업체수"="H. 운수 및 창고업", "H.운수창고업_종사자수"="H. 운수 및 창고업_1",
+         "I.숙박요식업_사업체수"="I. 숙박 및 음식점업", "I.숙박요식업_종사자수"="I. 숙박 및 음식점업_1",
+         "J.정보통신업_사업체수"="J. 정보통신업", "J.정보통신업_종사자수"="J. 정보통신업_1",
+         "K.금융보험업_사업체수"="K. 금융 및 보험업", "K.금융보험업_종사자수"="K. 금융 및 보험업_1",
+         "L.부동산업_사업체수"="L. 부동산업", "L.부동산업_종사자수"="L. 부동산업_1",
+         "M.전문과학기술업_사업체수"="M. 전문 과학 및 기술 서비스업",
+         "M.전문과학기술업_종사자수"="M. 전문 과학 및 기술 서비스업_1",
+         "N.사업시설관리임대업_사업체수"="N. 사업시설 관리 사업 지원 및 임대 서비스업",
+         "N.사업시설관리임대업_종사자수"="N. 사업시설 관리 사업 지원 및 임대 서비스업_1",
+         "O.공공행정국방업_사업체수"="O. 공공행정 국방 및 사회보장 행정",
+         "O.공공행정국방업_종사자수"="O. 공공행정 국방 및 사회보장 행정_1",
+         "P.교육서비스업_사업체수"="P. 교육 서비스업", "P.교육서비스업_종사자수"="P. 교육 서비스업_1",
+         "Q.보건사회복지서비스업_사업체수"="Q. 보건업 및 사회복지 서비스업",
+         "Q.보건사회복지서비스업_종사자수"="Q. 보건업 및 사회복지 서비스업_1",
+         "R.예술체육여가서비스업_사업체수"="R. 예술 스포츠 및 여가관련 서비스업",
+         "R.예술체육여가서비스업_종사자수"="R. 예술 스포츠 및 여가관련 서비스업_1",
+         "S.기타개인서비스업_사업체수"="S. 협회 및 단체 수리 및 기타 개인 서비스업",
+         "S.기타개인서비스업_종사자수"="S. 협회 및 단체 수리 및 기타 개인 서비스업_1") %>%
+  mutate(사업체수=str_replace(사업체수, ",", ""), 종사자수=str_replace(종사자수, ",", ""),
+         D.전기가스공급업_사업체수=str_replace(D.전기가스공급업_사업체수, ",", ""),
+         D.전기가스공급업_종사자수=str_replace(D.전기가스공급업_종사자수, ",", ""),
+         E.수도하수재생업_사업체수=str_replace(E.수도하수재생업_사업체수, ",", ""),
+         E.수도하수재생업_종사자수=str_replace(E.수도하수재생업_사업체수, ",", ""),
+         F.건설업_사업체수=str_replace(F.건설업_사업체수, ",", ""),
+         F.건설업_종사자수=str_replace(F.건설업_종사자수, ",", ""),
+         G.도소매업_사업체수=str_replace(G.도소매업_사업체수, ",", ""),
+         G.도소매업_종사자수=str_replace(G.도소매업_종사자수, ",", ""),
+         H.운수창고업_사업체수=str_replace(H.운수창고업_사업체수, ",", ""),
+         H.운수창고업_종사자수=str_replace(H.운수창고업_종사자수, ",", ""),
+         I.숙박요식업_사업체수=str_replace(I.숙박요식업_사업체수, ",", ""),
+         I.숙박요식업_종사자수=str_replace(I.숙박요식업_종사자수, ",", ""),
+         J.정보통신업_사업체수=str_replace(J.정보통신업_사업체수, ",", ""),
+         J.정보통신업_종사자수=str_replace(J.정보통신업_종사자수, ",", ""),
+         K.금융보험업_사업체수=str_replace(K.금융보험업_사업체수, ",", ""),
+         K.금융보험업_종사자수=str_replace(K.금융보험업_종사자수, ",", ""),
+         L.부동산업_사업체수=str_replace(L.부동산업_사업체수, ",", ""),
+         L.부동산업_종사자수=str_replace(L.부동산업_종사자수, ",", ""),
+         M.전문과학기술업_사업체수=str_replace(M.전문과학기술업_사업체수, ",", ""),
+         M.전문과학기술업_종사자수=str_replace(M.전문과학기술업_종사자수, ",", ""),
+         N.사업시설관리임대업_사업체수=str_replace(N.사업시설관리임대업_사업체수, ",", ""),
+         N.사업시설관리임대업_종사자수=str_replace(N.사업시설관리임대업_종사자수, ",", ""),
+         O.공공행정국방업_사업체수=str_replace(O.공공행정국방업_사업체수, ",", ""),
+         O.공공행정국방업_종사자수=str_replace(O.공공행정국방업_종사자수, ",", ""),
+         P.교육서비스업_사업체수=str_replace(P.교육서비스업_사업체수, ",", ""),
+         P.교육서비스업_종사자수=str_replace(P.교육서비스업_종사자수, ",", ""),
+         Q.보건사회복지서비스업_사업체수=str_replace(Q.보건사회복지서비스업_사업체수, ",", ""),
+         Q.보건사회복지서비스업_종사자수=str_replace(Q.보건사회복지서비스업_종사자수, ",", ""),
+         R.예술체육여가서비스업_사업체수=str_replace(R.예술체육여가서비스업_사업체수, ",", ""),
+         R.예술체육여가서비스업_종사자수=str_replace(R.예술체육여가서비스업_종사자수, ",", ""),
+         S.기타개인서비스업_사업체수=str_replace(S.기타개인서비스업_사업체수, ",", ""),
+         S.기타개인서비스업_종사자수=str_replace(S.기타개인서비스업_종사자수, ",", ""))
+
+sorte$사업체수 <- as.numeric(sorte$사업체수)
+sorte$종사자수 <- as.numeric(sorte$종사자수)
+sorte$D.전기가스공급업_사업체수 <- as.numeric(sorte$D.전기가스공급업_사업체수)
+sorte$D.전기가스공급업_종사자수 <- as.numeric(sorte$D.전기가스공급업_종사자수)
+sorte$E.수도하수재생업_사업체수 <- as.numeric(sorte$E.수도하수재생업_사업체수)
+sorte$E.수도하수재생업_종사자수 <- as.numeric(sorte$E.수도하수재생업_종사자수)
+sorte$F.건설업_사업체수 <- as.numeric(sorte$F.건설업_사업체수)
+sorte$F.건설업_종사자수 <- as.numeric(sorte$F.건설업_종사자수)
+sorte$G.도소매업_사업체수 <- as.numeric(sorte$G.도소매업_사업체수)
+sorte$G.도소매업_종사자수 <- as.numeric(sorte$G.도소매업_종사자수)
+sorte$H.운수창고업_사업체수 <- as.numeric(sorte$H.운수창고업_사업체수)
+sorte$H.운수창고업_종사자수 <- as.numeric(sorte$H.운수창고업_종사자수)
+sorte$I.숙박요식업_사업체수 <- as.numeric(sorte$I.숙박요식업_사업체수)
+sorte$I.숙박요식업_종사자수 <- as.numeric(sorte$I.숙박요식업_종사자수)
+sorte$J.정보통신업_사업체수 <- as.numeric(sorte$J.정보통신업_사업체수)
+sorte$J.정보통신업_종사자수 <- as.numeric(sorte$J.정보통신업_종사자수)
+sorte$K.금융보험업_사업체수 <- as.numeric(sorte$K.금융보험업_사업체수)
+sorte$K.금융보험업_종사자수 <- as.numeric(sorte$K.금융보험업_종사자수)
+sorte$L.부동산업_사업체수 <- as.numeric(sorte$L.부동산업_사업체수)
+sorte$L.부동산업_종사자수 <- as.numeric(sorte$L.부동산업_종사자수)
+sorte$M.전문과학기술업_사업체수 <- as.numeric(sorte$M.전문과학기술업_사업체수)
+sorte$M.전문과학기술업_종사자수 <- as.numeric(sorte$M.전문과학기술업_종사자수)
+sorte$N.사업시설관리임대업_사업체수 <- as.numeric(sorte$N.사업시설관리임대업_사업체수)
+sorte$N.사업시설관리임대업_종사자수 <- as.numeric(sorte$N.사업시설관리임대업_종사자수)
+sorte$O.공공행정국방업_사업체수 <- as.numeric(sorte$O.공공행정국방업_사업체수)
+sorte$O.공공행정국방업_종사자수 <- as.numeric(sorte$O.공공행정국방업_종사자수)
+sorte$P.교육서비스업_사업체수 <- as.numeric(sorte$P.교육서비스업_사업체수)
+sorte$P.교육서비스업_종사자수 <- as.numeric(sorte$P.교육서비스업_종사자수)
+sorte$Q.보건사회복지서비스업_사업체수 <- as.numeric(sorte$Q.보건사회복지서비스업_사업체수)
+sorte$Q.보건사회복지서비스업_종사자수 <- as.numeric(sorte$Q.보건사회복지서비스업_종사자수)
+sorte$R.예술체육여가서비스업_사업체수 <- as.numeric(sorte$R.예술체육여가서비스업_사업체수)
+sorte$R.예술체육여가서비스업_종사자수 <- as.numeric(sorte$R.예술체육여가서비스업_종사자수)
+sorte$S.기타개인서비스업_사업체수 <- as.numeric(sorte$S.기타개인서비스업_사업체수)
+sorte$S.기타개인서비스업_종사자수 <- as.numeric(sorte$S.기타개인서비스업_종사자수)
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+par(mfrow=c(1,3), cex=.5)
+
+plot(log(sorte$종사자수), log(sorte$G.도소매업_종사자수+1), col="white", ylim=c(0,10.5),
+     xlab="전체 종사자수", ylab="해당 업종 종사자수")
+abline(lm(log(sorte$G.도소매업_종사자수+1)~log(sorte$종사자수)), col="orange")
+abline(lm(log(sorte$I.숙박요식업_종사자수+1)~log(sorte$종사자수)), col="palegoldenrod")
+abline(lm(log(sorte$L.부동산업_종사자수+1)~log(sorte$종사자수)), col="peachpuff2")
+abline(lm(log(sorte$R.예술체육여가서비스업_종사자수+1)~log(sorte$종사자수)), col="yellow2")
+abline(lm(log(sorte$S.기타개인서비스업_종사자수+1)~log(sorte$종사자수)), col="yellow4")
+legend("topleft", legend=c("G.도소매업", "I.숙박요식업", "L.부동산업",
+                               "R.예술체육여가서비스업", "S.기타개인서비스업"), 
+       col=c("orange", "palegoldenrod", "peachpuff2", "yellow2", "yellow4"), lty=1)
+
+plot(log(sorte$종사자수), log(sorte$M.전문과학기술업_종사자수+1), col="white", ylim=c(0,10.5),
+     xlab="전체 종사자수", ylab="해당 업종 종사자수")
+abline(lm(log(sorte$F.건설업_종사자수+1)~log(sorte$종사자수)), col="yellowgreen")
+abline(lm(log(sorte$J.정보통신업_종사자수+1)~log(sorte$종사자수)), col="seagreen")
+abline(lm(log(sorte$K.금융보험업_종사자수+1)~log(sorte$종사자수)), col="springgreen4")
+abline(lm(log(sorte$M.전문과학기술업_종사자수+1)~log(sorte$종사자수)), col="turquoise")
+abline(lm(log(sorte$N.사업시설관리임대업_종사자수+1)~log(sorte$종사자수)), col="skyblue2")
+legend("topleft", legend=c("F.건설업", "J.정보통신업", "K.금융보험업",
+                               "M.전문과학기술업", "N.사업시설관리임대업"), 
+       col=c("yellowgreen", "seagreen", "springgreen4", "turquoise", "skyblue2"), lty=1)
+
+plot(log(sorte$종사자수), log(sorte$P.교육서비스업_종사자수+1), col="white", ylim=c(0,10.5),
+     xlab="전체 종사자수", ylab="해당 업종 종사자수")
+abline(lm(log(sorte$D.전기가스공급업_종사자수+1)~log(sorte$종사자수)), col="lightpink")
+abline(lm(log(sorte$E.수도하수재생업_종사자수+1)~log(sorte$종사자수)), col="lightcoral")
+abline(lm(log(sorte$H.운수창고업_종사자수+1)~log(sorte$종사자수)), col="salmon2")
+abline(lm(log(sorte$O.공공행정국방업_종사자수+1)~log(sorte$종사자수)), col="royalblue2")
+abline(lm(log(sorte$P.교육서비스업_종사자수+1)~log(sorte$종사자수)), col="slateblue")
+abline(lm(log(sorte$Q.보건사회복지서비스업_종사자수+1)~log(sorte$종사자수)), col="mediumorchid4")
+legend("topleft", legend=c("D.전기가스공급업", "E.수도하수재생업", "H.운수창고업",
+                               "O.공공행정국방업", "P.교육서비스업", "Q.보건사회복지서비스업"), 
+       col=c("lightpink", "lightcoral", "salmon2", "royalblue2", "slateblue", "mediumorchid4"), lty=1)
+```
+<br>
+<br>
+
+## 사업체수와 종사자밀도비 자료(business_number)_지영님
+
+<br>
+<br>
+
+## 사업체 영업기간 자료(business_age)_지영님
+
+<br>
+<br>
+
+## 사업체 창업률 자료(business_founding)_종호님
+### 하단 "3.5 사업체 창업률 자료 정리_종호님" 추가
+<br>
+<br>
+
+## 자영업 종사자수 자료(business_private)_종호님
+### 하단 "3.6 자영업 종사자수 자료 정리_종호님" 추가
+<br>
+<br>
+
+## 생계형사업 종사자수 자료(business_living)_지영님
+
+<br>
+<br>
+
+# 단순회귀분석 실시
+## 산점도로 변수 조망_광원님
+<!-- ![](./scatterplot.png) -->
+<br>
+<br>
+
+## 서비스업 유형 자료_광원님
+
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+sorte[is.na(sorte)] <- 0
+
+gattung <- sorte %>%
+  mutate(소비자서비스업 = G.도소매업_종사자수 + I.숙박요식업_종사자수 +
+           L.부동산업_종사자수 + R.예술체육여가서비스업_종사자수 + S.기타개인서비스업_종사자수,
+         생산자서비스업 = F.건설업_종사자수 + J.정보통신업_종사자수 +
+           K.금융보험업_종사자수 + M.전문과학기술업_종사자수 + N.사업시설관리임대업_종사자수,
+         전체서비스업 = 소비자서비스업 + 생산자서비스업,
+         소비자서비스업비율 = 소비자서비스업 / 전체서비스업,
+         생산자서비스업비율 = 생산자서비스업 / 전체서비스업) %>%
+  select(자치구_행정동, 종사자수, 소비자서비스업비율, 생산자서비스업비율, 소비자서비스업, 생산자서비스업)
+
+alpha <- left_join(markt, gattung, by="자치구_행정동") %>% 
+  mutate(보정영업지수1 = 보정영업지수 + 5) %>%
+  select(-종사자수, -보정영업지수) %>%
+  rename("보정영업지수"="보정영업지수1")
+paged_table(alpha)
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+par(mfrow=c(1,2), cex=.6)
+
+plot(alpha$소비자서비스업비율, log(alpha$보정영업지수),
+     xlab="소비자서비스업 종사자비율", ylab="보정영업지수")
+abline(lm(log(alpha$보정영업지수)~alpha$소비자서비스업비율), col="slateblue")
+
+plot(alpha$생산자서비스업비율, log(alpha$보정영업지수),
+     xlab="생산자서비스업 종사자비율", ylab="보정영업지수")
+abline(lm(log(alpha$보정영업지수)~alpha$생산자서비스업비율), col="deeppink")
+
+summary(lm(log(보정영업지수)~소비자서비스업비율, alpha))
+summary(lm(log(보정영업지수)~생산자서비스업비율, alpha))
+```
+<br>
+<br>
+
+## 사업체수 자료 정리_지영님
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+number <- readr::read_csv("business_number.csv", locale=locale(encoding="EUC-KR"))
+paged_table(number)
+
+nombre <- number %>%
+  select(구, 행정동, 사업체수, 평균종사자, 종사자밀도비) %>%
+  unite("자치구_행정동", 구, 행정동)
+
+beta <- left_join(alpha, nombre, by="자치구_행정동")
+paged_table(beta)
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+par(mfrow=c(1,3), cex=.5)
+
+plot(log(beta$사업체수), log(beta$보정영업지수),
+     xlab="log(사업체수)", ylab="보정영업지수")
+abline(lm(log(beta$보정영업지수)~log(beta$사업체수)), col="slateblue")
+
+plot(log(beta$평균종사자), log(beta$보정영업지수),
+     xlab="log(평균종사자)", ylab="보정영업지수")
+abline(lm(log(beta$보정영업지수)~log(beta$평균종사자)), col="deeppink")
+
+plot(log(beta$종사자밀도비), log(beta$보정영업지수),
+     xlab="log(종사자밀도비)", ylab="보정영업지수")
+abline(lm(log(beta$보정영업지수)~log(beta$종사자밀도비)), col="lightseagreen")
+
+summary(lm(log(보정영업지수)~log(사업체수), beta))
+summary(lm(log(보정영업지수)~log(평균종사자), beta))
+summary(lm(log(보정영업지수)~log(종사자밀도비), beta))
+```
+<br>
+<br>
+
+## 사업체 영업기간 자료 정리_지영님
+
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+age <- readr::read_csv("business_age.csv", locale=locale(encoding="EUC-KR"))
+paged_table(age)
+
+annee <- age %>%
+  separate(사업체_평균연령, into=c("연", "개월"), sep="년", convert=T) %>%
+  separate(개월, into=c("숫자", "문자"), sep="개월", convert=T) %>%
+  select(-문자) %>% mutate(월 = 숫자/12) %>%
+  select(-숫자) %>% mutate(사업체_영업기간 = 연 + 월) %>%
+  select(-연, -월) %>% filter(!(행정동 %in% c("합계", "소계"))) %>%
+  unite("자치구_행정동", 구, 행정동)
+
+gamma <- left_join(beta, annee, by="자치구_행정동") %>%
+  select(-사업체수.y, -평균종사자.y, -종사자수) %>%
+  rename("사업체수"="사업체수.x", "평균종사자"="평균종사자.x") %>%
+  relocate(연도_분기, 코드, 자치구_행정동, 상권_변화_지표, 운영개월, 폐업개월, 영업지수, 보정영업지수,
+           소비자서비스업비율, 생산자서비스업비율, 사업체수, 평균종사자, 종사자밀도비, 사업체_영업기간)
+paged_table(gamma)
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+plot(gamma$사업체_영업기간, log(gamma$보정영업지수),
+     xlab="사업체 영업기간", ylab="보정영업지수")
+abline(lm(log(gamma$보정영업지수)~gamma$사업체_영업기간), col="slateblue")
+
+summary(lm(log(gamma$보정영업지수)~gamma$사업체_영업기간))
+```
+
+
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+# 3.4 사업체 영업기간 자료(business_age) -> 종호님
+# 3.4.1 변수와 종속변수와의 관계 관찰 -> 유의미
+ggData = gamma %>% 
+  dplyr::mutate(
+    x = 사업체_영업기간
+    , y = log(보정영업지수)
+  )
+
+lmFit = lm(y ~ x, data = ggData)
+summary(lmFit)
+
+
+# 연도 분기에 따른 사업체 영업기간 및 보정영업지수의 상관 분석
+# 상관계수는 -0.24 (음의 상관계수)로서 0.001 이하의 유의수준을 보임
+ggpubr::ggscatter(
+  ggData, x = "x", y = "y", color = "연도_분기"
+  , add = "reg.line", conf.int = TRUE, scales = "free_x"
+  , facet.by = "연도_분기"
+  , add.params = list(color = "black", fill = "lightgray")
+) +
+  labs(
+    title = NULL
+    , x = "사업체 영업기간"
+    , y = "보정영업지수"
+    , subtitle = "연도 분기에 따른 사업체 영업기간 및 보정영업지수의 상관 분석"
+  ) +
+  ggpubr::stat_regline_equation(label.x.npc = 0.0, label.y.npc = 0.25) +
+  ggpubr::stat_cor(label.x.npc = 0.0, label.y.npc = 0.1) +
+  theme(text = element_text(size = 14))
+
+
+# 상권 변화 지표에 따른 사업체 영업기간 및 보정영업지수의 상관 분석
+# 상권 변화 지표에 따라 상관 분석 결과 HL의 경우 타 지표에 비해 양의 상관계수를 
+# 보일 뿐만 아니라 0.87로서 유의하지 않는 결과를 보였다.
+# 반면에 LH,LL의 경우 음의 상관계수 및 90% 신뢰구간 하에서 통계적으로 유의한 결과를 보였다.
+ggpubr::ggscatter(
+  ggData, x = "x", y = "y", color = "상권_변화_지표"
+  , add = "reg.line", conf.int = TRUE, scales = "free_x"
+  , facet.by = "상권_변화_지표"
+  , add.params = list(color = "black", fill = "lightgray")
+) +
+  labs(
+    title = NULL
+    , x = "사업체 영업기간"
+    , y = "보정영업지수"
+    , subtitle = "상권 변화 지표에 따른 사업체 영업기간 및 보정영업지수의 상관 분석"
+  ) +
+  ggpubr::stat_regline_equation(label.x.npc = 0.0, label.y.npc = 0.25) +
+  ggpubr::stat_cor(label.x.npc = 0.0, label.y.npc = 0.1) +
+  theme(text = element_text(size = 14))
+```
+<br>
+<br>
+
+
+
+## 사업체 창업률 자료 정리_종호님
+
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+founding <- readr::read_csv("business_founding.csv", locale=locale(encoding="EUC-KR"))
+paged_table(founding)
+
+fondation <- founding %>%
+  filter(!(행정동 %in% c("합계", "소계"))) %>%
+  unite("자치구_행정동", 구, 행정동)
+
+delta <- left_join(gamma, fondation, by="자치구_행정동") %>%
+  select(-사업체수.y, -평균종사자.y, -종사자수) %>%
+  rename("사업체수"="사업체수.x", "평균종사자"="평균종사자.x")
+paged_table(delta)
+
+
+# 2.4.1 변수 설명: 신규진입하는 사업자가 많으면 창업률은 당연히 높을 것.
+# 서비스 증가 > 시장에 신규진입하기 용이한 업종 증가 > 신규진입하는 사용자 증가 > 창업률 증가
+
+# 즉 생산자/소비자 서비스업 및 사업체 창업률는 각각 0.198 및 0.241의 양의 상관성을 지님
+# 특히 생산자보다 소비자에 대한 관계성이 있음
+delta %>% 
+  dplyr::select(생산자서비스업, 생산자서비스업비율, 소비자서비스업, 소비자서비스업비율, 사업체_창업률) %>% 
+  GGally::ggpairs(.) +
+  theme(text = element_text(size = 18))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+plot(delta$사업체_창업률, log(delta$보정영업지수),
+     xlab="사업체 창업률", ylab="보정영업지수")
+abline(lm(log(delta$보정영업지수)~delta$사업체_창업률), col="slateblue")
+
+summary(lm(log(delta$보정영업지수)~delta$사업체_창업률))
+
+ggData = delta %>% 
+  dplyr::mutate(
+    x = log(사업체_창업률)
+    , y = log(보정영업지수)
+    )
+
+lmFit = lm(y ~ x, data = ggData)
+summary(lmFit)
+
+# cor(ggData$x, ggData$y)
+
+# 연도 분기에 따른 사업체 창업률 및 보정영업지수의 상관 분석
+# 상관계수는 0.33 (양의 상관계수)로서 0.001 이하의 유의수준을 보임
+ggpubr::ggscatter(
+  ggData, x = "x", y = "y", color = "연도_분기"
+  , add = "reg.line", conf.int = TRUE, scales = "free_x"
+  , facet.by = "연도_분기"
+  , add.params = list(color = "black", fill = "lightgray")
+) +
+  labs(
+    title = NULL
+    , x = "사업체 창업률"
+    , y = "보정영업지수"
+    , subtitle = "연도 분기에 따른 사업체 창업률 및 보정영업지수의 상관 분석"
+  ) +
+  ggpubr::stat_regline_equation(label.x.npc = 0.0, label.y.npc = 0.25) +
+  ggpubr::stat_cor(label.x.npc = 0.0, label.y.npc = 0.1) +
+  theme(text = element_text(size = 14))
+
+
+# 상권 변화 지표에 따른 사업체 창업률 및 보정영업지수의 상관 분석
+# 상권 변화 지표에 따라 상관 분석 결과 모든 지표에 비해 양의 상관계수를 보임
+# 특히 HL의 경우 P값 0.54로서 통계적으로 유의하지 않은 반면 타 지표는 90% 신뢰구간 하에서 통계적으로 유의한 결과를 보였다.
+ggpubr::ggscatter(
+  ggData, x = "x", y = "y", color = "상권_변화_지표"
+  , add = "reg.line", conf.int = TRUE, scales = "free_x"
+  , facet.by = "상권_변화_지표"
+  , add.params = list(color = "black", fill = "lightgray")
+) +
+  labs(
+    title = NULL
+    , x = "사업체 창업률"
+    , y = "보정영업지수"
+    , subtitle = "상권 변화 지표에 따른 사업체 창업률 및 보정영업지수의 상관 분석"
+  ) +
+  ggpubr::stat_regline_equation(label.x.npc = 0.0, label.y.npc = 0.25) +
+  ggpubr::stat_cor(label.x.npc = 0.0, label.y.npc = 0.1) +
+  theme(text = element_text(size = 14))
+```
+<br>
+<br>
+
+## 자영업 종사자수 자료 정리_종호님
+
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+private <- readr::read_csv("business_private.csv", locale=locale(encoding="EUC-KR"))
+paged_table(private)
+
+prive <- private %>%
+  filter(!(행정동 %in% c("합계", "소계"))) %>%
+  select(구, 행정동, 자영업주_및_무급가족_소계) %>%
+  unite("자치구_행정동", 구, 행정동) %>%
+  rename("자영업_종사자수"="자영업주_및_무급가족_소계")
+
+epsilon <- left_join(delta, prive, by="자치구_행정동")
+paged_table(epsilon)
+
+## 자영업 종사자수 자료(business_private)_종호님
+# 2.5.1 변수 설명: 신규진입하는 사업자는 대부분 개인사업일 것이기 때문에 이들이 많으면 자영업 종사자수도 많을 것.
+epsilon %>% 
+  dplyr::select(생산자서비스업, 생산자서비스업비율, 소비자서비스업, 소비자서비스업비율, 자영업_종사자수) %>% 
+  GGally::ggpairs(.) +
+  theme(text = element_text(size = 18))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+par(mfrow=c(1,2), cex=.6)
+
+plot(epsilon$자영업_종사자수, log(epsilon$보정영업지수),
+     xlab="자영업 종사자수", ylab="보정영업지수")
+abline(lm(log(epsilon$보정영업지수)~epsilon$자영업_종사자수), col="slateblue")
+
+plot(log(epsilon$자영업_종사자수), log(epsilon$보정영업지수),
+     xlab="log(자영업 종사자수)", ylab="보정영업지수")
+abline(lm(log(epsilon$보정영업지수)~log(epsilon$자영업_종사자수)), col="deeppink")
+
+summary(lm(log(epsilon$보정영업지수)~epsilon$자영업_종사자수))
+summary(lm(log(epsilon$보정영업지수)~(log(epsilon$자영업_종사자수))))
+
+ggData = epsilon %>% 
+  dplyr::mutate(
+    # x = 자영업_종사자수
+    x = log(자영업_종사자수)
+    , y = log(보정영업지수)
+  )
+
+# lmFit = lm(y ~ x, data = ggData)
+# summary(lmFit)
+# cor(ggData$x, ggData$y)
+
+# 연도 분기에 따른 자영업 종사자수 및 보정영업지수의 상관 분석
+#******************************************
+# 독립변수 : 자영업_종사자수
+# 종속변수 : log(보정영업지수)
+#******************************************
+# 상관계수는 -0.12 (음의 상관계수)로서 0.005 이하의 유의수준을 보임
+#******************************************
+# 독립변수 : log(자영업_종사자수)
+# 종속변수 : log(보정영업지수)
+#******************************************
+# 상관계수는 -0.055 (음의 상관계수)로서 0.26의 P값으로 통계적으로 유의하지 못함
+ggpubr::ggscatter(
+  ggData, x = "x", y = "y", color = "연도_분기"
+  , add = "reg.line", conf.int = TRUE, scales = "free_x"
+  , facet.by = "연도_분기"
+  , add.params = list(color = "black", fill = "lightgray")
+) +
+  labs(
+    title = NULL
+    , x = "자영업 종사자수"
+    , y = "보정영업지수"
+    , subtitle = "연도 분기에 따른 자영업 종사자수 및 보정영업지수의 상관 분석"
+  ) +
+  ggpubr::stat_regline_equation(label.x.npc = 0.0, label.y.npc = 0.25) +
+  ggpubr::stat_cor(label.x.npc = 0.0, label.y.npc = 0.1) +
+  theme(text = element_text(size = 14))
+
+
+# 상권 변화 지표에 따른 자영업 종사자수 및 보정영업지수의 상관 분석
+#******************************************
+# 독립변수 : 자영업_종사자수
+# 종속변수 : log(보정영업지수)
+#******************************************
+# 상권 변화 지표에 따라 상관 분석 결과 HH를 제외한 모든 지표에서 통계적으로 유의하지 않은 결과를 보임
+# 반면에 HH의 경우 상관계수는 -0.23으로서 95% 신뢰구간 하에서 통계적으로 유의한 결과를 보였다.
+#******************************************
+# 독립변수 : log(자영업_종사자수)
+# 종속변수 : log(보정영업지수)
+#******************************************
+# 모든 지표에서 통계적으로 유의하지 않은 결과를 보임
+ggpubr::ggscatter(
+  ggData, x = "x", y = "y", color = "상권_변화_지표"
+  , add = "reg.line", conf.int = TRUE, scales = "free_x"
+  , facet.by = "상권_변화_지표"
+  , add.params = list(color = "black", fill = "lightgray")
+) +
+  labs(
+    title = NULL
+    , x = "자영업 종사자수"
+    , y = "보정영업지수"
+    , subtitle = "상권 변화 지표에 따른 자영업 종사자수 및 보정영업지수의 상관 분석"
+  ) +
+  ggpubr::stat_regline_equation(label.x.npc = 0.0, label.y.npc = 0.25) +
+  ggpubr::stat_cor(label.x.npc = 0.0, label.y.npc = 0.1) +
+  theme(text = element_text(size = 14))
+
+```
+<br>
+<br>
+
+## 생계형사업 종사자수 자료 정리_지영님
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+living <- readr::read_csv("business_living.csv", locale=locale(encoding="EUC-KR"))
+paged_table(living)
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+# 커피 전문점 및 기타 비알콜 음료점업, 체인화편의점업 종사자수 구하기
+vie <- living %>%
+  rename("커피전문점업"="커피 전문점 및 기타 비알콜 음료점업", "체인화편의점업"="체인화 편의점") %>%
+  select(구, 행정동, 커피전문점업, 체인화편의점업) %>%
+  mutate(커피전문점업=str_replace(커피전문점업, ",", "")) %>%
+  unite("자치구_행정동", 구, 행정동)
+vie$커피전문점업 <- as.numeric(vie$커피전문점업)
+vie$체인화편의점업 <- as.numeric(vie$체인화편의점업)
+vie[is.na(vie)] <- 0
+
+zeta <- left_join(epsilon, vie, by="자치구_행정동")
+paged_table(zeta)
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+par(mfrow=c(1,2), cex=.6)
+
+plot(log(zeta$커피전문점업+1), log(zeta$보정영업지수),
+     xlab="log(커피전문점업 종사자수)", ylab="보정영업지수")
+abline(lm(log(zeta$보정영업지수)~log(zeta$커피전문점업+1)), col="slateblue")
+
+plot(log(zeta$체인화편의점업), log(zeta$보정영업지수),
+     xlab="log(체인화편의점업 종사자수)", ylab="보정영업지수")
+abline(lm(log(zeta$보정영업지수)~log(zeta$체인화편의점업)), col="deeppink")
+
+summary(lm(log(zeta$보정영업지수)~log(zeta$커피전문점업+1)))
+summary(lm(log(zeta$보정영업지수)~log(zeta$체인화편의점업)))
+```
+<br>
+<br>
+
+# 교호관계 분석
+## ??_광원님
+
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+eta <- mutate(zeta, log보정영업지수=log(보정영업지수), log종사자밀도비=log(종사자밀도비),
+               log커피전문점업=log(커피전문점업+1), log체인화편의점업=log(체인화편의점업))
+
+ggpairs(eta, columns=c("log보정영업지수", "소비자서비스업비율", "log종사자밀도비",
+                       "사업체_영업기간", "사업체_창업률", "log커피전문점업",
+                       "log체인화편의점업"))+theme_bw()
+```
+
