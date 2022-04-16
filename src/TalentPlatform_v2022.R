@@ -57,8 +57,6 @@ fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "Seoul_grid.shp"))
 mapData = sf::st_read(fileInfo, quiet = TRUE, options = "ENCODING=EUC-KR") %>% 
   sf::st_transform(CRS("+proj=longlat"))
 
-a= 10
-plot(a)
 mapDataL1 = mapData %>%
   as.tibble() %>% 
   dplyr::select(-c("grid_id", "geometry"))
@@ -6668,23 +6666,26 @@ library(forcats)
 # addrDtlName = "동대문구"
 # addrDtlName = "강서구"
 
-addrName = "경기도"
-addrDtlName = "안성시"
+# addrName = "경기도"
+# addrDtlName = "안성시"
 # addrDtlName = "동두천시"
 
 # addrName = "경상남도"
 # addrDtlName = "남해군"
 
-# addrName = "충청남도"
+addrName = "충청남도"
 # addrDtlName = "아산시"
+addrDtlName = "당진시"
+# addrDtlName = "천안시동남구"
+
 
 
 # **********************************************
 # 20대 대선 다운로드
 # **********************************************
 # 셀레늄 이용
-# rD = RSelenium::rsDriver(port = 5002L, browser="chrome", chromever=binman::list_versions("chromedriver")$win32[2])
-# remDr = rD[["client"]]
+# rDriver = RSelenium::rsDriver(port = 5003L, browser="chrome", chromever=binman::list_versions("chromedriver")$win32[2])
+# remDr = rDriver[["client"]]
 # remDr$navigate("http://info.nec.go.kr/main/showDocument.xhtml?electionId=0020220309&topMenuId=VC&secondMenuId=VCCP08")
 # 
 # Sys.setlocale("LC_ALL", "English")

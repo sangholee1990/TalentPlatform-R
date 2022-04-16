@@ -654,6 +654,8 @@ cbPlasma = rev(viridis::plasma(11))
 #   , codeList[j, 'emdCd']
 # ), "\n")
 
+# cat(sprintf("nYear : %s / nMonth : %s", nYear, nMonth), "\n")
+
 
 # ************************************************
 # 데이터 병합
@@ -682,4 +684,4 @@ cbPlasma = rev(viridis::plasma(11))
 # saveTmp = tempfile(fileext = "csv")
 # 
 # readr::write_excel_csv(x = dataL2, file = saveTmp)
-# fs::file_copy(saveTmp, saveFile, overwrite = TRUE)g
+# fs::file_copy(saveTmp, saveFile, overwrite = TRUE)

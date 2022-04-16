@@ -100,16 +100,25 @@ covidVis
 - 데이터 URL : https://www.data.go.kr/tcs/dss/selectFileDataDetailView.do?publicDataPk=3080844
 - 요청 주소 : https://api.odcloud.kr/api/3080844/v1/uddi:da6b34a9-aa4e-4138-9476-93fbd9c81f15?page=1&perPage=10&serviceKey=bf9fH0KLgr65zXKT5D%2FdcgUBIj1znJKnUPrzDVZEe6g4gquylOjmt65- 데이터 출처 : 경기도 동두천시 공보전산과 (공공데이터포털)
 ```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+
+# 요청할때 2가지 (json, xml) 형태
+# json 사용하기 편함 (용량 적고, 형식 간소화)
 jsonFile = RCurl::getURL("https://api.odcloud.kr/api/3080844/v1/uddi:da6b34a9-aa4e-4138-9476-93fbd9c81f15?page=1&perPage=99999&serviceKey=bf9fH0KLgr65zXKT5D%2FdcgUBIj1znJKnUPrzDVZEe6g4gquylOjmt65R5cjivLPfOKXWcRcAWU0SN7KKXBGDKA%3D%3D")
+
+# json 형식을 가시적으로 볼수 있도록 변환
 jsonData = jsonlite::fromJSON(jsonFile)
+
+# 데이터 가져오기
 realEstateData = jsonData$data
 
+# 경도 (문자 > 숫자)
 realEstateDataL1 = realEstateData %>% 
   readr::type_convert()
 
+# leaflet 시각화
 realEstateVis = leaflet::leaflet(data = realEstateDataL1) %>% 
-  leaflet::addTiles() %>% 
-  leaflet::addMarkers(lng = ~경도, lat = ~위도, popup = ~사무소명, label = ~사무소명) %>% 
+  leaflet::addTiles() %>%  # 배경지도
+  leaflet::addMarkers(lng = ~경도, lat = ~위도, popup = ~사무소명, label = ~사무소명) %>%  # 지점 사용
   leaflet::addCircles(lng = ~경도, lat = ~위도, weight = 1, radius = 50, popup = ~사무소명)
 
 realEstateVis
