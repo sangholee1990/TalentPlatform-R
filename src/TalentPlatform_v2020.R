@@ -19303,7 +19303,8 @@ prjName = "test"
 # serviceName = "LSH0277"
 # serviceName = "LSH0278"
 # serviceName = "LSH0280"
-serviceName = "LSH0285"
+# serviceName = "LSH0285"
+serviceName = "LSH0330"
 
 contextPath = ifelse(env == "local", ".", getwd())
 
@@ -19330,6 +19331,7 @@ library(MBA)
 library(noncompliance)
 library(colorRamps)
 library(sf)
+library(beepr)
 
 #================================================
 # 비즈니스 로직 수행
@@ -19352,7 +19354,8 @@ gridData = noncompliance::expand.grid.DT(
 
 # fileInfo = Sys.glob(file.path(globalVar$inpPath, "mapImageToData.xlsx"))
 # fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0195_일식 식분도 이미지 데이터 추출.xlsx"))
-fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0259_일식 식분도 이미지 데이터 추출.xlsx"))
+# fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0259_일식 식분도 이미지 데이터 추출.xlsx"))
+fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0330_일식 식분도 이미지 데이터 추출.xlsx"))
 
 # **************************************************
 # 시트 선택
@@ -19576,22 +19579,42 @@ fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0259_일식 식분도 이�
 # sheetInfo = 11
 
 # 시트 12 : 초기신라(16)
-sheetInfo = 12
+# sheetInfo = 12
+
+# sheetName = dplyr::case_when(
+#   sheetInfo == 1 ~ "유송온리(3)"
+#   , sheetInfo == 2 ~ "선북위+유송공통(15)"
+#   , sheetInfo == 3 ~ "동진+북위공통(3)"
+#   , sheetInfo == 4 ~ "동진온리(21)"
+#   , sheetInfo == 5 ~ "선북위+남제+공통(8)"
+#   , sheetInfo == 6 ~ "선서진온리(15)"
+#   , sheetInfo == 7 ~ "위온리(13)"
+#   , sheetInfo == 8 ~ "BC진온리(1)"
+#   , sheetInfo == 9 ~ "동주+BC진+공통(6)"
+#   , sheetInfo == 10 ~ "온리동주(2)"
+#   , sheetInfo == 11 ~ "동주+노+공통(33)"
+#   , sheetInfo == 12 ~ "초기신라(16)"
+#   , TRUE ~ NA_character_
+# )
+
+# 시트 1 : 낙양당첫번째(9)
+# sheetInfo = 1
+
+# 시트 2 : 낙양당두번째(2)
+# sheetInfo = 2
+
+# 시트 3 : 시안당첫번째(25)
+# sheetInfo = 3
+
+# 시트 4 : 시안당두번째(42)
+sheetInfo = 4
 
 
 sheetName = dplyr::case_when(
-  sheetInfo == 1 ~ "유송온리(3)"
-  , sheetInfo == 2 ~ "선북위+유송공통(15)"
-  , sheetInfo == 3 ~ "동진+북위공통(3)"
-  , sheetInfo == 4 ~ "동진온리(21)"
-  , sheetInfo == 5 ~ "선북위+남제+공통(8)"
-  , sheetInfo == 6 ~ "선서진온리(15)"
-  , sheetInfo == 7 ~ "위온리(13)"
-  , sheetInfo == 8 ~ "BC진온리(1)"
-  , sheetInfo == 9 ~ "동주+BC진+공통(6)"
-  , sheetInfo == 10 ~ "온리동주(2)"
-  , sheetInfo == 11 ~ "동주+노+공통(33)"
-  , sheetInfo == 12 ~ "초기신라(16)"
+  sheetInfo == 1 ~ "낙양당첫번째(9)"
+  , sheetInfo == 2 ~ "낙양당두번째(2)"
+  , sheetInfo == 3 ~ "시안당첫번째(25)"
+  , sheetInfo == 4 ~ "시안당두번째(42)"
   , TRUE ~ NA_character_
 )
 
@@ -19604,11 +19627,8 @@ data = openxlsx::read.xlsx(fileInfo, sheet = sheetInfo) %>%
 
 typeList = data$type %>% unique() %>% sort()
 
-# selTypeList = typeList[14]
-selTypeList = typeList
-
-for (typeInfo in selTypeList) {
-# for (typeInfo in typeList) {
+# typeInfo = typeList[1]
+for (typeInfo in typeList) {
   
   tmpData = data %>%
     dplyr::filter(
@@ -19631,10 +19651,8 @@ for (typeInfo in selTypeList) {
       type = typeInfo
     )
   
-  saveImg = sprintf("%s/%s_%s_%s.png", globalVar$figPath, serviceName, sheetName, typeInfo)
-  
-  ind = which(dataL2$zAxis == max(dataL2$zAxis, na.rm = TRUE))
-  maxData = dataL2[ind,]
+  idx = which(dataL2$zAxis == max(dataL2$zAxis, na.rm = TRUE))
+  maxData = dataL2[idx, ]
   
   makePlot = ggplot(data = dataL2, aes(x = xAxis, y = yAxis, fill = zAxis, z = zAxis)) +
     geom_raster(interpolate = TRUE, na.rm = TRUE) +
@@ -19663,6 +19681,7 @@ for (typeInfo in selTypeList) {
     ) +
     theme(text = element_text(size = 18))
   
+  saveImg = sprintf("%s/%s_%s_%s.png", globalVar$figPath, serviceName, sheetName, typeInfo)
   ggsave(plot = makePlot, filename = saveImg, width = 10, height = 10, dpi = 600)
   
 }
@@ -19776,8 +19795,21 @@ beepr::beep(sound = 8)
 # sheetList = c(11)
 # sheetName = "동주-노-공통(33)"
 
-sheetList = c(12)
-sheetName = "초기신라(16)"
+# sheetList = c(12)
+# sheetName = "초기신라(16)"
+
+# sheetList = c(1)
+# sheetName = "낙양당첫번째(9)"
+
+# sheetList = c(2)
+# sheetName = "낙양당두번째(2)"
+# 
+# sheetList = c(3)
+# sheetName = "시안당첫번째(25)"
+# 
+sheetList = c(4)
+sheetName = "시안당두번째(42)"
+
 
 dataL3 = tibble()
 for (sheetInfo in sheetList) {
@@ -19827,17 +19859,41 @@ dataL4 = dataL3 %>%
   dplyr::group_by(xAxis, yAxis) %>%
   dplyr::summarise(
     meanVal = mean(zAxis, na.rm = TRUE)
+  ) %>%
+  dplyr::mutate(
+    meanVal = ifelse(meanVal < 0, 0, meanVal)
   )
-
+  
 summary(dataL4)
 
 idx = which(dataL4$meanVal == max(dataL4$meanVal, na.rm = TRUE))
 maxData = dataL4[idx, ]
 
-setBreakCont = c(seq(0.70, 0, -0.04))
-setBreakText = c(seq(0.70, 0.10, -0.04))
+# setBreakCont = c(seq(0.70, 0, -0.04))
+# setBreakText = c(seq(0.70, 0.10, -0.04))
 
-# 0.8329
+setBreakCont = c(seq(0.68, 0, -0.04))
+setBreakText = c(seq(0.68, 0.10, -0.04))
+
+setBreakCont = c(seq(0.72, 0, -0.04))
+setBreakText = c(seq(0.72, 0.10, -0.04))
+
+setBreakCont = c(seq(0.44, 0, -0.02))
+setBreakText = c(seq(0.44, 0.10, -0.02))
+
+setBreakCont = c(seq(0.47, 0, -0.02))
+setBreakText = c(seq(0.47, 0.10, -0.02))
+
+# 0.6822
+# 0.7207
+# 0.4406
+# 0.4791
+
+# 평균식분도에 대한 최대값입니다.
+# 낙양당첫번째(9) : 0.6822
+# 낙양당두번째(2) : 0.7207
+# 시안당첫번째(25) : 0.4406
+# 시안당두번째(42) : 0.4791
 
 saveImg = sprintf("%s/%s_%s_%s.png", globalVar$figPath, serviceName, sheetName, "Mean_Color")
 
