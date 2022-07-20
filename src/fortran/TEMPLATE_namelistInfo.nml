@@ -1,0 +1,8 @@
+&input
+inpFile = "%inpFile"
+/
+&output
+outflowFile = "%outflowFile"
+stoFile = "%stoFile"
+rdrFile = "%rdrFile"
+/

@@ -1,0 +1,8 @@
+&input
+inpFile = "./src/fortran/LSH0284_input_2108232220.txt"
+/
+&output
+outflowFile = "./LSH0284_Outflow_2108232220.txt"
+stoFile = "./src/fortran/LSH0284_RDR_2108232220.txt"
+rdrFile = "./src/fortran/LSH0284_Sto_2108232220.txt"
+/

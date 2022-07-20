@@ -1,0 +1,8 @@
+&input
+inpFile = "./LSH0284_input.txt"
+/
+&output
+outflowFile = "./LSH0284_Outflow_2108232220.txt"
+stoFile = "./LSH0284_Sto_2108232220.txt"
+rdrFile = "./LSH0284_RDR_2108232220.txt"
+/

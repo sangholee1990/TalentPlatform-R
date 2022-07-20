@@ -1,0 +1,319 @@
+---
+title: "R을 이용한 자료 전처리 및 회귀모형 수행"
+date: "Submission date: `r Sys.setlocale('LC_TIME','C'); format(Sys.Date(), format='%B %d, %Y')`"
+output:
+ rmdformats::readthedown:
+  highlight: kate
+  self_contained: true
+  gallery: true
+  lightbox: true
+  number_section: true
+  toc_depth: 6
+subtitle: "<p><font size='4'><span style='line-height: 100%'> 
+  작성자
+  </span></font></p>"
+editor_options: 
+  chunk_output_type: inline
+---
+
+# 요구사항
+- R을 이용한 자료 전처리 및 회귀모형 수행
+
+
+# 비즈니스 로직 수행
+
+## 라이브러리 읽기
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+# 라이브러리 읽기
+library(MASS)
+library(car)
+library(naniar)
+library(caret)
+
+# caret(plyr기반) 다음에 tidyverse(dplyr기반)를 로딩할 것
+library(tidyverse)
+# library(tidymodels)
+library(skimr)
+
+# glmnet을 설치할 것
+library(gridExtra)
+library(ggcorrplot)
+library(corrplot)
+
+library(rsample)
+library(recipes)
+library(visdat)
+library(Seurat)
+library(yardstick)
+library(meta)
+
+
+
+DF <- as.data.frame(read_csv('./tips.csv'))
+
+dim(DF)
+
+str(DF)
+
+
+DF <-DF %>% mutate(
+    sex=factor(sex,labels=c('F','M')),
+    smoker=factor(smoker,labels=c('N','Y')),
+    day  =factor(day), time =factor(time)
+)
+
+str(DF)
+
+
+vis_miss(DF, sort_miss=TRUE)
+
+c(dim(DF), dim(na.omit(DF)))
+
+sum(complete.cases(DF))/nrow(DF)*100
+
+
+featurePlot(x=DF%>%select_if(is.numeric), y=DF$day,
+            plot='box', # 'density' 사용가능
+            scales=list(x=list(relation='free'), y=list(relation='free')))
+
+
+
+featurePlot(x=DF[,sapply(DF, is.numeric)], y=DF$sex,
+            plot='box', # 'density' 사용가능
+            scales=list(x=list(relation='free'), y=list(relation='free')))
+
+
+R <- cor(DF[,sapply(DF, is.numeric)], use='pairwise')
+R
+
+sort(R[,'tip'], decreasing=TRUE)
+
+ggcorrplot(R, lab=TRUE, digits=3, lab_size=3)
+
+set.seed(20180841)
+isp <- initial_split(DF, prop=2/3) # rset 반환. $in_id가 itrn임
+TR <- as.data.frame(training(isp)) # dataframe 반환
+TS <- as.data.frame(testing(isp)) # dataframe 반환
+TROUT <- TR %>% dplyr::select(tip)
+TSOUT <- TS %>% dplyr::select(tip)
+head(TSOUT)
+
+
+
+RC0 <- # impute_bag 오류
+  TR %>%
+  recipe(tip ~ .) %>% # 모형식
+  step_impute_bag(all_predictors()) %>% # 결측대체 (bag)
+  step_center(all_predictors(), -all_nominal(), -all_outcomes())%>%
+  step_scale (all_predictors(), -all_nominal(), -all_outcomes()) %>%
+  step_dummy (all_predictors(), -all_numeric(), -all_outcomes())
+
+RC <-
+  TR %>%
+  recipe(tip~.) %>%
+  step_impute_median(all_numeric(), -all_outcomes())%>% #tip, total_bill, size
+  step_impute_mode(all_nominal(), -all_outcomes()) %>% #sex,smoker,day,time %>%
+  step_dummy(all_nominal(), -all_outcomes())
+
+RC
+
+
+
+trCntl <- trainControl(method='cv', number=3)
+
+modelLookup('lm')
+
+
+set.seed(20180841)
+Mlm <- train(RC, data=TR,
+             method='lm', # 선형회귀 지정
+             trControl=trCntl) # metric='RMSE, Rsquared'
+Mlm
+
+Mlm$bestTune
+
+summary(Mlm$finalModel)
+
+ggplot(varImp(Mlm))
+
+
+
+Mlm$resample 
+
+
+Mlm$results
+
+TROUT <- TROUT %>% mutate(yhlm=predict(Mlm, newdata=TR))
+TSOUT <- TSOUT %>% mutate(yhlm=predict(Mlm, newdata=TS))
+head(TSOUT)
+
+metreg <- function(y, yh) {
+  tibble(rmse = rmse_vec(y, yh), # 평균제곱오차의 제곱근
+         mse = rmse^2, # 평균제곱오차
+         mae = mae_vec(y, yh), # 평균절대오차
+         mape = mape_vec(y, yh), # 평균절대백분율오차
+         rsq = rsq_vec(y, yh)) # R제곱
+  
+}
+
+metreg(TSOUT$tip, TSOUT$yhlm)
+
+
+g1 <- ggplot(TROUT, aes(x=yhlm, y=tip)) + geom_point()
+g2 <- ggplot(TROUT, aes(x=yhlm, y=tip-yhlm)) + geom_point()
+g3 <- ggplot(TSOUT, aes(x=yhlm, y=tip)) + geom_point()
+g4 <- ggplot(TSOUT, aes(x=yhlm, y=tip-yhlm)) + geom_point()
+grid.arrange(g1,g2,g3,g4, ncol=2)
+
+
+modelLookup('lmStepAIC') 
+
+set.seed(20180841)
+Mstep <- train(RC, data=TR, # recipe객체, 적합용자료 지정
+               method='lmStepAIC', direction='backward', trace=0, # 방법지정
+               trControl=trCntl) # metric='RMSE, Rsquared'
+Mstep
+
+Mstep$bestTune
+
+summary(Mstep$finalModel) # car::vif(Mstep$finalModel)
+
+ggplot(varImp(Mstep))
+Mstep$resample
+
+Mstep$results
+
+
+
+TROUT <- TROUT %>% mutate(yhstep=predict(Mstep, newdata=TR))
+TSOUT <- TSOUT %>% mutate(yhstep=predict(Mstep, newdata=TS))
+head(TSOUT)
+
+
+
+metreg(TSOUT$tip, TSOUT$yhstep)
+
+
+
+g1 <- ggplot(TROUT, aes(x=yhstep, y=tip)) + geom_point()
+g2 <- ggplot(TROUT, aes(x=yhstep, y=tip-yhstep)) + geom_point()
+g3 <- ggplot(TSOUT, aes(x=yhstep, y=tip)) + geom_point()
+g4 <- ggplot(TSOUT, aes(x=yhstep, y=tip-yhstep)) + geom_point()
+grid.arrange(g1,g2,g3,g4, ncol=2)
+
+
+
+modelLookup('glmnet')
+
+
+set.seed(20180841)
+Mglmnet <- train(RC, data=TR, # recipe객체, 적합용자료 지정
+                 method='glmnet', # 방법지정
+                 # tuneGrid=glmnetGrid, # 튜닝범위 사용자지정
+                 tuneLength=5, # 튜닝단계
+                 trControl=trCntl) # 튜닝계획 지정
+
+Mglmnet
+
+Mglmnet$bestTune
+
+
+ggplot(varImp(Mglmnet))
+
+ggplot(Mglmnet) 
+
+plot(Mglmnet$finalModel) 
+
+coef(Mglmnet$finalModel, s=Mglmnet$bestTune$lambda) 
+
+
+plot(Mglmnet$finalModel, xvar='lambda', label=TRUE)
+abline(v=log(Mglmnet$bestTune$lambda), lty=2)
+
+
+Mglmnet$resample
+
+
+Mglmnet$results
+
+TROUT <- TROUT %>% mutate(yhglmnet=predict(Mglmnet, newdata=TR))
+TSOUT <- TSOUT %>% mutate(yhglmnet=predict(Mglmnet, newdata=TS))
+head(TSOUT)
+
+
+metreg(TSOUT$tip, TSOUT$yhglmnet)
+
+
+g1 <- ggplot(TROUT, aes(x=yhglmnet, y=tip)) + geom_point()
+g2 <- ggplot(TROUT, aes(x=yhglmnet, y=tip-yhglmnet)) + geom_point()
+g3 <- ggplot(TSOUT, aes(x=yhglmnet, y=tip)) + geom_point()
+g4 <- ggplot(TSOUT, aes(x=yhglmnet, y=tip-yhglmnet)) + geom_point()
+grid.arrange(g1,g2,g3,g4, ncol=2)
+
+
+
+MElm <- metreg(TROUT$tip, TROUT$yhlm)
+MEstep <- metreg(TROUT$tip, TROUT$yhstep)
+MEglmnet <- metreg(TROUT$tip, TROUT$yhglmnet)
+METR <- as.data.frame(rbind(MElm, MEstep, MEglmnet))
+METR <-
+  METR %>% mutate(Model=c('LM','STEP','GLMNET'))
+METR %>% dplyr::arrange(mse)
+
+
+
+METR %>% dplyr::arrange(mae)
+
+METR %>% dplyr::arrange(desc(rsq))
+
+
+
+MElm <- metreg(TSOUT$tip, TSOUT$yhlm)
+MEstep <- metreg(TSOUT$tip, TSOUT$yhstep)
+MEglmnet <- metreg(TSOUT$tip, TSOUT$yhglmnet)
+METS <-
+  as.data.frame(rbind(MElm, MEstep, MEglmnet))
+METS <-
+  METS %>% mutate(Model=c('LM','STEP','GLMNET'))
+METS %>% dplyr::arrange(mse)
+
+
+
+METS %>% dplyr::arrange(mae)
+
+
+
+METS %>% dplyr::arrange(desc(rsq))
+
+ME <- rbind(METR, METS)
+ME <- ME %>% mutate(TRTS=rep(c('TR','TS'), each=3))
+ME
+
+
+ggplot(ME, aes(x=Model, y=mse, col=TRTS, fill=TRTS)) +
+  geom_bar(stat='identity', position='dodge')
+
+
+
+resamp <- resamples(list(LM = Mlm,
+                         STEP = Mstep,
+                         GLMNET = Mglmnet))
+
+
+summary(resamp)
+
+bwplot(resamp)
+
+bwplot(resamp, metric='Rsquared')
+
+
+finCntl <- trainControl(method='none')
+Mfin <- train(RC, data=TR, method='glmnet',
+              tuneGrid=Mglmnet$bestTune,
+              trControl=finCntl)
+head(predict(Mfin, TS))
+
+
+# time2 <- Sys.time() # time1
+# time2-time1
+```

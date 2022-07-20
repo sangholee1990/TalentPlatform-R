@@ -1,0 +1,26 @@
+{
+    "id": "3F3E4733",
+    "path": "E:/04. TalentPlatform/Github/TalentPlatform-R/src/unitSys/LSH0232/kMeansClustering.r",
+    "project_path": "kMeansClustering.r",
+    "type": "r_source",
+    "hash": "3883830612",
+    "contents": "",
+    "dirty": false,
+    "created": 1636318757273.0,
+    "source_on_save": false,
+    "relative_order": 2,
+    "properties": {
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "104,0",
+        "scrollLine": "85"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1636319319,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1636319319830,
+    "read_only": false,
+    "read_only_alternatives": []
+}
