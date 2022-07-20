@@ -59,6 +59,40 @@
 # where gfortran
 # where make
 
+
+#=====================================
+# Init Library
+#=====================================
+.libPaths("E:/04. TalentPlatform/Github/TalentPlatform-R/resources/lib")
+
+# C:\Users\saima\Documents
+# C:/Users/saima/OneDrive/Documents/R/win-library/4.1
+# 라이브러리 경로
+# .libPaths()
+
+# C:/Users/sangh/Documents/R/win-library/4.1
+# E:/04. TalentPlatform/Github/TalentPlatform-R/resources/lib
+# .libPaths("E:/04. TalentPlatform/Github/TalentPlatform-R/resources/lib")
+# .libPaths(c("C:/Users/saima/OneDrive/Documents/R/win-library/4.1", .libPaths()))
+#
+# .libPaths("C:/R/R-4.0.2/library/")
+# .libPaths()C
+
+## [1] "C:/Users/yoonani/Documents/R/win-library/3.2"
+## [2] "C:/Program Files/R/R-3.2.2/library"
+
+# install_load_package = function(packages_v){
+#   #
+#   new.packages <- packages_v[!(packages_v %in% installed.packages()[,"Package"])]
+#   if(length(new.packages) > 0) { install.packages(new.packages) } 
+#   lapply(packages_v, require, character.only = TRUE)
+#   invisible(capture.output())
+#   cat("--------------- \n")
+#   lapply(packages_v, function(x) {cat(x, "are loaded! \n")})
+#   cat("--------------- \n")
+#   #
+# }
+
 #=====================================
 # Init Env
 #=====================================
@@ -88,7 +122,7 @@ rm(list = setdiff(ls(), c("env", "prjName", "serviceName", "contextPath")))
 Sys.setlocale("LC_ALL", "Korean")
 options(encoding = "UTF-8")
 Sys.setenv(LANG = "ko_KR.UTF-8")
-# 
+
 # Sys.setlocale("LC_ALL", "English")
 # options(encoding = "UTF-8")
 # Sys.setenv(LANG = "en_US.UTF-8")
@@ -353,32 +387,6 @@ getUrlTagHref = function(url, tag) {
     rvest::html_nodes(tag) %>%
     rvest::html_attr("href")
 }
-
-
-# C:\Users\saima\Documents
-# C:/Users/saima/OneDrive/Documents/R/win-library/4.1
-# 라이브러리 경로
-# .libPaths()
-
-# .libPaths(c("C:/Users/saima/OneDrive/Documents/R/win-library/4.1", .libPaths()))
-# 
-# .libPaths("C:/R/R-4.0.2/library/")
-# .libPaths()
-
-## [1] "C:/Users/yoonani/Documents/R/win-library/3.2"
-## [2] "C:/Program Files/R/R-3.2.2/library"
-
-# install_load_package = function(packages_v){
-#   #
-#   new.packages <- packages_v[!(packages_v %in% installed.packages()[,"Package"])]
-#   if(length(new.packages) > 0) { install.packages(new.packages) } 
-#   lapply(packages_v, require, character.only = TRUE)
-#   invisible(capture.output())
-#   cat("--------------- \n")
-#   lapply(packages_v, function(x) {cat(x, "are loaded! \n")})
-#   cat("--------------- \n")
-#   #
-# }
 
 #=====================================
 # Set Data
@@ -685,3 +693,10 @@ cbPlasma = rev(viridis::plasma(11))
 # 
 # readr::write_excel_csv(x = dataL2, file = saveTmp)
 # fs::file_copy(saveTmp, saveFile, overwrite = TRUE)
+
+# **************************************************
+# 8 비트 계산
+# **************************************************
+# library(compositions)
+# bit = compositions::binary(5, mb=8)
+# subBit = stringr::str_sub(bit, 1, 1)
