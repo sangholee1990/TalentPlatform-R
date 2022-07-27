@@ -28,8 +28,8 @@
 # ================================================
 # 초기 환경변수 설정
 # ================================================
-env = "local"  # 로컬 : 원도우 환경, 작업환경 (현재 소스 코드 환경 시 .) 설정
-# env = "dev"  # 개발 : 원도우 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+# env = "local"  # 로컬 : 원도우 환경, 작업환경 (현재 소스 코드 환경 시 .) 설정
+env = "dev"  # 개발 : 원도우 환경, 작업환경 (사용자 환경 시 contextPath) 설정
 # env = "oper"  # 운영 : 리눅스 환경, 작업환경 (사용자 환경 시 contextPath) 설정
 
 prjName = "test"
@@ -74,22 +74,26 @@ set.seed(84)
 # }
 
 
+setObj(inp = c(10, 11, 23), obs = c(20, 11, 23))
+
+inp = inpData
+obs = obsData
 # 목적함수 설정
 setObj = function(x, inp, obs) {
   
   # set new parameters and update inp object
-  inp$subcatchments = transform(
-    inp$subcatchments,
-    Perc_Imperv = ifelse(Perc_Imperv, x, Perc_Imperv)
-    # Perc_Imperv = ifelse(Perc_Imperv > 0.0001, x, Perc_Imperv)
-  )
+  # inp$subcatchments = transform(
+  #   inp$subcatchments,
+  #   Perc_Imperv = ifelse(Perc_Imperv, x, Perc_Imperv)
+  #   # Perc_Imperv = ifelse(Perc_Imperv > 0.0001, x, Perc_Imperv)
+  # )
   
   # 테스트
   # inp$subcatchments = transform(
   #   inp$subcatchments,
   #   Width = ifelse(Width > 0.0001, x, Width)
   # )
-  # 
+
   # inp$subareas = transform(
   #   inp$subareas,
   #   'N-Imperv' = ifelse('N-Imperv' > 0.0001, x, N-Imperv)
@@ -103,16 +107,25 @@ setObj = function(x, inp, obs) {
   swmmFileInfo = suppressMessages(run_swmm(tmp_inp, stdout = NULL))
   
   # remove files when function exits to avoid heavy disk usage
-  on.exit(file.remove(unlist(swmm_files)))
+  on.exit(file.remove(unlist(swmmFileInfo)))
   
   # read sim result
-  sim = read_out(
+  sim = swmmr::read_out(
     file = swmmFileInfo$out # path to out file
     , iType = 1 # type: node
     , object_name = "out" # name of node
     , vIndex = 4 # parameter at node: total inflow
   )$out$total_inflow # directly access to xts object
-  # [["out"]]$flow_rate # directly access to xts object
+  
+  
+  # 유출량 모의
+  simRes = read_out(
+    file = swmmFileInfo$out # path to out file
+    # , iType = 1 # type: node
+    # , object_name = "out" # name of node
+    # , vIndex = 4 # parameter at node: total inflow
+  )$out$total_inflow # directly access to xts object
+  
   
   # calculate goodness-of-fit
   # note: multiply by minus one to have a real min problem (nse: +1 to -Inf)
@@ -173,16 +186,33 @@ simRes = read_out(
 # ******************************************************************************
 # 유출량 검보정
 # ******************************************************************************
+# calibRes = DEoptim::DEoptim(
+#   fn = setObj
+#   , lower = c(0, 0)
+#   , upper = c(100, 100)
+#   , control = list(
+#     itermax = 10 # maximum iterations
+#     # , trace = 1 # print progress every 10th iteration
+#     , packages = c("swmmr") # export packages to optimization environment
+#     , parVar = c("hydroGOF::NSE")
+#     # , parVar = c("nse") # export function to optimization environment
+#     # , parallelType = 0 # set to 1 to use all available cores
+#   )
+#   , inp = inpData # 'inp' object
+#   , obs = obsData # xts object containing observation data
+# )
+
+
+
 calibRes = DEoptim::DEoptim(
   fn = setObj
-  , lower = c(0, 0)
-  , upper = c(100, 100)
+  , lower = 0
+  , upper = 4
   , control = list(
-    itermax = 10 # maximum iterations
-    # , trace = 1 # print progress every 10th iteration
-    , packages = c("swmmr") # export packages to optimization environment
-    , parVar = c("hydroGOF::NSE")
-    # , parVar = c("nse") # export function to optimization environment
+    itermax = 10
+    , trace = 1
+    # , packages = c("swmmr") # export packages to optimization environment
+    # , parVar = c("hydroGOF::NSE")
     # , parallelType = 0 # set to 1 to use all available cores
   )
   , inp = inpData # 'inp' object
@@ -191,3 +221,6 @@ calibRes = DEoptim::DEoptim(
 
 # iterations에 따른 검증스코어 (NSE) 결과
 calibRes$member$bestvalit
+
+
+summary(calibRes)
