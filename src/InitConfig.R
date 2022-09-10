@@ -135,7 +135,7 @@ configInfo = yaml::yaml.load_file(file.path(contextPath, "resources", "config", 
 globalVar = list(
   # 사용자 옵션
   "optDig" = 10
-  , "memLimit" = 9999999999999
+  # , "memLimit" = 9999999
 
   # 환경변수 경로  
   , "contextPath" = contextPath
@@ -393,7 +393,7 @@ getUrlTagHref = function(url, tag) {
 #=====================================
 options(digits = globalVar$optDig)
 options(java.parameters = "-Xmx8192m")
-memory.limit(size = globalVar$memLimit)
+# memory.limit(size = globalVar$memLimit)
 
 library(ggmap)
 ggmap::register_google(key = globalVar$googleKey)

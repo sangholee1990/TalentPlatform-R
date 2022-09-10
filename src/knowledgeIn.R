@@ -23,7 +23,7 @@ showtext::showtext.auto()
 
 # Set Option
 options(digits = 5)
-memory.limit(size = 9999999999999)
+# memory.limit(size = 9999999999999)
 
 #
 xAxis = seq(0, 10)
