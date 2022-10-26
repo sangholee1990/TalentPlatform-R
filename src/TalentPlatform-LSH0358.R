@@ -44,7 +44,24 @@
 #         
 #         그리고 논문의 method에 기술해야 해서 아래와 같이 이전에 작업해 주신 R의 version과 package 이름 좀 여쭈어 봐도 될까요?
 #           
-#           ex ) R version 3.6.1 with ggplot2, ggpubr, lme4, psych, and dplyr packages.
+# ex ) R version 3.6.1 with ggplot2, ggpubr, lme4, psych, and dplyr packages.
+# [R 버전] v4.2.1
+# [패키지 버전]
+#   tidyverse : 1.3.2
+#   lubridate : 1.8.0
+#   ggplot2 : 3.3.6
+#   openxlsx : 4.2.5
+#   plotly : 4.10.0
+#   readxl : 1.4.1
+#   rayshader : 0.24.10
+#   rayrender : 0.27.1
+#   doParallel : 1.0.17
+#   magick : 2.7.3
+#   webshot2 : 0.1.0
+#   av : 0.8.2
+#   noncompliance : 0.2.2
+#   MBA : 0.0.9
+
 # ================================================
 # 초기 환경변수 설정
 # ================================================
@@ -87,6 +104,17 @@ library(webshot2)
 library(av)
 library(noncompliance)
 library(MBA)
+
+# R v4.2.1 
+packList = c("tidyverse", "lubridate", "ggplot2", "openxlsx", "plotly", "readxl", "rayshader", "rayrender"
+             , "doParallel", "magick", "webshot2", "av", "noncompliance", "MBA")
+for (packInfo in packList) {
+  cat(sprintf("%s : %s", packInfo, packageVersion(packInfo)), "\n")
+}
+
+
+
+
 
 # 초기 설정
 xRange = as.numeric(c(-40, 0))

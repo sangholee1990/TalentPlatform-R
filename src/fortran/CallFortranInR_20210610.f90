@@ -57,7 +57,7 @@ subroutine TestLoop()
     close(11)
     
      open(12, file="./input-dimAvg.dat")
-     read(12, *) R1_avg
+     read(12, *) R1_avgsed -ie 's/GSSAPIAuthentication yes/GSSAPIAuthentication no/g;s/#UseDNS yes/UseDNS no/g' /etc/ssh/sshd_config
      close(12)
      
      open(13, file="./input-dimMovAvg.dat")
