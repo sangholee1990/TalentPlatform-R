@@ -1,21 +1,26 @@
 #=====================================
 # Usage
 #=====================================
-# # env = "local"   # 로컬 : 원도우 환경, 작업환경 (현재 소스 코드 환경 시 .) 설정
-# env = "dev"   # 개발 : 원도우 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+# env = "local"  # 로컬 : 원도우 환경, 작업환경 (현재 소스 코드 환경 시 .) 설정
+# # env = "dev"  # 개발 : 원도우 환경, 작업환경 (사용자 환경 시 contextPath) 설정
 # # env = "oper"  # 운영 : 리눅스 환경, 작업환경 (사용자 환경 시 contextPath) 설정
-# 
+#
 # prjName = "test"
-# serviceName = "LSH0182"
-# contextPath = ifelse(env == "local", getwd(), "E:/04. TalentPlatform/Github/TalentPlatform-R")
-# 
-# if (env == 'local') {
+# serviceName = "LSH0339"
+#
+# if (Sys.info()["sysname"] == "Windows") {
+#   contextPath = ifelse(env == "local", ".", "E:/04. TalentPlatform/Github/TalentPlatform-R")
+# } else {
+#   contextPath = ifelse(env == "local", ".", "/SYSTEMS/PROG/R/PyCharm")
+# }
+#
+# if (env == "local") {
 #   globalVar = list(
 #     "inpPath" = contextPath
 #     , "figPath" = contextPath
 #     , "outPath" = contextPath
-#     , "mapPath" = contextPath
-#     , "cfgPath" = contextPath
+#     , "tmpPath" = contextPath
+#     , "logPath" = contextPath
 #   )
 # } else {
 #   source(here::here(file.path(contextPath, "src"), "InitConfig.R"), encoding = "UTF-8")
@@ -63,7 +68,7 @@
 #=====================================
 # Init Library
 #=====================================
-.libPaths("E:/04. TalentPlatform/Github/TalentPlatform-R/resources/lib")
+# .libPaths("E:/04. TalentPlatform/Github/TalentPlatform-R/resources/lib")
 
 # C:\Users\saima\Documents
 # C:/Users/saima/OneDrive/Documents/R/win-library/4.1
@@ -119,9 +124,9 @@ rm(list = setdiff(ls(), c("env", "prjName", "serviceName", "contextPath")))
 # options(encoding = "UTF-8")
 # Sys.setenv(LANG = "ko_KR.UTF-8")
 
-Sys.setlocale("LC_ALL", "Korean")
-options(encoding = "UTF-8")
-Sys.setenv(LANG = "ko_KR.UTF-8")
+# Sys.setlocale("LC_ALL", "Korean")
+# options(encoding = "UTF-8")
+# Sys.setenv(LANG = "ko_KR.UTF-8")
 
 # Sys.setlocale("LC_ALL", "English")
 # options(encoding = "UTF-8")
@@ -139,7 +144,7 @@ globalVar = list(
 
   # 환경변수 경로  
   , "contextPath" = contextPath
-  , "initResPath" = file.path(contextPath, "InitResource")
+  # , "initResPath" = file.path(contextPath, "InitResource")
   , "srcPath" = file.path(contextPath, "src")
   , "resPath" = file.path(contextPath, "resources")
   , "cfgPath" = file.path(contextPath, "resources", "config")
@@ -169,29 +174,32 @@ utils::ls.str(globalVar)
 
 
 # 기본 설정 복사
-isResDir = dir.exists(path = globalVar$resPath)
-isInitResDir = dir.exists(path = globalVar$initResPath)
-
-if (isResDir == FALSE & isInitResDir == TRUE) {
-  sprintf("[복사] 기본 설정 : cp %s %s", globalVar$initResPath, globalVar$resPath)
-
-  dir.create(globalVar$resPath)
-  file.copy(globalVar$initResPath, globalVar$resPath, recursive = TRUE)
-}
+# isResDir = dir.exists(path = globalVar$resPath)
+# isInitResDir = dir.exists(path = globalVar$initResPath)
+#
+# if (isResDir == FALSE & isInitResDir == TRUE) {
+#   sprintf("[복사] 기본 설정 : cp %s %s", globalVar$initResPath, globalVar$resPath)
+#
+#   dir.create(globalVar$resPath, recursive = TRUE)
+#   file.copy(globalVar$initResPath, globalVar$resPath, recursive = TRUE)
+# }
 
 # 디렉터리 생성
 for (i in 1:length(globalVar)) {
   key = names(globalVar)[i]
   val = globalVar[[key]]
 
-  isKey = stringr::str_detect(key, stringr::regex("input|output|log"))
+  isKey = stringr::str_detect(key, stringr::regex("Path"))
   if (isKey == FALSE) next
 
   isDir = dir.exists(path = val)
   if (isDir == TRUE) next
 
-  sprintf("[생성] 디렉터리 : mkdir %s", val)
-  dir.create(val)
+  isFile = file.exists(path = val)
+  if (isFile == TRUE) next
+
+  cat(sprintf("[CHECK] %s : %s", key, val), "\n")
+  dir.create(val, recursive = TRUE)
 }
 
 # Rtools
@@ -436,7 +444,10 @@ sysfonts::font.add(family = "KoPubWorld Dotum Medium", regular = file.path(globa
 
 # 폰트 읽기
 showtext::showtext_opts(dpi = 600)
-showtext::showtext.auto()
+
+if (Sys.info()["sysname"] == "Windows") {
+ showtext::showtext.auto()
+}
 
 # 폰트 확인
 sysfonts::font_families()
@@ -700,3 +711,8 @@ cbPlasma = rev(viridis::plasma(11))
 # library(compositions)
 # bit = compositions::binary(5, mb=8)
 # subBit = stringr::str_sub(bit, 1, 1)
+
+#=====================================
+# 파일/변수 검사
+#=====================================
+# if (is.null(jsonFile) || length(jsonFile) < 1) next
