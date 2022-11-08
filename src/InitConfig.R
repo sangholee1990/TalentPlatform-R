@@ -218,8 +218,8 @@ for (i in 1:length(globalVar)) {
 #=====================================
 # Set Library
 #=====================================
-library(ggmap)
-library(showtext)
+# library(ggmap)
+# library(showtext)
 library(tidyverse)
 library(ggplot2)
 library(lubridate)
@@ -403,8 +403,8 @@ options(digits = globalVar$optDig)
 options(java.parameters = "-Xmx8192m")
 # memory.limit(size = globalVar$memLimit)
 
-library(ggmap)
-ggmap::register_google(key = globalVar$googleKey)
+# library(ggmap)
+# ggmap::register_google(key = globalVar$googleKey)
 
 #=====================================
 # Set Font
@@ -436,21 +436,21 @@ ggmap::register_google(key = globalVar$googleKey)
 # 오프라인 환경에서 특정 경로에서 국/영문 폰트 추가
 
 # 영문 폰트
-sysfonts::font.add(family = "New Century Schoolbook", regular = file.path(globalVar$fontPath, "NewCenturySchoolbook.ttf"))
-sysfonts::font.add(family = "Palatino Linotype", regular = file.path(globalVar$fontPath, "pala.ttf"))
-
-# 국문 폰트
-sysfonts::font.add(family = "KoPubWorld Dotum Medium", regular = file.path(globalVar$fontPath, "KoPubWorld Dotum Medium.ttf"))
-
-# 폰트 읽기
-showtext::showtext_opts(dpi = 600)
-
-if (Sys.info()["sysname"] == "Windows") {
- showtext::showtext.auto()
-}
-
-# 폰트 확인
-sysfonts::font_families()
+# sysfonts::font.add(family = "New Century Schoolbook", regular = file.path(globalVar$fontPath, "NewCenturySchoolbook.ttf"))
+# sysfonts::font.add(family = "Palatino Linotype", regular = file.path(globalVar$fontPath, "pala.ttf"))
+#
+# # 국문 폰트
+# sysfonts::font.add(family = "KoPubWorld Dotum Medium", regular = file.path(globalVar$fontPath, "KoPubWorld Dotum Medium.ttf"))
+#
+# # 폰트 읽기
+# showtext::showtext_opts(dpi = 600)
+#
+# if (Sys.info()["sysname"] == "Windows") {
+#  showtext::showtext.auto()
+# }
+#
+# # 폰트 확인
+# sysfonts::font_families()
 
 font = "New Century Schoolbook"
 fontKor = "KoPubWorld Dotum Medium"

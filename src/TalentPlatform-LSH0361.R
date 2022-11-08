@@ -54,10 +54,9 @@ library(hydroGOF)
 library(RColorBrewer)
 library(forcats)
 library(ggpubr)
-library(h2o)
+# library(h2o)
 library(scales)
 library(openxlsx)
-
 
 ggplotDefaultColor = scales::hue_pal()(2)
 
@@ -129,9 +128,12 @@ dataL2 = dataL1 %>%
   tidyr::gather(-dtDateTime, -"총소멸계수(Bext)", key = "key", value = "val") %>% 
   dplyr::mutate(
     type = dplyr::case_when(
-      key == "SO42-/PM2.5_recon" ~ sprintf('SO42/PM["2.5_reconstruct"]')
-      , key == "NO3-/PM2.5_recon"~ sprintf('NO3/PM["2.5_reconstruct"]')
-      , key == "Cl-/PM2.5_recon" ~ sprintf('Cl/PM["2.5_reconstruct"]')
+      # key == "SO42-/PM2.5_recon" ~ sprintf('SO42/PM["2.5_reconstruct"]')
+      key == "SO42-/PM2.5_recon" ~ sprintf('SO[4]^"2-"/PM["2.5_reconstruct"]')
+      # , key == "NO3-/PM2.5_recon"~ sprintf('NO3/PM["2.5_reconstruct"]')
+      , key == "NO3-/PM2.5_recon"~ sprintf('NO[3]^"-"/PM["2.5_reconstruct"]')
+      # , key == "Cl-/PM2.5_recon" ~ sprintf('Cl/PM["2.5_reconstruct"]')
+      , key == "Cl-/PM2.5_recon" ~ sprintf('Cl^"-"/PM["2.5_reconstruct"]')
       , key == "OM/PM2.5_recon" ~ sprintf('OM/PM["2.5_reconstruct"]')
       , key == "EC/PM2.5_recon" ~ sprintf('EC/PM["2.5_reconstruct"]')
       , key == "FS/PM2.5_recon" ~ sprintf('FS/PM["2.5_reconstruct"]')
@@ -145,22 +147,25 @@ subTitle = sprintf("%s", "총 소멸계수에 따른 PM25 영향")
 saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, subTitle)
 
 ggplot(data = dataL2, aes(x = `총소멸계수(Bext)`, y = val, color = val)) +
-  geom_point(size = 2, show.legend = FALSE) +
+  # geom_point(size = 2, show.legend = FALSE) +
+  geom_point(size = 2) +
   geom_smooth(method = 'lm', se = TRUE, color = "black") +
   ggpubr::stat_regline_equation(label.x.npc = 0.025, label.y.npc = 1.0, size = 4, aes(label = ..eq.label..), color = "black", parse = TRUE) +
   ggpubr::stat_cor(label.x.npc = 0.025, label.y.npc = 0.90, size = 4, color = "black") +
-  scale_color_gradientn(colours = cbMatlab2, na.value = NA) +
+  scale_color_gradientn(colours = cbMatlab2, limits = c(0, 1), na.value = NA) +
   # scale_x_continuous(minor_breaks = seq(0, 1000, 200), breaks=seq(0, 1000, 200), limits=c(0, 1000)) +
   scale_y_continuous(minor_breaks = seq(0, 1.2, 0.2), breaks=seq(0, 1.2, 0.2), limits=c(0, 1.2)) +
   labs(
     title = NULL
-    , x = bquote(b[ext_m]* '  ['*Mm^-1*']')
+    , x = bquote(B[ext]* '  ['*Mm^-1*']')
     , y = bquote('Chemical  compositions  in  '*PM[2.5*'_'*reconstruct])
-    , color = NULL
+    , color = bquote('Chemical  compositions / '*PM[2.5*'_'*reconstruct])
     , fill = NULL
   ) +
   theme(
     text = element_text(size = 16)
+    , legend.position = "top"
+    , legend.key.width = unit(2, "cm")
   ) +
   facet_wrap(~type, scale = "free_x", labeller = label_parsed) +
   ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
@@ -168,11 +173,13 @@ ggplot(data = dataL2, aes(x = `총소멸계수(Bext)`, y = val, color = val)) +
 ggplot2::last_plot()
 
 # ******************************************************************************
-# 상대습도와 PM2.5 recon
+# 상대습도에 따른 소멸계수 영향 (PM2.5_reconstruct)
 # ******************************************************************************
 # data = openxlsx::read.xlsx(fileInfo, sheet = 7)
 # data = openxlsx::read.xlsx(fileInfo, sheet = 5)
 data = readxl::read_excel(fileInfo, sheet = 5)
+
+summary(data)
 
 dataL1 = data %>% 
   as.tibble() %>% 
@@ -194,32 +201,34 @@ summary(dataL1)
 colList = c("dtDateTime", "Bext", "RH", "PM2.5_reconstruct")
 
 dataL2 = dataL1 %>% 
-  # dplyr::select(-c("Date.time", "sDateTime", "dtYear", "dtMonth", "dtXran")) %>% 
-  dplyr::select(colList) %>% 
-  tidyr::gather(-dtDateTime, -"Bext", -RH, key = "key", value = "val") %>% 
+  dplyr::select(colList) %>%
+  # tidyr::gather(-dtDateTime, -"Bext", -RH, key = "key", value = "val") %>%
   na.omit()
+
+# PM2.5_reconstruct
+# dataL2$key %>% unique()
 
 summary(dataL2)
 
-subTitle = sprintf("%s", "상대습도에 따른 시정 영향 (PM2.5_reconstruct)")
+subTitle = sprintf("%s", "상대습도에 따른 소멸계수 영향 (PM2.5_reconstruct)")
 saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, subTitle)
 
 lmFor = y ~ poly(x, 2, raw = TRUE)
 
-ggplot(data = dataL2, aes(x = RH, y = Bext, color = val)) +
+ggplot(data = dataL2, aes(x = RH, y = Bext, color = PM2.5_reconstruct)) +
   geom_point(size = 2) +
   geom_smooth(method = 'lm', formula = lmFor, se = TRUE, color = "black") +
-  ggpubr::stat_regline_equation(label.x.npc = 0.075, label.y.npc = 0.96, size = 4, aes(label = ..eq.label..), color = "black", formula = lmFor, parse = TRUE) +
-  ggpubr::stat_cor(label.x.npc = 0.075, label.y.npc = 0.90, size = 4, color = "black") +
+  ggpubr::stat_regline_equation(label.x.npc = 0.075, label.y.npc = 0.96, size = 5.5, aes(label = ..eq.label..), color = "black", formula = lmFor, parse = TRUE) +
+  ggpubr::stat_cor(label.x.npc = 0.075, label.y.npc = 0.90, size = 5.5, color = "black") +
   scale_color_gradientn(colours = rev(cbMatlab2), limits = c(0, 100), na.value = cbMatlab2[11]) +
   scale_x_continuous(minor_breaks = seq(20, 100, 20), breaks=seq(20, 100, 20),  limits=c(20, 100)) +
-  # scale_y_continuous(minor_breaks = seq(0, 1600, 400), breaks=seq(0, 1600, 400), limits=c(0, 1600)) +
+  scale_y_continuous(minor_breaks = seq(0, 1500, 300), breaks=seq(0, 1500, 300), limits=c(0, 1500)) +
   labs(
       # , y = bquote('Reconstructed  ' *b[ext]* '  of  IMPROVE_2005  ['*Mm^-1*']')
     title = NULL
     , x = "Relative  humidity  [%]"
-    , y = bquote('PM' ['2.5_reconstruction'] * '  ['*mu*g/m^3*']')
-    , color = bquote('PM' ['2.5']* '  ['*mu*g/m^3*']')
+    , y = bquote('B' ['ext'] * '  ['*Mm^-1*']')
+    , color = bquote('PM' ['2.5_reconstruction'] * '  ['*mu*g/m^3*']')
     , fill = NULL
     ) +
   theme(
@@ -277,8 +286,8 @@ lmFor = y ~ poly(x, 2, raw = TRUE)
 ggplot(data = dataL2, aes(x = PM2.5_reconstruct, y = Bext, color = RH)) +
   geom_point(size = 2) +
   geom_smooth(method = 'lm', formula = lmFor, se = TRUE, color = "black") +
-  ggpubr::stat_regline_equation(label.x.npc = 0.075, label.y.npc = 0.96, size = 4, aes(label = ..eq.label..), color = "black", formula = lmFor, parse = TRUE) +
-  ggpubr::stat_cor(label.x.npc = 0.075, label.y.npc = 0.90, size = 4, color = "black") +
+  ggpubr::stat_regline_equation(label.x.npc = 0.075, label.y.npc = 0.96, size = 5.5, aes(label = ..eq.label..), color = "black", formula = lmFor, parse = TRUE) +
+  ggpubr::stat_cor(label.x.npc = 0.075, label.y.npc = 0.90, size = 5.5, color = "black") +
   scale_color_gradientn(colours = cbMatlab2, limits = c(0, 100), na.value = cbMatlab2[11]) +
   # scale_x_continuous(minor_breaks = seq(20, 100, 20), breaks=seq(20, 100, 20),  limits=c(20, 100)) +
   # scale_y_continuous(minor_breaks = seq(0, 1600, 400), breaks=seq(0, 1600, 400), limits=c(0, 1600)) +
@@ -471,7 +480,7 @@ ggplot(data = dataL1, aes(x = PM2.5, y = Visibility, color = Visibility)) +
     # , x = bquote('PM' ['2.5_reconstruct'] * ' Concentration ['*mu*g/m^3*']')
     # , y = bquote('Reconstructec b' ['ext'] * 'of IMS_95 ['*Mm^-1*']')
     # , y = "PM2.5_reconstruct"
-    , colour = NULL
+    , colour = "Visibility"
     , fill = NULL
   ) +
   theme(
@@ -481,7 +490,7 @@ ggplot(data = dataL1, aes(x = PM2.5, y = Visibility, color = Visibility)) +
     # , legend.text=element_text(ssize=14)
     , legend.background=element_blank()
   ) +
-  ggsave(filename = saveImg, width = 10, height = 8, dpi = 1000)
+  ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
 
 ggplot2::last_plot()
 
@@ -511,7 +520,7 @@ ggplot(data = dataL1, aes(x = PM2.5_recon, y = Visibility, color = Visibility)) 
     , y = "Visibility [km]"
     # , y = bquote('Reconstructec b' ['ext'] * 'of IMS_95 ['*Mm^-1*']')
     # , y = "PM2.5_reconstruct"
-    , colour = NULL
+    , colour = "Visibility"
     , fill = NULL
   ) +
   theme(
@@ -521,8 +530,9 @@ ggplot(data = dataL1, aes(x = PM2.5_recon, y = Visibility, color = Visibility)) 
     # , legend.text=element_text(size=16)
     , legend.background=element_blank()
   ) +
-  ggsave(filename = saveImg, width = 10, height = 8, dpi = 1000)
+  ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
 
+ggplot2::last_plot()
 
 
 # 2D 빈도분포 산점도 (PM2.5_recon vs PM2.5)
@@ -578,6 +588,8 @@ ggplot() +
     ) +
     ggsave(filename = saveImg, width = 6, height = 6, dpi = 1000)
 
+ggplot2::last_plot()
+
 
 # 전체 기간에 대한 미세먼지 시계열 (PM2.5, PM2.5_reconstruct)
 plotSubTitle = sprintf("%s", "전체 기간에 대한 미세먼지 시계열 (PM2.5, PM2.5_reconstruct)")
@@ -597,6 +609,8 @@ ggplot(data = dataL2, aes(x = dtDateTime, y = val, color = key)) +
     , legend.position = "top"
   ) +
   ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
+
+ggplot2::last_plot()
 
 
 # ******************************************************************************
@@ -767,6 +781,8 @@ dataL3 = dataL1 %>%
   dplyr::summarise(
     maenVal = mean(val, na.rm = TRUE)
     , sdVal = sd(val, na.rm = TRUE)
+    , minMeanSdVal = maenVal - sdVal
+    , maxMeanSdVal = maenVal + sdVal
   )
 
 # 정렬
@@ -786,14 +802,16 @@ ggplot(data = dataL3, aes(x = key, y = maenVal, color = key, group = key)) +
   labs(title = NULL, x = "Season", y = bquote('Concentration  ['*ug/m^3*']'), colour = NULL, fill = NULL, subtitle = plotSubTitle) +
   # scale_x_datetime(date_labels = "%Y-%m-%d", date_breaks = "1 month") +
   # scale_x_continuous(minor_breaks = seq(1, 12, 1), breaks=seq(1, 12, 1), limits=c(1,  12)) +
-  # scale_y_continuous(minor_breaks = seq(0, 50, 10), breaks=seq(0, 50, 10), limits=c(0, 50)) +
-   scale_x_discrete(labels = c("Cl-" =  bquote(CI^'-'), "SO42-" =  bquote(SO[4]^'2-'), "NO3-" = bquote(NO[3]^'-'))) +
+  # scale_y_continuous(minor_breaks = seq(-0.1, 20, 5), breaks=seq(-0.5, 20, 5), limits=c(-0.5, 20)) +
+  scale_y_continuous(limits=c(-1.36, 20)) +
+  scale_x_discrete(labels = c("Cl-" =  bquote(CI^'-'), "SO42-" =  bquote(SO[4]^'2-'), "NO3-" = bquote(NO[3]^'-'))) +
   theme(
     text = element_text(size = 18)
     # , axis.text.x = element_text(angle = 45, hjust = 1)
     , legend.position = "top"
   ) +
-  facet_wrap(~season, scale = "free_y") +
+  # facet_wrap(~season, scale = "free_x") +
+  facet_wrap(~season) +
   ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
 
 ggplot2::last_plot()
