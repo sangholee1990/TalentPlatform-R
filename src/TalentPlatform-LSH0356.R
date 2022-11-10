@@ -11,7 +11,22 @@
 #================================================
 # 요구사항
 #================================================
-# 학사 학위논문 (미세먼지)
+# 학사 학위논문 (코로나19 전후에 따른 서울시 자치구 대기질 농도 (PM10, PM2.5) 비교 분석)
+
+# 연구배경: 최근 서울시 대기 청정도는 인근 국가로부터 발생한 고농도의 장거리 수송 미세먼지와 더불어 자치구 내의 미세먼지로 인해 악화되고 (김관철 등, 2016) 전 세계적으로 관심이 집중됨 (박애경 등, 2011)
+# 특히 코로나19 팬데믹로 인하여 교통체증, 공장 가동 등 요소가 서울시의 대기질 농도 (PM2.5, PM10)에 대한 객관적 분석자료 필요
+
+# 연구목적: 서울시 25개의 자치구를 대상으로 코로나19 팬데믹 전후에 따른 대기질 농도 (PM2.5, PM10)에 전후 비교분석
+
+# 서울시 미세먼지(PM10) 및 초미세먼지 관련 논문 조사
+# 관련 연구사례를 통해 다각도 비교 분석을 통해 연구 방법 제시
+
+# 2018~2022년에 대한 서울시 자치구 대기질(PM2.5, PM10)를 이용하여 코로나 전후 농도에 미치는 영향요인 비교 분석
+# 인구밀도가 가장 높은 서울특별시 서초구와 강남구에 PM2.5, PM10 농도가 가장 짙을 것으로 예상하며, 높은 교통체증 때문일 것으로 판단 (오장욱과 임태진, 2019)
+
+# 코로나 시대의 서울시 자치구의 대기질 농도에 관한 영향평가에 대한 시사점 도출
+# 그러나 서울시 특정 25개 자치구를 국한하였기 때문에 향후 전국적인 대기질 자료를 통해 시공간 한계를 극복한 분석 결과 필요
+# 그럼에도 불구하고 이러한 결과는 서울시의 대기질 및 한반도의 기후변화의 문제 해결을 위한 기초 자료로 활용될 것으로 사료된다.
 
 # ================================================
 # 초기 환경변수 설정
@@ -55,9 +70,11 @@ library(forcats)
 library(ggpubr)
 library(scales)
 library(openxlsx)
-
-# 함수 정의
-ggplotDefaultColor = scales::hue_pal()(2)
+library(ggpubr)
+library(ggplot2)
+library(sf)
+library(raster)
+library(sf)
 
 perfEval = function(x, y) {
 
@@ -91,8 +108,8 @@ cbMatlab2 = colorRamps::matlab.like2(11)
 
 sysOpt = list(
   # 시작일/종료일 설정
-  "srtDateTime" = "2018-01-01 00:00"
   # , "endDateTime" = "2018-01-02 00:00"
+  "srtDateTime" = "2018-01-01 00:00"
   , "endDateTime" = "2022-01-01 00:00"
 
   # 요청 URL
@@ -101,6 +118,8 @@ sysOpt = list(
   # API키
    , "reqKey" = "664250584973686c3637566f464a68"
 )
+
+Sys.setenv(PROJ_LIB = "/usr/local/anaconda3/envs/r36/share/proj")
 
 # ******************************************************************************
 # 서울시 열린데이터광장 오픈 API (서울시 기간별 시간평균 대기환경 정보)
@@ -153,646 +172,414 @@ sysOpt = list(
 # fs::dir_create(fs::path_dir(saveCsvFile), showWarnings = FALSE)
 # readr::write_csv(dataL2, file = saveCsvFile)
 
-
-fileInfo = Sys.glob(file.path(globalVar$outPath, serviceName, "OrgData_*.csv"))
-dataL2 = readr::read_csv(file = fileInfo)
-
-plot(dataL2$dtDateTimeKst, dataL2$PM10)
-plot(dataL2$dtDateTimeKst, dataL2$PM25)
-
-
 #================================================
 # 파일 읽기
 #================================================
-# fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "IMPROVE 시정 계산_겨울철.xlsx"))
-# fileInfo2 = Sys.glob(file.path(globalVar$inpPath, serviceName, "최종수정 및 추가 데이터.xlsx"))
-# fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "미세먼지 화학성분을 이용하여 IMPROVE 시정 계산_220930.xlsx"))
-# fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "LSH0361_data.xlsx"))
+fileInfo = Sys.glob(file.path(globalVar$outPath, serviceName, "OrgData_*.csv"))
+data = readr::read_csv(file = fileInfo)
+
+# summary(data)
+
+dataL1 = data %>%
+  dplyr::mutate(
+    dtYear = lubridate::year(dtDateTimeKst)
+    , dtMonth = lubridate::month(dtDateTimeKst)
+    , dtDay = lubridate::day(dtDateTimeKst)
+    , dtXran = lubridate::decimal_date(dtDateTimeKst)
+    , dtDoy =  as.numeric(format(dtDateTimeKst, "%j"))
+    , season = dplyr::case_when(
+      dtMonth == 1 | dtMonth == 2 | dtMonth == 12 ~ "Winter"
+      , dtMonth == 3 | dtMonth == 4 | dtMonth == 5 ~ "Spring"
+      , dtMonth == 6 | dtMonth == 7 | dtMonth == 8 ~ "Summer"
+      , dtMonth == 9 | dtMonth == 10 | dtMonth == 11  ~ "Autumn"
+      )
+    , covidYn = ifelse(dtDateTimeKst >= as.Date("2020-01-20"), "코로나 이후", "코로나 이전")
+    # , covidYn = ifelse(dtDateTimeKst >= as.Date("2020-01-20"), "Y", "N")
+  )
+
+summary(dataL1)
+
+# **************************************************************************************
+# 코로나 전후 월별 통계 데이터에 대한 막대 그래프 -> 전/후 (평균+표준편차)
+# **************************************************************************************
+dataL2 = dataL1 %>%
+  dplyr::select(c("covidYn", "dtMonth", "PM10", "PM25")) %>%
+  tidyr::gather(-covidYn, -dtMonth, key = "key", value = "val") %>%
+  dplyr::group_by(covidYn, dtMonth, key) %>%
+  dplyr::summarise(
+    meanVal = mean(val, na.rm = TRUE)
+    , sdVal = sd(val, na.rm = TRUE)
+  ) %>%
+  dplyr::mutate(
+    type = dplyr::case_when(
+      key == "PM10" ~ sprintf('PM[10]')
+      , key == "PM25"~ sprintf('PM[2.5]')
+      , TRUE ~ NA_character_
+    )
+  )
+
+# 계절별 평균 미세먼지 막대 그래프
+plotSubTitle = sprintf("%s", "코로나 전후 월별 통계 데이터에 대한 막대 그래프")
+saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, plotSubTitle)
+dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
+
+ggplot(data = dataL2, aes(x = dtMonth, y = meanVal, color = covidYn, group = covidYn)) +
+  geom_bar(stat = "identity", width = 0.4, position=position_dodge(width = 0.5), fill = "white") +
+  geom_errorbar(width = 0.3, aes(ymin=meanVal - sdVal, ymax=meanVal + sdVal, group = covidYn), position = position_dodge(0.5), show.legend = FALSE) +
+  labs(title = NULL, x = "Month", y = bquote('PM  ['*ug/m^3*']'), colour = NULL, fill = NULL, subtitle = plotSubTitle) +
+  # scale_x_datetime(date_labels = "%Y-%m-%d", date_breaks = "1 month") +
+  scale_x_continuous(minor_breaks = seq(1, 12, 1), breaks=seq(1, 12, 1), limits=c(1,  12)) +
+  # scale_y_continuous(minor_breaks = seq(-0.1, 20, 5), breaks=seq(-0.5, 20, 5), limits=c(-0.5, 20)) +
+  theme(
+    text = element_text(size = 16)
+    # , axis.text.x = element_text(angle = 45, hjust = 1)
+    , legend.position = "top"
+  ) +
+  # facet_wrap(~season, scale = "free_x") +
+  facet_wrap(~type, scale = "free_y", ncol = 1, labeller = label_parsed) +
+  ggsave(filename = saveImg, width = 12, height = 8, dpi = 600)
+
+ggplot2::last_plot()
 
 
-# ******************************************************************************
-# 화학성분PM2.5 recon과 총소멸계수
-# ******************************************************************************
-# data = openxlsx::read.xlsx(fileInfo, sheet = 6)
-# data = openxlsx::read.xlsx(fileInfo, sheet = 4)
-# data = readxl::read_excel(fileInfo, sheet = 4)
-#
-# dataL1 = data %>%
-#   as.tibble() %>%
-#   dplyr::rename(
-#     "dtDateTime" = `Date time`
-#   ) %>%
-#   dplyr::mutate(
-#     # dtDateTime = readr::parse_datetime(sDateTime, format = "%Y-%m-%d %H:%M")
-#     dtYear = lubridate::year(dtDateTime)
-#     , dtMonth = lubridate::month(dtDateTime)
-#     , dtXran = lubridate::decimal_date(dtDateTime)
-#   )
-#
-# summary(dataL1)
-#
-# # colnames(dataL1)
-# colList = c("dtDateTime", "총소멸계수(Bext)", "SO42-/PM2.5_recon", "NO3-/PM2.5_recon", "Cl-/PM2.5_recon", "OM/PM2.5_recon", "EC/PM2.5_recon", "FS/PM2.5_recon")
-#
-# dataL2 = dataL1 %>%
-#   # dplyr::select(-c("dtDateTime", "sDateTime", "dtYear", "dtMonth", "dtXran", "PM2.5_reconstruct", "To_ext", "NHSO", "NHNO", "SS", "OMC", "EC", "FS")) %>%
-#   dplyr::select(colList) %>%
-#   tidyr::gather(-dtDateTime, -"총소멸계수(Bext)", key = "key", value = "val") %>%
-#   dplyr::mutate(
-#     type = dplyr::case_when(
-#       key == "SO42-/PM2.5_recon" ~ sprintf('SO42/PM["2.5_reconstruct"]')
-#       , key == "NO3-/PM2.5_recon" ~ sprintf('NO3/PM["2.5_reconstruct"]')
-#       , key == "Cl-/PM2.5_recon" ~ sprintf('Cl/PM["2.5_reconstruct"]')
-#       , key == "OM/PM2.5_recon" ~ sprintf('OM/PM["2.5_reconstruct"]')
-#       , key == "EC/PM2.5_recon" ~ sprintf('EC/PM["2.5_reconstruct"]')
-#       , key == "FS/PM2.5_recon" ~ sprintf('FS/PM["2.5_reconstruct"]')
-#       , TRUE ~ NA_character_
-#     )
-#   )
-#
-#
-# summary(dataL2)
-#
-# subTitle = sprintf("%s", "총 소멸계수에 따른 PM25 영향")
-# saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, subTitle)
-#
-# ggplot(data = dataL2, aes(x = `총소멸계수(Bext)`, y = val, color = val)) +
-#   geom_point(size = 2, show.legend = FALSE) +
-#   geom_smooth(method = 'lm', se = TRUE, color = "black") +
-#   ggpubr::stat_regline_equation(label.x.npc = 0.025, label.y.npc = 1.0, size = 4, aes(label = ..eq.label..), color = "black", parse = TRUE) +
-#   ggpubr::stat_cor(label.x.npc = 0.025, label.y.npc = 0.90, size = 4, color = "black") +
-#   scale_color_gradientn(colours = cbMatlab2, na.value = NA) +
-#   # scale_x_continuous(minor_breaks = seq(0, 1000, 200), breaks=seq(0, 1000, 200), limits=c(0, 1000)) +
-#   scale_y_continuous(minor_breaks = seq(0, 1.2, 0.2), breaks = seq(0, 1.2, 0.2), limits = c(0, 1.2)) +
-#   labs(
-#     title = NULL
-#     , x = bquote(b[ext_m] * '  [' * Mm^-1 * ']')
-#     , y = bquote('Chemical  compositions  in  ' * PM[2.5 * '_' * reconstruct])
-#     , color = NULL
-#     , fill = NULL
-#   ) +
+# **************************************************************************************
+# 코로나 전후 계절별 통계 데이터에 대한 막대 그래프 -> 전/후 (평균+표준편차)
+# **************************************************************************************
+dataL2 = dataL1 %>%
+  dplyr::select(c("covidYn", "season", "PM10", "PM25")) %>%
+  tidyr::gather(-covidYn, -season, key = "key", value = "val") %>%
+  dplyr::group_by(covidYn, season, key) %>%
+  dplyr::summarise(
+    meanVal = mean(val, na.rm = TRUE)
+    , sdVal = sd(val, na.rm = TRUE)
+  ) %>%
+  dplyr::mutate(
+    type = dplyr::case_when(
+      key == "PM10" ~ sprintf('PM[10]')
+      , key == "PM25"~ sprintf('PM[2.5]')
+      , TRUE ~ NA_character_
+    )
+  )
+
+# 정렬
+dataL2$season = forcats::fct_relevel(dataL2$season, c("Spring", "Summer", "Autumn", "Winter"))
+
+# 계절별 평균 미세먼지 막대 그래프
+plotSubTitle = sprintf("%s", "코로나 전후 계절별 통계 데이터에 대한 막대 그래프")
+saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, plotSubTitle)
+dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
+
+ggplot(data = dataL2, aes(x = season, y = meanVal, color = covidYn, group = covidYn)) +
+  geom_bar(stat = "identity", width = 0.4, position=position_dodge(width = 0.5), fill = "white") +
+  geom_errorbar(width = 0.3, aes(ymin=meanVal - sdVal, ymax=meanVal + sdVal, group = covidYn), position = position_dodge(0.5), show.legend = FALSE) +
+  labs(title = NULL, x = "Season", y = bquote('PM  ['*ug/m^3*']'), colour = NULL, fill = NULL, subtitle = plotSubTitle) +
+  # scale_x_datetime(date_labels = "%Y-%m-%d", date_breaks = "1 month") +
+  # scale_x_continuous(minor_breaks = seq(1, 12, 1), breaks=seq(1, 12, 1), limits=c(1,  12)) +
+  # scale_y_continuous(minor_breaks = seq(-0.1, 20, 5), breaks=seq(-0.5, 20, 5), limits=c(-0.5, 20)) +
+  theme(
+    text = element_text(size = 16)
+    # , axis.text.x = element_text(angle = 45, hjust = 1)
+    , legend.position = "top"
+  ) +
+  # facet_wrap(~season, scale = "free_x") +
+  facet_wrap(~type, scale = "free_y", ncol = 1, labeller = label_parsed) +
+  ggsave(filename = saveImg, width = 12, height = 8, dpi = 600)
+
+ggplot2::last_plot()
+
+
+# **************************************************************************************
+# 코로나 전후 월별 지역별 평균 PM10 데이터에 대한 시계열 그래프
+# 코로나 전후 월별 지역별 평균 PM25 데이터에 대한 시계열 그래프
+# **************************************************************************************
+dataL2 = dataL1 %>%
+  # dplyr::select(c("covidYn", "dtMonth", "MSRSTE_NM", "PM10", "PM25")) %>%
+  dplyr::select(c("covidYn", "dtMonth", "MSRSTE_NM", "PM25", "PM10")) %>%
+  tidyr::gather(-covidYn, -dtMonth, -MSRSTE_NM, key = "key", value = "val") %>%
+  dplyr::group_by(covidYn, dtMonth, MSRSTE_NM, key) %>%
+  dplyr::summarise(
+    meanVal = mean(val, na.rm = TRUE)
+    , sdVal = sd(val, na.rm = TRUE)
+  ) %>%
+  dplyr::mutate(
+    type = dplyr::case_when(
+      key == "PM10" ~ sprintf('PM[10]')
+      , key == "PM25"~ sprintf('PM[2.5]')
+      , TRUE ~ NA_character_
+    )
+  )
+
+dataL3 = dataL2 %>%
+  dplyr::filter(
+    key == "PM10"
+  )
+
+# 정렬
+# dataL2$season = forcats::fct_relevel(dataL2$season, c("Spring", "Summer", "Autumn", "Winter"))
+
+# 코로나 전후 월별 지역별 평균 PM10 데이터에 대한 시계열 그래프
+plotSubTitle = sprintf("%s", "코로나 전후 월별 지역별 평균 PM10 데이터에 대한 시계열 그래프")
+saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, plotSubTitle)
+dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
+
+ggplot(data = dataL3, aes(x = dtMonth, y = meanVal, color = covidYn, group = covidYn)) +
+  geom_line() +
+  geom_point() +
+  # ggpubr::stat_cor(label.x.npc = 0.45, label.y.npc = 1.0, p.accuracy  =  0.01,  r.accuracy  =  0.01, size = 4) +
+  ggpubr::stat_cor(label.x.npc = 0.4, label.y.npc = 1.0, p.accuracy  =  0.01,  r.accuracy  =  0.01, size = 4.5, show.legend = FALSE) +
+  labs(title = NULL, x = "Month", y = bquote('PM' ['10'] *'  ['*ug/m^3*']'), colour = NULL, fill = NULL, subtitle = plotSubTitle) +
+  # scale_x_datetime(date_labels = "%Y-%m-%d", date_breaks = "1 month") +
+  scale_x_continuous(minor_breaks = seq(1, 12, 1), breaks=seq(1, 12, 1), limits=c(1,  12)) +
+  # scale_y_continuous(minor_breaks = seq(0, 80, 20), breaks=seq(0, 80, 20), limits=c(0, 80)) +
+  theme(
+    text = element_text(size = 16)
+    # , axis.text.x = element_text(angle = 45, hjust = 1)
+    , legend.position = "top"
+  ) +
+  facet_wrap(~MSRSTE_NM, scale = "free_x", ncol = 5, labeller = label_parsed) +
+  ggsave(filename = saveImg, width = 15, height = 10, dpi = 600)
+
+ggplot2::last_plot()
+
+# ggpubr::ggscatter(dataL3, x = "dtMonth", y = "meanVal", color = "covidYn", add = "reg.line", conf.int = TRUE, cor.coef = FALSE, add.params = list(color = "black", fill = "lightgray")) +
+#   # ggpubr::stat_regline_equation(label.x.npc = 0.025, label.y.npc = 1.0, size = 4, aes(color=covidYn, label = ..eq.label..), color = "black", parse = TRUE) +
+#   # ggpubr::stat_cor(label.x.npc = 0.025, label.y.npc = 0.90, size = 4, color = "black") +
+#   # ggpubr::stat_regline_equation(aes(color = covidYn), label.x.npc = 0.0, label.y.npc = 1.0, size = 5) +
+#   # ggpubr::stat_cor(aes(color = covidYn), label.x.npc = 0.5, label.y.npc = 1.0, p.accuracy  =  0.01,  r.accuracy  =  0.01, size = 5) +
+#   scale_x_continuous(minor_breaks = seq(1, 12, 1), breaks=seq(1, 12, 1), limits=c(1,  12)) +
+#   scale_y_continuous(minor_breaks = seq(0, 80, 20), breaks=seq(0, 80, 20), limits=c(0, 80)) +
+#   labs(title = NULL, x = "Month", y = bquote('PM' ['10'] *'  ['*ug/m^3*']'), colour = NULL, fill = NULL, subtitle = plotSubTitle) +
+#   theme_bw() +
 #   theme(
 #     text = element_text(size = 16)
-#   ) +
-#   facet_wrap(~type, scale = "free_x", labeller = label_parsed) +
-#   ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
-#
-#
-# # ******************************************************************************
-# # 상대습도와 PM2.5 recon
-# # ******************************************************************************
-# # data = openxlsx::read.xlsx(fileInfo, sheet = 7)
-# # data = openxlsx::read.xlsx(fileInfo, sheet = 5)
-# data = readxl::read_excel(fileInfo, sheet = 5)
-#
-# dataL1 = data %>%
-#   as.tibble() %>%
-#   dplyr::rename(
-#     "dtDateTime" = "Date time"
-#     , "Bext" = "총소멸계수(y축)"
-#     , "PM2.5_reconstruct" = "PM2.5_reconstruct(색)"
-#     , "RH" = "RH(x축)"
-#   ) %>%
-#   dplyr::mutate(
-#     # dtDateTime = readr::parse_datetime(sDateTime, format = "%Y-%m-%d %H:%M")
-#     dtYear = lubridate::year(dtDateTime)
-#     , dtMonth = lubridate::month(dtDateTime)
-#     , dtXran = lubridate::decimal_date(dtDateTime)
-#   )
-#
-# summary(dataL1)
-#
-# colList = c("dtDateTime", "Bext", "RH", "PM2.5_reconstruct")
-#
-# dataL2 = dataL1 %>%
-#   # dplyr::select(-c("Date.time", "sDateTime", "dtYear", "dtMonth", "dtXran")) %>%
-#   dplyr::select(colList) %>%
-#   tidyr::gather(-dtDateTime, -"Bext", -RH, key = "key", value = "val") %>%
-#   na.omit()
-#
-# summary(dataL2)
-#
-# subTitle = sprintf("%s", "상대습도에 따른 시정 영향 (PM2.5_reconstruct)")
-# saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, subTitle)
-#
-# lmFor = y ~ poly(x, 2, raw = TRUE)
-#
-# ggplot(data = dataL2, aes(x = RH, y = Bext, color = val)) +
-#   geom_point(size = 2) +
-#   geom_smooth(method = 'lm', formula = lmFor, se = TRUE, color = "black") +
-#   ggpubr::stat_regline_equation(label.x.npc = 0.075, label.y.npc = 0.96, size = 5.5, aes(label = ..eq.label..), color = "black", formula = lmFor, parse = TRUE) +
-#   ggpubr::stat_cor(label.x.npc = 0.075, label.y.npc = 0.90, size = 5.5, color = "black") +
-#   scale_color_gradientn(colours = rev(cbMatlab2), limits = c(0, 100), na.value = cbMatlab2[11]) +
-#   scale_x_continuous(minor_breaks = seq(20, 100, 20), breaks = seq(20, 100, 20), limits = c(20, 100)) +
-#   # scale_y_continuous(minor_breaks = seq(0, 1600, 400), breaks=seq(0, 1600, 400), limits=c(0, 1600)) +
-#   labs(
-#     title = NULL
-#     , x = "Relative  humidity  [%]"
-#     , y = bquote('Reconstructed  ' *
-#                    b[ext] *
-#                    '  of  IMPROVE_2005  [' *
-#                    Mm^-1 *
-#                    ']')
-#     , color = bquote('PM'['2.5'] * ' concentration [' * mu * g / m^3 * ']')
-#     , fill = NULL
-#   ) +
-#   theme(
-#     text = element_text(size = 18)
-#     # , legend.position = "top"
-#     , legend.position = c(0, 1), legend.justification = c(0, 0.96)
-#     , legend.key = element_blank()
-#     , legend.text = element_text(size = 16)
-#     , legend.background = element_blank()
-#   ) +
-#   # facet_wrap(~type, scale = "free") +
-#   ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
-#
-#
-# # ******************************************************************************
-# # PM2.5_reconstruct에 따른 소멸계수 영향
-# # ******************************************************************************
-# # data = openxlsx::read.xlsx(fileInfo, sheet = 7)
-# # data = openxlsx::read.xlsx(fileInfo, sheet = 5)
-# data = readxl::read_excel(fileInfo, sheet = 5)
-#
-# dataL1 = data %>%
-#   as.tibble() %>%
-#   dplyr::rename(
-#     "dtDateTime" = "Date time"
-#     , "Bext" = "총소멸계수(y축)"
-#     , "PM2.5_reconstruct" = "PM2.5_reconstruct(색)"
-#     , "RH" = "RH(x축)"
-#   ) %>%
-#   dplyr::mutate(
-#     # dtDateTime = readr::parse_datetime(sDateTime, format = "%Y-%m-%d %H:%M")
-#     dtYear = lubridate::year(dtDateTime)
-#     , dtMonth = lubridate::month(dtDateTime)
-#     , dtXran = lubridate::decimal_date(dtDateTime)
-#   )
-#
-# summary(dataL1)
-#
-# colList = c("dtDateTime", "Bext", "RH", "PM2.5_reconstruct")
-#
-# dataL2 = dataL1 %>%
-#   # dplyr::select(-c("Date.time", "sDateTime", "dtYear", "dtMonth", "dtXran")) %>%
-#   dplyr::select(colList) %>%
-#   # tidyr::gather(-dtDateTime, -"Bext", -RH, key = "key", value = "val") %>%
-#   na.omit()
-#
-# summary(dataL2)
-#
-# subTitle = sprintf("%s", "PM2.5_reconstruct에 따른 소멸계수 영향")
-# saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, subTitle)
-#
-# lmFor = y ~ poly(x, 2, raw = TRUE)
-#
-# ggplot(data = dataL2, aes(x = PM2.5_reconstruct, y = Bext, color = RH)) +
-#   geom_point(size = 2) +
-#   geom_smooth(method = 'lm', formula = lmFor, se = TRUE, color = "black") +
-#   ggpubr::stat_regline_equation(label.x.npc = 0.075, label.y.npc = 0.96, size = 5.5, aes(label = ..eq.label..), color = "black", formula = lmFor, parse = TRUE) +
-#   ggpubr::stat_cor(label.x.npc = 0.075, label.y.npc = 0.90, size = 5.5, color = "black") +
-#   scale_color_gradientn(colours = cbMatlab2, limits = c(0, 100), na.value = cbMatlab2[11]) +
-#   # scale_x_continuous(minor_breaks = seq(20, 100, 20), breaks=seq(20, 100, 20),  limits=c(20, 100)) +
-#   # scale_y_continuous(minor_breaks = seq(0, 1600, 400), breaks=seq(0, 1600, 400), limits=c(0, 1600)) +
-#   labs(
-#     title = NULL
-#     # , x = "Relative  humidity  [%]"
-#     # , y = bquote('Reconstructed  ' *b[ext]* '  of  IMPROVE_2005  ['*Mm^-1*']')
-#     # , color = bquote('PM' ['2.5']* ' concentration ['*mu*g/m^3*']')
-#     , x = bquote('PM'['2.5'] * ' Concentration [' * mu * g / m^3 * ']')
-#     , y = bquote('Reconstructec b'['ext'] *
-#                    'of IMS_95 [' *
-#                    Mm^-1 *
-#                    ']')
-#     , color = "Relative  humidity  [%]"
-#     , fill = NULL
-#   ) +
-#   theme(
-#     text = element_text(size = 18)
-#     # , legend.position = "top"
-#     , legend.position = c(0, 1), legend.justification = c(0, 0.96)
-#     , legend.key = element_blank()
-#     , legend.text = element_text(size = 16)
-#     , legend.background = element_blank()
-#   ) +
-#   # facet_wrap(~type, scale = "free") +
-#   ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
-#
-#
-# # ******************************************************************************
-# # 3D 시각화
-# # ******************************************************************************
-# # data = openxlsx::read.xlsx(fileInfo, sheet = 7)
-# # data = openxlsx::read.xlsx(fileInfo, sheet = 5)
-# data = readxl::read_excel(fileInfo, sheet = 5)
-#
-# dataL1 = data %>%
-#   as.tibble() %>%
-#   dplyr::rename(
-#     "dtDateTime" = "Date time"
-#     , "Bext" = "총소멸계수(y축)"
-#     , "PM2.5_reconstruct" = "PM2.5_reconstruct(색)"
-#     , "RH" = "RH(x축)"
-#   ) %>%
-#   dplyr::mutate(
-#     # dtDateTime = readr::parse_datetime(sDateTime, format = "%Y-%m-%d %H:%M")
-#     dtYear = lubridate::year(dtDateTime)
-#     , dtMonth = lubridate::month(dtDateTime)
-#     , dtXran = lubridate::decimal_date(dtDateTime)
-#   )
-#
-# summary(dataL1)
-#
-# colList = c("dtDateTime", "Bext", "RH", "PM2.5_reconstruct")
-#
-# dataL2 = dataL1 %>%
-#   # dplyr::select(-c("Date.time", "sDateTime", "dtYear", "dtMonth", "dtXran")) %>%
-#   dplyr::select(colList) %>%
-#   # tidyr::gather(-dtDateTime, -"Bext", -RH, key = "key", value = "val") %>%
-#   na.omit()
-#
-#
-# summary(dataL2)
-#
-#
-# # 상대습도 및 소멸계수에 따른 3D PM2.5_reconstruct 시각화
-# makePlot3D = plotly::plot_ly(
-#   type = "mesh3d"
-#   , data = dataL2
-#   , x = ~RH
-#   , y = ~Bext
-#   , z = ~PM2.5_reconstruct
-#   , intensity = ~PM2.5_reconstruct
-#   , colors = cbMatlab2
-#   , showlegend = FALSE
-#   , colorbar = list(title = NULL)
-# ) %>%
-#   plotly::layout(
-#     title = NULL
-#     , scene = list(
-#       xaxis = list(title = "Relative humidity [%]")
-#       , yaxis = list(title = "b<sub>ext</sub> of IMPROVE<sub>2005</sub> [Mm<sup>-1</sup>]")
-#       , zaxis = list(title = "PM<sub>2.5</sub> concentration [ug/m<sup>3</sup>]")
-#     )
-#     , autosize = TRUE
-#   )
-#
-# makePlot3D
-#
-# subTitle = sprintf("%s", "상대습도 및 소멸계수에 따른 3D PM2.5_reconstruct 시각화")
-# saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, subTitle)
-# saveHtml = sprintf("%s/%s_%s.html", globalVar$figPath, serviceName, subTitle)
-# tmpImg = tempfile(fileext = ".png")
-# tmpHtml = tempfile(fileext = ".html")
-#
-# # html 저장
-# htmlwidgets::saveWidget(makePlot3D, file = tmpHtml)
-# fs::file_move(tmpHtml, saveHtml)
-#
-#
-# # 상대습도 및 PM2.5_reconstruct에 따른 3D 소멸계수 시각화
-# makePlot3D = plotly::plot_ly(
-#   type = "mesh3d"
-#   , data = dataL2
-#   , x = ~RH
-#   , y = ~PM2.5_reconstruct
-#   , z = ~Bext
-#   , intensity = ~Bext
-#   , colors = cbMatlab2
-#   , showlegend = FALSE
-#   , colorbar = list(title = NULL)
-# ) %>%
-#   plotly::layout(
-#     title = NULL
-#     , scene = list(
-#       xaxis = list(title = "Relative humidity [%]")
-#       , yaxis = list(title = "PM<sub>2.5</sub> concentration [ug/m<sup>3</sup>]")
-#       , zaxis = list(title = "b<sub>ext</sub> of IMPROVE<sub>2005</sub> [Mm<sup>-1</sup>]")
-#     )
-#     , autosize = TRUE
-#   )
-#
-# makePlot3D
-#
-# subTitle = sprintf("%s", "상대습도 및 PM2.5_reconstruct에 따른 3D 소멸계수 시각화")
-# saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, subTitle)
-# saveHtml = sprintf("%s/%s_%s.html", globalVar$figPath, serviceName, subTitle)
-# tmpImg = tempfile(fileext = ".png")
-# tmpHtml = tempfile(fileext = ".html")
-#
-# # html 저장
-# htmlwidgets::saveWidget(makePlot3D, file = tmpHtml)
-# fs::file_move(tmpHtml, saveHtml)
-#
-#
-# # ******************************************************************************
-# # PM2.5에 따른 Visibility 산점도 시각화
-# # PM2.5_recon에 따른 Visibility 산점도 시각화
-# # 2D 빈도분포 산점도 (PM2.5_recon vs PM2.5)
-# # 전체 기간에 대한 미세먼지 시계열 (PM2.5, PM2.5_reconstruct)
-# # ******************************************************************************
-# # data = openxlsx::read.xlsx(fileInfo, sheet = 5)
-# data = readxl::read_excel(fileInfo, sheet = 6)
-#
-# dataL1 = data %>%
-#   as.tibble() %>%
-#   dplyr::rename(
-#     "dtDateTime" = "Date time"
-#     # , "Bext" = "총소멸계수(y축)"
-#     # , "PM2.5_reconstruct" = "PM2.5_reconstruct(색)"
-#     # , "RH" = "RH(x축)"
-#   ) %>%
-#   dplyr::mutate(
-#     # dtDateTime = readr::parse_datetime(sDateTime, format = "%Y-%m-%d %H:%M")
-#     dtYear = lubridate::year(dtDateTime)
-#     , dtMonth = lubridate::month(dtDateTime)
-#     , dtXran = lubridate::decimal_date(dtDateTime)
-#   ) %>%
-#   dplyr::filter(
-#     PM2.5 < 95
-#   )
-#
-# summary(dataL1)
-#
-# dataL2 = dataL1 %>%
-#   dplyr::select(dtDateTime, PM2.5, PM2.5_recon) %>%
-#   tidyr::gather(-dtDateTime, key = "key", value = "val")
-#
-# # PM2.5에 따른 Visibility 산점도 시각화
-# plotSubTitle = sprintf("%s", "PM2.5에 따른 Visibility 산점도 시각화")
-# saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, plotSubTitle)
-#
-# lmFor = y ~ poly(x, 6, raw = TRUE)
-#
-# ggplot(data = dataL1, aes(x = PM2.5, y = Visibility, color = Visibility)) +
-#   # coord_fixed(ratio = 1) +
-#   theme_bw() +
-#   # stat_bin2d(aes(xAxis, yAxis), binwidth = c(2, 2)) +
-#   geom_point(size = 2) +
-#   geom_smooth(method = 'lm', formula = lmFor, se = TRUE, color = "black") +
-#   ggpubr::stat_regline_equation(label.x.npc = 0.1, label.y.npc = 0.96, size = 5.5, aes(label = ..eq.label..), color = "black", formula = lmFor, parse = TRUE) +
-#   ggpubr::stat_cor(label.x.npc = 0.1, label.y.npc = 0.90, size = 5.5, color = "black") +
-#   scale_color_gradientn(colours = cbMatlab2, limits = c(0, 300), na.value = NA) +
-#   scale_x_continuous(minor_breaks = seq(0, 100, 20), breaks = seq(0, 100, 20), limits = c(0, 100)) +
-#   scale_y_continuous(minor_breaks = seq(0, 400, 100), breaks = seq(0, 400, 100), limits = c(0, 400)) +
-#   labs(
-#     title = NULL
-#     , x = bquote('PM'['2.5'] * ' Concentration [' * mu * g / m^3 * ']')
-#     , y = "Visibility [km]"
-#     # , x = bquote('PM' ['2.5_reconstruct'] * ' Concentration ['*mu*g/m^3*']')
-#     # , y = bquote('Reconstructec b' ['ext'] * 'of IMS_95 ['*Mm^-1*']')
-#     # , y = "PM2.5_reconstruct"
-#     , colour = NULL
-#     , fill = NULL
-#   ) +
-#   theme(
-#     text = element_text(size = 18)
-#     , legend.position = c(0, 1), legend.justification = c(0, 0.96)
-#     , legend.key = element_blank()
-#     , legend.text = element_text(size = 16)
-#     , legend.background = element_blank()
-#   ) +
-#   ggsave(filename = saveImg, width = 6, height = 6, dpi = 1000)
-#
-#
-# # PM2.5_recon에 따른 Visibility 산점도 시각화
-# plotSubTitle = sprintf("%s", "PM2.5_recon에 따른 Visibility 산점도 시각화")
-# saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, plotSubTitle)
-#
-# lmFor = y ~ poly(x, 6, raw = TRUE)
-#
-# ggplot(data = dataL1, aes(x = PM2.5_recon, y = Visibility, color = Visibility)) +
-#   # coord_fixed(ratio = 1) +
-#   theme_bw() +
-#   # stat_bin2d(aes(xAxis, yAxis), binwidth = c(2, 2)) +
-#   geom_point(size = 2) +
-#   geom_smooth(method = 'lm', formula = lmFor, se = TRUE, color = "black") +
-#   ggpubr::stat_regline_equation(label.x.npc = 0.1, label.y.npc = 0.96, size = 5.5, aes(label = ..eq.label..), color = "black", formula = lmFor, parse = TRUE) +
-#   ggpubr::stat_cor(label.x.npc = 0.1, label.y.npc = 0.90, size = 5.5, color = "black") +
-#   scale_color_gradientn(colours = cbMatlab2, limits = c(0, 300), na.value = NA) +
-#   scale_x_continuous(minor_breaks = seq(0, 100, 20), breaks = seq(0, 100, 20), limits = c(0, 100)) +
-#   scale_y_continuous(minor_breaks = seq(0, 400, 100), breaks = seq(0, 400, 100), limits = c(0, 400)) +
-#   labs(
-#     title = NULL
-#     # , x = bquote('PM' ['2.5'] * ' Concentration ['*mu*g/m^3*']')
-#     , x = bquote('PM'['2.5_reconstruct'] *
-#                    ' Concentration [' *
-#                    mu *
-#                    g / m^3 * ']')
-#     , y = "Visibility [km]"
-#     # , y = bquote('Reconstructec b' ['ext'] * 'of IMS_95 ['*Mm^-1*']')
-#     # , y = "PM2.5_reconstruct"
-#     , colour = NULL
-#     , fill = NULL
-#   ) +
-#   theme(
-#     text = element_text(size = 18)
-#     , legend.position = c(0, 1), legend.justification = c(0, 0.96)
-#     , legend.key = element_blank()
-#     , legend.text = element_text(size = 16)
-#     , legend.background = element_blank()
-#   ) +
-#   ggsave(filename = saveImg, width = 6, height = 6, dpi = 1000)
-#
-#
-# # 2D 빈도분포 산점도 (PM2.5_recon vs PM2.5)
-# plotSubTitle = sprintf("%s", "2D 빈도분포 산점도 (PM2.5_recon vs PM2.5)")
-# saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, plotSubTitle)
-#
-# xAxis = dataL1$PM2.5_recon
-# yAxis = dataL1$PM2.5
-#
-# xcord = 10
-# # ycord = seq(1600, 0, -85)
-# ycord = seq(100, 0, -5.5)
-# cbSpectral = rev(RColorBrewer::brewer.pal(11, "Spectral"))
-#
-# perfEvalInfo = perfEval(xAxis, yAxis)
-# sprintf("%.3f", perfEvalInfo)
-#
-# ggplot() +
-#   coord_fixed(ratio = 1) +
-#   theme_bw() +
-#   stat_bin2d(aes(xAxis, yAxis), binwidth = c(2, 2)) +
-#   scale_fill_gradientn(colours = cbSpectral, limits = c(0, 80), na.value = NA) +
-#   annotate("text", x = xcord, y = ycord[1], label = paste0("Y = ", sprintf("%.2f", perfEvalInfo[1]), " X + ", sprintf("%.2f", perfEvalInfo[2])), size = 7, hjust = 0, color = "red") +
-#   annotate("text", x = xcord, y = ycord[2], label = paste0("R = ", sprintf("%.2f", perfEvalInfo[12]), " (p-value < ", sprintf("%.3f", perfEvalInfo[13]), ")"), size = 7, hjust = 0, color = "red") +
-#   annotate("text", x = xcord, y = ycord[3], label = paste0("Bias = ", sprintf("%.2f", perfEvalInfo[8]), " (", sprintf("%.2f", perfEvalInfo[9]), " %)"), parse = FALSE, size = 7, hjust = 0) +
-#   annotate("text", x = xcord, y = ycord[4], label = paste0("RMSE = ", sprintf("%.2f", perfEvalInfo[10]), " (", sprintf("%.2f", perfEvalInfo[11]), " %)"), parse = FALSE, size = 7, hjust = 0) +
-#   annotate("text", x = xcord, y = ycord[5], label = paste0("N = ", format(perfEvalInfo[7], big.mark = ",", scientific = FALSE)), size = 7, hjust = 0, color = "black") +
-#   geom_abline(intercept = 0, slope = 1, linetype = 1, color = "black", size = 1.0) +
-#   stat_smooth(aes(xAxis, yAxis), method = "lm", color = "red", se = FALSE) +
-#   # scale_x_continuous(minor_breaks = seq(0, 160, 20), breaks=seq(0, 160, 20),  expand=c(0,0), limits=c(0,  160)) +
-#   # scale_y_continuous(minor_breaks = seq(0, 1600, 200), breaks=seq(0, 1600, 200),  expand=c(0,0), limits=c(0,  1600)) +
-#   scale_x_continuous(minor_breaks = seq(0, 100, 20), breaks = seq(0, 100, 20), limits = c(0, 100)) +
-#   scale_y_continuous(minor_breaks = seq(0, 100, 20), breaks = seq(0, 100, 20), limits = c(0, 100)) +
-#   labs(
-#     title = NULL
-#     , x = bquote('PM'['2.5'] * ' Concentration [' * mu * g / m^3 * ']')
-#     , y = bquote('PM'['2.5_reconstruct'] *
-#                    ' Concentration [' *
-#                    mu *
-#                    g / m^3 * ']')
-#     , y = bquote('Reconstructec b'['ext'] *
-#                    'of IMS_95 [' *
-#                    Mm^-1 *
-#                    ']')
-#     # , x = "PM2.5"
-#     # , y = "PM2.5_reconstruct"
-#     , fill = NULL
-#   ) +
-#   theme(
-#     plot.title = element_text(face = "bold", size = 24, color = "black")
-#     , axis.title.x = element_text(size = 24, colour = "black")
-#     , axis.title.y = element_text(size = 24, colour = "black", angle = 90)
-#     , axis.text.x = element_text(size = 19, colour = "black")
-#     , axis.text.y = element_text(size = 19, colour = "black")
-#     , legend.position = c(0, 1), legend.justification = c(0, 0.96)
-#     , legend.key = element_blank()
-#     , legend.text = element_text(size = 19)
-#     , legend.background = element_blank()
-#   ) +
-#   ggsave(filename = saveImg, width = 6, height = 6, dpi = 1000)
-#
-#
-# # 전체 기간에 대한 미세먼지 시계열 (PM2.5, PM2.5_reconstruct)
-# plotSubTitle = sprintf("%s", "전체 기간에 대한 미세먼지 시계열 (PM2.5, PM2.5_reconstruct)")
-# saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, plotSubTitle)
-#
-# # 정렬
-# dataL2$key = forcats::fct_relevel(dataL2$key, c("PM2.5", "PM2.5_recon"))
-#
-# ggplot(data = dataL2, aes(x = dtDateTime, y = val, color = key)) +
-#   geom_line() +
-#   labs(title = NULL, x = "Date [Year-Month-Day]", y = bquote('Concentration  [' * ug / m^3 * ']'), colour = NULL, fill = NULL, subtitle = plotSubTitle) +
-#   scale_x_datetime(date_labels = "%Y-%m-%d", date_breaks = "1 month") +
-#   scale_y_continuous(minor_breaks = seq(0, 100, 20), breaks = seq(0, 100, 20), limits = c(0, 100)) +
-#   theme(
-#     text = element_text(size = 18)
-#     , axis.text.x = element_text(angle = 45, hjust = 1)
-#     , legend.position = "top"
-#   ) +
-#   ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
-#
-#
-# # ******************************************************************************
-# # PM2.5에 따른 Visibility 산점도 시각화
-# # PM2.5_recon에 따른 Visibility 산점도 시각화
-# # 2D 빈도분포 산점도 (PM2.5_recon vs PM2.5)
-# # 전체 기간에 대한 미세먼지 시계열 (PM2.5, PM2.5_reconstruct)
-# # ******************************************************************************
-# # data = openxlsx::read.xlsx(fileInfo, sheet = 5)
-# data = readxl::read_excel(fileInfo, sheet = 6)
-#
-# dataL1 = data %>%
-#   as.tibble() %>%
-#   dplyr::rename(
-#     "dtDateTime" = "Date time"
-#   ) %>%
-#   dplyr::mutate(
-#     # dtDateTime = readr::parse_datetime(sDateTime, format = "%Y-%m-%d %H:%M")
-#     dtYear = lubridate::year(dtDateTime)
-#     , dtMonth = lubridate::month(dtDateTime)
-#     , dtXran = lubridate::decimal_date(dtDateTime)
-#     # , dtDoy = format(dtDateTime, "%j") %>% as.numeric()
-#     , season = dplyr::case_when(
-#       dtMonth == 1 | dtMonth == 2 | dtMonth == 12 ~ "Winter"
-#       , dtMonth == 3 | dtMonth == 4 | dtMonth == 5 ~ "Spring"
-#       , dtMonth == 6 | dtMonth == 7 | dtMonth == 8 ~ "Summer"
-#       , dtMonth == 9 | dtMonth == 10 | dtMonth == 11 ~ "Autumn"
-#     )
-#   )
-#
-# # summary(dataL1)
-#
-# dataL2 = dataL1 %>%
-#   dplyr::group_by(dtMonth) %>%
-#   dplyr::summarise(
-#     PM2.5 = mean(PM2.5, na.rm = TRUE)
-#     , PM2.5_recon = mean(PM2.5_recon, na.rm = TRUE)
-#   ) %>%
-#   tidyr::gather(-dtMonth, key = "key", value = "val")
-#
-# # 월별 평균 미세먼지 점선 그래프
-# plotSubTitle = sprintf("%s", "월별 평균 미세먼지 점선 그래프")
-# saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, plotSubTitle)
-#
-# ggplot(data = dataL2, aes(x = dtMonth, y = val, color = key, group = key)) +
-#   geom_point() +
-#   geom_line() +
-#   labs(title = NULL, x = "Month", y = bquote('Concentration  [' * ug / m^3 * ']'), colour = NULL, fill = NULL, subtitle = plotSubTitle) +
-#   # scale_x_datetime(date_labels = "%Y-%m-%d", date_breaks = "1 month") +
-#   scale_x_continuous(minor_breaks = seq(1, 12, 1), breaks = seq(1, 12, 1), limits = c(1, 12)) +
-#   scale_y_continuous(minor_breaks = seq(0, 40, 10), breaks = seq(0, 40, 10), limits = c(0, 40)) +
-#   theme(
-#     text = element_text(size = 18)
 #     # , axis.text.x = element_text(angle = 45, hjust = 1)
 #     , legend.position = "top"
 #   ) +
-#   ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
-#
-# # 월별 평균 미세먼지 막대 그래프
-# plotSubTitle = sprintf("%s", "월별 평균 미세먼지 막대 그래프")
-# saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, plotSubTitle)
-#
-# ggplot(data = dataL2, aes(x = dtMonth, y = val, color = key, fill = key)) +
-#   geom_bar(stat = "identity", width = 0.4, position = position_dodge(width = 0.5)) +
-#   labs(title = NULL, x = "Month", y = bquote('Concentration  [' * ug / m^3 * ']'), colour = NULL, fill = NULL, subtitle = plotSubTitle) +
-#   # scale_x_datetime(date_labels = "%Y-%m-%d", date_breaks = "1 month") +
-#   scale_x_continuous(minor_breaks = seq(1, 12, 1), breaks = seq(1, 12, 1), limits = c(1, 12)) +
-#   scale_y_continuous(minor_breaks = seq(0, 40, 10), breaks = seq(0, 40, 10), limits = c(0, 40)) +
-#   theme(
-#     text = element_text(size = 18)
-#     # , axis.text.x = element_text(angle = 45, hjust = 1)
-#     , legend.position = "top"
-#   ) +
-#   ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
-#
-#
-# dataL3 = dataL1 %>%
-#   dplyr::group_by(season) %>%
-#   dplyr::summarise(
-#     PM2.5 = mean(PM2.5, na.rm = TRUE)
-#     , PM2.5_recon = mean(PM2.5_recon, na.rm = TRUE)
-#   ) %>%
-#   tidyr::gather(-season, key = "key", value = "val")
-#
-# # 정렬
-# dataL3$season = forcats::fct_relevel(dataL3$season, c("Spring", "Summer", "Autumn", "Winter"))
-#
-# # 계절별 평균 미세먼지 점선 그래프
-# plotSubTitle = sprintf("%s", "계절별 평균 미세먼지 점선 그래프")
-# saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, plotSubTitle)
-#
-# ggplot(data = dataL3, aes(x = season, y = val, color = key, group = key)) +
-#   geom_point() +
-#   geom_line() +
-#   labs(title = NULL, x = "Season", y = bquote('Concentration  [' * ug / m^3 * ']'), colour = NULL, fill = NULL, subtitle = plotSubTitle) +
-#   # scale_x_datetime(date_labels = "%Y-%m-%d", date_breaks = "1 month") +
-#   # scale_x_continuous(minor_breaks = seq(1, 12, 1), breaks=seq(1, 12, 1), limits=c(1,  12)) +
-#   scale_y_continuous(minor_breaks = seq(0, 40, 10), breaks = seq(0, 40, 10), limits = c(0, 40)) +
-#   theme(
-#     text = element_text(size = 18)
-#     # , axis.text.x = element_text(angle = 45, hjust = 1)
-#     , legend.position = "top"
-#   ) +
-#   ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
-#
-# # 계절별 평균 미세먼지 막대 그래프
-# plotSubTitle = sprintf("%s", "계절별 평균 미세먼지 막대 그래프")
-# saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, plotSubTitle)
-#
-# ggplot(data = dataL3, aes(x = season, y = val, color = key, fill = key)) +
-#   geom_bar(stat = "identity", width = 0.4, position = position_dodge(width = 0.5)) +
-#   labs(title = NULL, x = "Season", y = bquote('Concentration  [' * ug / m^3 * ']'), colour = NULL, fill = NULL, subtitle = plotSubTitle) +
-#   # scale_x_datetime(date_labels = "%Y-%m-%d", date_breaks = "1 month") +
-#   # scale_x_continuous(minor_breaks = seq(1, 12, 1), breaks=seq(1, 12, 1), limits=c(1,  12)) +
-#   scale_y_continuous(minor_breaks = seq(0, 40, 10), breaks = seq(0, 40, 10), limits = c(0, 40)) +
-#   theme(
-#     text = element_text(size = 18)
-#     # , axis.text.x = element_text(angle = 45, hjust = 1)
-#     , legend.position = "top"
-#   ) +
-#   ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
-#
+#   facet_wrap(~MSRSTE_NM, scale = "free_x", ncol = 5, labeller = label_parsed) +
+#   ggsave(filename = saveImg, width = 15, height = 10, dpi = 600)
+
+# ggplot2::last_plot()
+
+# 코로나 전후 월별 지역별 평균 PM25 데이터에 대한 시계열 그래프
+dataL3 = dataL2 %>%
+  dplyr::filter(
+    key == "PM25"
+  )
+
+# 코로나 전후 월별 지역별 평균 PM25 데이터에 대한 시계열 그래프
+plotSubTitle = sprintf("%s", "코로나 전후 월별 지역별 평균 PM25 데이터에 대한 시계열 그래프")
+saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, plotSubTitle)
+dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
+
+ggplot(data = dataL3, aes(x = dtMonth, y = meanVal, color = covidYn, group = covidYn)) +
+  geom_line() +
+  geom_point() +
+   ggpubr::stat_cor(label.x.npc = 0.4, label.y.npc = 1.0, p.accuracy  =  0.01,  r.accuracy  =  0.01, size = 4.5, show.legend = FALSE) +
+  labs(title = NULL, x = "Month", y = bquote('PM' ['2.5'] *'  ['*ug/m^3*']'), colour = NULL, fill = NULL, subtitle = plotSubTitle) +
+  # scale_x_datetime(date_labels = "%Y-%m-%d", date_breaks = "1 month") +
+  scale_x_continuous(minor_breaks = seq(1, 12, 1), breaks=seq(1, 12, 1), limits=c(1,  12)) +
+  # scale_y_continuous(minor_breaks = seq(-0.1, 20, 5), breaks=seq(-0.5, 20, 5), limits=c(-0.5, 20)) +
+  theme(
+    text = element_text(size = 16)
+    # , axis.text.x = element_text(angle = 45, hjust = 1)
+    , legend.position = "top"
+  ) +
+  facet_wrap(~MSRSTE_NM, scale = "free_x", ncol = 5, labeller = label_parsed) +
+  ggsave(filename = saveImg, width = 15, height = 10, dpi = 600)
+
+ggplot2::last_plot()
+
+# **************************************************************************************
+# 코로나 전후 계절별 지역별 평균 데이터에 대한 시계열 그래프 -> 전/후
+# **************************************************************************************
+dataL2 = dataL1 %>%
+  dplyr::select(c("covidYn", "season", "MSRSTE_NM", "PM25", "PM10")) %>%
+  tidyr::gather(-covidYn, -season, -MSRSTE_NM, key = "key", value = "val") %>%
+  dplyr::group_by(covidYn, season, MSRSTE_NM, key) %>%
+  dplyr::summarise(
+    meanVal = mean(val, na.rm = TRUE)
+    , sdVal = sd(val, na.rm = TRUE)
+  ) %>%
+  dplyr::mutate(
+    type = dplyr::case_when(
+      key == "PM10" ~ sprintf('PM[10]')
+      , key == "PM25"~ sprintf('PM[2.5]')
+      , TRUE ~ NA_character_
+    )
+  )
+
+# 정렬
+dataL2$season = forcats::fct_relevel(dataL2$season, c("Spring", "Summer", "Autumn", "Winter"))
+
+dataL3 = dataL2 %>%
+  dplyr::filter(
+    key == "PM10"
+  )
+
+# 코로나 전후 계절별 지역별 평균 PM10 데이터에 대한 시계열 그래프
+plotSubTitle = sprintf("%s", "코로나 전후 계절별 지역별 평균 PM10 데이터에 대한 시계열 그래프")
+saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, plotSubTitle)
+dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
+
+ggplot(data = dataL3, aes(x = season, y = meanVal, color = covidYn, group = covidYn)) +
+  geom_line() +
+  geom_point() +
+  labs(title = NULL, x = "Season", y = bquote('PM' ['10'] *'  ['*ug/m^3*']'), colour = NULL, fill = NULL, subtitle = plotSubTitle) +
+  # scale_x_datetime(date_labels = "%Y-%m-%d", date_breaks = "1 month") +
+  # scale_x_continuous(minor_breaks = seq(1, 12, 1), breaks=seq(1, 12, 1), limits=c(1,  12)) +
+  # scale_y_continuous(minor_breaks = seq(-0.1, 20, 5), breaks=seq(-0.5, 20, 5), limits=c(-0.5, 20)) +
+  theme(
+    text = element_text(size = 16)
+    , axis.text.x = element_text(angle = 45, hjust = 1)
+    , legend.position = "top"
+  ) +
+  facet_wrap(~MSRSTE_NM, ncol = 5, labeller = label_parsed) +
+  ggsave(filename = saveImg, width = 15, height = 10, dpi = 600)
+
+ggplot2::last_plot()
+
+
+dataL3 = dataL2 %>%
+  dplyr::filter(
+    key == "PM25"
+  )
+
+# 코로나 전후 월별 지역별 평균 PM25 데이터에 대한 시계열 그래프
+plotSubTitle = sprintf("%s", "코로나 전후 월별 지역별 평균 PM25 데이터에 대한 시계열 그래프")
+saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, plotSubTitle)
+dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
+
+ggplot(data = dataL3, aes(x = season, y = meanVal, color = covidYn, group = covidYn)) +
+  geom_line() +
+  geom_point() +
+  labs(title = NULL, x = "Season", y = bquote('PM' ['2.5'] *'  ['*ug/m^3*']'), colour = NULL, fill = NULL, subtitle = plotSubTitle) +
+  # scale_x_datetime(date_labels = "%Y-%m-%d", date_breaks = "1 month") +
+  # scale_x_continuous(minor_breaks = seq(1, 12, 1), breaks=seq(1, 12, 1), limits=c(1,  12)) +
+  # scale_y_continuous(minor_breaks = seq(-0.1, 20, 5), breaks=seq(-0.5, 20, 5), limits=c(-0.5, 20)) +
+  theme(
+    text = element_text(size = 16)
+    , axis.text.x = element_text(angle = 45, hjust = 1)
+    , legend.position = "top"
+  ) +
+  facet_wrap(~MSRSTE_NM, ncol = 5, labeller = label_parsed) +
+  ggsave(filename = saveImg, width = 15, height = 10, dpi = 600)
+
+ggplot2::last_plot()
+
+
+# **************************************************************************************
+# 코로나 전후 전체 지역별 데이터에 대한 지도 시각화(전체 제목) -> 전/후
+# **************************************************************************************
+# SHP 파일 읽기
+mapInfo = Sys.glob(file.path(globalVar$mapPath, "koreaInfo/TL_SCCO_SIG.shp"))
+# mapInfo = Sys.glob(file.path(globalVar$mapPath, "koreaInfo/bnd_dong_00_2019_2019_2Q.shp"))
+# mapInfo = Sys.glob(file.path(globalVar$mapPath, "koreaInfo/TL_SCCO_CTPRVN.shp"))
+
+# shpData = raster::shapefile(mapInfo, encoding = "UTF-8")
+# geo = sp::spTransform(shpData, CRS("+proj=longlat"))
+# mapData = ggplot2::fortify(geo, region = 'SIG_CD', region2 = "SIG_KOR_NM")
+
+mapData = sf::st_read(mapInfo, options = "ENCODING=EUC-KR") %>%
+  sf::st_transform(sp::CRS("+proj=longlat")) %>%
+  dplyr::mutate(
+    sigCdOpt = stringr::str_sub(SIG_CD, 1, 2)
+  ) %>%
+  dplyr::filter(
+    sigCdOpt == 11
+  )
+
+# 법정동 코드 읽기
+codeInfo = Sys.glob(file.path(globalVar$mapPath, "admCode/admCode.xlsx"))
+codeData = openxlsx::read.xlsx(codeInfo, sheet = 1, startRow = 2)
+
+codeDataL1 = codeData %>%
+  dplyr::select("시도코드", "시도명칭", "시군구코드", "시군구명칭", "읍면동코드", "읍면동명칭") %>%
+  # dplyr::select("시도코드", "시도명칭", "시군구코드", "시군구명칭") %>%
+  dplyr::filter(
+    stringr::str_detect(시도명칭, regex("서울특별시"))
+  ) %>%
+  dplyr::distinct(시군구코드, 시군구명칭)
+
+dataL2 = dataL1 %>%
+  dplyr::select(c("covidYn", "MSRSTE_NM", "PM25", "PM10")) %>%
+  tidyr::gather(-covidYn, -MSRSTE_NM, key = "key", value = "val") %>%
+  dplyr::group_by(covidYn, MSRSTE_NM, key) %>%
+  dplyr::summarise(
+    meanVal = mean(val, na.rm = TRUE)
+    , sdVal = sd(val, na.rm = TRUE)
+  ) %>%
+  dplyr::mutate(
+    type = dplyr::case_when(
+      key == "PM10" ~ sprintf('PM[10]')
+      , key == "PM25"~ sprintf('PM[2.5]')
+      , TRUE ~ NA_character_
+    )
+  )
+
+summary(dataL2)
+
+keyList = dataL2$key %>% unique()
+covidYnList = dataL2$covidYn %>% unique()
+
+for (keyInfo in keyList) {
+  for (covidYnInfo in covidYnList) {
+
+    cat(sprintf("[CHECK] keyInfo / covidYnInfo : %s / %s", keyInfo, covidYnInfo), "\n")
+
+    dataL3 = dataL2 %>%
+      dplyr::filter(
+        key == keyInfo
+        , covidYn == covidYnInfo
+      )
+
+    statData = dataL2 %>%
+      dplyr::filter(
+        key == keyInfo
+      )
+
+    maxVal = max(statData$meanVal, na.rm = TRUE) %>% ceiling()
+    minVal = min(statData$meanVal, na.rm = TRUE) %>% floor()
+
+    if (nrow(dataL3) < 1) { next }
+
+    # 통합 데이터셋
+    dataL4 = mapData %>%
+      dplyr::inner_join(codeDataL1, by = c("SIG_KOR_NM" = "시군구명칭")) %>%
+      dplyr::left_join(dataL3, by = c("SIG_KOR_NM" = "MSRSTE_NM"))
+
+    mainTitle = sprintf("%s 전체 지역별 %s 데이터에 대한 지도 시각화", covidYnInfo, keyInfo)
+    saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
+
+    makePlot = ggplot(data = dataL4, aes(fill = meanVal, label = SIG_KOR_NM)) +
+      theme_bw() +
+      coord_fixed(ratio = 1) +
+      geom_sf(color = "white") +
+      geom_sf_text(color = "black") +
+      scale_fill_gradientn(colours = cbSpectral, limits = c(minVal, maxVal), na.value = NA) +
+      labs(title = NULL, x = NULL, y = NULL, colour = NULL, fill = NULL, subtitle = NULL) +
+      theme(
+        text = element_text(size = 16)
+        , panel.grid.major.x = element_blank()
+        , panel.grid.major.y = element_blank()
+        , panel.grid.minor.x = element_blank()
+        , panel.grid.minor.y = element_blank()
+        , panel.grid.major = element_blank()
+        , panel.grid.minor = element_blank()
+        , panel.border = element_blank()
+        , axis.text.x = element_blank()
+        , axis.ticks.x = element_blank()
+        , axis.title.x = element_blank()
+        , axis.text.y = element_blank()
+        , axis.ticks.y = element_blank()
+        , axis.title.y = element_blank()
+        , plot.subtitle = element_text(hjust = 1)
+        # , legend.position = "bottom"
+        , legend.position = c(0.25, 0.9)
+        , legend.key.width = unit(1.75, "cm")
+        , legend.direction = "horizontal"
+      )
+
+    ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
+
+  }
+}
