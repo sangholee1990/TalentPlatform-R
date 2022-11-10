@@ -76,32 +76,6 @@ library(sf)
 library(raster)
 library(sf)
 
-perfEval = function(x, y) {
-
-  if (length(x) < 1) { return(sprintf("%s", "x 값 없음")) }
-  if (length(y) < 1) { return(sprintf("%s", "y 값 없음")) }
-
-  slope = coef(lm(y ~ x))[2]
-  interp = coef(lm(y ~ x))[1]
-  xMean = mean(x, na.rm = TRUE)
-  yMean = mean(y, na.rm = TRUE)
-  xSd = sd(x, na.rm = TRUE)
-  ySd = sd(y, na.rm = TRUE)
-  cnt = length(x)
-  bias = mean(x - y, na.rm = TRUE)
-  rBias = (bias / yMean) * 100.0
-  rmse = sqrt(mean((x - y)^2, na.rm = TRUE))
-  rRmse = (rmse / yMean) * 100.0
-  r = cor.test(x, y)$estimate
-  p = cor.test(x, y)$p.value
-  diffMean = mean(x - y, na.rm = TRUE)
-  diffSd = sd(x - y, na.rm = TRUE)
-  # perDiffMean = mean((x - y) / y, na.rm = TRUE) * 100.0
-
-  return(c(slope, interp, xMean, yMean, xSd, ySd, cnt, bias, rBias, rmse, rRmse, r, p, diffMean, diffSd))
-}
-
-
 cbSpectral = rev(RColorBrewer::brewer.pal(11, "Spectral"))
 cbMatlab2 = colorRamps::matlab.like2(11)
 
@@ -444,8 +418,8 @@ dataL3 = dataL2 %>%
     key == "PM25"
   )
 
-# 코로나 전후 월별 지역별 평균 PM25 데이터에 대한 시계열 그래프
-plotSubTitle = sprintf("%s", "코로나 전후 월별 지역별 평균 PM25 데이터에 대한 시계열 그래프")
+# 코로나 전후 계절별 지역별 평균 PM25 데이터에 대한 시계열 그래프
+plotSubTitle = sprintf("%s", "코로나 전후 계절별 지역별 평균 PM25 데이터에 대한 시계열 그래프")
 saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, plotSubTitle)
 dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
 
@@ -532,6 +506,8 @@ for (keyInfo in keyList) {
         , covidYn == covidYnInfo
       )
 
+    print(summary(dataL3$meanVal))
+
     statData = dataL2 %>%
       dplyr::filter(
         key == keyInfo
@@ -579,7 +555,7 @@ for (keyInfo in keyList) {
         , legend.direction = "horizontal"
       )
 
-    ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
+    # ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
 
   }
 }

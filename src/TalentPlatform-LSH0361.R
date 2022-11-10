@@ -57,6 +57,7 @@ library(ggpubr)
 # library(h2o)
 library(scales)
 library(openxlsx)
+library(htmlwidgets)
 
 ggplotDefaultColor = scales::hue_pal()(2)
 
@@ -144,7 +145,7 @@ dataL2 = dataL1 %>%
 summary(dataL2)
 
 subTitle = sprintf("%s", "총 소멸계수에 따른 PM25 영향")
-saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, subTitle)
+saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, subTitle)
 
 ggplot(data = dataL2, aes(x = `총소멸계수(Bext)`, y = val, color = val)) +
   # geom_point(size = 2, show.legend = FALSE) +
@@ -211,7 +212,7 @@ dataL2 = dataL1 %>%
 summary(dataL2)
 
 subTitle = sprintf("%s", "상대습도에 따른 소멸계수 영향 (PM2.5_reconstruct)")
-saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, subTitle)
+saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, subTitle)
 
 lmFor = y ~ poly(x, 2, raw = TRUE)
 
@@ -279,7 +280,7 @@ dataL2 = dataL1 %>%
 summary(dataL2)
 
 subTitle = sprintf("%s", "PM2.5_reconstruct에 따른 소멸계수 영향")
-saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, subTitle)
+saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, subTitle)
 
 lmFor = y ~ poly(x, 2, raw = TRUE)
 
@@ -347,9 +348,7 @@ dataL2 = dataL1 %>%
   # tidyr::gather(-dtDateTime, -"Bext", -RH, key = "key", value = "val") %>% 
   na.omit()
 
-
 summary(dataL2)
-
 
 # 상대습도 및 소멸계수에 따른 3D PM2.5_reconstruct 시각화
 makePlot3D = plotly::plot_ly(
@@ -368,7 +367,7 @@ makePlot3D = plotly::plot_ly(
     , scene = list(
       xaxis = list(title = "Relative humidity [%]")
       , yaxis = list(title = "b<sub>ext</sub> of IMPROVE<sub>2005</sub> [Mm<sup>-1</sup>]")
-      , zaxis = list(title = "PM<sub>2.5</sub> concentration [ug/m<sup>3</sup>]")
+      , zaxis = list(title = "PM<sub>2.5</sub> concentration [µg/m<sup>3</sup>]")
     ) 
     , autosize = TRUE
   )
@@ -376,8 +375,8 @@ makePlot3D = plotly::plot_ly(
 makePlot3D
 
 subTitle = sprintf("%s", "상대습도 및 소멸계수에 따른 3D PM2.5_reconstruct 시각화")
-saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, subTitle)
-saveHtml = sprintf("%s/%s_%s.html", globalVar$figPath, serviceName, subTitle)
+saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, subTitle)
+saveHtml = sprintf("%s/%s/%s.html", globalVar$figPath, serviceName, subTitle)
 tmpImg = tempfile(fileext = ".png")
 tmpHtml= tempfile(fileext = ".html")
 
@@ -404,7 +403,7 @@ makePlot3D = plotly::plot_ly(
     title = NULL
     , scene = list(
       xaxis = list(title = "Relative humidity [%]")
-      , yaxis = list(title = "PM<sub>2.5</sub> concentration [ug/m<sup>3</sup>]")
+      , yaxis = list(title = "PM<sub>2.5</sub> concentration [µg/m<sup>3</sup>]")
       , zaxis = list(title = "b<sub>ext</sub> of IMPROVE<sub>2005</sub> [Mm<sup>-1</sup>]")
     ) 
     , autosize = TRUE
@@ -413,8 +412,8 @@ makePlot3D = plotly::plot_ly(
 makePlot3D
 
 subTitle = sprintf("%s", "상대습도 및 PM2.5_reconstruct에 따른 3D 소멸계수 시각화")
-saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, subTitle)
-saveHtml = sprintf("%s/%s_%s.html", globalVar$figPath, serviceName, subTitle)
+saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, subTitle)
+saveHtml = sprintf("%s/%s/%s.html", globalVar$figPath, serviceName, subTitle)
 tmpImg = tempfile(fileext = ".png")
 tmpHtml= tempfile(fileext = ".html")
 
@@ -458,7 +457,7 @@ dataL2 = dataL1 %>%
 
 # PM2.5에 따른 Visibility 산점도 시각화
 plotSubTitle = sprintf("%s", "PM2.5에 따른 Visibility 산점도 시각화")
-saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, plotSubTitle)
+saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, plotSubTitle)
 
 lmFor = y ~ poly(x, 6, raw = TRUE)
 
@@ -498,7 +497,7 @@ ggplot2::last_plot()
 
 # PM2.5_recon에 따른 Visibility 산점도 시각화
 plotSubTitle = sprintf("%s", "PM2.5_recon에 따른 Visibility 산점도 시각화")
-saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, plotSubTitle)
+saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, plotSubTitle)
 
 lmFor = y ~ poly(x, 6, raw = TRUE)
 
@@ -537,14 +536,15 @@ ggplot2::last_plot()
 
 # 2D 빈도분포 산점도 (PM2.5_recon vs PM2.5)
 plotSubTitle = sprintf("%s", "2D 빈도분포 산점도 (PM2.5_recon vs PM2.5)")
-saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, plotSubTitle)
+saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, plotSubTitle)
 
 xAxis = dataL1$PM2.5_recon
 yAxis = dataL1$PM2.5
 
-xcord = 10
+xcord = 15
 # ycord = seq(1600, 0, -85)
 ycord = seq(100, 0, -5.5)
+# ycord = seq(100, 0, -4.0)
 cbSpectral = rev(RColorBrewer::brewer.pal(11, "Spectral"))
 
 perfEvalInfo = perfEval(xAxis, yAxis)
@@ -555,17 +555,17 @@ ggplot() +
   theme_bw() +
   stat_bin2d(aes(xAxis, yAxis), binwidth = c(2, 2)) +
   scale_fill_gradientn(colours = cbSpectral, limits = c(0, 80), na.value = NA) +
-  annotate("text", x = xcord, y = ycord[1], label = paste0("Y = ", sprintf("%.2f", perfEvalInfo[1])," X + ", sprintf("%.2f", perfEvalInfo[2])), size = 7, hjust = 0, color = "red") +
-  annotate("text", x = xcord, y = ycord[2], label = paste0("R = ", sprintf("%.2f", perfEvalInfo[12]), " (p-value < ", sprintf("%.3f", perfEvalInfo[13]), ")"), size = 7, hjust = 0, color = "red") +
-  annotate("text", x = xcord, y = ycord[3], label = paste0("Bias = ", sprintf("%.2f", perfEvalInfo[8]), " (", sprintf("%.2f", perfEvalInfo[9])," %)"), parse = FALSE, size = 7, hjust = 0) +
-  annotate("text", x = xcord, y = ycord[4], label = paste0("RMSE = ", sprintf("%.2f", perfEvalInfo[10]), " (", sprintf("%.2f", perfEvalInfo[11])," %)"), parse = FALSE, size = 7, hjust = 0) +
-  annotate("text", x = xcord, y = ycord[5], label=paste0("N = ", format(perfEvalInfo[7], big.mark = ",", scientific = FALSE)), size = 7, hjust = 0, color = "black") +
+  annotate("text", x = xcord, y = ycord[1], label = paste0("Y = ", sprintf("%.2f", perfEvalInfo[1])," X + ", sprintf("%.2f", perfEvalInfo[2])), size = 5.5, hjust = 0, color = "red") +
+  annotate("text", x = xcord, y = ycord[2], label = paste0("R = ", sprintf("%.2f", perfEvalInfo[12]), " (p-value < ", sprintf("%.3f", perfEvalInfo[13]), ")"), size = 5.5, hjust = 0, color = "red") +
+  annotate("text", x = xcord, y = ycord[3], label = paste0("Bias = ", sprintf("%.2f", perfEvalInfo[8]), " (", sprintf("%.2f", perfEvalInfo[9])," %)"), parse = FALSE, size = 5.5, hjust = 0) +
+  annotate("text", x = xcord, y = ycord[4], label = paste0("RMSE = ", sprintf("%.2f", perfEvalInfo[10]), " (", sprintf("%.2f", perfEvalInfo[11])," %)"), parse = FALSE, size = 5.5, hjust = 0) +
+  annotate("text", x = xcord, y = ycord[5], label=paste0("N = ", format(perfEvalInfo[7], big.mark = ",", scientific = FALSE)), size = 5.5, hjust = 0, color = "black") +
   geom_abline(intercept = 0, slope = 1, linetype = 1, color = "black", size = 1.0) +
   stat_smooth(aes(xAxis, yAxis), method = "lm", color = "red", se = FALSE) +
   # scale_x_continuous(minor_breaks = seq(0, 160, 20), breaks=seq(0, 160, 20),  expand=c(0,0), limits=c(0,  160)) +
   # scale_y_continuous(minor_breaks = seq(0, 1600, 200), breaks=seq(0, 1600, 200),  expand=c(0,0), limits=c(0,  1600)) +
-  scale_x_continuous(minor_breaks = seq(0, 100, 20), breaks=seq(0, 100, 20), limits=c(0,  100)) +
-  scale_y_continuous(minor_breaks = seq(0, 100, 20), breaks=seq(0, 100, 20), limits=c(0,  100)) +
+  scale_x_continuous(minor_breaks = seq(0, 100, 20), breaks=seq(0, 100, 20), limits=c(0, 100)) +
+  scale_y_continuous(minor_breaks = seq(0, 100, 20), breaks=seq(0, 100, 20), limits=c(0, 100)) +
   labs(
     title = NULL
     , x = bquote('PM' ['2.5'] * ' Concentration ['*mu*g/m^3*']')
@@ -576,31 +576,26 @@ ggplot() +
     , fill = NULL
   ) +
     theme(
-      plot.title = element_text(face = "bold", size = 24, color = "black")
-      , axis.title.x = element_text(size = 24, colour = "black")
-      , axis.title.y = element_text(size = 24, colour = "black", angle = 90)
-      , axis.text.x = element_text( size = 19, colour = "black")
-      , axis.text.y = element_text(size = 19, colour = "black")
+      text = element_text(size = 18)
       , legend.position = c(0, 1), legend.justification = c(0, 0.96)
       , legend.key=element_blank()
-      , legend.text=element_text(size=19)
       , legend.background=element_blank()
     ) +
-    ggsave(filename = saveImg, width = 6, height = 6, dpi = 1000)
+    ggsave(filename = saveImg, width = 6, height = 6, dpi = 600)
 
 ggplot2::last_plot()
 
 
 # 전체 기간에 대한 미세먼지 시계열 (PM2.5, PM2.5_reconstruct)
 plotSubTitle = sprintf("%s", "전체 기간에 대한 미세먼지 시계열 (PM2.5, PM2.5_reconstruct)")
-saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, plotSubTitle)
+saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, plotSubTitle)
 
 # 정렬
 dataL2$key = forcats::fct_relevel(dataL2$key, c("PM2.5", "PM2.5_recon"))
 
 ggplot(data = dataL2, aes(x = dtDateTime, y = val, color = key)) +
   geom_line() +
-  labs(title = NULL, x = "Date [Year-Month-Day]", y = bquote('Concentration  ['*ug/m^3*']'), colour = NULL, fill = NULL, subtitle = plotSubTitle) +
+  labs(title = NULL, x = "Date [Year-Month-Day]", y = bquote('Concentration  ['*µg/m^3*']'), colour = NULL, fill = NULL, subtitle = plotSubTitle) +
   scale_x_datetime(date_labels = "%Y-%m-%d", date_breaks = "1 month") +
   scale_y_continuous(minor_breaks = seq(0, 100, 20), breaks=seq(0, 100, 20), limits=c(0,  100)) +
   theme(
@@ -641,26 +636,43 @@ dataL1 = data %>%
       )
     )
 
+# dataL2 = dataL1 %>%
+#   dplyr::select(dtMonth, PM2.5, PM2.5_recon) %>%
+#   tidyr::gather(-dtMonth, key = "key", value = "val") %>%
+#   dplyr::group_by(dtMonth, key) %>%
+#   dplyr::summarise(
+#     meanVal = mean(val, na.rm = TRUE)
+#     , sdVal = sd(val, na.rm = TRUE)
+#   )
+
 dataL2 = dataL1 %>%
-  dplyr::select(dtMonth, PM2.5, PM2.5_recon) %>%
-  tidyr::gather(-dtMonth, key = "key", value = "val") %>%
-  dplyr::group_by(dtMonth, key) %>%
+  dplyr::select(dtYear, dtMonth, PM2.5, PM2.5_recon) %>%
+  tidyr::gather(-dtYear, -dtMonth, key = "key", value = "val") %>%
+  dplyr::group_by(dtYear, dtMonth, key) %>%
   dplyr::summarise(
-    maenVal = mean(val, na.rm = TRUE)
+    meanVal = mean(val, na.rm = TRUE)
     , sdVal = sd(val, na.rm = TRUE)
+  ) %>%
+  dplyr::mutate(
+    tmpDate = stringr::str_c(dtYear, dtMonth, 1, sep = "-")
+    , dtDate = readr::parse_date(tmpDate, "%Y-%m-%d")
   )
+
+
 
 # 월별 평균 미세먼지 점선 그래프
 plotSubTitle = sprintf("%s", "월별 평균 미세먼지 점선 그래프")
-saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, plotSubTitle)
+saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, plotSubTitle)
 
-ggplot(data = dataL2, aes(x = dtMonth, y = maenVal, color = key, group = key)) +
-  geom_point(position = position_dodge(0.5), size = 2) +
-  geom_errorbar(width = 0.25, aes(ymin=maenVal - sdVal, ymax=maenVal + sdVal, group = key), position = position_dodge(0.5)) +
-  labs(title = NULL, x = "Month", y = bquote('Concentration  ['*ug/m^3*']'), colour = NULL, fill = NULL, subtitle = plotSubTitle) +
-  # geom_errorbar(width = 0.25, aes(ymin=maenVal - sdVal, ymax=maenVal + sdVal, group = key), position = position_dodge(0.5)) +
+ggplot(data = dataL2, aes(x = dtDate, y = meanVal, color = key, group = key)) +
+#   geom_point(position = position_dodge(0.5), size = 2) +
+  geom_point(position = position_dodge(20), size = 2) +
+  # geom_errorbar(width = 0.25, aes(ymin=meanVal - sdVal, ymax=meanVal + sdVal, group = key), position = position_dodge(0.5)) +
+  geom_errorbar(width = 10, aes(ymin=meanVal - sdVal, ymax=meanVal + sdVal, group = key), position = position_dodge(20)) +
+  labs(title = NULL, x = "Month", y = bquote('Concentration  ['*µg/m^3*']'), colour = NULL, fill = NULL, subtitle = plotSubTitle) +
   # scale_x_datetime(date_labels = "%Y-%m-%d", date_breaks = "1 month") +
-  scale_x_continuous(minor_breaks = seq(1, 12, 1), breaks=seq(1, 12, 1), limits=c(1,  12)) +
+  # scale_x_continuous(minor_breaks = seq(1, 12, 1), breaks=seq(1, 12, 1), limits=c(1,  12)) +
+  scale_x_date(date_breaks = "1 months", labels = function(x) if_else(is.na(lag(x)) | !year(lag(x)) == year(x), paste(month(x, label = TRUE), "\n", year(x)), paste(month(x, label = TRUE)))) +
   scale_y_continuous(minor_breaks = seq(0, 60, 10), breaks=seq(0, 60, 10), limits=c(0, 60)) +
   theme(
     text = element_text(size = 18)
@@ -673,15 +685,16 @@ ggplot2::last_plot()
 
 # 월별 평균 미세먼지 막대 그래프
 plotSubTitle = sprintf("%s", "월별 평균 미세먼지 막대 그래프")
-saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, plotSubTitle)
+saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, plotSubTitle)
 
-ggplot(data = dataL2, aes(x = dtMonth, y = maenVal, color = key, fill = key, group = key)) +
-  geom_bar(stat = "identity", width = 0.4, position=position_dodge(width = 0.5), fill = "white") +
-  geom_errorbar(width = 0.25, aes(ymin=maenVal - sdVal, ymax=maenVal + sdVal, group = key), position = position_dodge(0.5)) +
+ggplot(data = dataL2, aes(x = dtDate, y = meanVal, color = key, fill = key, group = key)) +
+  geom_bar(stat = "identity", width = 15, position=position_dodge(width = 20), fill = "white") +
+  geom_errorbar(width = 10, aes(ymin=meanVal - sdVal, ymax=meanVal + sdVal, group = key), position = position_dodge(20)) +
   # geom_bar(stat = "identity",  width = 0.4, position=position_dodge(width = 0.5)) +
-  labs(title = NULL, x = "Month", y = bquote('Concentration  ['*ug/m^3*']'), colour = NULL, fill = NULL, subtitle = plotSubTitle) +
+  labs(title = NULL, x = "Month", y = bquote('Concentration  ['*µg/m^3*']'), colour = NULL, fill = NULL, subtitle = plotSubTitle) +
   # scale_x_datetime(date_labels = "%Y-%m-%d", date_breaks = "1 month") +
-  scale_x_continuous(minor_breaks = seq(1, 12, 1), breaks=seq(1, 12, 1), limits=c(1, 12)) +
+  # scale_x_continuous(minor_breaks = seq(1, 12, 1), breaks=seq(1, 12, 1), limits=c(1, 12)) +
+  scale_x_date(date_breaks = "1 months", labels = function(x) if_else(is.na(lag(x)) | !year(lag(x)) == year(x), paste(month(x, label = TRUE), "\n", year(x)), paste(month(x, label = TRUE)))) +
   scale_y_continuous(minor_breaks = seq(0, 60, 10), breaks=seq(0, 60, 10), limits=c(0, 60)) +
   theme(
     text = element_text(size = 18)
@@ -706,12 +719,12 @@ dataL3$season = forcats::fct_relevel(dataL3$season, c("Spring", "Summer", "Autum
 
 # 계절별 평균 미세먼지 점선 그래프
 plotSubTitle = sprintf("%s", "계절별 평균 미세먼지 점선 그래프")
-saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, plotSubTitle)
+saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, plotSubTitle)
 
 ggplot(data = dataL3, aes(x = season, y = maenVal, color = key, group = key)) +
   geom_point(position = position_dodge(0.5), size = 2) +
    geom_errorbar(width = 0.25, aes(ymin=maenVal - sdVal, ymax=maenVal + sdVal, group = key), position = position_dodge(0.5)) +
-  labs(title = NULL, x = "Season", y = bquote('Concentration  ['*ug/m^3*']'), colour = NULL, fill = NULL, subtitle = plotSubTitle) +
+  labs(title = NULL, x = "Season", y = bquote('Concentration  ['*µg/m^3*']'), colour = NULL, fill = NULL, subtitle = plotSubTitle) +
   # scale_x_datetime(date_labels = "%Y-%m-%d", date_breaks = "1 month") +
   # scale_x_continuous(minor_breaks = seq(1, 12, 1), breaks=seq(1, 12, 1), limits=c(1,  12)) +
   scale_y_continuous(minor_breaks = seq(0, 50, 10), breaks=seq(0, 50, 10), limits=c(0, 50)) +
@@ -726,14 +739,14 @@ ggplot2::last_plot()
 
 # 계절별 평균 미세먼지 막대 그래프
 plotSubTitle = sprintf("%s", "계절별 평균 미세먼지 막대 그래프")
-saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, plotSubTitle)
+saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, plotSubTitle)
 
 ggplot(data = dataL3, aes(x = season, y = maenVal, pattern = key, color = key, group = key)) +
   geom_bar(stat = "identity", width = 0.4, position=position_dodge(width = 0.5), fill = "white") +
   # geom_bar_pattern(stat = "identity", width = 0.4, position=position_dodge(width = 0.5)) +
   # geom_errorbar(aes(ymin=maenVal - sdVal, ymax=maenVal + sdVal), width=.2,  position=position_dodge(.9)) +
   geom_errorbar(width = 0.25, aes(ymin=maenVal - sdVal, ymax=maenVal + sdVal, group = key), position = position_dodge(0.5)) +
-  labs(title = NULL, x = "Season", y = bquote('Concentration  ['*ug/m^3*']'), colour = NULL, fill = NULL, subtitle = plotSubTitle) +
+  labs(title = NULL, x = "Season", y = bquote('Concentration  ['*µg/m^3*']'), colour = NULL, fill = NULL, subtitle = plotSubTitle) +
   # scale_x_datetime(date_labels = "%Y-%m-%d", date_breaks = "1 month") +
   # scale_x_continuous(minor_breaks = seq(1, 12, 1), breaks=seq(1, 12, 1), limits=c(1,  12)) +
   scale_y_continuous(minor_breaks = seq(0, 50, 10), breaks=seq(0, 50, 10), limits=c(0, 50)) +
@@ -779,10 +792,10 @@ dataL3 = dataL1 %>%
   tidyr::gather(-season, key = "key", value = "val") %>%
   dplyr::group_by(season, key) %>%
   dplyr::summarise(
-    maenVal = mean(val, na.rm = TRUE)
+    meanVal = mean(val, na.rm = TRUE)
     , sdVal = sd(val, na.rm = TRUE)
-    , minMeanSdVal = maenVal - sdVal
-    , maxMeanSdVal = maenVal + sdVal
+    , minMeanSdVal = meanVal - sdVal
+    , maxMeanSdVal = meanVal + sdVal
   )
 
 # 정렬
@@ -790,16 +803,16 @@ dataL3$season = forcats::fct_relevel(dataL3$season, c("Spring", "Summer", "Autum
 
 # 계절별 평균 미세먼지 막대 그래프
 plotSubTitle = sprintf("%s", "계절별 평균 화학성분 막대 그래프")
-saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, plotSubTitle)
+saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, plotSubTitle)
 
 # dataL3$key %>% unique()
 
-ggplot(data = dataL3, aes(x = key, y = maenVal, color = key, group = key)) +
+ggplot(data = dataL3, aes(x = key, y = meanVal, color = key, group = key)) +
   geom_bar(stat = "identity", width = 0.5, position=position_dodge(width = 0.5), fill = "white", show.legend = FALSE) +
   # geom_bar_pattern(stat = "identity", width = 0.4, position=position_dodge(width = 0.5)) +
   # geom_errorbar(aes(ymin=maenVal - sdVal, ymax=maenVal + sdVal), width=.2,  position=position_dodge(.9)) +
-  geom_errorbar(width = 0.3, aes(ymin=maenVal - sdVal, ymax=maenVal + sdVal, group = key), position = position_dodge(0.5), show.legend = FALSE) +
-  labs(title = NULL, x = "Season", y = bquote('Concentration  ['*ug/m^3*']'), colour = NULL, fill = NULL, subtitle = plotSubTitle) +
+  geom_errorbar(width = 0.3, aes(ymin=meanVal - sdVal, ymax=meanVal + sdVal, group = key), position = position_dodge(0.5), show.legend = FALSE) +
+  labs(title = NULL, x = "Season", y = bquote('Concentration  ['*µg/m^3*']'), colour = NULL, fill = NULL, subtitle = plotSubTitle) +
   # scale_x_datetime(date_labels = "%Y-%m-%d", date_breaks = "1 month") +
   # scale_x_continuous(minor_breaks = seq(1, 12, 1), breaks=seq(1, 12, 1), limits=c(1,  12)) +
   # scale_y_continuous(minor_breaks = seq(-0.1, 20, 5), breaks=seq(-0.5, 20, 5), limits=c(-0.5, 20)) +
@@ -862,7 +875,7 @@ ggplot2::last_plot()
 # ggplot(data = dataL2, aes(x = dtMonth, y = val, color = key, group = key)) +
 #   geom_point() +
 #   geom_line() +
-#   labs(title = NULL, x = "Month", y = bquote('Concentration  ['*ug/m^3*']'), colour = NULL, fill = NULL, subtitle = plotSubTitle) +
+#   labs(title = NULL, x = "Month", y = bquote('Concentration  ['*µg/m^3*']'), colour = NULL, fill = NULL, subtitle = plotSubTitle) +
 #   # scale_x_datetime(date_labels = "%Y-%m-%d", date_breaks = "1 month") +
 #   scale_x_continuous(minor_breaks = seq(1, 12, 1), breaks=seq(1, 12, 1), limits=c(1,  12)) +
 #   scale_y_continuous(minor_breaks = seq(0, 40, 10), breaks=seq(0, 40, 10), limits=c(0,  40)) +
@@ -879,7 +892,7 @@ ggplot2::last_plot()
 #
 # ggplot(data = dataL2, aes(x = dtMonth, y = val, color = key, fill = key)) +
 #   geom_bar(stat = "identity",  width = 0.4, position=position_dodge(width = 0.5)) +
-#   labs(title = NULL, x = "Month", y = bquote('Concentration  ['*ug/m^3*']'), colour = NULL, fill = NULL, subtitle = plotSubTitle) +
+#   labs(title = NULL, x = "Month", y = bquote('Concentration  ['*µg/m^3*']'), colour = NULL, fill = NULL, subtitle = plotSubTitle) +
 #   # scale_x_datetime(date_labels = "%Y-%m-%d", date_breaks = "1 month") +
 #   scale_x_continuous(minor_breaks = seq(1, 12, 1), breaks=seq(1, 12, 1), limits=c(1,  12)) +
 #   scale_y_continuous(minor_breaks = seq(0, 40, 10), breaks=seq(0, 40, 10), limits=c(0,  40)) +
@@ -909,7 +922,7 @@ ggplot2::last_plot()
 # ggplot(data = dataL3, aes(x = season, y = val, color = key, group = key)) +
 #   geom_point() +
 #   geom_line() +
-#   labs(title = NULL, x = "Season", y = bquote('Concentration  ['*ug/m^3*']'), colour = NULL, fill = NULL, subtitle = plotSubTitle) +
+#   labs(title = NULL, x = "Season", y = bquote('Concentration  ['*µg/m^3*']'), colour = NULL, fill = NULL, subtitle = plotSubTitle) +
 #   # scale_x_datetime(date_labels = "%Y-%m-%d", date_breaks = "1 month") +
 #   # scale_x_continuous(minor_breaks = seq(1, 12, 1), breaks=seq(1, 12, 1), limits=c(1,  12)) +
 #   scale_y_continuous(minor_breaks = seq(0, 40, 10), breaks=seq(0, 40, 10), limits=c(0,  40)) +
@@ -926,7 +939,7 @@ ggplot2::last_plot()
 #
 # ggplot(data = dataL3, aes(x = season, y = val, color = key, fill = key)) +
 #   geom_bar(stat = "identity",  width = 0.4, position=position_dodge(width = 0.5)) +
-#   labs(title = NULL, x = "Season", y = bquote('Concentration  ['*ug/m^3*']'), colour = NULL, fill = NULL, subtitle = plotSubTitle) +
+#   labs(title = NULL, x = "Season", y = bquote('Concentration  ['*µg/m^3*']'), colour = NULL, fill = NULL, subtitle = plotSubTitle) +
 #   # scale_x_datetime(date_labels = "%Y-%m-%d", date_breaks = "1 month") +
 #   # scale_x_continuous(minor_breaks = seq(1, 12, 1), breaks=seq(1, 12, 1), limits=c(1,  12)) +
 #   scale_y_continuous(minor_breaks = seq(0, 40, 10), breaks=seq(0, 40, 10), limits=c(0,  40)) +
