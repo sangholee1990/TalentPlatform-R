@@ -646,7 +646,7 @@ dataL2 = dataL1 %>%
   tidyr::gather(-dtMonth, key = "key", value = "val") %>%
   dplyr::group_by(dtMonth, key) %>%
   dplyr::summarise(
-    maenVal = mean(val, na.rm = TRUE)
+    meanVal = mean(val, na.rm = TRUE)
     , sdVal = sd(val, na.rm = TRUE)
   )
 
@@ -654,7 +654,7 @@ dataL2 = dataL1 %>%
 plotSubTitle = sprintf("%s", "월별 평균 미세먼지 점선 그래프")
 saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, plotSubTitle)
 
-ggplot(data = dataL2, aes(x = dtMonth, y = maenVal, color = key, group = key)) +
+ggplot(data = dataL2, aes(x = dtMonth, y = meanVal, color = key, group = key)) +
   geom_point(position = position_dodge(0.5), size = 2) +
   geom_errorbar(width = 0.25, aes(ymin=maenVal - sdVal, ymax=maenVal + sdVal, group = key), position = position_dodge(0.5)) +
   labs(title = NULL, x = "Month", y = bquote('Concentration  ['*ug/m^3*']'), colour = NULL, fill = NULL, subtitle = plotSubTitle) +
@@ -779,10 +779,10 @@ dataL3 = dataL1 %>%
   tidyr::gather(-season, key = "key", value = "val") %>%
   dplyr::group_by(season, key) %>%
   dplyr::summarise(
-    maenVal = mean(val, na.rm = TRUE)
+    meanVal = mean(val, na.rm = TRUE)
     , sdVal = sd(val, na.rm = TRUE)
-    , minMeanSdVal = maenVal - sdVal
-    , maxMeanSdVal = maenVal + sdVal
+    , minMeanSdVal = meanVal - sdVal
+    , maxMeanSdVal = meanVal + sdVal
   )
 
 # 정렬
@@ -794,11 +794,11 @@ saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, plotSubTitle)
 
 # dataL3$key %>% unique()
 
-ggplot(data = dataL3, aes(x = key, y = maenVal, color = key, group = key)) +
+ggplot(data = dataL3, aes(x = key, y = meanVal, color = key, group = key)) +
   geom_bar(stat = "identity", width = 0.5, position=position_dodge(width = 0.5), fill = "white", show.legend = FALSE) +
   # geom_bar_pattern(stat = "identity", width = 0.4, position=position_dodge(width = 0.5)) +
   # geom_errorbar(aes(ymin=maenVal - sdVal, ymax=maenVal + sdVal), width=.2,  position=position_dodge(.9)) +
-  geom_errorbar(width = 0.3, aes(ymin=maenVal - sdVal, ymax=maenVal + sdVal, group = key), position = position_dodge(0.5), show.legend = FALSE) +
+  geom_errorbar(width = 0.3, aes(ymin=meanVal - sdVal, ymax=meanVal + sdVal, group = key), position = position_dodge(0.5), show.legend = FALSE) +
   labs(title = NULL, x = "Season", y = bquote('Concentration  ['*ug/m^3*']'), colour = NULL, fill = NULL, subtitle = plotSubTitle) +
   # scale_x_datetime(date_labels = "%Y-%m-%d", date_breaks = "1 month") +
   # scale_x_continuous(minor_breaks = seq(1, 12, 1), breaks=seq(1, 12, 1), limits=c(1,  12)) +
