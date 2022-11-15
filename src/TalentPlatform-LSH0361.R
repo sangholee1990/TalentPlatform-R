@@ -674,6 +674,7 @@ ggplot(data = dataL2, aes(x = dtDate, y = meanVal, color = key, group = key)) +
   # scale_x_continuous(minor_breaks = seq(1, 12, 1), breaks=seq(1, 12, 1), limits=c(1,  12)) +
   scale_x_date(date_breaks = "1 months", labels = function(x) if_else(is.na(lag(x)) | !year(lag(x)) == year(x), paste(month(x, label = TRUE), "\n", year(x)), paste(month(x, label = TRUE)))) +
   scale_y_continuous(minor_breaks = seq(0, 60, 10), breaks=seq(0, 60, 10), limits=c(0, 60)) +
+  scale_color_discrete(labels = c("PM2.5" =  bquote('PM' ['2.5']), "PM2.5_recon" =  bquote('PM' ['2.5_reconstruct']))) +
   theme(
     text = element_text(size = 18)
     # , axis.text.x = element_text(angle = 45, hjust = 1)
@@ -696,6 +697,7 @@ ggplot(data = dataL2, aes(x = dtDate, y = meanVal, color = key, fill = key, grou
   # scale_x_continuous(minor_breaks = seq(1, 12, 1), breaks=seq(1, 12, 1), limits=c(1, 12)) +
   scale_x_date(date_breaks = "1 months", labels = function(x) if_else(is.na(lag(x)) | !year(lag(x)) == year(x), paste(month(x, label = TRUE), "\n", year(x)), paste(month(x, label = TRUE)))) +
   scale_y_continuous(minor_breaks = seq(0, 60, 10), breaks=seq(0, 60, 10), limits=c(0, 60)) +
+  scale_color_discrete(labels = c("PM2.5" =  bquote('PM' ['2.5']), "PM2.5_recon" =  bquote('PM' ['2.5_reconstruct']))) +
   theme(
     text = element_text(size = 18)
     # , axis.text.x = element_text(angle = 45, hjust = 1)
@@ -728,6 +730,7 @@ ggplot(data = dataL3, aes(x = season, y = maenVal, color = key, group = key)) +
   # scale_x_datetime(date_labels = "%Y-%m-%d", date_breaks = "1 month") +
   # scale_x_continuous(minor_breaks = seq(1, 12, 1), breaks=seq(1, 12, 1), limits=c(1,  12)) +
   scale_y_continuous(minor_breaks = seq(0, 50, 10), breaks=seq(0, 50, 10), limits=c(0, 50)) +
+  scale_color_discrete(labels = c("PM2.5" =  bquote('PM' ['2.5']), "PM2.5_recon" =  bquote('PM' ['2.5_reconstruct']))) +
   theme(
     text = element_text(size = 18)
     # , axis.text.x = element_text(angle = 45, hjust = 1)
@@ -750,6 +753,7 @@ ggplot(data = dataL3, aes(x = season, y = maenVal, pattern = key, color = key, g
   # scale_x_datetime(date_labels = "%Y-%m-%d", date_breaks = "1 month") +
   # scale_x_continuous(minor_breaks = seq(1, 12, 1), breaks=seq(1, 12, 1), limits=c(1,  12)) +
   scale_y_continuous(minor_breaks = seq(0, 50, 10), breaks=seq(0, 50, 10), limits=c(0, 50)) +
+  scale_color_discrete(labels = c("PM2.5" =  bquote('PM' ['2.5']), "PM2.5_recon" =  bquote('PM' ['2.5_reconstruct']))) +
   theme(
     text = element_text(size = 18)
     # , axis.text.x = element_text(angle = 45, hjust = 1)
