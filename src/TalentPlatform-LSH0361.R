@@ -834,6 +834,173 @@ ggplot(data = dataL3, aes(x = key, y = meanVal, color = key, group = key)) +
 ggplot2::last_plot()
 
 
+
+
+# ******************************************************************************
+# PM2.5_reconstruct에 따른 소멸계수 영향-상대습도 특성
+# ******************************************************************************
+data = readxl::read_excel(fileInfo, sheet = 5)
+
+dataL1 = data %>%
+  as.tibble() %>%
+  dplyr::rename(
+    "dtDateTime" = "Date time"
+    , "Bext" = "총소멸계수(y축)"
+    , "PM2.5_reconstruct" = "PM2.5_reconstruct(색)"
+    , "RH" = "RH(x축)"
+  ) %>%
+  dplyr::mutate(
+    # dtDateTime = readr::parse_datetime(sDateTime, format = "%Y-%m-%d %H:%M")
+    dtYear = lubridate::year(dtDateTime)
+    , dtMonth = lubridate::month(dtDateTime)
+    , dtXran = lubridate::decimal_date(dtDateTime)
+    , type = dplyr::case_when(
+      RH <= 23 ~ "23% ≤ RH"
+      , 23 < RH & RH <= 40 ~ "23% < RH ≤ 40%"
+      , 40 < RH & RH <= 60 ~ "40% < RH ≤ 60%"
+      , 60 < RH & RH <= 80 ~ "60% < RH ≤ 80%"
+      , 80 < RH & RH <= 90 ~ "80% < RH ≤ 90%"
+      , 90 < RH & RH <= 100 ~ "90% < RH ≤ 100%"
+      , TRUE ~ NA_character_
+    )
+  )
+
+summary(dataL1)
+
+colList = c("dtDateTime", "Bext", "RH", "PM2.5_reconstruct", "type")
+dataL2 = dataL1 %>%
+  dplyr::select(colList) %>%
+  na.omit()
+
+summary(dataL2)
+
+dataL2$type = factor(dataL2$type)
+
+subTitle = sprintf("%s", "PM2.5_reconstruct에 따른 소멸계수 영향-상대습도 특성")
+saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, subTitle)
+
+lmFor = y ~ poly(x, 2, raw = TRUE)
+
+ggpubr::ggscatter(dataL2, x = "PM2.5_reconstruct", y = "Bext", color = "type", conf.int = FALSE, cor.coef = FALSE, add.params = list(color = "black", fill = "lightgray")) +
+  geom_smooth(aes(color = type), method = 'lm', formula = lmFor, se = TRUE, show.legend = FALSE) +
+  ggpubr::stat_regline_equation(aes(color = type), method = 'lm', formula = lmFor, parse = TRUE, label.x.npc = 0.01, label.y.npc = 1.0, size = 5, show.legend = FALSE) +
+  ggpubr::stat_cor(aes(color = type, label = paste(..rr.label.., ..p.label.., sep = "~`,`~")), formula = lmFor, parse = TRUE, label.x.npc = 0.4, label.y.npc = 1.0, p.accuracy  =  0.01,  r.accuracy  =  0.01, size = 5, show.legend = FALSE) +
+  theme_bw() +
+    labs(
+    title = NULL
+    , x = bquote('PM' ['2.5_reconstruction'] * '  ['*mu*g/m^3*']')
+    , y = bquote('B' ['ext'] * '  ['*Mm^-1*']')
+    , color = "Relative  humidity  [%]"
+    , fill = NULL
+  ) +
+  theme(
+    text = element_text(size = 16)
+    , legend.position = "top"
+  ) +
+  ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
+
+
+
+# ******************************************************************************
+# PM2.5_recon에 따른 Visibility 산점도 시각화-상대습도 특성
+# PM2.5에 따른 Visibility 산점도 시각화-상대습도 특성
+# ******************************************************************************
+inpData = readxl::read_excel(fileInfo, sheet = 5)
+inpData2 = readxl::read_excel(fileInfo, sheet = 6)
+
+data = inpData %>%
+   dplyr::left_join(inpData2, by = c("Date time" = "Date time"))
+
+dataL1 = data %>%
+  as.tibble() %>%
+  dplyr::rename(
+    "dtDateTime" = "Date time"
+    , "Bext" = "총소멸계수(y축)"
+    , "PM2.5_reconstruct" = "PM2.5_reconstruct(색)"
+    , "RH" = "RH(x축)"
+  ) %>%
+  dplyr::mutate(
+    # dtDateTime = readr::parse_datetime(sDateTime, format = "%Y-%m-%d %H:%M")
+    dtYear = lubridate::year(dtDateTime)
+    , dtMonth = lubridate::month(dtDateTime)
+    , dtXran = lubridate::decimal_date(dtDateTime)
+    , type = dplyr::case_when(
+      RH <= 23 ~ "23% ≤ RH"
+      , 23 < RH & RH <= 40 ~ "23% < RH ≤ 40%"
+      , 40 < RH & RH <= 60 ~ "40% < RH ≤ 60%"
+      , 60 < RH & RH <= 80 ~ "60% < RH ≤ 80%"
+      , 80 < RH & RH <= 90 ~ "80% < RH ≤ 90%"
+      , 90 < RH & RH <= 100 ~ "90% < RH ≤ 100%"
+      , TRUE ~ NA_character_
+    )
+  ) %>%
+  dplyr::filter(
+    PM2.5 < 95
+  )
+
+summary(dataL1)
+
+
+colList = c("PM2.5", "PM2.5_recon", "type", "Visibility")
+
+dataL2 = dataL1 %>%
+  dplyr::select(colList) %>%
+  na.omit()
+
+dataL2$type = factor(dataL2$type)
+
+# PM2.5_recon에 따른 Visibility 산점도 시각화-상대습도 특성
+plotSubTitle = sprintf("%s", "PM2.5_recon에 따른 Visibility 산점도 시각화-상대습도 특성")
+saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, plotSubTitle)
+
+lmFor = y ~ poly(x, 2, raw = TRUE)
+
+ggpubr::ggscatter(dataL2, x = "PM2.5_recon", y = "Visibility", color = "type", conf.int = FALSE, cor.coef = FALSE, add.params = list(color = "black", fill = "lightgray")) +
+  geom_smooth(aes(color = type), method = "lm", formula = lmFor, se = FALSE, show.legend = FALSE) +
+  ggpubr::stat_regline_equation(aes(color = type), method = "lm", formula = lmFor, parse = TRUE, label.x.npc = 0.05, label.y.npc = 1.0, size = 5, show.legend = FALSE) +
+  ggpubr::stat_cor(aes(color = type, label = paste(..rr.label.., ..p.label.., sep = "~`,`~")), label.x.npc = 0.5, label.y.npc = 1.0, p.accuracy  =  0.01,  r.accuracy  =  0.01, size = 5, show.legend = FALSE) +
+  theme_bw() +
+    labs(
+    title = NULL
+    , x = bquote('PM' ['2.5_reconstruct'] * ' Concentration ['*mu*g/m^3*']')
+    , y = "Visibility [km]"
+    , colour = "Visibility"
+    , fill = NULL
+  ) +
+  theme(
+    text = element_text(size = 16)
+    , legend.position = "top"
+  ) +
+  ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
+
+
+
+# PM2.5에 따른 Visibility 산점도 시각화-상대습도 특성
+plotSubTitle = sprintf("%s", "PM2.5에 따른 Visibility 산점도 시각화-상대습도 특성")
+saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, plotSubTitle)
+
+lmFor = y ~ poly(x, 2, raw = TRUE)
+
+ggpubr::ggscatter(dataL2, x = "PM2.5", y = "Visibility", color = "type", conf.int = FALSE, cor.coef = FALSE, add.params = list(color = "black", fill = "lightgray")) +
+  geom_smooth(aes(color = type), method = "lm", formula = lmFor, se = FALSE, show.legend = FALSE) +
+  ggpubr::stat_regline_equation(aes(color = type), method = "lm", formula = lmFor, parse = TRUE, label.x.npc = 0.1, label.y.npc = 1.0, size = 5, show.legend = FALSE) +
+  ggpubr::stat_cor(aes(color = type, label = paste(..rr.label.., ..p.label.., sep = "~`,`~")), label.x.npc = 0.5, label.y.npc = 1.0, p.accuracy  =  0.01,  r.accuracy  =  0.01, size = 5, show.legend = FALSE) +
+  theme_bw() +
+    labs(
+    title = NULL
+    , x = bquote('PM' ['2.5'] * ' Concentration ['*mu*g/m^3*']')
+    , y = "Visibility [km]"
+    , colour = "Visibility"
+    , fill = NULL
+  ) +
+  theme(
+    text = element_text(size = 16)
+    , legend.position = "top"
+  ) +
+  ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
+
+
+
 # # ******************************************************************************
 # # PM2.5에 따른 Visibility 산점도 시각화
 # # PM2.5_recon에 따른 Visibility 산점도 시각화
