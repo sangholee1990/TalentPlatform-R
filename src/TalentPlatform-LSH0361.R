@@ -855,7 +855,7 @@ dataL1 = data %>%
     , dtMonth = lubridate::month(dtDateTime)
     , dtXran = lubridate::decimal_date(dtDateTime)
     , type = dplyr::case_when(
-      RH <= 23 ~ "23% ≤ RH"
+      0 <= RH & RH <= 23 ~ "0% ≤ RH ≤ 23%"
       , 23 < RH & RH <= 40 ~ "23% < RH ≤ 40%"
       , 40 < RH & RH <= 60 ~ "40% < RH ≤ 60%"
       , 60 < RH & RH <= 80 ~ "60% < RH ≤ 80%"
@@ -899,7 +899,7 @@ ggpubr::ggscatter(dataL2, x = "PM2.5_reconstruct", y = "Bext", color = "type", c
   ) +
   ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
 
-
+ggplot2::last_plot()
 
 # ******************************************************************************
 # PM2.5_recon에 따른 Visibility 산점도 시각화-상대습도 특성
@@ -925,7 +925,7 @@ dataL1 = data %>%
     , dtMonth = lubridate::month(dtDateTime)
     , dtXran = lubridate::decimal_date(dtDateTime)
     , type = dplyr::case_when(
-      RH <= 23 ~ "23% ≤ RH"
+      0 <= RH & RH <= 23 ~ "0% ≤ RH ≤ 23%"
       , 23 < RH & RH <= 40 ~ "23% < RH ≤ 40%"
       , 40 < RH & RH <= 60 ~ "40% < RH ≤ 60%"
       , 60 < RH & RH <= 80 ~ "60% < RH ≤ 80%"
@@ -939,7 +939,6 @@ dataL1 = data %>%
   )
 
 summary(dataL1)
-
 
 colList = c("PM2.5", "PM2.5_recon", "type", "Visibility")
 
@@ -973,7 +972,7 @@ ggpubr::ggscatter(dataL2, x = "PM2.5_recon", y = "Visibility", color = "type", c
   ) +
   ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
 
-
+ggplot2::last_plot()
 
 # PM2.5에 따른 Visibility 산점도 시각화-상대습도 특성
 plotSubTitle = sprintf("%s", "PM2.5에 따른 Visibility 산점도 시각화-상대습도 특성")
@@ -999,7 +998,7 @@ ggpubr::ggscatter(dataL2, x = "PM2.5", y = "Visibility", color = "type", conf.in
   ) +
   ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
 
-
+ggplot2::last_plot()
 
 # # ******************************************************************************
 # # PM2.5에 따른 Visibility 산점도 시각화
