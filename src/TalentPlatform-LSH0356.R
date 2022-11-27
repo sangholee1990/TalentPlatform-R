@@ -169,9 +169,16 @@ dataL1 = data %>%
       )
     , covidYn = ifelse(dtDateTimeKst >= as.Date("2020-01-20"), "코로나 이후", "코로나 이전")
     # , covidYn = ifelse(dtDateTimeKst >= as.Date("2020-01-20"), "Y", "N")
+  ) %>%
+  dplyr::filter(
+    dplyr::between(PM10, 0, 500)
+    , dplyr::between(PM25, 0, 500)
   )
 
 summary(dataL1)
+
+# plot(dataL1$dtDateTimeKst, dataL1$PM10)
+# plot(dataL1$dtDateTimeKst, dataL1$PM25)
 
 # **************************************************************************************
 # 코로나 전후 월별 통계 데이터에 대한 막대 그래프 -> 전/후 (평균+표준편차)
@@ -412,7 +419,6 @@ ggplot(data = dataL3, aes(x = season, y = meanVal, color = covidYn, group = covi
 
 ggplot2::last_plot()
 
-
 dataL3 = dataL2 %>%
   dplyr::filter(
     key == "PM25"
@@ -526,13 +532,17 @@ for (keyInfo in keyList) {
     mainTitle = sprintf("%s 전체 지역별 %s 데이터에 대한 지도 시각화", covidYnInfo, keyInfo)
     saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
 
+    # subTitle = sprintf("[%s] %s", covidYnInfo, bquote('PM' ['2.5'] *'  ['*ug/m^3*']'))
+
+
+ # bquote(eval(covidYnInfo) * 'PM' ['2.5'] *'  ['*ug/m^3*']')
     makePlot = ggplot(data = dataL4, aes(fill = meanVal, label = SIG_KOR_NM)) +
       theme_bw() +
       coord_fixed(ratio = 1) +
       geom_sf(color = "white") +
       geom_sf_text(color = "black") +
       scale_fill_gradientn(colours = cbSpectral, limits = c(minVal, maxVal), na.value = NA) +
-      labs(title = NULL, x = NULL, y = NULL, colour = NULL, fill = NULL, subtitle = NULL) +
+      labs(title = NULL, x = NULL, y = NULL, colour = NULL, fill = NULL) +
       theme(
         text = element_text(size = 16)
         , panel.grid.major.x = element_blank()
@@ -555,7 +565,83 @@ for (keyInfo in keyList) {
         , legend.direction = "horizontal"
       )
 
-    # ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
+    ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
+
+  }
+}
+
+# 21	용산구	32.8643	34.2817	-1.41737
+# 24	중구	36.7233	36.9017	-0.178368
+# 25	중랑구	34.0691	34.9448	-0.875648
+# keyInfo = "PM10"
+# 코로나 전후 전체 지역별 PM25 편차 데이터에 대한 지도 시각화
+for (keyInfo in keyList) {
+
+    cat(sprintf("[CHECK] keyInfo : %s", keyInfo), "\n")
+
+    dataL3 = dataL2 %>%
+      dplyr::filter(
+        key == keyInfo
+      ) %>%
+      dplyr::ungroup() %>%
+      dplyr::select(covidYn, MSRSTE_NM, meanVal) %>%
+      tidyr::spread( key = "covidYn", value = "meanVal") %>%
+      dplyr::mutate(
+        # meanVal = `코로나 이후` - `코로나 이전`
+        meanVal = `코로나 이전` - `코로나 이후`
+      )
+
+    print(summary(dataL3$meanVal))
+
+    maxVal = max(dataL3$meanVal, na.rm = TRUE) %>% ceiling()
+    # minVal = min(dataL3$meanVal, na.rm = TRUE) %>% floor()
+    minVal = -c(maxVal)
+
+    if (nrow(dataL3) < 1) { next }
+
+    # 통합 데이터셋
+    dataL4 = mapData %>%
+      dplyr::inner_join(codeDataL1, by = c("SIG_KOR_NM" = "시군구명칭")) %>%
+      dplyr::left_join(dataL3, by = c("SIG_KOR_NM" = "MSRSTE_NM"))
+
+    mainTitle = sprintf("%s 전체 지역별 %s 편차 데이터에 대한 지도 시각화", '코로나 전후', keyInfo)
+    saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
+
+    # subTitle = sprintf("[%s] %s", covidYnInfo, bquote('PM' ['2.5'] *'  ['*ug/m^3*']'))
+
+
+ # bquote(eval(covidYnInfo) * 'PM' ['2.5'] *'  ['*ug/m^3*']')
+    makePlot = ggplot(data = dataL4, aes(fill = meanVal, label = SIG_KOR_NM)) +
+      theme_bw() +
+      coord_fixed(ratio = 1) +
+      geom_sf(color = "white") +
+      geom_sf_text(color = "black") +
+      # scale_fill_gradientn(colours = cbSpectral, limits = c(minVal, maxVal), na.value = NA) +
+      scale_fill_gradient2(limits = c(minVal, maxVal), na.value = NA) +
+      labs(title = NULL, x = NULL, y = NULL, colour = NULL, fill = NULL) +
+      theme(
+        text = element_text(size = 16)
+        , panel.grid.major.x = element_blank()
+        , panel.grid.major.y = element_blank()
+        , panel.grid.minor.x = element_blank()
+        , panel.grid.minor.y = element_blank()
+        , panel.grid.major = element_blank()
+        , panel.grid.minor = element_blank()
+        , panel.border = element_blank()
+        , axis.text.x = element_blank()
+        , axis.ticks.x = element_blank()
+        , axis.title.x = element_blank()
+        , axis.text.y = element_blank()
+        , axis.ticks.y = element_blank()
+        , axis.title.y = element_blank()
+        , plot.subtitle = element_text(hjust = 1)
+        # , legend.position = "bottom"
+        , legend.position = c(0.25, 0.9)
+        , legend.key.width = unit(1.75, "cm")
+        , legend.direction = "horizontal"
+      )
+
+    ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
 
   }
 }
