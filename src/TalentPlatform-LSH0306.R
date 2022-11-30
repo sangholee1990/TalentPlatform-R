@@ -58,7 +58,6 @@ library(ggrepel)
 library(colorRamps)
 library(ggpubr)
 library(lm.beta)
-library(ggpmisc)
 
 Sys.setlocale("LC_ALL", "English")
 

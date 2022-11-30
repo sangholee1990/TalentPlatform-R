@@ -403,8 +403,8 @@ options(digits = globalVar$optDig)
 options(java.parameters = "-Xmx8192m")
 # memory.limit(size = globalVar$memLimit)
 
-# library(ggmap)
-# ggmap::register_google(key = globalVar$googleKey)
+library(ggmap)
+ggmap::register_google(key = globalVar$googleKey)
 
 #=====================================
 # Set Font
@@ -716,3 +716,8 @@ cbPlasma = rev(viridis::plasma(11))
 # 파일/변수 검사
 #=====================================
 # if (is.null(jsonFile) || length(jsonFile) < 1) next
+
+#=====================================
+# 디렉터리 생성
+#=====================================
+# dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
