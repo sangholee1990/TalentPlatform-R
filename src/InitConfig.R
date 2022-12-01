@@ -117,6 +117,10 @@ rm(list = setdiff(ls(), c("env", "prjName", "serviceName", "contextPath")))
 #=====================================
 # Set Env
 #=====================================
+# 인코딩 초기 설정
+# Sys.setlocale("LC_ALL", "en_US.UTF-8")
+# Sys.setlocale("LC_ALL", "ko_KR.UTF-8")
+
 # 인코딩 정보 확인
 # Sys.getlocale()
 
@@ -148,9 +152,9 @@ globalVar = list(
   , "srcPath" = file.path(contextPath, "src")
   , "resPath" = file.path(contextPath, "resources")
   , "cfgPath" = file.path(contextPath, "resources", "config")
-  , "inpPath" = file.path(contextPath, "resources", "input", prjName)
-  , "figPath" = file.path(contextPath, "resources", "fig", prjName)
-  , "outPath" = file.path(contextPath, "resources", "output", prjName)
+  , "inpPath" = ifelse(Sys.info()["sysname"] == "Windows", file.path(contextPath, "resources", "input", prjName), "/DATA/INPUT")
+  , "figPath" = ifelse(Sys.info()["sysname"] == "Windows", file.path(contextPath, "resources", "fig", prjName), "/DATA/FIG")
+  , "outPath" = ifelse(Sys.info()["sysname"] == "Windows", file.path(contextPath, "resources", "output", prjName), "/DATA/OUTPUT")
   , "logPath" = file.path(contextPath, "resources", "log", prjName)
   , "tmpPath" = file.path(contextPath, "resources", "tmp", prjName)
   , "mapPath" = file.path(contextPath, "resources", "config", "mapInfo")
