@@ -67,6 +67,25 @@ library(magrittr)
 inpFile = Sys.glob(file.path(globalVar$inpPath, serviceName, "file1_occur.xlsx"))
 data = openxlsx::read.xlsx(inpFile, sheet = 1, startRow = 2)
 
+colnames(a)
+a <- select(data, 1, 2, 4, 6, 9, 10, 14, 23)
+a = rename(a, "a1" = "15118AI7.산업중분류별(1)")
+a = rename(a, "a2" = "15118AI7.산업중분류별(2)")
+a = rename(a, "떨어짐" = "15118AJ401.떨어짐")
+a = rename(a, "부딪힘" = "15118AJ403.부딪힘")
+a = rename(a, "끼임" = "15118AJ406.끼임")
+a = rename(a, "절단·베임·찔림" = "15118AJ407.절단·베임·찔림")
+a = rename(a, "깔림·뒤집힘" = "15118AJ411.깔림·뒤집힘")
+a = rename(a, "업무상질병" = "15118AJ423.업무상질병")
+a = filter(a, a2=="소계")
+
+a2 = filter(a, a1=="15118AI7AD 건설업")
+ggplot() +
+  geom_bar(data = a, aes(x=, y=), stat = "identity", width = 0.4, position=position_dodge(width = 0.5))
+
+
+# 건설업", "제조업", "기타의", "운수·창고"
+
 colData = colnames(data) %>%
   as.tibble() %>%
   tidyr::separate(value, c("code", "name"), sep = "\\.")

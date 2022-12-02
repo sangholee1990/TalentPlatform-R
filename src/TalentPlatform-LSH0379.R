@@ -58,6 +58,7 @@ library(openair)
 Sys.setlocale("LC_ALL", "ko_KR.UTF-8")
 
 inpFile = Sys.glob(file.path(globalVar$inpPath, serviceName, "강원권_미세먼지_달력.xlsx"))
+
 data = openxlsx::read.xlsx(inpFile, sheet = 1) %>%
   as.tibble() %>%
   dplyr::mutate(
@@ -69,6 +70,9 @@ data = openxlsx::read.xlsx(inpFile, sheet = 1) %>%
 
 summary(data)
 
+# data %>%
+#   dplyr::filter(date == as.Date("2022-09-06"))
+
 plotSubTitle = sprintf("%s", "2022년 강원도 미세먼지 일평균 캘린더 시각화")
 saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, plotSubTitle)
 dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
@@ -78,9 +82,10 @@ png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
 openair::calendarPlot(
   data
   , pollutant = "pm10"
-  , year = 2022
+  , year = 2021:2022
+  , month = 1:12
   , annotate = "value"
-  , breaks = c(0, 15, 36, 75, 76)
+  , breaks = c(0, 16, 36, 76, 500)
   , labels = c("좋음 (0~15)", "보통 (16~35)", "나쁨 (36~75)", "매우 나쁨 (76~)")
   , statistic = "mean"
   , cols = c("#518EF8", "#1CEE37", "#FFE81A", "#F13B61")
