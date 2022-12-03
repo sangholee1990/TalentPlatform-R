@@ -65,7 +65,7 @@ data = openxlsx::read.xlsx(inpFile, sheet = 1) %>%
     date = readr::parse_datetime(sDate, "%Y-%m-%d")
   ) %>%
   dplyr::rename(
-    "pm10" = "강원권.PM2.5"
+    "pm25" = "강원권.PM2.5"
   )
 
 summary(data)
@@ -73,7 +73,8 @@ summary(data)
 # data %>%
 #   dplyr::filter(date == as.Date("2022-09-06"))
 
-plotSubTitle = sprintf("%s", "2022년 강원도 미세먼지 일평균 캘린더 시각화")
+# plotSubTitle = sprintf("%s", "2022년 강원도 미세먼지 일평균 캘린더 시각화")
+plotSubTitle = sprintf("%s", "강원권 PM2.5 농도")
 saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, plotSubTitle)
 dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
 
@@ -81,7 +82,7 @@ png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
 
 openair::calendarPlot(
   data
-  , pollutant = "pm10"
+  , pollutant = "pm25"
   , year = 2021:2022
   , month = 1:12
   , annotate = "value"
@@ -91,6 +92,7 @@ openair::calendarPlot(
   , cols = c("#518EF8", "#1CEE37", "#FFE81A", "#F13B61")
   , key.position = "bottom"
   , main = plotSubTitle
+  , w.shift = 1
   ) # +
  # ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
 
