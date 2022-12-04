@@ -64,24 +64,125 @@ library(magrittr)
 # *****************************************************
 # 산업중분류별 사고건수
 # *****************************************************
+# inpFile = Sys.glob(file.path(globalVar$inpPath, serviceName, "file1_occur.xlsx"))
+# data = openxlsx::read.xlsx(inpFile, sheet = 1, startRow = 2)
+#
+# data2 = select(data, 1, 2, 4, 6, 9, 10, 14, 23)
+# data2 = rename(data2, "산업중분류별" = "15118AI7.산업중분류별(1)")
+# data2 = rename(data2, "산업중분류별2" = "15118AI7.산업중분류별(2)")
+# data2 = rename(data2, "떨어짐" = "15118AJ401.떨어짐")
+# data2 = rename(data2, "부딪힘" = "15118AJ403.부딪힘")
+# data2 = rename(data2, "끼임" = "15118AJ406.끼임")
+# data2 = rename(data2, "절단·베임·찔림" = "15118AJ407.절단·베임·찔림")
+# data2 = rename(data2, "깔림·뒤집힘" = "15118AJ411.깔림·뒤집힘")
+# data2 = rename(data2, "업무상질병" = "15118AJ423.업무상질병")
+#
+# data3 = filter(data2, 산업중분류별2 == "소계")
+# data4 = gather(data3, -c("산업중분류별", "산업중분류별2"), key = "분류", value = "사고건수")
+#
+# # data4$`산업중분류별` %>% unique()
+#
+# data5 = filter(data4, 산업중분류별 == "15118AI7AD 건설업")
+# ggplot() +
+#   geom_bar(data = data5, aes(x = 분류, y = 사고건수), position="dodge", stat = "identity")
+#
+# data5 = filter(data4, 산업중분류별 == "15118AI7AB 제조업")
+# ggplot() +
+#   geom_bar(data = data5, aes(x = 분류, y = 사고건수), position="dodge", stat = "identity")
+#
+# data5 = filter(data4, 산업중분류별 == "15118AI7AJ 기타의 사업")
+# ggplot() +
+#   geom_bar(data = data5, aes(x = 분류, y = 사고건수), position="dodge", stat = "identity")
+#
+# data5 = filter(data4, 산업중분류별 == "15118AI7AE 운수·창고 및 통신업")
+# ggplot() +
+#   geom_bar(data = data5, aes(x = 분류, y = 사고건수), position="dodge", stat = "identity")
+#
+#
+# # *****************************************************
+# # 산업중분류별 재직건수
+# # *****************************************************
+# inpFile = Sys.glob(file.path(globalVar$inpPath, serviceName, "file2_year.xlsx"))
+# data = openxlsx::read.xlsx(inpFile, sheet = 1, startRow = 2)
+#
+# data2 = select(data, -3)
+# data2 = rename(data2, "산업중분류별" = "15118AI7.산업중분류별(1)")
+# data2 = rename(data2, "산업중분류별2" = "15118AI7.산업중분류별(2)")
+# data2 = rename(data2, "6개월.미만" = "15118AI9AA.6개월.미만")
+# data2 = rename(data2, "6개월~1년.미만" = "15118AI9AB.6개월~1년.미만")
+# data2 = rename(data2, "1~2년.미만" = "15118AI9AC.1~2년.미만")
+# data2 = rename(data2, "2~3년.미만" = "15118AI9AD.2~3년.미만")
+# data2 = rename(data2, "3~4년.미만" = "15118AI9AE.3~4년.미만")
+# data2 = rename(data2, "4~5년.미만" = "15118AI9AF.4~5년.미만")
+# data2 = rename(data2, "5~10년.미만" = "15118AI9AG.5~10년.미만")
+# data2 = rename(data2, "10년.이상" = "15118AI9AH.10년.이상")
+# data2 = rename(data2, "분류불능" = "15118AI9AI.분류불능")
+#
+# data3 = filter(data2, 산업중분류별2 == "소계")
+# data4 = gather(data3, -c("산업중분류별", "산업중분류별2"), key = "분류", value = "재직건수")
+#
+# data5 = filter(data4, 산업중분류별 == "15118AI7AD 건설업")
+# ggplot() +
+#   geom_bar(data = data5, aes(x = 분류, y = 재직건수), position="dodge", stat = "identity")
+#
+# data5 = filter(data4, 산업중분류별 == "15118AI7AB 제조업")
+# ggplot() +
+#   geom_bar(data = data5, aes(x = 분류, y = 재직건수), position="dodge", stat = "identity")
+#
+# data5 = filter(data4, 산업중분류별 == "15118AI7AJ 기타의 사업")
+# ggplot() +
+#   geom_bar(data = data5, aes(x = 분류, y = 재직건수), position="dodge", stat = "identity")
+#
+# data5 = filter(data4, 산업중분류별 == "15118AI7AE 운수·창고 및 통신업")
+# ggplot() +
+#   geom_bar(data = data5, aes(x = 분류, y = 재직건수), position="dodge", stat = "identity")
+
+# *****************************************************
+# 산업중분류별 사고건수
+# *****************************************************
 inpFile = Sys.glob(file.path(globalVar$inpPath, serviceName, "file1_occur.xlsx"))
 data = openxlsx::read.xlsx(inpFile, sheet = 1, startRow = 2)
 
-colnames(a)
-a <- select(data, 1, 2, 4, 6, 9, 10, 14, 23)
-a = rename(a, "a1" = "15118AI7.산업중분류별(1)")
-a = rename(a, "a2" = "15118AI7.산업중분류별(2)")
-a = rename(a, "떨어짐" = "15118AJ401.떨어짐")
-a = rename(a, "부딪힘" = "15118AJ403.부딪힘")
-a = rename(a, "끼임" = "15118AJ406.끼임")
-a = rename(a, "절단·베임·찔림" = "15118AJ407.절단·베임·찔림")
-a = rename(a, "깔림·뒤집힘" = "15118AJ411.깔림·뒤집힘")
-a = rename(a, "업무상질병" = "15118AJ423.업무상질병")
-a = filter(a, a2=="소계")
+colData = colnames(data) %>%
+  as.tibble() %>%
+  tidyr::separate(value, c("code", "name"), sep = "\\.")
 
-a2 = filter(a, a1=="15118AI7AD 건설업")
-ggplot() +
-  geom_bar(data = a, aes(x=, y=), stat = "identity", width = 0.4, position=position_dodge(width = 0.5))
+dataL1 = data %>%
+    magrittr::set_colnames(colData$name) %>%
+    tidyr::separate("산업중분류별(1)", c("code", "name"), sep = " ") %>%
+    tidyr::separate("산업중분류별(2)", c("code2", "name2"), sep = " ")
+
+dataL2 = dataL1 %>%
+  as.tibble() %>%
+  dplyr::filter(! code2 == "소계") %>%
+  # dplyr::rename(
+  #   "산업중분류별(1)" = "name"
+  #   , "산업중분류별(2)" = "name2"
+  # ) %>%
+  dplyr::select(-c(code, code2, 계)) %>%
+  tidyr::gather(-c("name", "name2"), key = "key", value = "val")
+
+dataL3 = data2 %>%
+  dplyr::filter(
+    name %in% c("건설업", "제조업", "기타의", "운수·창고")
+    , key %in% c("업무상질병", "떨어짐", "끼임", "부딪힘", "깔림·뒤집힘", "절단·베임·찔림")
+  ) %>%
+  dplyr::group_by(name, key) %>%
+  dplyr::summarise(
+    sumVal = sum(val, na.rm = TRUE)
+  ) %>%
+  dplyr::arrange(desc(sumVal))
+
+dataL3 = dataL2 %>%
+  dplyr::filter(
+    name %in% c("건설업", "제조업", "기타의", "운수·창고")
+    , key %in% c("업무상질병", "떨어짐", "끼임", "부딪힘", "깔림·뒤집힘", "절단·베임·찔림")
+  ) %>%
+  dplyr::group_by(name, key) %>%
+  dplyr::summarise(
+    sumVal = sum(val, na.rm = TRUE)
+  ) %>%
+  dplyr::arrange(desc(sumVal))
 
 
 # 건설업", "제조업", "기타의", "운수·창고"
