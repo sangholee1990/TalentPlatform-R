@@ -51,6 +51,7 @@ library(ggplot2)
 library(scales)
 library(magrittr)
 library(openair)
+library(lattice)
 
 #================================================
 # 함수 정의
@@ -561,7 +562,8 @@ makeCalendarPlot = function(mydata, pollutant = "nox", year = 2003, month = 1:12
 # *****************************************************
 Sys.setlocale("LC_ALL", "ko_KR.UTF-8")
 
-inpFile = Sys.glob(file.path(globalVar$inpPath, serviceName, "강원권_미세먼지_달력.xlsx"))
+# inpFile = Sys.glob(file.path(globalVar$inpPath, serviceName, "강원권_미세먼지_달력.xlsx"))
+inpFile = Sys.glob(file.path(globalVar$inpPath, serviceName, "강원권_미세먼지_달력_221205.xlsx"))
 
 data = openxlsx::read.xlsx(inpFile, sheet = 1) %>%
   as.tibble() %>%
