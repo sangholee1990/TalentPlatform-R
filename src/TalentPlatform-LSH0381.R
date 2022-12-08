@@ -63,7 +63,6 @@ library(sp)
 
 inpFile = Sys.glob(file.path(globalVar$inpPath, serviceName, "MCD13A2_8day_Phenology_US5_NDVI_Klosterman_2003.tif"))
 data = raster::raster(inpFile)
-spts <- rasterToPoints(data, spatial = TRUE)
 
 dataL1 = sp::spTransform(spts, sp::CRS("+proj=longlat"))
 
@@ -71,9 +70,9 @@ dataL2 = as.data.frame(dataL1, xy=TRUE) %>%
   dplyr::rename("val" = "MCD13A2_8day_Phenology_US5_NDVI_Klosterman_2003")
 
 
-head(dataL2)
-ggplot(data = dataL2, aes(x = x, y = y, color = val, fill = val)) +
-  geom_point()
+# head(dataL2)
+# ggplot(data = dataL2, aes(x = x, y = y, color = val, fill = val)) +
+#   geom_point()
   # geom_raster(interpolate = TRUE)
   # geom_tile()
 
@@ -81,7 +80,6 @@ ggplot(data = dataL2, aes(x = x, y = y, color = val, fill = val)) +
 plot(data)
 
 summary(data)
-
 
 # extQcData = raster::extract(data, df = TRUE, na.rm = FALSE) %>%
 #   dplyr::select(-ID) %>%

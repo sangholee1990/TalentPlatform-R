@@ -64,6 +64,7 @@ library(lm.beta)
 library(GGally)
 library(Metrics)
 library(ggpp)
+library(car)
 
 cbMatlab = colorRamps::matlab.like(11)
 
@@ -171,7 +172,9 @@ fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "seoul_apartment_t
 
 dataL1 = readr::read_csv(file = fileInfo)
 # colnames(dataL1)
-# summary(dataL1) 17627 * 28
+
+# 17627 * 28
+# summary(dataL1)
 
 dataL2 = dataL1 %>%
   readr::type_convert() %>%
@@ -415,9 +418,29 @@ dataL5 = dataL4
 #   dplyr::select(-전용면적)
 #+++++++++++++++++++++++++++++++++++++++++++++++
 
+# 주택 가격 결정 요인을 위한 산점도 행렬
+saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, "주택 가격 결정 요인을 위한 관계성")
+
+makePlot = dataL2 %>%
+  dplyr::select(건축년도, 전용면적, 층, val2, val) %>%
+  dplyr::rename(
+    "면적당거래금액" = val2
+    , "연소득당거래금액" = val
+  ) %>%
+  GGally::ggpairs(.) +
+  theme(text = element_text(size = 18))
+
+ggsave(makePlot, filename = saveImg, width = 12, height = 8, dpi = 600)
+
+# 전용면적과 연소득당거래금액에 대한 cor.test
+cor.test(dataL2$val, dataL2$`전용면적`)
+
 # 선형회귀분석
 lmFit = lm(val ~ ., data = dataL5)
 summary(lmFit)
+
+# 다중공선성 계산
+car::vif(lmFit)
 
 # 단계별 소거법
 lmFitStep = MASS::stepAIC(lmFit, direction = "both")
@@ -474,17 +497,3 @@ ggscatter(
   ggsave(filename = saveImg, width = 6, height = 6, dpi = 600)
 
 ggplot2::last_plot()
-
-# 주택 가격 결정 요인을 위한 관계성
-saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, "주택 가격 결정 요인을 위한 관계성")
-
-makePlot = dataL2 %>%
-  dplyr::select(건축년도, 전용면적, 층, val2, val) %>%
-  dplyr::rename(
-    "면적당거래금액" = val2
-    , "연소득당거래금액" = val
-  ) %>%
-  GGally::ggpairs(.) +
-  theme(text = element_text(size = 18))
-
-ggsave(makePlot, filename = saveImg, width = 12, height = 8, dpi = 600)
