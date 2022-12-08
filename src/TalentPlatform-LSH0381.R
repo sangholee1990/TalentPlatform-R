@@ -55,25 +55,148 @@ library(lattice)
 library(raster)
 library(rgdal)
 library(sp)
-
-# *****************************************************
-# 2022년 강원도 미세먼지 일평균 캘린더
-# *****************************************************
-# Sys.setlocale("LC_ALL", "ko_KR.UTF-8")
-
-inpFile = Sys.glob(file.path(globalVar$inpPath, serviceName, "MCD13A2_8day_Phenology_US5_NDVI_Klosterman_2003.tif"))
-data = raster::raster(inpFile)
-spts <- rasterToPoints(data, spatial = TRUE)
-
-dataL1 = sp::spTransform(spts, sp::CRS("+proj=longlat"))
-
-dataL2 = as.data.frame(dataL1, xy=TRUE) %>%
-  dplyr::rename("val" = "MCD13A2_8day_Phenology_US5_NDVI_Klosterman_2003")
+library(maptools)
+library(stars)
+library(rgeos)
+# library(tiff)
 
 
-head(dataL2)
-ggplot(data = dataL2, aes(x = x, y = y, color = val, fill = val)) +
-  geom_point()
+# 추정된 식물계절일 지도(Rater파일) 하고 미국지역 실측 식물계절일 자료(csv파일) 하고 비교하는 결과물 만들어주시면 되요.
+
+shpFileList = Sys.glob(file.path(globalVar$inpPath, serviceName, "US_states/s_11au16.shp"))
+shpFileInfo = shpFileList[1]
+# shpData = sf::read_sf(shpFileInfo)
+# shpData = rgdal::readOGR(shpFileInfo)
+# e <- extent(shpData)
+
+shpData = shapefile(shpFileInfo)
+shpDataL1 = subset(shpData, FIPS %in% c(19))
+
+# shpData %>%
+#   dplyr::filter(FIPS == 19)
+
+plot(shpDataL1)
+
+# inpFile = Sys.glob(file.path(globalVar$inpPath, serviceName, "MCD13A2_8day_Phenology_US5_NDVI_Klosterman_2003.tif"))
+fileList = Sys.glob(file.path(globalVar$inpPath, serviceName, "Phenology_US5_MODIS/MCD13A2_8day_Phenology_US5_NDVI_Klosterman_*.tif"))
+cdlFileList = Sys.glob(file.path(globalVar$inpPath, serviceName, "CDL_fraction_US5/Merge_IMG/CDL_fraction_soy_*_ease.img"))
+
+# s_11au16.shp
+
+fileInfo = fileList[1]
+fileInfo2 = cdlFileList[1]
+for (fileInfo in fileList) {
+
+require(sf)
+
+  shapeData = sf::read_sf(fileInfo)
+  plot(mapShp)
+
+  sf::st_filter
+
+
+  ggplot() +
+    geom_sf(data = mapShp, aes(color = "black"))
+
+
+shape <- read_sf(dsn = ".", layer = "SHAPEFILE")
+sample.shp = maptools::readShapePoly(fileInfo) %>%
+  as.tibble()
+
+sample.df <- as.data.frame(sample.shp)
+plot(sample.shp, col="grey")
+
+
+    # data2 = raster::raster(fileInfo2) %>%
+    #   projectRaster(crs=sp::CRS("+proj=longlat"))
+
+  plot(data2)
+
+  # r2 <- crop(r, extent(SPDF))
+  # r3 <- mask(r2, SPDF)
+  data = raster::raster(fileInfo) %>%
+    projectRaster(crs=sp::CRS("+proj=longlat"))
+
+  dd <- crop(data, shpDataL1)
+  dataL2 = dd %>%
+    rasterToPoints(spatial = TRUE) %>%
+    as.data.frame(xy=TRUE) %>%
+    as.tibble() %>%
+    dplyr::rename("val" = "MCD13A2_8day_Phenology_US5_NDVI_Klosterman_2003")
+
+  # plot(ff)
+
+  ggplot(data = dataL2, aes(x = x, y = y, color = val, fill = val)) +
+    geom_point()
+    # geom_raster(interpolate = TRUE)
+    # geom_tile()
+
+
+  # pr1 <- projectRaster(data, crs=sp::CRS("+proj=longlat"))
+
+  # dataL1 = spTransform(data, sp::CRS("+proj=longlat"))
+
+  crs(data) = sp::CRS("+proj=longlat +datum=WGS84")
+
+  projection(data) = sp::CRS("+proj=longlat")
+  # crs(data) = CRS('+init=EPSG:4326')
+
+  data = raster::raster(fileInfo, crs=sp::CRS("+proj=longlat"))# %>%
+    # rasterToPoints(spatial = TRUE) %>%
+    # # sf::st_crs("+proj=longlat") %>%
+    # sp::spTransform(sp::CRS("+proj=longlat"))
+  # rasterToPoints(spatial = TRUE)
+
+  # Env_raster.crop <- crop(data, e, snap="out")
+  Env_raster.crop <- crop(data, shpData, snap="out")
+
+
+  dd <- crop(data, shpData, snap="out")
+
+  humanFp <- stars::read_stars(fileInfo) %#>%
+    # sf::st_crs("+proj=longlat")
+
+  humanFp$tmax
+
+  humanFp$band
+# %>%
+#      sp::spTransform(sp::CRS("+proj=longlat"))
+#         sf::st_transform(sp::CRS("+proj=longlat"))
+
+  # data = raster::raster(fileInfo) %>%
+  #     sf::st_transform(sp::CRS("+proj=longlat"))
+
+
+    # crop the raster
+  hfp_meso <- st_crop(humanFp, shpData)
+  plot(hfp_meso)
+
+rast <- crop(data, extent(shpData$geometry))
+    # rasterToPoints(spatial = TRUE) %>%
+    # sp::spTransform(sp::CRS("+proj=longlat"))
+
+    sf::st_filter(data, shpData, .pred = st_intersects)
+    sf::st_filter(humanFp, shpData, .pred = st_intersects)
+# %>%
+    as.data.frame(xy=TRUE) %>%
+    dplyr::rename("val" = "MCD13A2_8day_Phenology_US5_NDVI_Klosterman_2003")
+
+  head(data)
+
+#   dataL1 = sp::spTransform(data, sp::CRS("+proj=longlat"))
+#
+#   data = raster::raster(inpFile)
+# spts <- rasterToPoints(data, spatial = TRUE)
+#
+#   dataL2 = as.data.frame(dataL1, xy=TRUE) %>%
+#     dplyr::rename("val" = "MCD13A2_8day_Phenology_US5_NDVI_Klosterman_2003")
+
+}
+
+
+# head(dataL2)
+# ggplot(data = dataL2, aes(x = x, y = y, color = val, fill = val)) +
+#   geom_point()
   # geom_raster(interpolate = TRUE)
   # geom_tile()
 
@@ -81,7 +204,6 @@ ggplot(data = dataL2, aes(x = x, y = y, color = val, fill = val)) +
 plot(data)
 
 summary(data)
-
 
 # extQcData = raster::extract(data, df = TRUE, na.rm = FALSE) %>%
 #   dplyr::select(-ID) %>%

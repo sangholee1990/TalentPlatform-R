@@ -391,6 +391,7 @@ makeCalendarPlot = function(mydata, pollutant = "nox", year = 2003, month = 1:12
   type <- "cuts"
   mydata <- left_join(data.frame(date = all.dates), mydata,
                       by = "date")
+  # 2022.12.08
   # mydata <- mutate(mydata, cuts = format(date, "%B-%Y"), cuts = ordered(cuts, levels = unique(cuts)))
   mydata <- mutate(mydata, cuts = format(date, "%Y월 %B"), cuts = ordered(cuts, levels = unique(cuts)))
   if (remove.empty) {
@@ -502,8 +503,8 @@ makeCalendarPlot = function(mydata, pollutant = "nox", year = 2003, month = 1:12
         date.col <- as.character(mydata$dateColour[subscripts])
         ids <- which(date.col == "black")
         date.col[ids] <- "transparent"
-        ltext(x[subscripts], y[subscripts], labels = mydata$date.mat[subscripts],
-              cex = 0.6, col = date.col)
+        # 2022.12.08
+        ltext(x[subscripts], y[subscripts], labels = mydata$date.mat[subscripts], cex = 0.6, col = date.col)
         concs <- mydata$value[subscripts]
         ids <- seq_along(concs)
         the.cols <- rep(col.lim[1], length(ids))
@@ -521,8 +522,9 @@ makeCalendarPlot = function(mydata, pollutant = "nox", year = 2003, month = 1:12
           the.labs <- as.character(the.labs)
           the.labs[id] <- ""
         }
-        ltext(x[subscripts], y[subscripts], labels = the.labs,
-              cex = the.cex, font = the.font, col = the.cols)
+        # 2022.12.08
+        # ltext(x[subscripts], y[subscripts], labels = the.labs, cex = the.cex, font = the.font, col = the.cols)
+        ltext(x[subscripts], y[subscripts], labels = NULL, cex = the.cex, font = the.font, col = the.cols)
       }
       if (annotate == "wd") {
         larrows(x + 0.5 * sin(wd$value[subscripts]),
@@ -599,7 +601,6 @@ makeCalendarPlot(
   , cols = c("#518EF8", "#1CEE37", "#FFE81A", "#F13B61")
   , key.position = "bottom"
   , main = plotSubTitle
-  , names = 'aa'
   , w.shift = 1
   , cuts = format(date, "%Y-%B")
   ) # +

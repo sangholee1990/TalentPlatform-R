@@ -68,7 +68,9 @@
 #=====================================
 # Init Library
 #=====================================
-# .libPaths("E:/04. TalentPlatform/Github/TalentPlatform-R/resources/lib")
+if (Sys.info()["sysname"] == "Windows") {
+  .libPaths("E:/04. TalentPlatform/Github/TalentPlatform-R/resources/lib")
+}
 
 # C:\Users\saima\Documents
 # C:/Users/saima/OneDrive/Documents/R/win-library/4.1
