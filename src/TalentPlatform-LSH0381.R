@@ -14,6 +14,15 @@
 #================================================
 # R을 이용한 MODIS (MCD13A2) TIFF 자료 처리 및 시각화
 
+# Shape파일은 단순이 미국 주 구별하기위한 mask파일이라고 보시면되요! 특정 주만 필터하기위해서요. 저는 아이오와 일리노이 두 개 주만 대상으로 하기때문에 그 특정주에 부여된 ID number가 각각 17,19입니다.
+# 그리고 mcd13자료가 추정된 결과값인데, 4밴드로 작성되어 있어요. 그 밴드중에 pos, eos밴드만 사용하시면되요.
+# CDL자료는 대상 작물형(콩,옥수수) mask하기위한 자료이구요.
+# Mcd13자료에서 shape파일과 cdl자료를 이용해서 대상 주(state)와 대상 작물 픽셀만 mask한 뒤 heatmap으로 시각화하면 결과1입니다.
+
+# 결과2에서 대상변수(x)는 위 결과1의 픽셀을 대상으로 cv값을 계산해야해요. 그리고 실측 csv파일의 cv%값이랑 비교하면됩니다.
+# procrustes distance는 R자체에서 통계값으로 구할수 잇는걸로ㅠ알고있는데..
+# 이 부분은 저도 잘 모르는 통계값이라서요. 따로 알아보겠습니다.
+
 # ================================================
 # 초기 환경변수 설정
 # ================================================
@@ -58,203 +67,493 @@ library(sp)
 library(maptools)
 library(stars)
 library(rgeos)
-# library(tiff)
+library(terra)
+library(tidyterra)
+library(ggplot2)
+library(Metrics)
 
+# shapes::procdist 계산을 위해서 패키지 읽기 과정에서 오류
+# library(shapes)
 
-# 추정된 식물계절일 지도(Rater파일) 하고 미국지역 실측 식물계절일 자료(csv파일) 하고 비교하는 결과물 만들어주시면 되요.
+# 시작일/종료일 설정
+srtDate = "2003-01-01"
+endDate = "2020-01-01"
+dtDateList = seq(lubridate::ymd(srtDate), lubridate::ymd(endDate), by = "1 year")
 
+# shp 파일 읽기
 shpFileList = Sys.glob(file.path(globalVar$inpPath, serviceName, "US_states/s_11au16.shp"))
 shpFileInfo = shpFileList[1]
-# shpData = sf::read_sf(shpFileInfo)
-# shpData = rgdal::readOGR(shpFileInfo)
-# e <- extent(shpData)
-
 shpData = shapefile(shpFileInfo)
-shpDataL1 = subset(shpData, FIPS %in% c(19))
+# shpDataL1 = subset(shpData, FIPS %in% c(17, 19))
+# plot(shpDataL1)
 
-# shpData %>%
-#   dplyr::filter(FIPS == 19)
+# *********************************************************************************
+# MODIS 및 CDL 자료 가공
+# *********************************************************************************
+dataL2 = tibble::tibble()
+# dtDateInfo = dtDateList[3]
+for (i in 1:length(dtDateList)) {
+  dtDateInfo = dtDateList[i]
 
-plot(shpDataL1)
+  dtYear = lubridate::year(dtDateInfo)
+  dtMonth = lubridate::month(dtDateInfo)
 
-# inpFile = Sys.glob(file.path(globalVar$inpPath, serviceName, "MCD13A2_8day_Phenology_US5_NDVI_Klosterman_2003.tif"))
-fileList = Sys.glob(file.path(globalVar$inpPath, serviceName, "Phenology_US5_MODIS/MCD13A2_8day_Phenology_US5_NDVI_Klosterman_*.tif"))
-cdlFileList = Sys.glob(file.path(globalVar$inpPath, serviceName, "CDL_fraction_US5/Merge_IMG/CDL_fraction_soy_*_ease.img"))
+  modisFilePattern = sprintf("MCD13A2_8day_Phenology_US5_NDVI_Klosterman_%s.tif", dtYear)
+  fileList = Sys.glob(file.path(globalVar$inpPath, serviceName, "Phenology_US5_MODIS", modisFilePattern))
 
-# s_11au16.shp
+  cornFilePattern = sprintf("Merge_IMG/CDL_fraction_corn_%s_ease.img", dtYear)
+  cornFileList = Sys.glob(file.path(globalVar$inpPath, serviceName, "CDL_fraction_US5", cornFilePattern))
 
-fileInfo = fileList[1]
-fileInfo2 = cdlFileList[1]
+  soyFilePattern = sprintf("Merge_IMG/CDL_fraction_soy_%s_ease.img", dtYear)
+  soyFileList = Sys.glob(file.path(globalVar$inpPath, serviceName, "CDL_fraction_US5", soyFilePattern))
+
+  if (length(modisFilePattern) < 1) { next }
+  if (length(cornFileList) < 1) { next }
+  if (length(soyFileList) < 1) { next }
+
+  cat(sprintf("[CHECK] dtDateInfo : %s", dtDateInfo), "\n")
+
+  # MODIS 파일 읽기
+  modisData = terra::rast(fileList[1])
+  modisDataL1 = terra::project(modisData, "+proj=longlat +datum=WGS84")
+
+  # plot(modisDataL1)
+
+  # corn 및 soy 파일 읽기
+  cornData = terra::rast(cornFileList[1])
+  crs(cornData) = crs(modisData)
+  cornData = terra::project(cornData, "+proj=longlat +datum=WGS84")
+
+  soyData = terra::rast(soyFileList[1])
+  crs(soyData) = crs(modisData)
+  soyData = terra::project(soyData, "+proj=longlat +datum=WGS84")
+
+  # 각각의 CDL Fraction 값이 0.5 이상이면 corn과 soybean(soy)로 가정함.
+  cornData[cornData < 0.5] = NA
+  soyData[soyData < 0.5] = NA
+
+  # plot(cornData)
+  # plot(soyData)
+
+  # j = 17
+  for (j in c(17, 19)) {
+
+    shpDataL1 = subset(shpData, FIPS %in% j)
+
+    cat(sprintf("[CHECK] name : %s", shpDataL1$NAME), "\n")
+
+    # modisDataL1를 기준으로 마스킹 (cornData) 및 영역 자르기 (shpDataL1)  수행
+    cornDataL1 = modisDataL1 %>%
+      mask(cornData) %>%
+      crop(shpDataL1)
+
+    # plot(cornDataL1)
+
+      # 대상 계절일: "POS", " EOS " ; Band4 inform: c("SOS", "POS", "Senescence", "EOS")
+    cornDataL2 = cornDataL1 %>%
+      as.data.frame(xy = TRUE) %>%
+      tibble::as.tibble() %>%
+      magrittr::set_colnames(c("lon", "lat", "SOS", "POS", "Senescence", "EOS")) %>%
+      dplyr::select(lon, lat, POS, EOS) %>%
+      dplyr::mutate(
+        dtYear = dtYear
+        , key = "Corn"
+        , name = shpDataL1$NAME
+      )
+
+   # modisDataL1를 기준으로 마스킹 (soyData) 및 영역 자르기 (shpDataL1)  수행
+    soyDataL1 = modisDataL1 %>%
+      mask(soyData) %>%
+      crop(shpDataL1)
+
+    # plot(soyDataL1)
+
+    soyDataL2 = soyDataL1 %>%
+      as.data.frame(xy = TRUE) %>%
+      tibble::as.tibble() %>%
+      magrittr::set_colnames(c("lon", "lat", "SOS", "POS", "Senescence", "EOS")) %>%
+      dplyr::select(lon, lat, POS, EOS) %>%
+      dplyr::mutate(
+        dtYear = dtYear
+        , key = "Soybeans"
+        , name = shpDataL1$NAME
+      )
+
+    dataL2 = dplyr::bind_rows(dataL2, cornDataL2, soyDataL2)
+  }
+}
+
+# *********************************************************************************
+# 결과1: 각 대상 작물별/주별 추정식물계절일의 분포(Heatmap)
+# *********************************************************************************
+dataL3 = dataL2 %>%
+  tidyr::gather(-c(lon, lat, dtYear, key, name), key = "type", value = "val") %>%
+  dplyr::mutate(
+    doy = as.integer(val)
+    , typeName = ifelse(type == "POS", "Date of Max. growth", "Date of Senescence")
+    , group = sprintf("%s (%s, %s)", typeName, key, name)
+  )
+
+mainTitle = sprintf("각 대상 작물별-주별 추정식물계절일의 분포4(Heatmap)")
+saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
+dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
+
+ggplot(data = dataL3, aes(x = doy, y = dtYear)) +
+  stat_density2d(aes(fill = ..density..), contour = FALSE, geom = 'tile') +
+  # geom_raster(interpolate = FALSE, na.rm = TRUE) +
+  # geom_raster(interpolate = TRUE, na.rm = TRUE) +
+  # scale_x_continuous(expand = c(0, 0), limits = c(160, 280), minor_breaks = seq(160, 280, 20), breaks = seq(160, 280, 20)) +
+  scale_x_continuous(expand = c(0, 0), limits = c(0, 365), minor_breaks = seq(0, 365, 30), breaks = seq(0, 365, 30)) +
+  scale_y_continuous(expand = c(0, 0), limits = c(min(dataL3$dtYear, na.rm = TRUE), max(dataL3$dtYear, na.rm = TRUE)), minor_breaks = seq(2000, 2022, 1), breaks = seq(2000, 2022, 1)) +
+  # scale_fill_gradientn(colours = cbMatlab, limits = c(0, 5000), na.value = cbMatlab[length(cbMatlab)]) +
+  scale_fill_gradientn(colours = cbMatlab, na.value = cbMatlab[length(cbMatlab)]) +
+  labs(
+    # title = mainTitle
+    x = "DOY"
+    , y = "Year"
+    , color = NULL
+    , fill = "density"
+  ) +
+  theme(
+    # , axis.text.x = element_text(angle = 45, hjust = 1)
+    text = element_text(size = 14)
+    , legend.position = "top"
+    , legend.key.width = unit(2, "cm")
+    , plot.margin = unit(c(0, 4, 0, 0), "mm")
+  ) +
+  facet_wrap(~group, ncol=4) +
+  ggsave(filename = saveImg, width = 14, height = 8, dpi = 600)
+
+cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+
+# typeList = dataL3$type %>% unique() %>% sort()
+# nameList = dataL3$name %>% unique() %>% sort()
+# keyList = dataL3$key %>% unique() %>% sort()
+
+# dataL4 = dataL3 %>%
+#   dplyr::group_by(dtYear, doy, key, name, type) %>%
+#   dplyr::summarize(
+#     cnt = n()
+#   )
+
+# for (typeInfo in typeList) {
+# for (nameInfo in nameList) {
+# for (keyInfo in keyList) {
+#
+#   cat(sprintf("[CHECK] %s : %s : %s", typeInfo, nameInfo, keyInfo), "\n")
+#
+#   dataL4 = dataL3 %>%
+#     dplyr::filter(
+#       type == typeInfo
+#       , key == keyInfo
+#       , name == nameInfo
+#     )
+#
+#   if (nrow(dataL5) <  1) { next }
+#
+#   typeName = ifelse(typeInfo == "POS", "Date of Max. growth", "Date of Senescence")
+#
+#   mainTitle = sprintf("%s (%s, %s)",typeName, keyInfo, nameInfo)
+#   saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
+#   dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
+#
+#   makePlot = ggplot(data = dataL4, aes(x = doy, y = dtYear)) +
+#     stat_density2d(aes(fill = ..density..), contour = FALSE, geom = 'tile') +
+#     # metR::geom_contour_fill(na.fill = TRUE, kriging = TRUE) +
+#     # geom_raster(interpolate = FALSE, na.rm = TRUE) +
+#     # geom_raster(interpolate = TRUE, na.rm = TRUE) +
+#     # scale_x_continuous(expand = c(0, 0), limits = c(160, 280), minor_breaks = seq(160, 280, 20), breaks = seq(160, 280, 20)) +
+#     scale_x_continuous(expand = c(0, 0), limits = c(0, 365), minor_breaks = seq(0, 365, 30), breaks = seq(0, 365, 30)) +
+#     scale_y_continuous(expand = c(0, 0), limits = c(min(dataL3$dtYear, na.rm = TRUE), max(dataL3$dtYear, na.rm = TRUE)), minor_breaks = seq(2000, 2022, 1), breaks = seq(2000, 2022, 1)) +
+#     # scale_fill_gradientn(colours = cbMatlab, limits = c(0, 5000), na.value = cbMatlab[length(cbMatlab)]) +
+#     scale_fill_gradientn(colours = cbMatlab, na.value = cbMatlab[length(cbMatlab)]) +
+#     labs(
+#       title = mainTitle
+#       , x = "DOY"
+#       , y = "Year"
+#       , color = NULL
+#       , fill = "density"
+#     ) +
+#     theme(
+#       # , axis.text.x = element_text(angle = 45, hjust = 1)
+#       text = element_text(size = 18)
+#       , legend.position = "top"
+#       , legend.key.width = unit(2, "cm")
+#       , plot.margin = unit(c(0, 4, 0, 0), "mm")
+#     )
+#
+#   ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
+#   cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+# }}}
+
+# *********************************************************************************
+# 실측 통계자료와 비교
+# *********************************************************************************
+# CSV파일 보실때요. 예) MODIS_corn_progress_IA.csv
+# header 설명이 부족했는데,
+# "year stage cv DOY NASS_DOY "
+# 여기서 Stage 1은 POS, 2는 EOS예요.
+# 산점도에서 두개를 각각 색깔로 구분해주시면 되요.
+# 제가 드린 예비결과 포멧에는 POS(빨간원형), EOS(연두색원형) 이렇게 표현되어 있어요.
+# DOY 추정값
+# NASS_DOY 실측값
+
+fileList = Sys.glob(file.path(globalVar$inpPath, serviceName, "comparison_CV/MODIS_*_progress_*.csv"))
+
+valData = tibble::tibble()
+# fileInfo = fileList[1]
 for (fileInfo in fileList) {
 
-require(sf)
+  fileName = tools::file_path_sans_ext(fs::path_file(fileInfo))
+  csvData = readr::read_csv(fileInfo)
 
-  shapeData = sf::read_sf(fileInfo)
-  plot(mapShp)
+  csvDataL1 = csvData %>%
+    dplyr::mutate(
+      key = ifelse(stringr::str_detect(fileName, regex("corn")), "Corn", "Soybeans")
+      , stageName = ifelse(stage == 1, "POS", "EOS")
+      , typeName = ifelse(stageName == "POS", "Date of Max. growth", "Date of Senescence")
+      , type = ifelse(stringr::str_detect(fileName, regex("IL")), "Illinois", "Iowa")
+      , group = sprintf("%s (%s)", key, typeName)
+      , group2 = sprintf("%s in %s", key, type)
+    )
 
-  sf::st_filter
-
-
-  ggplot() +
-    geom_sf(data = mapShp, aes(color = "black"))
-
-
-shape <- read_sf(dsn = ".", layer = "SHAPEFILE")
-sample.shp = maptools::readShapePoly(fileInfo) %>%
-  as.tibble()
-
-sample.df <- as.data.frame(sample.shp)
-plot(sample.shp, col="grey")
-
-
-    # data2 = raster::raster(fileInfo2) %>%
-    #   projectRaster(crs=sp::CRS("+proj=longlat"))
-
-  plot(data2)
-
-  # r2 <- crop(r, extent(SPDF))
-  # r3 <- mask(r2, SPDF)
-  data = raster::raster(fileInfo) %>%
-    projectRaster(crs=sp::CRS("+proj=longlat"))
-
-  dd <- crop(data, shpDataL1)
-  dataL2 = dd %>%
-    rasterToPoints(spatial = TRUE) %>%
-    as.data.frame(xy=TRUE) %>%
-    as.tibble() %>%
-    dplyr::rename("val" = "MCD13A2_8day_Phenology_US5_NDVI_Klosterman_2003")
-
-  # plot(ff)
-
-  ggplot(data = dataL2, aes(x = x, y = y, color = val, fill = val)) +
-    geom_point()
-    # geom_raster(interpolate = TRUE)
-    # geom_tile()
-
-
-  # pr1 <- projectRaster(data, crs=sp::CRS("+proj=longlat"))
-
-  # dataL1 = spTransform(data, sp::CRS("+proj=longlat"))
-
-  crs(data) = sp::CRS("+proj=longlat +datum=WGS84")
-
-  projection(data) = sp::CRS("+proj=longlat")
-  # crs(data) = CRS('+init=EPSG:4326')
-
-  data = raster::raster(fileInfo, crs=sp::CRS("+proj=longlat"))# %>%
-    # rasterToPoints(spatial = TRUE) %>%
-    # # sf::st_crs("+proj=longlat") %>%
-    # sp::spTransform(sp::CRS("+proj=longlat"))
-  # rasterToPoints(spatial = TRUE)
-
-  # Env_raster.crop <- crop(data, e, snap="out")
-  Env_raster.crop <- crop(data, shpData, snap="out")
-
-
-  dd <- crop(data, shpData, snap="out")
-
-  humanFp <- stars::read_stars(fileInfo) %#>%
-    # sf::st_crs("+proj=longlat")
-
-  humanFp$tmax
-
-  humanFp$band
-# %>%
-#      sp::spTransform(sp::CRS("+proj=longlat"))
-#         sf::st_transform(sp::CRS("+proj=longlat"))
-
-  # data = raster::raster(fileInfo) %>%
-  #     sf::st_transform(sp::CRS("+proj=longlat"))
-
-
-    # crop the raster
-  hfp_meso <- st_crop(humanFp, shpData)
-  plot(hfp_meso)
-
-rast <- crop(data, extent(shpData$geometry))
-    # rasterToPoints(spatial = TRUE) %>%
-    # sp::spTransform(sp::CRS("+proj=longlat"))
-
-    sf::st_filter(data, shpData, .pred = st_intersects)
-    sf::st_filter(humanFp, shpData, .pred = st_intersects)
-# %>%
-    as.data.frame(xy=TRUE) %>%
-    dplyr::rename("val" = "MCD13A2_8day_Phenology_US5_NDVI_Klosterman_2003")
-
-  head(data)
-
-#   dataL1 = sp::spTransform(data, sp::CRS("+proj=longlat"))
-#
-#   data = raster::raster(inpFile)
-# spts <- rasterToPoints(data, spatial = TRUE)
-#
-#   dataL2 = as.data.frame(dataL1, xy=TRUE) %>%
-#     dplyr::rename("val" = "MCD13A2_8day_Phenology_US5_NDVI_Klosterman_2003")
-
+   # 검증 데이터 생성
+  valData = dplyr::bind_rows(valData, csvDataL1)
 }
 
 
-# head(dataL2)
-# ggplot(data = dataL2, aes(x = x, y = y, color = val, fill = val)) +
-#   geom_point()
-  # geom_raster(interpolate = TRUE)
-  # geom_tile()
+groupList = valData$group %>% unique() %>% sort()
+yearList = valData$year %>% unique() %>% sort()
 
+# 그림 2를 위한 검증 데이터 생성
+valDataL2 = tibble::tibble()
+for (groupInfo in groupList) {
+   cat(sprintf("[CHECK] %s", groupInfo), "\n")
+   for (yearInfo in yearList) {
 
-plot(data)
+    selData = valData %>%
+      dplyr::filter(
+        group == groupInfo
+        , year == yearInfo
+      )
 
-summary(data)
+      selDataL2 = data.frame(
+        group = groupInfo
+        , year = yearInfo
+        , Bias = Metrics::bias(selData$NASS_DOY, selData$DOY)
+        , RMSE = Metrics::rmse(selData$NASS_DOY, selData$DOY)
+      )
 
-# extQcData = raster::extract(data, df = TRUE, na.rm = FALSE) %>%
-#   dplyr::select(-ID) %>%
-#   t() %>%
-#   as.tibble() %>%
-#   magrittr::set_colnames("qc")
+     valDataL2 = dplyr::bind_rows(valDataL2, selDataL2)
+  }
+}
 
-# raster
-# str_name<-'MOD16A2_ET_0.05deg_GEO_2008M01.tif'
-# imported_raster=raster(str_name)
+# 결과2: 통계자료 Bias/RMSE/Procrustes distance에 대한 Boxpolt
+valDataL3 = valDataL2 %>%
+  dplyr::select(group, Bias, RMSE) %>%
+  tidyr::gather(-group, key = "key", value = "val")
 
+# 정렬
+valDataL3$group = forcats::fct_relevel(valDataL3$group, c("Corn (Date of Senescence)", "Soybeans (Date of Senescence)", "Corn (Date of Max. growth)", "Soybeans (Date of Max. growth)"))
 
-data = openxlsx::read.xlsx(inpFile, sheet = 1) %>%
-  as.tibble() %>%
-  dplyr::mutate(
-    date = readr::parse_datetime(sDate, "%Y-%m-%d")
-  ) %>%
-  dplyr::rename(
-    "pm25" = "강원권.PM2.5"
-  )
-
-summary(data)
-
-# data %>%
-#   dplyr::filter(date == as.Date("2022-09-06"))
-
-# plotSubTitle = sprintf("%s", "2022년 강원도 미세먼지 일평균 캘린더 시각화")
-plotSubTitle = sprintf("%s", "강원권 PM2.5 농도")
-saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, plotSubTitle)
+mainTitle = sprintf("통계자료 %s에 대한 상자 그림", "bias-RMSE")
+saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
 dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
 
-png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
-# ata, cuts = format(date, "%B-%Y"),
+ggplot(valDataL3, aes(x = group, y = val, color = group)) +
+  geom_boxplot(show.legend = TRUE) +
+  labs(x = NULL, y = "Bias / RMSE", color = NULL, fill = NULL, subtitle = NULL) +
+  theme(
+    text = element_text(size = 16)
+    , legend.position = "top"
+    , axis.text.x = element_text(size = 10, angle = 45, hjust = 1)
+    , legend.text = element_text(size = 10)
+  ) +
+  facet_wrap(~key, scale = "free_y") +
+  ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
 
-makeCalendarPlot(
-  data
-  , pollutant = "pm25"
-  , year = 2021:2022
-  , month = 1:12
-  , annotate = "value"
-  , breaks = c(0, 16, 36, 76, 500)
-  , labels = c("좋음 (0~15)", "보통 (16~35)", "나쁨 (36~75)", "매우 나쁨 (76~)")
-  , statistic = "mean"
-  , cols = c("#518EF8", "#1CEE37", "#FFE81A", "#F13B61")
-  , key.position = "bottom"
-  , main = plotSubTitle
-  , names = 'aa'
-  , w.shift = 1
-  , cuts = format(date, "%Y-%B")
-  ) # +
- # ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
 
-dev.off()
+# 결과3 실측 통계자료와 비교한 산점도 결과
+valDataL4 = valData %>%
+  dplyr::select(stageName, group2, DOY, NASS_DOY)
 
+mainTitle = sprintf("%s", '실측 통계자료와 비교한 산점도 결과')
+saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
+dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
+
+# summary(valDataL1)
+
+valDataL4$stageName = forcats::fct_relevel(valDataL4$stageName, c("POS", "EOS"))
+valDataL4$group2 = forcats::fct_relevel(valDataL4$group2, c("Corn in Iowa", "Corn in Illinois", "Soybeans in Iowa", "Soybeans in Illinois"))
+
+ggplot(data = valDataL4, aes(x = DOY, y = NASS_DOY, color = stageName, alpha=NASS_DOY)) +
+  geom_point() +
+  scale_alpha(guide = "none") +
+  geom_abline(intercept = 0, slope = 1, linetype = 2, color = "black", size = 0.5) +
+  theme_bw() +
+  scale_x_continuous(limits = c(100, 360)) +
+  scale_y_continuous(limits = c(100, 360)) +
+  # scale_colour_manual(values = c("red", "green")) +
+  scale_colour_manual(values = c("#F8766D", "#00BA38")) +
+  labs(
+    title = NULL
+    , subtitle = NULL
+    , x = "Obs. day of percent crop progress (DOY)"
+    , y = "Est. day of percent crop progress (DOY)"
+    , colour = NULL
+    , fill = NULL
+    , alpha = NULL
+  ) +
+  theme(
+    text = element_text(size = 18)
+    , legend.position = "top"
+  ) +
+  facet_wrap(~group2, ncol=2) +
+  ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
+
+cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+# ggplot2::last_plot()
+
+# statData = dataL2 %>%
+#   tidyr::gather(-c(lon, lat, dtYear, key, name), key = "type", value = "val") %>%
+#   dplyr::group_by(dtYear, key, name, type) %>%
+#   dplyr::summarize(
+#      meanVal = mean(val, na.rm = TRUE)
+#     , sdVal = sd(val, na.rm = TRUE)
+#     , cvVal = (sdVal / meanVal) * 100.0
+#     # meanPos = mean(POS, na.rm = TRUE)
+#     # , sdPos = sd(POS, na.rm = TRUE)
+#     # , cvPos = (sdPos / meanPos) * 100.0
+#     # , meanEos = mean(EOS, na.rm = TRUE)
+#     # , sdEos = sd(EOS, na.rm = TRUE)
+#     # , cvEos = (sdEos / meanEos) * 100.0
+#   )
+#
+# typeList = statData$type %>% unique() %>% sort()
+# nameList = statData$name %>% unique() %>% sort()
+# keyList = statData$key %>% unique() %>% sort()
+# stageList = c("Mature_progress", "Silking_progress", "Dropping_leaves_progress", "SettingPod_progress")
+#
+# # 검증 데이터 생성
+# valDataL1 = tibble::tibble()
+# # 그림 2를 위한 검증 데이터 생성
+# valDataL2 = tibble::tibble()
+#
+# for (typeInfo in typeList) {
+# for (nameInfo in nameList) {
+# for (keyInfo in keyList) {
+#   cat(sprintf("[CHECK] %s : %s : %s", typeInfo, nameInfo, keyInfo), "\n")
+#
+#   type = ifelse(nameInfo == "Illinois", "IL", "IA")
+#   key = ifelse(keyInfo == "Corn", "corn", "soy")
+#
+#   statDataL1 = statData %>%
+#     dplyr::filter(
+#       type == typeInfo
+#       , key == keyInfo
+#       , name == nameInfo
+#     )
+#
+#   # stageInfo = stageList[1]
+#   for (stageInfo in stageList) {
+#     # csv 파일 읽기
+#      csvFilePattern = sprintf("%s_%s_%s.csv", key, stageInfo, type)
+#     csvFileList = Sys.glob(file.path(globalVar$inpPath, serviceName, "NASS_prograss_for_eachcrops", csvFilePattern))
+#     if (length(csvFileList) < 1) { next }
+#     csvFileInfo = csvFileList[1]
+#     csvData = readr::read_csv(csvFileInfo)
+#
+#     # 검증 데이터 생성
+#     valData = statDataL1 %>%
+#       dplyr::left_join(csvData, by = c("dtYear" = "Year")) %>%
+#       dplyr::mutate(
+#         stage = stageInfo
+#       )
+#
+#     valDataL1 = dplyr::bind_rows(valDataL1, valData)
+#
+#     typeName = ifelse(typeInfo == "POS", "Date of Max. growth", "Date of Senescence")
+#
+#     tmpData = data.frame(
+#       id = sprintf("%s (%s)",keyInfo, typeName)
+#       , key = keyInfo
+#       , name = nameInfo
+#       , type = typeInfo
+#       , stage = stageInfo
+#       , Bias = Metrics::bias(valData$cvVal, valData$Value)
+#       , RMSE = Metrics::rmse(valData$cvVal, valData$Value)
+#     )
+#
+#    valDataL2 = dplyr::bind_rows(valDataL2, tmpData)
+#
+#   }
+# }}}
+#
+#
+# # 결과2: 통계자료 Bias/RMSE/Procrustes distance에 대한 Boxpolt
+# valDataL3 = valDataL2 %>%
+#   dplyr::select(id, Bias, RMSE) %>%
+#   tidyr::gather(-id, key = "key", value = "val")
+#
+# # 정렬
+# valDataL3$id = forcats::fct_relevel(valDataL3$id, c("Corn (Date of Senescence)", "Soybeans (Date of Senescence)", "Corn (Date of Max. growth)", "Soybeans (Date of Max. growth)"))
+#
+# mainTitle = sprintf("통계자료 %s에 대한 상자 그림", "bias-RMSE")
+# saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
+# dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
+#
+# ggplot(valDataL3, aes(x = id, y = val, color = id)) +
+#   geom_boxplot(show.legend = TRUE) +
+#   labs(x = NULL, y = "Bias/RMSE", color = NULL, fill = NULL, subtitle = NULL) +
+#   theme(
+#     text = element_text(size = 16)
+#     , legend.position = "top"
+#     , axis.text.x = element_text(size = 10, angle = 45, hjust = 1)
+#     , legend.text = element_text(size = 10)
+#   ) +
+#   facet_wrap(~key, scale = "free_y") +
+#   ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
+#
+#
+# # 결과3: 실측 통계자료와 비교한 산점도 결과 (progress(0-100%) 값으로 산출하여 비교, density color로 표현)
+# nameList = valDataL1$name %>% unique() %>% sort()
+# keyList = valDataL1$key %>% unique() %>% sort()
+#
+# for (nameInfo in nameList) {
+# for (keyInfo in keyList) {
+#
+#   valDataL4 = valDataL1 %>%
+#     dplyr::filter(
+#       name == nameInfo
+#       , key == keyInfo
+#     )
+#
+#   mainTitle = sprintf("%s in %s", keyInfo, nameInfo)
+#   saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
+#   dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
+#
+#   makePlot = ggpubr::ggscatter(valDataL4, x = "Value", y = "cvVal", color = "type", alpha = "Value", conf.int = FALSE, cor.coef = FALSE, add.params = list(color = "black", fill = "lightgray")) +
+#     geom_smooth(aes(color = type), method = "lm", se = FALSE, show.legend = FALSE) +
+#     ggpubr::stat_regline_equation(aes(color = type), method = "lm", parse = TRUE, label.x.npc = 0.02, label.y.npc = 0.98, size = 6, show.legend = FALSE) +
+#     ggpubr::stat_cor(aes(color = type), label.x.npc = 0.52, label.y.npc = 0.98, p.accuracy = 0.01, r.accuracy = 0.01, size = 6, show.legend = FALSE) +
+#     geom_abline(intercept = 0, slope = 1, linetype = 2, color = "black", size = 0.5) +
+#     theme_bw() +
+#     scale_x_continuous(limits = c(0, 100)) +
+#     scale_y_continuous(limits = c(0, 100)) +
+#     labs(
+#       title = mainTitle
+#       , subtitle = NULL
+#       , x = "Obs. day of percent crop progress (DOY)"
+#       , y = "Est. day of percent crop progress (DOY)"
+#       , colour = NULL
+#       , fill = NULL
+#       , alpha = NULL
+#     ) +
+#     theme(
+#       text = element_text(size = 18)
+#       , legend.position = "top"
+#     )
+#
+#   ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
+#   cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+# }}
