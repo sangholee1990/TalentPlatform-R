@@ -80,6 +80,7 @@ library(beepr)
 library(openxlsx)
 # library(xlsx)
 library(readxl)
+library(furrr)
 
 cbMatlab = colorRamps::matlab.like(11)
 mapGlobal = sf::st_read(file.path(globalVar$mapPath, "gshhg-shp-2.3.6/GSHHS_shp/i/GSHHS_i_L1.shp"))
@@ -101,8 +102,8 @@ gridData = noncompliance::expand.grid.DT(
 # fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0195_일식 식분도 이미지 데이터 추출.xlsx"))
 # fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0259_일식 식분도 이미지 데이터 추출.xlsx"))
 # fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0330_일식 식분도 이미지 데이터 추출.xlsx"))
+# fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0382_일식 식분도 이미지 데이터 추출.xlsx"))
 fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "일식 식분도 이미지 데이터 추출.xlsx"))
-
 
 # **************************************************
 # 시트 선택
@@ -377,81 +378,74 @@ sheetName = dplyr::case_when(
 # **************************************************
 # 단일 이미지 테스트
 # **************************************************
-
 # openxlsx::read.xlsx(fileInfo2, sheetIndex = sheetInfo)
-# read.xlsx(fileInfo2, sheetIndex = sheetInfo)
-# get_personal_onedrive()
+data = openxlsx::read.xlsx(fileInfo, sheet = sheetName)
 
-library(Microsoft365R)
-options(browser="google-chrome")
-Microsoft365R::get_business_onedrive()
-fileInfo2 = "https://gwnuackr-my.sharepoint.com/:x:/g/personal/20155194_gwnu_ac_kr/EVXebuIGC89EoNVpnfC5frwBmuI3X_T8HZ9Nel2FqI7vzw?e=2qJdaw"
-data = openxlsx::read.xlsx(fileInfo2) %>%
-  as.tibble()
+typeList = data$type %>% unique()
+# typeList = typeList[41:45]
+# typeList = typeList[56:78]
 
-# data = readxl::read_excel(fileInfo, sheet = sheetInfo) %>%
-#   as.tibble()
-
-typeList = data$type %>% unique() %>% sort()
+typeList = typeList[77:78]
 
 # typeInfo = typeList[1]
-for (typeInfo in typeList) {
-
-  tmpData = data %>%
-    dplyr::filter(
-      type == typeInfo
-      , ! is.na(val)
-    ) %>%
-    dplyr::select(-type)
-
-  dataL1 = MBA::mba.points(tmpData, gridData)
-
-  dataL2 = dataL1 %>%
-    as.data.frame() %>%
-    as.tibble() %>%
-    dplyr::rename(
-      xAxis = xyz.est.x
-      , yAxis = xyz.est.y
-      , zAxis = xyz.est.z
-    ) %>%
-    dplyr::mutate(
-      type = typeInfo
-    )
-
-  idx = which(dataL2$zAxis == max(dataL2$zAxis, na.rm = TRUE))
-  maxData = dataL2[idx, ]
-
-  makePlot = ggplot(data = dataL2, aes(x = xAxis, y = yAxis, fill = zAxis, z = zAxis)) +
-    geom_raster(interpolate = TRUE, na.rm = TRUE) +
-    # metR::geom_contour_fill(na.fill = TRUE, kriging = TRUE) +.
-    # geom_tile() +
-    scale_fill_gradientn(colours = cbMatlab, limits = c(0, 1.1), breaks = c(0, 0.3, 0.5, 0.7, 0.9), na.value = NA) +
-    # metR::geom_contour2(color = "black", alpha = 1.0, breaks = seq(0.3, 0.9, 0.2), show.legend = FALSE) +
-    geom_sf(data = mapGlobal, aes(x = NULL, y = NULL, fill = NULL, z = NULL), color = "black", fill = NA) +
-    metR::geom_contour2(color = "black", alpha = 1.0, breaks = 0, show.legend = FALSE, size = 0.1) +
-    metR::geom_contour2(color = "black", alpha = 1.0, breaks = 0.3, show.legend = FALSE, size = 0.5) +
-    metR::geom_contour2(color = "black", alpha = 1.0, breaks = 0.5, show.legend = FALSE, size = 1) +
-    metR::geom_contour2(color = "black", alpha = 1.0, breaks = 0.7, show.legend = FALSE, size = 2) +
-    metR::geom_contour2(color = "black", alpha = 1.0, breaks = 0.9, show.legend = FALSE, size = 4) +
-    geom_point(data = tmpData, aes(x = lon, y = lat, colour = factor(val), fill = NULL, z = NULL)) +
-    geom_point(data = maxData, aes(x = xAxis, y = yAxis, colour = meanVal, fill = NULL, z = NULL), color = "red") +
-    metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, skip = 0, breaks = c(0, 0.3, 0.5, 0.7, 0.9), rotate = TRUE, na.rm = TRUE, size = 5) +
-    metR::scale_x_longitude(breaks = seq(90, 150, 10), limits = c(90, 150), expand = c(0, 0)) +
-    metR::scale_y_latitude(breaks = seq(10, 60, 10), limits = c(10, 60), expand = c(0, 0)) +
-    labs(
-      subtitle = NULL
-      , x = NULL
-      , y = NULL
-      , fill = NULL
-      , colour = NULL
-      , title = NULL
-    ) +
-    theme(text = element_text(size = 18))
-
-  saveImg = sprintf("%s/%s_%s_%s.png", globalVar$figPath, serviceName, sheetName, typeInfo)
-  ggsave(plot = makePlot, filename = saveImg, width = 10, height = 10, dpi = 600)
-
-}
+# for (typeInfo in typeList) {
+#
+#   tmpData = data %>%
+#     dplyr::filter(
+#       type == typeInfo
+#       , ! is.na(val)
+#     ) %>%
+#     dplyr::select(-type)
+#
+#   dataL1 = MBA::mba.points(tmpData, gridData)
+#
+#   dataL2 = dataL1 %>%
+#     as.data.frame() %>%
+#     as.tibble() %>%
+#     dplyr::rename(
+#       xAxis = xyz.est.x
+#       , yAxis = xyz.est.y
+#       , zAxis = xyz.est.z
+#     ) %>%
+#     dplyr::mutate(
+#       type = typeInfo
+#     )
+#
+#   idx = which(dataL2$zAxis == max(dataL2$zAxis, na.rm = TRUE))
+#   maxData = dataL2[idx, ]
+#
+#   makePlot = ggplot(data = dataL2, aes(x = xAxis, y = yAxis, fill = zAxis, z = zAxis)) +
+#     geom_raster(interpolate = TRUE, na.rm = TRUE) +
+#     # metR::geom_contour_fill(na.fill = TRUE, kriging = TRUE) +.
+#     # geom_tile() +
+#     scale_fill_gradientn(colours = cbMatlab, limits = c(0, 1.1), breaks = c(0, 0.3, 0.5, 0.7, 0.9), na.value = NA) +
+#     # metR::geom_contour2(color = "black", alpha = 1.0, breaks = seq(0.3, 0.9, 0.2), show.legend = FALSE) +
+#     geom_sf(data = mapGlobal, aes(x = NULL, y = NULL, fill = NULL, z = NULL), color = "black", fill = NA) +
+#     metR::geom_contour2(color = "black", alpha = 1.0, breaks = 0, show.legend = FALSE, size = 0.1) +
+#     metR::geom_contour2(color = "black", alpha = 1.0, breaks = 0.3, show.legend = FALSE, size = 0.5) +
+#     metR::geom_contour2(color = "black", alpha = 1.0, breaks = 0.5, show.legend = FALSE, size = 1) +
+#     metR::geom_contour2(color = "black", alpha = 1.0, breaks = 0.7, show.legend = FALSE, size = 2) +
+#     metR::geom_contour2(color = "black", alpha = 1.0, breaks = 0.9, show.legend = FALSE, size = 4) +
+#     geom_point(data = tmpData, aes(x = lon, y = lat, colour = factor(val), fill = NULL, z = NULL)) +
+#     geom_point(data = maxData, aes(x = xAxis, y = yAxis, colour = meanVal, fill = NULL, z = NULL), color = "red") +
+#     metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, skip = 0, breaks = c(0, 0.3, 0.5, 0.7, 0.9), rotate = TRUE, na.rm = TRUE, size = 5) +
+#     metR::scale_x_longitude(breaks = seq(90, 150, 10), limits = c(90, 150), expand = c(0, 0)) +
+#     metR::scale_y_latitude(breaks = seq(10, 60, 10), limits = c(10, 60), expand = c(0, 0)) +
+#     labs(
+#       subtitle = NULL
+#       , x = NULL
+#       , y = NULL
+#       , fill = NULL
+#       , colour = NULL
+#       , title = NULL
+#     ) +
+#     theme(text = element_text(size = 18))
+#
+#   saveImg = sprintf("%s/%s/%s_%s.png", globalVar$figPath, serviceName, sheetName, typeInfo)
+#   dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
+#   ggsave(plot = makePlot, filename = saveImg, width = 10, height = 10, dpi = 600)
+#
+# }
 
 # 마리오 알람 소리
 beepr::beep(sound = 8)
@@ -460,21 +454,19 @@ beepr::beep(sound = 8)
 # **************************************************
 # 시트에 따른 데이터 병합
 # **************************************************
-# sheetList = c(sheetInfo)
-# sheetName = "후기신라(9)"
-
-sheetList = c(16, 18, 19, 20, 21, 22)
-sheetName = "남송(57)"
+sheetList = c(1)
+sheetName = "모집단78개"
 
 # sheetInfo = sheetList[1]
 
 dataL3 = tibble::tibble()
 for (sheetInfo in sheetList) {
   
-  data = xlsx::read.xlsx(fileInfo, sheetIndex = sheetInfo) %>%
+  # data = xlsx::read.xlsx(fileInfo, sheetIndex = sheetInfo) %>%
+  data = openxlsx::read.xlsx(fileInfo, sheet = sheetInfo) %>%
     as.tibble()
   
-  typeList = data$type %>% unique %>% sort
+  typeList = data$type %>% unique
   
   for (typeInfo in typeList) {
     
@@ -502,88 +494,85 @@ for (sheetInfo in sheetList) {
 }
 
 
+
 # **************************************************
-# 공간 평균
+# 시트에 따른 데이터 병합
 # **************************************************
-cat(
-  sprintf("%s : %s", "Type Length : ", dataL3$type %>% unique %>% length)
-  , "\n"
-)
+# 난수 초기값
+set.seed(123)
 
+# 표본 주사위
+sampleInfo = dataL3$type %>% unique()
 
-dataStatL3 = dataL3 %>%
-  dplyr::filter(
-    zAxis > 0
-    # , type %in% c(3, 4)
-  ) %>% 
-  dplyr::mutate(
-    cnt = ifelse(zAxis <= 0, 0, 1)
-  ) %>% 
-  dplyr::group_by(xAxis, yAxis) %>%
-  dplyr::summarise(
-    meanVal = mean(zAxis, na.rm = TRUE)
-    , sumVal = sum(cnt, na.rm = TRUE)
-  ) %>%
-  dplyr::mutate(
-    meanVal = ifelse(meanVal < 0, NA, meanVal)
-  ) %>%
-  dplyr::arrange(desc(sumVal))
+# 부트스트랩 횟수
+# bootDo = 10
+bootDo = 10000
 
+# 부트스트랩 추출 개수
+bootNum = 16
 
-dataL4 = dataStatL3 %>% 
-  dplyr::filter(
-    meanVal > 0
-    , sumVal == max(dataStatL3$sumVal, na.rm = TRUE)
-    # , sumVal == 49
-    # , sumVal == 48
-    # , sumVal == 0
-    # , sumVal < 2
-    # , sumVal > 0
-    )
+# 부스스트랩 주사위 목록
+bostSample = lapply(1:bootDo, function(i) sample(sampleInfo, size=bootNum, replace = TRUE))
 
+# 부스스트랩을 통해 최대값 추출
+# plan(multisession, workers = availableCores() - 1)
+plan(multisession, workers = availableCores() - 16)
+# options(future.globals.maxSize= 891289600)
+options(future.globals.maxSize= 999999999999)
 
-# 에측 결과 저장
-saveFile = sprintf("%s/%s_%s.xlsx", globalVar$outPath, serviceName, "일식 식분도 이미지 데이터 추출 및 중첩 일식 식분도 빈도수 시각화")
-wb = openxlsx::createWorkbook()
-openxlsx::addWorksheet(wb, "Sheet")
-openxlsx::writeData(wb, "Sheet", dataL4, startRow = 1, startCol = 1, colNames = TRUE, rowNames = FALSE)
-openxlsx::saveWorkbook(wb, file = saveFile, overwrite = TRUE)
+bootData = future_map_dfr(1:bootDo, function(i) {
+  dataL3 %>%
+      dplyr::filter(type %in% bostSample[[i]]) %>%
+      dplyr::filter(zAxis > 0) %>%
+      dplyr::group_by(xAxis, yAxis) %>%
+      dplyr::summarise(
+          meanVal = mean(zAxis, na.rm = TRUE)
+      ) %>%
+      dplyr::ungroup() %>%
+      dplyr::filter(meanVal == max(meanVal, na.rm = TRUE)) %>%
+      dplyr::mutate(idx = i)
+})
 
+# bootData = tibble::tibble()
+# for (i in 1:length(bostSample)) {
+#   cat(sprintf("[CHECK] 진행률 : %.2f", i / length(bostSample) * 100.0), "\n")
+#
+#   dataL4 = dataL3 %>%
+#     dplyr::filter(type %in% bostSample[[i]]) %>%
+#     dplyr::filter(zAxis > 0) %>%
+#     dplyr::group_by(xAxis, yAxis) %>%
+#     dplyr::summarise(
+#         meanVal = mean(zAxis, na.rm = TRUE)
+#     ) %>%
+#     dplyr::ungroup() %>%
+#     dplyr::filter(meanVal == max(meanVal, na.rm = TRUE)) %>%
+#     dplyr::mutate(idx = i)
+#
+#   bootData = dplyr::bind_rows(bootData, dataL4)
+# }
 
-summary(dataL4)
+saveFile = sprintf("%s/%s/%s.csv", globalVar$outPath, serviceName, "bootData_20221222")
+dir.create(path_dir(saveFile), showWarnings = FALSE, recursive = TRUE)
+readr::write_csv(x = bootData, file = saveFile)
 
-idx = which(dataL4$meanVal == max(dataL4$meanVal, na.rm = TRUE))
-maxData = dataL4[idx, ]
+# bootDataL1 = bootData %>%
+#   dplyr::group_by(xAxis, yAxis) %>%
+#   dplyr::summarise(
+#     cnt = n()
+#   )
 
-# setBreakCont = c(seq(0.51, 0, -0.04))
-# setBreakText = c(seq(0.51, 0.10, -0.04))
-# setBreakCont = c(seq(0.53, 0, -0.001))
-# setBreakText = c(seq(0.53, 0.10, -0.001))
+summary(bootData)
 
-setBreakCont = c(seq(0.52, 0, -0.001))
-setBreakText = c(seq(0.52, 0.10, -0.001))
+saveImg = sprintf("%s/%s/%s_%s.png", globalVar$figPath, serviceName, sheetName, "Mean Color Overlay")
+dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
 
-# 0.954
-
-# 평균식분도에 대한 최대값입니다.
-# 낙양당첫번째(9) : 0.954
-
-saveImg = sprintf("%s/%s_%s_%s.png", globalVar$figPath, serviceName, sheetName, "Mean Color Overlay")
-
-ggplot(data = dataL4, aes(x = xAxis, y = yAxis, fill = meanVal, z = meanVal)) +
-  geom_point(color = "black", size = 0.05, show.legend = FALSE) +
-  geom_raster(interpolate = TRUE, na.rm = TRUE) +
-  # geom_tile(interpolate = TRUE, na.rm = TRUE) +
-  # metR::geom_contour_fill(na.fill = TRUE, kriging = TRUE) +
-  # scale_fill_gradientn(colours = cbMatlab, limits = c(0, 1.0), breaks = seq(0, 1.0, 0.2), na.value = NA) +
-  scale_fill_gradientn(colours = "black", limits = c(0, 1.0), breaks = seq(0, 1.0, 0.2), na.value = NA) +
+# 1. 만개의 점이 찍혀있는 위도 경도 그래프
+ggplot(data = bootData, aes(x = xAxis, y = yAxis, color = meanVal)) +
+  geom_point(size = 2, show.legend = TRUE) +
+  scale_color_gradientn(colours = cbMatlab) +
   geom_sf(data = mapGlobal, aes(x = NULL, y = NULL, fill = NULL, z = NULL), color = "black", fill = NA) +
-  metR::geom_contour2(color = "black", alpha = 1.0, breaks = setBreakCont, show.legend = FALSE, size = 0.5) +
-  # metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, skip = 0, breaks = setBreakText, rotate = TRUE, na.rm = TRUE, size = 5) +
-  # metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, skip = 0, breaks = setBreakText, rotate = TRUE, na.rm = TRUE, size = 2) +
-  geom_point(data = maxData, aes(x = xAxis, y = yAxis, colour = meanVal, fill = NULL, z = NULL), color = "red") +
-  metR::scale_x_longitude(breaks = seq(90, 150, 10), limits = c(90, 150), expand = c(0, 0)) +
-  metR::scale_y_latitude(breaks = seq(10, 60, 10), limits = c(10, 60), expand = c(0, 0)) +
+  metR::scale_x_longitude(breaks = seq(90, 150, 10), limits = c(89.99, 150), expand = c(0, 0)) +
+  metR::scale_y_latitude(breaks = seq(10, 60, 10), limits = c(9.99, 60), expand = c(0, 0)) +
   labs(
     subtitle = NULL
     , x = NULL
@@ -595,20 +584,15 @@ ggplot(data = dataL4, aes(x = xAxis, y = yAxis, fill = meanVal, z = meanVal)) +
   theme(text = element_text(size = 18)) +
   ggsave(filename = saveImg, width = 10, height = 10, dpi = 600)
 
-saveImg = sprintf("%s/%s_%s_%s.png", globalVar$figPath, serviceName, sheetName, "Mean Black Overlay")
+saveImg = sprintf("%s/%s/%s_%s.png", globalVar$figPath, serviceName, sheetName, "Mean Black Overlay")
+dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
 
-ggplot(data = dataL4, aes(x = xAxis, y = yAxis, z = meanVal)) +
-  geom_point(color = "black", size = 0.05, show.legend = FALSE) +
-  # geom_raster(interpolate = TRUE, na.rm = TRUE) +
-  # scale_fill_gradientn(colours = cbMatlab, limits = c(0, 1.0), breaks = seq(0, 1.0, 0.2), na.value = NA) +
-  # metR::geom_contour_fill(na.fill = TRUE, kriging = TRUE)
+ggplot(data = bootData, aes(x = xAxis, y = yAxis, color = meanVal)) +
+  geom_point(size = 2, color = "black", show.legend = FALSE) +
+  # scale_color_gradientn(colours = cbMatlab) +
   geom_sf(data = mapGlobal, aes(x = NULL, y = NULL, fill = NULL, z = NULL), color = "black", fill = NA) +
-  metR::geom_contour2(color = "black", alpha = 1.0, breaks = setBreakCont, show.legend = FALSE, size = 0.5) +
-  # metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, skip = 0, breaks = setBreakText, rotate = TRUE, na.rm = TRUE, size = 5) +
-  # metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, skip = 0, breaks = setBreakText, rotate = TRUE, na.rm = TRUE, size = 2) +
-  geom_point(data = maxData, aes(x = xAxis, y = yAxis, colour = meanVal, fill = NULL, z = NULL), color = "red") +
-  metR::scale_x_longitude(breaks = seq(90, 150, 10), limits = c(90, 150), expand = c(0, 0)) +
-  metR::scale_y_latitude(breaks = seq(10, 60, 10), limits = c(10, 60), expand = c(0, 0)) +
+  metR::scale_x_longitude(breaks = seq(90, 150, 10), limits = c(89.99, 150), expand = c(0, 0)) +
+  metR::scale_y_latitude(breaks = seq(10, 60, 10), limits = c(9.99, 60), expand = c(0, 0)) +
   labs(
     subtitle = NULL
     , x = NULL
@@ -621,6 +605,23 @@ ggplot(data = dataL4, aes(x = xAxis, y = yAxis, z = meanVal)) +
   ggsave(filename = saveImg, width = 10, height = 10, dpi = 600)
 
 
-# 마리오 알람 소리
-beepr::beep(sound = 8)
 
+# 2. 위도 28~34/경도 110~116 구역안의 점 개수
+statData = bootData %>%
+  dplyr::filter(
+    dplyr::between(xAxis, 110, 116)
+    , dplyr::between(yAxis, 28, 34)
+  ) %>%
+  dplyr::summarise(cnt = n())
+
+# 3. 위도 34~42/경도 124~130 구역안의 점 개수
+statDataL1 = bootData %>%
+  dplyr::filter(
+    dplyr::between(xAxis, 124, 130)
+    , dplyr::between(yAxis, 34, 42)
+  ) %>%
+  dplyr::summarise(cnt = n())
+
+# 1. 만개의 점이 찍혀있는 위도 경도 그래프 : 2. 위도 경도 그래프 폴더 참조
+# 2. 위도 28~34/경도 110~116 구역안의 점 개수 : 87개
+# 3. 위도 34~42/경도 124~130 구역안의 점 개수 : 26개

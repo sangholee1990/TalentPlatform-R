@@ -71,6 +71,9 @@ library(terra)
 library(tidyterra)
 library(ggplot2)
 library(Metrics)
+library(colorRamps)
+
+cbMatlab = colorRamps::matlab.like(11)
 
 # shapes::procdist 계산을 위해서 패키지 읽기 과정에서 오류
 # library(shapes)

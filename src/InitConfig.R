@@ -70,6 +70,8 @@
 #=====================================
 if (Sys.info()["sysname"] == "Windows") {
   .libPaths("E:/04. TalentPlatform/Github/TalentPlatform-R/resources/lib")
+} else {
+  Sys.setenv(PROJ_LIB = "/usr/local/anaconda3/envs/r36/share/proj")
 }
 
 # C:\Users\saima\Documents
