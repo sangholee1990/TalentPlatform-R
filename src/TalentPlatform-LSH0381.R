@@ -102,8 +102,10 @@ for (i in 1:length(dtDateList)) {
   dtYear = lubridate::year(dtDateInfo)
   dtMonth = lubridate::month(dtDateInfo)
 
-  modisFilePattern = sprintf("MCD13A2_8day_Phenology_US5_NDVI_Klosterman_%s.tif", dtYear)
-  fileList = Sys.glob(file.path(globalVar$inpPath, serviceName, "Phenology_US5_MODIS", modisFilePattern))
+  # modisFilePattern = sprintf("MCD13A2_8day_Phenology_US5_NDVI_Klosterman_%s.tif", dtYear)
+  modisFilePattern = sprintf("MCD13A2_8day_Phenology_NDVI_%s.tif", dtYear)
+  # fileList = Sys.glob(file.path(globalVar$inpPath, serviceName, "Phenology_US5_MODIS", modisFilePattern))
+  fileList = Sys.glob(file.path(globalVar$inpPath, serviceName, "Phenology_US5_MODIS-20221224", modisFilePattern))
 
   cornFilePattern = sprintf("Merge_IMG/CDL_fraction_corn_%s_ease.img", dtYear)
   cornFileList = Sys.glob(file.path(globalVar$inpPath, serviceName, "CDL_fraction_US5", cornFilePattern))
@@ -147,13 +149,16 @@ for (i in 1:length(dtDateList)) {
     cat(sprintf("[CHECK] name : %s", shpDataL1$NAME), "\n")
 
     # modisDataL1를 기준으로 마스킹 (cornData) 및 영역 자르기 (shpDataL1)  수행
-    cornDataL1 = modisDataL1 %>%
-      mask(cornData) %>%
+    # cornDataL1 = modisDataL1 %>%
+    #   mask(cornData) %>%
+    #   crop(shpDataL1)
+
+    # 서로간의 범위가 다를 경우 에러 발생
+    # 마스킹 레이어 (cornData) 및 기준 레이어 (modisDataL1) 리샘플링
+    cornDataL1 =  terra::resample(cornData, modisDataL1) %>%
       crop(shpDataL1)
 
-    # plot(cornDataL1)
-
-      # 대상 계절일: "POS", " EOS " ; Band4 inform: c("SOS", "POS", "Senescence", "EOS")
+    # 대상 계절일: "POS", " EOS " ; Band4 inform: c("SOS", "POS", "Senescence", "EOS")
     cornDataL2 = cornDataL1 %>%
       as.data.frame(xy = TRUE) %>%
       tibble::as.tibble() %>%
