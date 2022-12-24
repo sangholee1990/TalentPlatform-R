@@ -464,7 +464,7 @@ for (sheetInfo in sheetList) {
   
   # data = xlsx::read.xlsx(fileInfo, sheetIndex = sheetInfo) %>%
   data = openxlsx::read.xlsx(fileInfo, sheet = sheetInfo) %>%
-    as.tibble()
+    tibble::as.tibble()
   
   typeList = data$type %>% unique
   
@@ -604,7 +604,8 @@ bootDo = 10000
 
 # 부트스트랩 추출 개수
 # bootNum = 70
-bootNumList = c(16)
+# bootNumList = c(16)
+bootNumList = c(14)
 # bootNumList = c(16, 30)
 # bootNumList = c(30, 50, 60, 70)
 # bootNumList = c(50, 60, 70)
@@ -614,7 +615,8 @@ for (bootNum in bootNumList) {
   # 부스스트랩 주사위 목록
   bostSample = lapply(1:bootDo, function(i) sample(sampleInfo, size = bootNum, replace = FALSE))
 
-  plan(multisession, workers = availableCores() - 10)
+  # plan(multisession, workers = availableCores() - 10)
+  plan(multisession, workers = availableCores() - 5)
   # plan(multisession, workers = availableCores() / 2)
   options(future.globals.maxSize = 99999999999999)
 
@@ -686,7 +688,7 @@ for (bootNum in bootNumList) {
 # }
 
 # bootNumList = c(30, 50, 60, 70)
-bootNumList = c(16)
+bootNumList = c(14)
 # bootNumList = c(16, 30)
 for (bootNum in bootNumList) {
   # saveFile = sprintf("%s/%s/%s.csv", globalVar$outPath, serviceName, "bootData_20221222")
@@ -705,10 +707,11 @@ for (bootNum in bootNumList) {
 
   # 1. 만개의 점이 찍혀있는 위도 경도 그래프
   makePlot = ggplot(data = bootData, aes(x = xAxis, y = yAxis, color = meanVal)) +
-    geom_point(size = 2, show.legend = TRUE) +
+    # geom_point(size = 2, show.legend = TRUE) +
+    geom_point(size = 1, show.legend = TRUE, alpha=0.3) +
     scale_color_gradientn(colours = cbMatlab) +
     geom_sf(data = mapGlobal, aes(x = NULL, y = NULL, fill = NULL, z = NULL), color = "black", fill = NA) +
-    metR::scale_x_longitude(breaks = seq(90, 150, 10), limits = c(89.99, 150), expand = c(0, 0)) +
+    metR::scale_x_longitude(breaks = seq(90, 150, 10), limits = c(89.99, 150.01), expand = c(0, 0)) +
     metR::scale_y_latitude(breaks = seq(10, 60, 10), limits = c(9.99, 60), expand = c(0, 0)) +
     labs(
       subtitle = NULL
@@ -726,10 +729,11 @@ for (bootNum in bootNumList) {
   dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
 
   makePlot = ggplot(data = bootData, aes(x = xAxis, y = yAxis, color = meanVal)) +
-    geom_point(size = 2, color = "black", show.legend = FALSE) +
+    # geom_point(size = 2, color = "black", show.legend = FALSE) +
+    geom_point(size = 1, color = "black", show.legend = FALSE, alpha=0.3) +
     # scale_color_gradientn(colours = cbMatlab) +
     geom_sf(data = mapGlobal, aes(x = NULL, y = NULL, fill = NULL, z = NULL), color = "black", fill = NA) +
-    metR::scale_x_longitude(breaks = seq(90, 150, 10), limits = c(89.99, 150), expand = c(0, 0)) +
+    metR::scale_x_longitude(breaks = seq(90, 150, 10), limits = c(89.99, 150.01), expand = c(0, 0)) +
     metR::scale_y_latitude(breaks = seq(10, 60, 10), limits = c(9.99, 60), expand = c(0, 0)) +
     labs(
       subtitle = NULL
@@ -771,3 +775,7 @@ for (bootNum in bootNumList) {
 # 1. 만개의 점이 찍혀있는 위도 경도 그래프 : 2. 위도 경도 그래프 폴더 참조
 # 2. 위도 28~34/경도 110~116 구역안의 점 개수 : 171개
 # 3. 위도 34~42/경도 124~130 구역안의 점 개수 : 1761개
+
+# 1. 만개의 점이 찍혀있는 위도 경도 그래프 : 20221224_결과 폴더 참조
+# 2. 위도 28~34/경도 110~116 구역안의 점 개수 : 184개
+# 3. 위도 34~42/경도 124~130 구역안의 점 개수 : 1373개

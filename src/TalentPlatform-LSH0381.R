@@ -72,6 +72,7 @@ library(tidyterra)
 library(ggplot2)
 library(Metrics)
 library(colorRamps)
+library(ggh4x)
 
 cbMatlab = colorRamps::matlab.like(11)
 
@@ -314,7 +315,8 @@ for (fileInfo in fileList) {
     dplyr::mutate(
       key = ifelse(stringr::str_detect(fileName, regex("corn")), "Corn", "Soybeans")
       , stageName = ifelse(stage == 1, "POS", "EOS")
-      , typeName = ifelse(stageName == "POS", "Date of Max. growth", "Date of Senescence")
+      # , typeName = ifelse(stageName == "POS", "Date of Max. growth", "Date of Senescence")
+      , typeName = ifelse(stageName == "POS", "Max. growth", "Senescence")
       , type = ifelse(stringr::str_detect(fileName, regex("IL")), "Illinois", "Iowa")
       , group = sprintf("%s (%s)", key, typeName)
       , group2 = sprintf("%s in %s", key, type)
@@ -332,6 +334,7 @@ yearList = valData$year %>% unique() %>% sort()
 valDataL2 = tibble::tibble()
 for (groupInfo in groupList) {
    cat(sprintf("[CHECK] %s", groupInfo), "\n")
+
    for (yearInfo in yearList) {
 
     selData = valData %>%
@@ -357,23 +360,36 @@ valDataL3 = valDataL2 %>%
   tidyr::gather(-group, key = "key", value = "val")
 
 # 정렬
-valDataL3$group = forcats::fct_relevel(valDataL3$group, c("Corn (Date of Senescence)", "Soybeans (Date of Senescence)", "Corn (Date of Max. growth)", "Soybeans (Date of Max. growth)"))
+# valDataL3$group = forcats::fct_relevel(valDataL3$group, c("Corn (Date of Senescence)", "Soybeans (Date of Senescence)", "Corn (Date of Max. growth)", "Soybeans (Date of Max. growth)"))
+valDataL3$group = forcats::fct_relevel(valDataL3$group, c("Corn (Senescence)", "Soybeans (Senescence)", "Corn (Max. growth)", "Soybeans (Max. growth)"))
 
 mainTitle = sprintf("통계자료 %s에 대한 상자 그림", "bias-RMSE")
 saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
 dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
 
-ggplot(valDataL3, aes(x = group, y = val, color = group)) +
-  geom_boxplot(show.legend = TRUE) +
-  labs(x = NULL, y = "Bias / RMSE", color = NULL, fill = NULL, subtitle = NULL) +
+# ggplot(valDataL3, aes(x = group, y = val, color = group)) +
+ggplot(valDataL3, aes(x = group, y = val)) +
+  geom_boxplot(show.legend = FALSE) +
+  geom_abline(intercept = 0, slope = 0, linetype = 2, color = "gray", size = 0.5) +
+  labs(x = NULL, y = "Day", color = NULL, fill = NULL, subtitle = NULL) +
+  theme_bw() +
   theme(
     text = element_text(size = 16)
-    , legend.position = "top"
-    , axis.text.x = element_text(size = 10, angle = 45, hjust = 1)
-    , legend.text = element_text(size = 10)
+    # , legend.position = "top"
+    , axis.text.x = element_text(size = 12, angle = 90, hjust = 1)
+    # , legend.text = element_text(size = 10)
+    , panel.grid.major = element_blank()
+    , panel.grid.minor = element_blank()
   ) +
   facet_wrap(~key, scale = "free_y") +
+  ggh4x::facetted_pos_scales(
+    y = list(
+      key == "Bias" ~ scale_y_continuous(breaks=seq(-100, 100, 20), limits=c(-100, 60))
+      , key == "RMSE" ~ scale_y_continuous(breaks=seq(0, 100, 10), limits=c(0, 100))
+    )
+  ) +
   ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
+
 
 
 # 결과3 실측 통계자료와 비교한 산점도 결과
@@ -394,10 +410,11 @@ ggplot(data = valDataL4, aes(x = DOY, y = NASS_DOY, color = stageName, alpha=NAS
   scale_alpha(guide = "none") +
   geom_abline(intercept = 0, slope = 1, linetype = 2, color = "black", size = 0.5) +
   theme_bw() +
-  scale_x_continuous(limits = c(100, 360)) +
-  scale_y_continuous(limits = c(100, 360)) +
+  scale_x_continuous(limits = c(180, 360), breaks=seq(180, 360, 40)) +
+  scale_y_continuous(limits = c(180, 360), breaks=seq(180, 360, 40)) +
   # scale_colour_manual(values = c("red", "green")) +
-  scale_colour_manual(values = c("#F8766D", "#00BA38")) +
+  # scale_colour_manual(values = c("#F8766D", "#00BA38")) +
+  scale_colour_manual(values = c("red", "#00BA38")) +
   labs(
     title = NULL
     , subtitle = NULL
@@ -409,7 +426,10 @@ ggplot(data = valDataL4, aes(x = DOY, y = NASS_DOY, color = stageName, alpha=NAS
   ) +
   theme(
     text = element_text(size = 18)
-    , legend.position = "top"
+    # , legend.position = "top"
+    , legend.position = c(0.93, 0.05)
+    , panel.grid.major = element_blank()
+    , panel.grid.minor = element_blank()
   ) +
   facet_wrap(~group2, ncol=2) +
   ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
