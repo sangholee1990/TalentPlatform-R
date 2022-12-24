@@ -494,44 +494,178 @@ for (sheetInfo in sheetList) {
 }
 
 
+# **************************************************
+# 공간 평균
+# **************************************************
+cat(
+  sprintf("%s : %s", "Type Length : ", dataL3$type %>% unique %>% length)
+  , "\n"
+)
+
+dataL4 = dataL3 %>%
+  dplyr::group_by(xAxis, yAxis) %>%
+  dplyr::summarise(
+    meanVal = mean(zAxis, na.rm = TRUE)
+  ) %>%
+  dplyr::mutate(
+    meanVal = ifelse(meanVal < 0, 0, meanVal)
+  )
+
+summary(dataL4)
+
+idx = which(dataL4$meanVal == max(dataL4$meanVal, na.rm = TRUE))
+maxData = dataL4[idx, ]
+
+maxData = dataL4 %>%
+  dplyr::ungroup() %>%
+  dplyr::filter(meanVal == max(meanVal, na.rm = TRUE))
+
+# setBreakCont = c(seq(0.70, 0, -0.04))
+# setBreakText = c(seq(0.70, 0.10, -0.04))
+
+setBreakCont = c(seq(0.58, 0, -0.04))
+setBreakText = c(seq(0.58, 0.10, -0.04))
+
+# setBreakCont = c(seq(0.72, 0, -0.04))
+# setBreakText = c(seq(0.72, 0.10, -0.04))
+#
+# setBreakCont = c(seq(0.44, 0, -0.02))
+# setBreakText = c(seq(0.44, 0.10, -0.02))
+#
+# setBreakCont = c(seq(0.47, 0, -0.02))
+# setBreakText = c(seq(0.47, 0.10, -0.02))
+
+# 평균식분도에 대한 최대값입니다.
+# 모집단78개 : 0.590
+
+saveImg = sprintf("%s/%s/%s_%s.png", globalVar$figPath, serviceName, sheetName, "Mean_Color")
+
+ggplot(data = dataL4, aes(x = xAxis, y = yAxis, fill = meanVal, z = meanVal)) +
+  geom_raster(interpolate = TRUE, na.rm = TRUE) +
+  # metR::geom_contour_fill(na.fill = TRUE, kriging = TRUE) +
+  scale_fill_gradientn(colours = cbMatlab, limits = c(0, 1.0), breaks = seq(0, 1.0, 0.2), na.value = NA) +
+  geom_sf(data = mapGlobal, aes(x = NULL, y = NULL, fill = NULL, z = NULL), color = "black", fill = NA) +
+  metR::geom_contour2(color = "black", alpha = 1.0, breaks = setBreakCont, show.legend = FALSE, size = 0.5) +
+  metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, skip = 0, breaks = setBreakText, rotate = TRUE, na.rm = TRUE, size = 5) +
+  geom_point(data = maxData, aes(x = xAxis, y = yAxis, colour = meanVal, fill = NULL, z = NULL), color = "red") +
+  metR::scale_x_longitude(breaks = seq(90, 150, 10), limits = c(90, 150), expand = c(0, 0)) +
+  metR::scale_y_latitude(breaks = seq(10, 60, 10), limits = c(10, 60), expand = c(0, 0)) +
+  labs(
+    subtitle = NULL
+    , x = NULL
+    , y = NULL
+    , fill = NULL
+    , colour = NULL
+    , title = NULL
+  ) +
+  theme(text = element_text(size = 18)) +
+  ggsave(filename = saveImg, width = 10, height = 10, dpi = 600)
+
+saveImg = sprintf("%s/%s/%s_%s.png", globalVar$figPath, serviceName, sheetName, "Mean_Black")
+
+ggplot(data = dataL4, aes(x = xAxis, y = yAxis, fill = meanVal, z = meanVal)) +
+  # geom_raster(interpolate = TRUE, na.rm = TRUE) +
+  # scale_fill_gradientn(colours = cbMatlab, limits = c(0, 1.0), breaks = seq(0, 1.0, 0.2), na.value = NA) +
+  # metR::geom_contour_fill(na.fill = TRUE, kriging = TRUE)
+  geom_sf(data = mapGlobal, aes(x = NULL, y = NULL, fill = NULL, z = NULL), color = "black", fill = NA) +
+  metR::geom_contour2(color = "black", alpha = 1.0, breaks = setBreakCont, show.legend = FALSE, size = 0.5) +
+  metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, skip = 0, breaks = setBreakText, rotate = TRUE, na.rm = TRUE, size = 5) +
+  geom_point(data = maxData, aes(x = xAxis, y = yAxis, colour = meanVal, fill = NULL, z = NULL), color = "red") +
+  metR::scale_x_longitude(breaks = seq(90, 150, 10), limits = c(90, 150), expand = c(0, 0)) +
+  metR::scale_y_latitude(breaks = seq(10, 60, 10), limits = c(10, 60), expand = c(0, 0)) +
+  labs(
+    subtitle = NULL
+    , x = NULL
+    , y = NULL
+    , fill = NULL
+    , colour = NULL
+    , title = NULL
+  ) +
+  theme(text = element_text(size = 18)) +
+  ggsave(filename = saveImg, width = 10, height = 10, dpi = 600)
+
 
 # **************************************************
-# 시트에 따른 데이터 병합
+# 시뮬레이션
 # **************************************************
 # 난수 초기값
 set.seed(123)
 
+# 프로세스 제거
+# ps -ef | grep parallelly | awk '{print $2}' | xargs kill -9
+
 # 표본 주사위
-sampleInfo = dataL3$type %>% unique()
+# sampleInfo = dataL3$type %>% unique()
+sampleInfo = data$type %>% unique()
 
 # 부트스트랩 횟수
 # bootDo = 10
 bootDo = 10000
 
 # 부트스트랩 추출 개수
-bootNum = 16
+# bootNum = 70
+bootNumList = c(16)
+# bootNumList = c(16, 30)
+# bootNumList = c(30, 50, 60, 70)
+# bootNumList = c(50, 60, 70)
+# bootNumList = c(78)
+for (bootNum in bootNumList) {
 
-# 부스스트랩 주사위 목록
-bostSample = lapply(1:bootDo, function(i) sample(sampleInfo, size=bootNum, replace = TRUE))
+  # 부스스트랩 주사위 목록
+  bostSample = lapply(1:bootDo, function(i) sample(sampleInfo, size = bootNum, replace = FALSE))
 
-# 부스스트랩을 통해 최대값 추출
-# plan(multisession, workers = availableCores() - 1)
-plan(multisession, workers = availableCores() - 16)
-# options(future.globals.maxSize= 891289600)
-options(future.globals.maxSize= 999999999999)
+  plan(multisession, workers = availableCores() - 10)
+  # plan(multisession, workers = availableCores() / 2)
+  options(future.globals.maxSize = 99999999999999)
 
-bootData = future_map_dfr(1:bootDo, function(i) {
-  dataL3 %>%
+  # 부스스트랩을 통해 최대값 추출
+  bootData = future_map_dfr(1:bootDo, function(i) {
+    dataL3 %>%
       dplyr::filter(type %in% bostSample[[i]]) %>%
-      dplyr::filter(zAxis > 0) %>%
       dplyr::group_by(xAxis, yAxis) %>%
       dplyr::summarise(
-          meanVal = mean(zAxis, na.rm = TRUE)
+        meanVal = mean(zAxis, na.rm = TRUE)
+      ) %>%
+      dplyr::mutate(
+        meanVal = ifelse(meanVal < 0, 0, meanVal)
       ) %>%
       dplyr::ungroup() %>%
       dplyr::filter(meanVal == max(meanVal, na.rm = TRUE)) %>%
       dplyr::mutate(idx = i)
-})
+  })
+
+  saveFile = sprintf("%s/%s/bootData_%s.csv", globalVar$outPath, serviceName, bootNum)
+  dir.create(path_dir(saveFile), showWarnings = FALSE, recursive = TRUE)
+  readr::write_csv(x = bootData, file = saveFile)
+
+}
+
+# 부스스트랩 주사위 목록
+# bostSample = lapply(1:bootDo, function(i) sample(sampleInfo, size=bootNum, replace = FALSE))
+#
+# # 부스스트랩을 통해 최대값 추출
+# # plan(multisession, workers = availableCores() - 1)
+# # plan(multisession, workers = availableCores() - 16)
+# plan(multisession, workers = availableCores() - 6)
+# # options(future.globals.maxSize= 891289600)
+# options(future.globals.maxSize= 99999999999999)
+#
+# bootData = future_map_dfr(1:bootDo, function(i) {
+#
+#   dataL3 %>%
+#       dplyr::filter(type %in% bostSample[[i]]) %>%
+#       dplyr::filter(zAxis > 0) %>%
+#       dplyr::group_by(xAxis, yAxis) %>%
+#       dplyr::summarise(
+#           meanVal = mean(zAxis, na.rm = TRUE)
+#       ) %>%
+#       dplyr::mutate(
+#         meanVal = ifelse(meanVal < 0, 0, meanVal)
+#       ) %>%
+#       dplyr::ungroup() %>%
+#       dplyr::filter(meanVal == max(meanVal, na.rm = TRUE)) %>%
+#       dplyr::mutate(idx = i)
+# })
 
 # bootData = tibble::tibble()
 # for (i in 1:length(bostSample)) {
@@ -551,77 +685,89 @@ bootData = future_map_dfr(1:bootDo, function(i) {
 #   bootData = dplyr::bind_rows(bootData, dataL4)
 # }
 
-saveFile = sprintf("%s/%s/%s.csv", globalVar$outPath, serviceName, "bootData_20221222")
-dir.create(path_dir(saveFile), showWarnings = FALSE, recursive = TRUE)
-readr::write_csv(x = bootData, file = saveFile)
+# bootNumList = c(30, 50, 60, 70)
+bootNumList = c(16)
+# bootNumList = c(16, 30)
+for (bootNum in bootNumList) {
+  # saveFile = sprintf("%s/%s/%s.csv", globalVar$outPath, serviceName, "bootData_20221222")
+  # saveFile = sprintf("%s/%s/%s.csv", globalVar$outPath, serviceName, "bootData_20221223")
+  saveFile = sprintf("%s/%s/bootData_%s.csv", globalVar$outPath, serviceName, bootNum)
+  dir.create(path_dir(saveFile), showWarnings = FALSE, recursive = TRUE)
+  # readr::write_csv(x = bootData, file = saveFile)
+  bootData = readr::read_csv(file = saveFile)
 
-# bootDataL1 = bootData %>%
-#   dplyr::group_by(xAxis, yAxis) %>%
-#   dplyr::summarise(
-#     cnt = n()
-#   )
+   cat(sprintf("[CHECK] saveFile : %s", saveFile), "\n")
 
-summary(bootData)
+  summary(bootData)
 
-saveImg = sprintf("%s/%s/%s_%s.png", globalVar$figPath, serviceName, sheetName, "Mean Color Overlay")
-dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
+  saveImg = sprintf("%s/%s/%s_%s-%s.png", globalVar$figPath, serviceName, sheetName, "Mean Color Overlay", bootNum)
+  dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
 
-# 1. 만개의 점이 찍혀있는 위도 경도 그래프
-ggplot(data = bootData, aes(x = xAxis, y = yAxis, color = meanVal)) +
-  geom_point(size = 2, show.legend = TRUE) +
-  scale_color_gradientn(colours = cbMatlab) +
-  geom_sf(data = mapGlobal, aes(x = NULL, y = NULL, fill = NULL, z = NULL), color = "black", fill = NA) +
-  metR::scale_x_longitude(breaks = seq(90, 150, 10), limits = c(89.99, 150), expand = c(0, 0)) +
-  metR::scale_y_latitude(breaks = seq(10, 60, 10), limits = c(9.99, 60), expand = c(0, 0)) +
-  labs(
-    subtitle = NULL
-    , x = NULL
-    , y = NULL
-    , fill = NULL
-    , colour = NULL
-    , title = NULL
-  ) +
-  theme(text = element_text(size = 18)) +
-  ggsave(filename = saveImg, width = 10, height = 10, dpi = 600)
+  # 1. 만개의 점이 찍혀있는 위도 경도 그래프
+  makePlot = ggplot(data = bootData, aes(x = xAxis, y = yAxis, color = meanVal)) +
+    geom_point(size = 2, show.legend = TRUE) +
+    scale_color_gradientn(colours = cbMatlab) +
+    geom_sf(data = mapGlobal, aes(x = NULL, y = NULL, fill = NULL, z = NULL), color = "black", fill = NA) +
+    metR::scale_x_longitude(breaks = seq(90, 150, 10), limits = c(89.99, 150), expand = c(0, 0)) +
+    metR::scale_y_latitude(breaks = seq(10, 60, 10), limits = c(9.99, 60), expand = c(0, 0)) +
+    labs(
+      subtitle = NULL
+      , x = NULL
+      , y = NULL
+      , fill = NULL
+      , colour = NULL
+      , title = NULL
+    ) +
+    theme(text = element_text(size = 18))
 
-saveImg = sprintf("%s/%s/%s_%s.png", globalVar$figPath, serviceName, sheetName, "Mean Black Overlay")
-dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
+  ggsave(makePlot, filename = saveImg, width = 10, height = 10, dpi = 600)
 
-ggplot(data = bootData, aes(x = xAxis, y = yAxis, color = meanVal)) +
-  geom_point(size = 2, color = "black", show.legend = FALSE) +
-  # scale_color_gradientn(colours = cbMatlab) +
-  geom_sf(data = mapGlobal, aes(x = NULL, y = NULL, fill = NULL, z = NULL), color = "black", fill = NA) +
-  metR::scale_x_longitude(breaks = seq(90, 150, 10), limits = c(89.99, 150), expand = c(0, 0)) +
-  metR::scale_y_latitude(breaks = seq(10, 60, 10), limits = c(9.99, 60), expand = c(0, 0)) +
-  labs(
-    subtitle = NULL
-    , x = NULL
-    , y = NULL
-    , fill = NULL
-    , colour = NULL
-    , title = NULL
-  ) +
-  theme(text = element_text(size = 18)) +
-  ggsave(filename = saveImg, width = 10, height = 10, dpi = 600)
+  saveImg = sprintf("%s/%s/%s_%s-%s.png", globalVar$figPath, serviceName, sheetName, "Mean Black Overlay", bootNum)
+  dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
 
+  makePlot = ggplot(data = bootData, aes(x = xAxis, y = yAxis, color = meanVal)) +
+    geom_point(size = 2, color = "black", show.legend = FALSE) +
+    # scale_color_gradientn(colours = cbMatlab) +
+    geom_sf(data = mapGlobal, aes(x = NULL, y = NULL, fill = NULL, z = NULL), color = "black", fill = NA) +
+    metR::scale_x_longitude(breaks = seq(90, 150, 10), limits = c(89.99, 150), expand = c(0, 0)) +
+    metR::scale_y_latitude(breaks = seq(10, 60, 10), limits = c(9.99, 60), expand = c(0, 0)) +
+    labs(
+      subtitle = NULL
+      , x = NULL
+      , y = NULL
+      , fill = NULL
+      , colour = NULL
+      , title = NULL
+    ) +
+    theme(text = element_text(size = 18))
+  ggsave(makePlot, filename = saveImg, width = 10, height = 10, dpi = 600)
 
+  # 2. 위도 28~34/경도 110~116 구역안의 점 개수
+  statData = bootData %>%
+    dplyr::filter(
+      dplyr::between(xAxis, 110, 116)
+      , dplyr::between(yAxis, 28, 34)
+    ) %>%
+    dplyr::summarise(cnt = n())
 
-# 2. 위도 28~34/경도 110~116 구역안의 점 개수
-statData = bootData %>%
-  dplyr::filter(
-    dplyr::between(xAxis, 110, 116)
-    , dplyr::between(yAxis, 28, 34)
-  ) %>%
-  dplyr::summarise(cnt = n())
+  # 3. 위도 34~42/경도 124~130 구역안의 점 개수
+  statDataL1 = bootData %>%
+    dplyr::filter(
+      dplyr::between(xAxis, 124, 130)
+      , dplyr::between(yAxis, 34, 42)
+    ) %>%
+    dplyr::summarise(cnt = n())
 
-# 3. 위도 34~42/경도 124~130 구역안의 점 개수
-statDataL1 = bootData %>%
-  dplyr::filter(
-    dplyr::between(xAxis, 124, 130)
-    , dplyr::between(yAxis, 34, 42)
-  ) %>%
-  dplyr::summarise(cnt = n())
+    cat(sprintf("[CHECK] statData : %s", statData), "\n")
+    cat(sprintf("[CHECK] statDataL1 : %s", statDataL1), "\n")
+}
+
+# statDataL2 = bootData %>%
+#   dplyr::filter(
+#     meanVal >= 0.7
+#   ) %>%
+#   dplyr::summarise(cnt = n())
 
 # 1. 만개의 점이 찍혀있는 위도 경도 그래프 : 2. 위도 경도 그래프 폴더 참조
-# 2. 위도 28~34/경도 110~116 구역안의 점 개수 : 87개
-# 3. 위도 34~42/경도 124~130 구역안의 점 개수 : 26개
+# 2. 위도 28~34/경도 110~116 구역안의 점 개수 : 171개
+# 3. 위도 34~42/경도 124~130 구역안의 점 개수 : 1761개
