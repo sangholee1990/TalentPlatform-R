@@ -155,8 +155,13 @@ for (i in 1:length(dtDateList)) {
 
     # 서로간의 범위가 다를 경우 에러 발생
     # 마스킹 레이어 (cornData) 및 기준 레이어 (modisDataL1) 리샘플링
-    cornDataL1 =  terra::resample(cornData, modisDataL1) %>%
+    cornRefData = terra::resample(cornData, modisDataL1)
+
+    cornDataL1 = modisDataL1 %>%
+      mask(cornRefData) %>%
       crop(shpDataL1)
+
+    # plot(cornDataL1)
 
     # 대상 계절일: "POS", " EOS " ; Band4 inform: c("SOS", "POS", "Senescence", "EOS")
     cornDataL2 = cornDataL1 %>%
