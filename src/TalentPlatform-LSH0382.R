@@ -380,13 +380,13 @@ sheetName = dplyr::case_when(
 # 단일 이미지 테스트
 # **************************************************
 # openxlsx::read.xlsx(fileInfo2, sheetIndex = sheetInfo)
-data = openxlsx::read.xlsx(fileInfo, sheet = sheetName)
+# data = openxlsx::read.xlsx(fileInfo, sheet = sheetName)
 
-typeList = data$type %>% unique()
+# typeList = data$type %>% unique()
 # typeList = typeList[41:45]
 # typeList = typeList[56:78]
 
-typeList = typeList[77:78]
+# typeList = typeList[77:78]
 
 # typeInfo = typeList[1]
 # for (typeInfo in typeList) {
@@ -449,7 +449,7 @@ typeList = typeList[77:78]
 # }
 
 # 마리오 알람 소리
-beepr::beep(sound = 8)
+# beepr::beep(sound = 8)
 
 
 # **************************************************
@@ -607,6 +607,11 @@ set.seed(123)
 # 표본 주사위
 sampleData = openxlsx::read.xlsx(fileInfo, sheet = "그룹정보")
 
+sampleDataL1 = dataL3 %>%
+  dplyr::left_join(sampleData, by = c("type" = "type")) %>%
+  dplyr::select(-group, -type)
+
+
 # sampleInfo = dataL3$type %>% unique()
 sampleInfo = sampleData$type %>% unique()
 
@@ -621,23 +626,26 @@ posLat = 35.8
 
 # 부스스트랩 주사위 목록
 # bostSample = lapply(1:bootDo, function(i) sample(sampleInfo, size = bootNum, replace = FALSE))
-bostSample = lapply(1:bootDo, function(i) sampling::strata(c("group"), size = c(9, 3, 2), method = "srswor", data=sampleData)$ID_unit)
+# bostSample = lapply(1:bootDo, function(i) sampling::strata(c("group"), size = c(9, 3, 2), method = "srswor", data=sampleData)$ID_unit)
+bostSample = lapply(1:bootDo, function(i) sampling::strata(c("group"), size = c(27, 9, 6), method = "srswor", data=sampleData)$ID_unit)
 
 # bostSampleL1 = data.frame(t(sapply(bostSample, c)))
 # saveFile = sprintf("%s/%s/bostSampleL1_%s-%s.csv", globalVar$outPath, serviceName, bootNum, bootDo)
 # dir.create(path_dir(saveFile), showWarnings = FALSE, recursive = TRUE)
 # readr::write_csv(x = bostSampleL1, file = saveFile)
 
-# plan(multisession, workers = availableCores() - 5)
-# plan(multisession, workers = availableCores() / 2)
-plan(multisession, workers = availableCores() - 15)
+# plan(multisession, workers = parallelly::availableCores() - 5)
+plan(multisession, workers = parallelly::availableCores() / 2)
+# plan(multisession, workers = parallelly::availableCores() - 10)
+# plan(multisession, workers = parallelly::availableCores() - 15)
 options(future.globals.maxSize = 9999999999999999)
 
 
 # 부트스트랩 추출 개수
 # bootNum = 70
 # bootNumList = c(16)
-bootNumList = c(14)
+# bootNumList = c(14)
+bootNumList = c(42)
 # bootNumList = c(16, 30)
 # bootNumList = c(30, 50, 60, 70)
 # bootNumList = c(50, 60, 70)
@@ -647,11 +655,12 @@ for (bootNum in bootNumList) {
 
   # 부트스트랩을 통해 최대값 추출
   bootData = future_map_dfr(1:bootDo, function(i) {
-    dataL3 %>%
+    # dataL3 %>%
       # dplyr::left_join(sampleData, by = c("type" = "type")) %>%
       # dplyr::filter(type %in% bostSample[[i]]) %>%
-      dplyr::filter(sampleType %in% bostSample[[i]]) %>%
       # dplyr::select(-group, -sampleType, -type) %>%
+    sampleDataL1 %>%
+      dplyr::filter(sampleType %in% bostSample[[i]]) %>%
       dplyr::group_by(xAxis, yAxis) %>%
       dplyr::summarise(
         meanVal = mean(zAxis, na.rm = TRUE)
@@ -697,7 +706,8 @@ for (bootNum in bootNumList) {
 }
 
 # bootNumList = c(30, 50, 60, 70)
-bootNumList = c(14)
+# bootNumList = c(14)
+bootNumList = c(42)
 # bootNumList = c(16, 30)
 bootNum = bootNumList[1]
 for (bootNum in bootNumList) {
@@ -712,10 +722,10 @@ for (bootNum in bootNumList) {
 
   cat(sprintf("[CHECK] saveFile : %s", saveFile), "\n")
 
-  # bootData = bootMaxData
+  bootData = bootMaxData
 
-  bootData = bootMaxData %>%
-    dplyr::filter(meanVal >= 0.78)
+  # bootData = bootMaxData %>%
+  #   dplyr::filter(meanVal >= 0.78)
 
   # bootData = bootMaxData %>%
   #   dplyr::left_join(bootPosData, by = c("idx" = "idx")) %>%
@@ -748,6 +758,7 @@ for (bootNum in bootNumList) {
     theme(text = element_text(size = 18))
 
   ggsave(makePlot, filename = saveImg, width = 10, height = 10, dpi = 600)
+  cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 
   # saveImg = sprintf("%s/%s/%s_%s-%s.png", globalVar$figPath, serviceName, sheetName, "Mean Black Overlay", bootNum)
   saveImg = sprintf("%s/%s/%s-%s_%s-%s.png", globalVar$figPath, serviceName, sheetName, "Mean Black Overlay", bootNum, bootDo)
@@ -772,6 +783,7 @@ for (bootNum in bootNumList) {
     ) +
     theme(text = element_text(size = 18))
   ggsave(makePlot, filename = saveImg, width = 10, height = 10, dpi = 600)
+  cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 
   # 2. 위도 28~34/경도 110~116 구역안의 점 개수
   statData = bootData %>%
@@ -803,13 +815,9 @@ for (bootNum in bootNumList) {
 # 2. 위도 28~34/경도 110~116 구역안의 점 개수 : 171개
 # 3. 위도 34~42/경도 124~130 구역안의 점 개수 : 1761개
 
-# 1. 만개의 점이 찍혀있는 위도 경도 그래프 : 20221225_결과3 폴더 참조
-# 2. 위도 28~34/경도 110~116 구역안의 점 개수 : 81
-# 3. 위도 34~42/경도 124~130 구역안의 점 개수 : 2450
-
-
-
-
+# 1. 만개의 점이 찍혀있는 위도 경도 그래프 : 20221227_결과 폴더 참조
+# 2. 위도 28~34/경도 110~116 구역안의 점 개수 : 0
+# 3. 위도 34~42/경도 124~130 구역안의 점 개수 : 7859
 
 
 # ********************************************************************************************
