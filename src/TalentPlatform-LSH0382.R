@@ -611,7 +611,6 @@ sampleDataL1 = dataL3 %>%
   dplyr::left_join(sampleData, by = c("type" = "type")) %>%
   dplyr::select(-group, -type)
 
-
 # sampleInfo = dataL3$type %>% unique()
 sampleInfo = sampleData$type %>% unique()
 
@@ -627,31 +626,31 @@ posLat = 35.8
 # 부스스트랩 주사위 목록
 # bostSample = lapply(1:bootDo, function(i) sample(sampleInfo, size = bootNum, replace = FALSE))
 # bostSample = lapply(1:bootDo, function(i) sampling::strata(c("group"), size = c(9, 3, 2), method = "srswor", data=sampleData)$ID_unit)
-bostSample = lapply(1:bootDo, function(i) sampling::strata(c("group"), size = c(27, 9, 6), method = "srswor", data=sampleData)$ID_unit)
-
-# bostSampleL1 = data.frame(t(sapply(bostSample, c)))
-# saveFile = sprintf("%s/%s/bostSampleL1_%s-%s.csv", globalVar$outPath, serviceName, bootNum, bootDo)
-# dir.create(path_dir(saveFile), showWarnings = FALSE, recursive = TRUE)
-# readr::write_csv(x = bostSampleL1, file = saveFile)
+# bostSample = lapply(1:bootDo, function(i) sampling::strata(c("group"), size = c(27, 9, 6), method = "srswor", data=sampleData)$ID_unit)
+bostSample = lapply(1:bootDo, function(i) sampling::strata(c("group"), size = c(3, 2, 9), method = "srswor", data=sampleData)$ID_unit)
 
 # plan(multisession, workers = parallelly::availableCores() - 5)
-plan(multisession, workers = parallelly::availableCores() / 2)
-# plan(multisession, workers = parallelly::availableCores() - 10)
+# plan(multisession, workers = parallelly::availableCores() / 2)
+plan(multisession, workers = parallelly::availableCores() - 10)
 # plan(multisession, workers = parallelly::availableCores() - 15)
 options(future.globals.maxSize = 9999999999999999)
-
 
 # 부트스트랩 추출 개수
 # bootNum = 70
 # bootNumList = c(16)
-# bootNumList = c(14)
-bootNumList = c(42)
+bootNumList = c(14)
+# bootNumList = c(42)
 # bootNumList = c(16, 30)
 # bootNumList = c(30, 50, 60, 70)
 # bootNumList = c(50, 60, 70)
 # bootNumList = c(78)
 
 for (bootNum in bootNumList) {
+
+  bostSampleL1 = data.frame(t(sapply(bostSample, c)))
+  saveFile = sprintf("%s/%s/bostSampleL1_%s-%s.csv", globalVar$outPath, serviceName, bootNum, bootDo)
+  dir.create(path_dir(saveFile), showWarnings = FALSE, recursive = TRUE)
+  readr::write_csv(x = bostSampleL1, file = saveFile)
 
   # 부트스트랩을 통해 최대값 추출
   bootData = future_map_dfr(1:bootDo, function(i) {
@@ -706,8 +705,8 @@ for (bootNum in bootNumList) {
 }
 
 # bootNumList = c(30, 50, 60, 70)
-# bootNumList = c(14)
-bootNumList = c(42)
+bootNumList = c(14)
+# bootNumList = c(42)
 # bootNumList = c(16, 30)
 bootNum = bootNumList[1]
 for (bootNum in bootNumList) {
@@ -815,9 +814,9 @@ for (bootNum in bootNumList) {
 # 2. 위도 28~34/경도 110~116 구역안의 점 개수 : 171개
 # 3. 위도 34~42/경도 124~130 구역안의 점 개수 : 1761개
 
-# 1. 만개의 점이 찍혀있는 위도 경도 그래프 : 20221227_결과 폴더 참조
-# 2. 위도 28~34/경도 110~116 구역안의 점 개수 : 0
-# 3. 위도 34~42/경도 124~130 구역안의 점 개수 : 7859
+# 1. 만개의 점이 찍혀있는 위도 경도 그래프 : 20221228_결과 폴더 참조
+# 2. 위도 28~34/경도 110~116 구역안의 점 개수 : 240
+# 3. 위도 34~42/경도 124~130 구역안의 점 개수 : 607
 
 
 # ********************************************************************************************
