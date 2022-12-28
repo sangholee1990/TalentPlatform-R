@@ -73,6 +73,7 @@ library(ggplot2)
 library(Metrics)
 library(colorRamps)
 library(ggh4x)
+library(scales)
 
 cbMatlab = colorRamps::matlab.like(11)
 
@@ -90,6 +91,13 @@ shpFileInfo = shpFileList[1]
 shpData = shapefile(shpFileInfo)
 # shpDataL1 = subset(shpData, FIPS %in% c(17, 19))
 # plot(shpDataL1)
+
+# 규칙 격자 생성
+gridData = noncompliance::expand.grid.DT(
+  2003:2020
+  , 1:365
+  , col.names = c("dtYear", "doy")
+)
 
 # *********************************************************************************
 # MODIS 및 CDL 자료 가공
@@ -161,8 +169,6 @@ for (i in 1:length(dtDateList)) {
     #   mask(cornRefData) %>%
     #   crop(shpDataL1)
 
-    # plot(cornDataL1)
-
     # 대상 계절일: "POS", " EOS " ; Band4 inform: c("SOS", "POS", "Senescence", "EOS")
     cornDataL2 = cornDataL1 %>%
       as.data.frame(xy = TRUE) %>%
@@ -212,11 +218,6 @@ mainTitle = sprintf("각 대상 작물별-주별 추정식물계절일의 분포
 saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
 dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
 
-# dataL3$group %>% unique()
-dataL3 = dataL3 %>%
-  dplyr::filter(group == "Date of Max. growth (Corn, Illinois)")
-
-
 dataL4 = dataL3 %>%
   dplyr::group_by(dtYear, doy, group) %>%
   dplyr::summarize(
@@ -227,246 +228,48 @@ dataL4 = dataL3 %>%
     , dtDate = lubridate::parse_date_time(sDate, "%Y-%j")
   )
 
-dd = density(dataL4$cnt, bw=0.01, from = min(dataL4$cnt, na.rm = TRUE), to = max(dataL4$cnt, na.rm = TRUE))
-dd2 = data.frame(dd$x, dd$y)
-plot(dd$x, dd$y)
+summary(dataL4)
 
 
+groupList = dataL4$group %>% unique() %>% sort()
+# groupInfo = groupList[1]
 
-gridData = noncompliance::expand.grid.DT(
-  2003:2020
-  , 1:365
-  , col.names = c("dtYear", "doy")
-)
+dataL5 = tibble::tibble()
+for (groupInfo in groupList) {
 
-dataL5 = dataL4 %>%
-  dplyr::select(dtYear, doy, cnt) %>%
-  MBA::mba.points(gridData) %>%
+  selData = dataL4 %>%
+    dplyr::filter(group == groupInfo) %>%
+    dplyr::select(dtYear, doy, cnt) %>%
+    MBA::mba.points(gridData) %>%
     as.data.frame() %>%
     as.tibble() %>%
     dplyr::rename(
       dtYear = xyz.est.x
       , doy = xyz.est.y
       , cnt = xyz.est.z
+    ) %>%
+    dplyr::mutate(
+      group = groupInfo
+      # dens = cnt / max(cnt, na.rm = TRUE)
+      # , dens2 = cnt / sum(cnt, na.rm = TRUE)
+      , dens3 = scales::rescale(cnt)
+
     )
 
-
-ggplot(data = dataL5, aes(x = doy, y = dtYear, fill = cnt, z = cnt)) +
-  geom_raster(interpolate = FALSE, na.rm = TRUE)
-
-ggplot(data = dataL5, aes(x = doy, y = dtYear, fill = y, z = y)) +
-  geom_raster(interpolate = FALSE, na.rm = TRUE)
-
-dd = density(dataL5$cnt, bw=0.01, from = min(dataL5$cnt, na.rm = TRUE), to = max(dataL5$cnt, na.rm = TRUE))
-dd2 = data.frame(dd$x, dd$y)
-plot(dd$x, dd$y)
-
-
-inpData = approx(x = dd$x, y = dd$y, xout = 1:2843) %>%
-   as.tibble()
-plot(inpData$x, inpData$y)
-
-dataL6 = dataL5 %>%
-  dplyr::left_join(inpData, by = c("doy" = "x"))
-
-ggplot(data = dataL6, aes(x = doy, y = dtYear, fill = cnt, z = cnt)) +
-  geom_raster(interpolate = FALSE, na.rm = TRUE)
-
-ggplot(data = dataL6, aes(x = doy, y = dtYear, fill = y, z = y)) +
-  geom_raster(interpolate = FALSE, na.rm = TRUE)
-
-
-# %>%
-#       as.tibble() %>%
-#       dplyr::mutate(id = idInfo, key = sprintf("%s-%04d", "c1", x))
-
-
-# library(akima)
-#
-# akima::interp(
-#     dfData$nLon
-#     , dfData$nLat
-#     , dfData$nTemp
-#     , xo = nNewLon
-#     , yo = nNewLat
-# )
-
-
-kdeout <- dataL4 %>%
-  with(
-    MASS::kde2d(doy, dtYear, n = 100, lims = c(0, 365, min(dataL3$dtYear, na.rm = TRUE), max(dataL3$dtYear, na.rm = TRUE))
-      # lims = c(
-      #   scales::expand_range(range(doy), 0.10),
-      #   scales::expand_range(range(dtYear), 0.10)
-      # # )
-    )
-  )
-
-kde_df <- kdeout %>%
-  .[c("x", "y")] %>%
-  cross_df() %>%
-  rename("doy" = "x", "dtYear" = "y") %>%
-  mutate(density = as.vector(kdeout$z))
-
-ggplot(data = kde_df, aes(x = doy, y = dtYear, fill = density, z = density)) +
-  geom_raster(interpolate = FALSE, na.rm = TRUE)
-
-
-# ggplot(data = dataL4, aes(x = doy, y = dtYear, fill = cnt, z = cnt)) +
-  # stat_density2d(geom = "polygon")
-  # stat_density2d(geom = "tile")
-
-library(MASS)
-get_density = function(x, y, ...) {
-  dens = MASS::kde2d(x, y, ...)
-  ix = findInterval(x, dens$x)
-  iy = findInterval(y, dens$y)
-  ii = cbind(ix, iy)
-  return(dens$z[ii])
+  dataL5 = dplyr::bind_rows(dataL5, selData)
 }
 
-# scales::expand_range(range(dataL3$doy), 0.05)
+summary(dataL5)
 
-# min(dataL3$dtYear, na.rm = TRUE)
-# max(dataL3$dtYear, na.rm = TRUE)
-
-# 15*365
-
-kdeout <- dataL3 %>%
-  with(
-    MASS::kde2d(doy, dtYear, n = 1000, lims = c(0, 365, min(dataL3$dtYear, na.rm = TRUE), max(dataL3$dtYear, na.rm = TRUE))
-      # lims = c(
-      #   scales::expand_range(range(doy), 0.10),
-      #   scales::expand_range(range(dtYear), 0.10)
-      # # )
-    )
-  )
-
-kde_df <- kdeout %>%
-  .[c("x", "y")] %>%
-  cross_df() %>%
-  rename("doy" = "x", "dtYear" = "y") %>%
-  mutate(density = as.vector(kdeout$z))
-
-ggplot(data = kde_df, aes(x = doy, y = dtYear, fill = density, z = density)) +
-  geom_raster(interpolate = FALSE, na.rm = TRUE)
-
-print(a)
-
-# ggplot(data = dataL3, aes(x = doy, y = dtYear, fill = val, z = val)) +
-# ggplot(data = dataL3, aes(x = doy, y = dtYear, fill = val, z = val)) +
-#   geom_point()
-    # metR::geom_contour_fill(na.fill = TRUE, kriging = TRUE)
-    # stat_density_2d(aes(fill = stat(level)), geom = "polygon")
-    # stat_density_2d(aes(fill = stat(level)), geom = "raster")
-  # stat_density_2d(geom = "tile", aes(fill = stat(density)),  contour = FALSE)
-  # stat_density_2d(geom = "raster", aes(fill = stat(density)), contour = FALSE)
-
-# dataL3$density <- get_density(dataL3$doy, dataL3$dtYear, n = 1000)
-# ggplot(data = dataL3, aes(x = doy, y = dtYear, fill = density, z = density)) +
-ggplot(data = kde_df, aes(x = doy, y = dtYear, fill = density, z = density)) +
-  geom_raster(interpolate = FALSE, na.rm = TRUE)
-
-
-
-ggplot(data = dataL4, aes(x = doy, y = dtYear, fill = cnt, z = cnt)) +
-  stat_density_2d(aes(fill = stat(level)), geom = "polygon")
-
-    # stat_density2d(aes(fill = ..density..), contour = FALSE, geom = 'tile') +
-    metR::geom_contour_fill(aes(fill = ..density..), na.fill = TRUE, kriging = TRUE)
-    metR::geom_contour_fill(na.fill = TRUE, kriging = TRUE) +
-    # metR::stat_contour_fill(aes(fill = ..density..), na.fill = TRUE, kriging = TRUE) +
-    # geom_raster(interpolate = FALSE, na.rm = TRUE) +
-    # geom_raster(interpolate = TRUE, na.rm = TRUE)
-
-min(dataL4$dtYear, na.rm = TRUE)
-max(dataL4$dtYear, na.rm = TRUE)
-
-xRange = as.numeric(c(90, 150))
-yRange = as.numeric(c(10, 60))
-# yRange = as.numeric(c(5, 65))
-
-newYear = seq(from = min(dataL4$dtYear, na.rm = TRUE), to = max(dataL4$dtYear, na.rm = TRUE), by = 1)
-newDoy = seq(from = 1, to = 365, by = 1)
-
-gridData = noncompliance::expand.grid.DT(
-  newYear
-  , newDoy
-  , col.names = c("dtYear", "doy")
-)
-
-dataL1 = MBA::mba.points(tmpData, gridData)
-
-dd = dataL4 %>%
-  dplyr::group_by(doy, dtYear) %>%
-  dplyr::summarize(
-    Amount = density(cnt, from = dataL4(dataL3$cnt, na.rm = TRUE), to = max(dataL4$cnt, na.rm = TRUE))$x,
-            Density = density(val, from = min(dataL4$cnt, na.rm = TRUE),
-                              to = max(dataL4$cnt, na.rm = TRUE))$y)# %>%
-  # dplyr::filter(group == "Date of Max. growth (Corn, Illinois)")
-# groupList = dataL4$group %>% unique() %>% sort()
-# dtDayList = seq(min(dataL4$dtDate, na.rm = TRUE), max(dataL4$dtDate, na.rm = TRUE), by = "1 day")
-#
-# for (dtDayInfo in dtDayList) {
-#   for (groupInfo in groupList) {
-#     tmpData = dataL4 %>%
-#       dplyr::filter(
-#         group == groupInfo
-#         , dtDate == dtDayInfo
-#       )
-#
-#   }
-# }
-
-
-df <- data.frame(year = rep(1920:2000, each = 100),
-                 amount = rnorm(8100, rep(120:200, each = 100), 20))
-dataL4 %>%
-  group_by(dtYear, doy, group) %>%
-  summarize(Amount = density(amount, from = min(df$amount), to = max(df$amount))$x,
-            Density = density(amount, from = min(df$amount), to = max(df$amount))$y)
-library(tidyverse)
-
-density(val, from = min(dataL3$val), to = max(dataL3$val))
-#  doy = 268, group = "Date of Max. growth (Corn, Illinois)".
-
-
-dd = dataL3 %>%
-  dplyr::group_by(doy, dtYear) %>%
-  dplyr::summarize(
-    Amount = density(val, from = min(dataL3$val, na.rm = TRUE), to = max(dataL3$val, na.rm = TRUE))$x,
-            Density = density(val, from = min(dataL3$val, na.rm = TRUE),
-                              to = max(dataL3$val, na.rm = TRUE))$y)# %>%
-  # dplyr::filter(group == "Date of Max. growth (Corn, Illinois)")
-
-ggplot(data = dd, aes(doy, Density, fill = Density)) +
-  geom_raster(interpolate = TRUE)
-
-
-
-ggplot(data = dataL3, aes(x = doy, y = dtYear)) +
-  # stat_density2d(aes(fill = ..density..), contour = FALSE, geom = 'tile') +
-  # stat_density2d(aes(fill = ..density..), contour = FALSE, geom = 'tile') +
-
-  # 테스트
-  # stat_density2d(aes(fill = ..density..), bins=5000, contour = FALSE, geom = 'raster')
-  # stat_density2d(aes(fill = ..density..), bins=5000, contour = FALSE, geom = 'tile')
-  # geom_density_2d_filled(aes(fill = ..density..))
-  # stat_density2d(contour = FALSE, geom = 'raster')
-  # stat_density2d(aes(fill = ..density..), n=300, contour = FALSE, geom = 'raster')
-  # geom_density_2d_filled(contour_var = "ndensity")
-  geom_density_2d_filled()
-  # stat_density_2d(aes(fill = after_stat(level)), contour = FALSE, geom = 'polygon')
-  # stat_density_2d(aes(fill = ..density..), n=1, contour = FALSE, geom = 'raster')
-  # stat_density_2d(aes(fill = ..density..), n=100, contour = FALSE, geom = 'tile')
-# +
-  # geom_raster(interpolate = FALSE, na.rm = TRUE) +
-  # geom_raster(interpolate = TRUE, na.rm = TRUE) +
+ggplot(data = dataL5, aes(x = doy, y = dtYear, fill = dens3)) +
+  geom_raster(interpolate = FALSE, na.rm = TRUE) +
+  # geom_tile(na.rm = TRUE) +
   # scale_x_continuous(expand = c(0, 0), limits = c(160, 280), minor_breaks = seq(160, 280, 20), breaks = seq(160, 280, 20)) +
-  scale_x_continuous(expand = c(0, 0), limits = c(0, 365), minor_breaks = seq(0, 365, 30), breaks = seq(0, 365, 30)) +
-  scale_y_continuous(expand = c(0, 0), limits = c(min(dataL3$dtYear, na.rm = TRUE), max(dataL3$dtYear, na.rm = TRUE)), minor_breaks = seq(2000, 2022, 1), breaks = seq(2000, 2022, 1)) +
-  # scale_fill_gradientn(colours = cbMatlab, limits = c(0, 5000), na.value = cbMatlab[length(cbMatlab)]) +
-  scale_fill_gradientn(colours = cbMatlab, na.value = cbMatlab[length(cbMatlab)]) +
+  scale_x_continuous(expand = c(0, 0), limits = c(0, 365), minor_breaks = seq(0, 365, 40), breaks = seq(0, 365, 40)) +
+  scale_y_continuous(expand = c(0, 0), limits = c(2002.5, 2019.5), minor_breaks = seq(2000, 2022, 1), breaks = seq(2000, 2022, 1)) +
+  # scale_fill_gradientn(colours = cbMatlabva, limits = c(0, 5000), na.value = cbMatlab[length(cbMatlab)]) +
+  # scale_fill_gradientn(colours = cbMatlab, limits = c(0, 0.2), na.value = cbMatlab[length(cbMatlab)]) +
+  scale_fill_gradientn(colours = cbMatlab, limits = c(0, 0.2), na.value = cbMatlab[length(cbMatlab)]) +
   labs(
     # title = mainTitle
     x = "DOY"
@@ -475,77 +278,18 @@ ggplot(data = dataL3, aes(x = doy, y = dtYear)) +
     , fill = "density"
   ) +
   theme(
-    # , axis.text.x = element_text(angle = 45, hjust = 1)
-    text = element_text(size = 14)
+    text = element_text(size = 11)
+    # , axis.text.x = element_text(size = 12, angle = 90, hjust = 1)
+    # , axis.text.x = element_text(size = 12, angle = 0, hjust = 1)
     , legend.position = "top"
     , legend.key.width = unit(2, "cm")
     , plot.margin = unit(c(0, 4, 0, 0), "mm")
   ) +
-  facet_wrap(~group)
-  # facet_wrap(~group, ncol=4) +
-  # ggsave(filename = saveImg, width = 14, height = 8, dpi = 600)
+  facet_wrap(~group, ncol = 4) +
+  ggsave(filename = saveImg, width = 10, height = 8, dpi = 1000)
+  # ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
 
 cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
-
-# typeList = dataL3$type %>% unique() %>% sort()
-# nameList = dataL3$name %>% unique() %>% sort()
-# keyList = dataL3$key %>% unique() %>% sort()
-
-# dataL4 = dataL3 %>%
-#   dplyr::group_by(dtYear, doy, key, name, type) %>%
-#   dplyr::summarize(
-#     cnt = n()
-#   )
-
-# for (typeInfo in typeList) {
-# for (nameInfo in nameList) {
-# for (keyInfo in keyList) {
-#
-#   cat(sprintf("[CHECK] %s : %s : %s", typeInfo, nameInfo, keyInfo), "\n")
-#
-#   dataL4 = dataL3 %>%
-#     dplyr::filter(
-#       type == typeInfo
-#       , key == keyInfo
-#       , name == nameInfo
-#     )
-#
-#   if (nrow(dataL5) <  1) { next }
-#
-#   typeName = ifelse(typeInfo == "POS", "Date of Max. growth", "Date of Senescence")
-#
-#   mainTitle = sprintf("%s (%s, %s)",typeName, keyInfo, nameInfo)
-#   saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
-#   dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
-#
-#   makePlot = ggplot(data = dataL4, aes(x = doy, y = dtYear)) +
-#     stat_density2d(aes(fill = ..density..), contour = FALSE, geom = 'tile') +
-#     # metR::geom_contour_fill(na.fill = TRUE, kriging = TRUE) +
-#     # geom_raster(interpolate = FALSE, na.rm = TRUE) +
-#     # geom_raster(interpolate = TRUE, na.rm = TRUE) +
-#     # scale_x_continuous(expand = c(0, 0), limits = c(160, 280), minor_breaks = seq(160, 280, 20), breaks = seq(160, 280, 20)) +
-#     scale_x_continuous(expand = c(0, 0), limits = c(0, 365), minor_breaks = seq(0, 365, 30), breaks = seq(0, 365, 30)) +
-#     scale_y_continuous(expand = c(0, 0), limits = c(min(dataL3$dtYear, na.rm = TRUE), max(dataL3$dtYear, na.rm = TRUE)), minor_breaks = seq(2000, 2022, 1), breaks = seq(2000, 2022, 1)) +
-#     # scale_fill_gradientn(colours = cbMatlab, limits = c(0, 5000), na.value = cbMatlab[length(cbMatlab)]) +
-#     scale_fill_gradientn(colours = cbMatlab, na.value = cbMatlab[length(cbMatlab)]) +
-#     labs(
-#       title = mainTitle
-#       , x = "DOY"
-#       , y = "Year"
-#       , color = NULL
-#       , fill = "density"
-#     ) +
-#     theme(
-#       # , axis.text.x = element_text(angle = 45, hjust = 1)
-#       text = element_text(size = 18)
-#       , legend.position = "top"
-#       , legend.key.width = unit(2, "cm")
-#       , plot.margin = unit(c(0, 4, 0, 0), "mm")
-#     )
-#
-#   ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
-#   cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
-# }}}
 
 # *********************************************************************************
 # 실측 통계자료와 비교
@@ -647,7 +391,7 @@ ggplot(valDataL3, aes(x = group, y = val)) +
   ) +
   ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
 
-
+cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 
 # 결과3 실측 통계자료와 비교한 산점도 결과
 valDataL4 = valData %>%
@@ -684,7 +428,7 @@ ggplot(data = valDataL4, aes(x = DOY, y = NASS_DOY, color = stageName, alpha=NAS
   theme(
     text = element_text(size = 18)
     # , legend.position = "top"
-    , legend.position = c(0.93, 0.05)
+    , legend.position = c(0.94, 0.06)
     , panel.grid.major = element_blank()
     , panel.grid.minor = element_blank()
   ) +
@@ -692,6 +436,7 @@ ggplot(data = valDataL4, aes(x = DOY, y = NASS_DOY, color = stageName, alpha=NAS
   ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
 
 cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+
 # ggplot2::last_plot()
 
 # statData = dataL2 %>%
