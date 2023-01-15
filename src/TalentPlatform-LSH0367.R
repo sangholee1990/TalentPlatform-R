@@ -1,7 +1,7 @@
 #================================================
 # 요구사항
 #================================================
-# R을 이용한 서울시 아파트 실거래가 회귀분석 및 주택 가격 결정 요인
+# R, Fortran을 이용한 레이더 유출량 산정 프로그램 변환
 
 # ================================================
 # 초기 환경변수 설정
@@ -37,12 +37,12 @@ if (env == "local") {
 Sys.setenv(PROJ_LIB = "/usr/local/anaconda3/envs/r36/share/proj")
 
 # library Load, 패키지 확인(check)하고 없으면 설치하고 load
-# requiredPackages <- c("rgdal", "tidyr", "dplyr", "plot.matrix", "data.table", "foreign", "stringr", "plyr", "grid", "ggplot2", "colorspace", "magick", "stringr", "raster", 'reshape2', 'viridis', 'gstat', 'measurements', 'sf', 'sp', 'ggplot2', 'ggrepel', 'tidyverse','extrafont', 'plyr', 'rgdal', 'ggtext', 'plyr', 'gridtext', 'sysfonts', 'grDevices', 'colorRamps', 'gdata')
+requiredPackages <- c("rgdal", "tidyr", "dplyr", "plot.matrix", "data.table", "foreign", "stringr", "plyr", "grid", "ggplot2", "colorspace", "magick", "stringr", "raster", 'reshape2', 'viridis', 'gstat', 'measurements', 'sf', 'sp', 'ggplot2', 'ggrepel', 'tidyverse','extrafont', 'plyr', 'rgdal', 'ggtext', 'plyr', 'gridtext', 'sysfonts', 'grDevices', 'colorRamps', 'gdata')
 
-# for (p in requiredPackages) {
-#   if (!require(p, character.only = TRUE)) install.packages(p)
-#   require(p, character.only = TRUE)
-# }
+for (p in requiredPackages) {
+  if (!require(p, character.only = TRUE)) install.packages(p)
+  require(p, character.only = TRUE)
+}
 
 # 폴더 경로 설정
 # setwd("E:/자료_test")
@@ -54,7 +54,6 @@ end<- as.POSIXct(paste(as.Date(Period, '%Y%m%d'), "23:50",sep=" "))
 time <-format(seq.POSIXt(start, end, by = "10 min"), format = "%Y%m%d%H%M")
 
 # 격자 정보( No : 격자 번호)
-
 # xy_Bsn <- fread("Test_Info_xy_1km.txt", header=TRUE)
 xy_Bsn <- fread(file.path(globalVar$inpPath, serviceName, "Test_Info_xy_1km.txt"), header=TRUE)
 # x       y             xy     No
@@ -78,6 +77,7 @@ summary(Rain)
 summary(D_U1)
 summary(D_N2)
 summary(Info)
+
 # 시간별(10M) 특성에 따른 격자별 최대값 산출
 # i = 36
 dataL1 = tibble::tibble()

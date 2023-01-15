@@ -71,7 +71,7 @@ library(ggraph)
 All_Data <- gutenberg_download(11)
 
 All_Data_New <- All_Data %>%
-  separate(text, c("Word1", "Word2"), sep=" ") %>%
+`  separate(text, c("Word1", "Word2"), sep=" ") %>%`
   filter(
     ! Word1 %in% stop_words$word
     , ! Word2 %in% stop_words$word
