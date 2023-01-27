@@ -90,6 +90,19 @@ library(readxl)
 library(furrr)
 library(sampling)
 
+mutate_cond <- function(.data, condition, ..., new_init = NA, envir = parent.frame()) {
+  # Initialize any new variables as new_init
+  new_vars <- substitute(list(...))[-1]
+  new_vars %<>% sapply(deparse) %>%
+    names %>%
+    setdiff(names(.data))
+  .data[, new_vars] <- new_init
+
+  condition <- eval(substitute(condition), .data, envir)
+  .data[condition,] <- .data %>% filter(condition) %>% mutate(...)
+  .data
+}
+
 cbMatlab = colorRamps::matlab.like(11)
 mapGlobal = sf::st_read(file.path(globalVar$mapPath, "gshhg-shp-2.3.6/GSHHS_shp/i/GSHHS_i_L1.shp"))
 
@@ -611,6 +624,11 @@ set.seed(123)
 # 프로세스 제거
 # ps -ef | grep parallelly | awk '{print $2}' | xargs kill -9
 
+# 프로세스 수행
+# conda activate r36
+# cd /SYSTEMS/PROG/R/PyCharm/src
+# nohup Rscript TalentPlatform-LSH0382.R &
+
 # 표본 주사위
 sampleData = openxlsx::read.xlsx(fileInfo, sheet = "그룹정보")
 
@@ -623,24 +641,26 @@ sampleInfo = sampleData$type %>% unique()
 
 # 부트스트랩 횟수
 # bootDo = 10
-# bootDo = 10000
-bootDo = 300000
+# bootDo = 1000
+bootDo = 10000
+# bootDo = 300000
 
 # 경주 지점
 posLon = 129.2
 posLat = 35.8
 
 # 부스스트랩 주사위 목록
-bostSample = lapply(1:bootDo, function(i) sample(sampleInfo, size = 14, replace = FALSE))
+# bostSample = lapply(1:bootDo, function(i) sample(sampleInfo, size = 14, replace = FALSE))
 # bostSample = lapply(1:bootDo, function(i) sampling::strata(c("group"), size = c(9, 3, 2), method = "srswor", data=sampleData)$ID_unit)
 # bostSample = lapply(1:bootDo, function(i) sampling::strata(c("group"), size = c(27, 9, 6), method = "srswor", data=sampleData)$ID_unit)
 # bostSample = lapply(1:bootDo, function(i) sampling::strata(c("group"), size = c(3, 2, 9), method = "srswor", data=sampleData)$ID_unit)
 
+# options(future.globals.maxSize = 9999999999999999)
 # plan(multisession, workers = parallelly::availableCores() - 5)
 # plan(multisession, workers = parallelly::availableCores() / 2)
-plan(multisession, workers = parallelly::availableCores() - 10)
+# plan(multisession, workers = parallelly::availableCores() - 10)
 # plan(multisession, workers = parallelly::availableCores() - 15)
-options(future.globals.maxSize = 9999999999999999)
+# plan(multisession, workers = parallelly::availableCores() - 20)
 
 # 부트스트랩 추출 개수
 # bootNum = 70
@@ -652,85 +672,166 @@ bootNumList = c(14)
 # bootNumList = c(50, 60, 70)
 # bootNumList = c(78)
 
-for (bootNum in bootNumList) {
+# 병렬횟수 설정
+bootIdxList = seq(1, 30)
+# bootIdxList = seq(31, 60)
+# bootIdxList = seq(1, 300)
+# bootIdxList = seq(301, 600)
+# bootIdxList = seq(1, 5)
+# bootIdx = bootIdxList[1]
+# bootNum = bootNumList[1]
 
-  bostSampleL1 = data.frame(t(sapply(bostSample, c)))
-  saveFile = sprintf("%s/%s/bostSampleL1_%s-%s.csv", globalVar$outPath, serviceName, bootNum, bootDo)
-  dir.create(path_dir(saveFile), showWarnings = FALSE, recursive = TRUE)
-  readr::write_csv(x = bostSampleL1, file = saveFile)
+for (bootIdx in bootIdxList) {
 
-  # 부트스트랩을 통해 최대값 추출
-  bootData = future_map_dfr(1:bootDo, function(i) {
-    # dataL3 %>%
-      # dplyr::left_join(sampleData, by = c("type" = "type")) %>%
-      # dplyr::filter(type %in% bostSample[[i]]) %>%
-      # dplyr::select(-group, -sampleType, -type) %>%
-    sampleDataL1 %>%
-      dplyr::filter(sampleType %in% bostSample[[i]]) %>%
-      dplyr::group_by(xAxis, yAxis) %>%
-      dplyr::summarise(
-        meanVal = mean(zAxis, na.rm = TRUE)
-      ) %>%
-      dplyr::mutate(
-        meanVal = ifelse(meanVal < 0, 0, meanVal)
-      ) %>%
-      dplyr::ungroup() %>%
-      dplyr::filter(meanVal == max(meanVal, na.rm = TRUE)) %>%
-      dplyr::mutate(idx = i)
-  })
+  cat(sprintf("[CHECK] bootIdx : %s", bootIdx), "\n")
 
-  # saveFile = sprintf("%s/%s/bootData_%s.csv", globalVar$outPath, serviceName, bootNum)
-  # saveFile = sprintf("%s/%s/bootData_%s-%s.csv", globalVar$outPath, serviceName, bootNum, bootDo)
-  # dir.create(path_dir(saveFile), showWarnings = FALSE, recursive = TRUE)
-  # readr::write_csv(x = bootData, file = saveFile)
+  # 부스스트랩 주사위 목록
+  bostSample = lapply(1:bootDo, function(i) sample(sampleInfo, size = 14, replace = FALSE))
 
-  # 부트스트랩을 통해 특정 지점 추출
-  bootPosData = future_map_dfr(1:bootDo, function(i) {
-    # dataL3 %>%
-    #   dplyr::filter(type %in% bostSample[[i]]) %>%
-    sampleDataL1 %>%
-      dplyr::filter(sampleType %in% bostSample[[i]]) %>%
-      dplyr::group_by(xAxis, yAxis) %>%
-      dplyr::summarise(
-        meanVal = mean(zAxis, na.rm = TRUE)
-      ) %>%
-      dplyr::mutate(
-        meanVal = ifelse(meanVal < 0, 0, meanVal)
-      ) %>%
-      dplyr::ungroup() %>%
-      dplyr::filter(xAxis == posLon, yAxis == posLat) %>%
-      dplyr::rename(
-        "posLon" = "xAxis"
-        , "posLat" = "yAxis"
-        , "posVal" = "meanVal"
-      ) %>%
-      dplyr::mutate(idx = i)
-  })
+  options(future.globals.maxSize = 9999999999999999)
+  # plan(multisession, workers = parallelly::availableCores() - 5)
+  plan(multisession, workers = parallelly::availableCores() - 10)
+  # plan(multisession, workers = parallelly::availableCores() - 20)
+  # plan(multisession, workers = 10)
 
-  # saveFile = sprintf("%s/%s/bootData_%s_%s-%s.csv", globalVar$outPath, serviceName, bootNum, posLon, posLat)
-  saveFile = sprintf("%s/%s/bootData_%s-%s_%s-%s.csv", globalVar$outPath, serviceName, bootNum, bootDo, posLon, posLat)
-  dir.create(path_dir(saveFile), showWarnings = FALSE, recursive = TRUE)
-  readr::write_csv(x = bootPosData, file = saveFile)
+  for (bootNum in bootNumList) {
+
+    bostSampleL1 = data.frame(t(sapply(bostSample, c)))
+    # saveFile = sprintf("%s/%s/bostSampleL1_%s-%s.csv", globalVar$outPath, serviceName, bootNum, bootDo)
+    saveFile = sprintf("%s/%s/bostSampleL1_%s-%s-%s.csv", globalVar$outPath, serviceName, bootNum, bootDo, bootIdx)
+    dir.create(path_dir(saveFile), showWarnings = FALSE, recursive = TRUE)
+    readr::write_csv(x = bostSampleL1, file = saveFile)
+
+    # 부트스트랩을 통해 병렬처리
+    bootSelData = furrr::future_map_dfr(1:bootDo, function(i) {
+      sampleDataL1 %>%
+        dplyr::filter(sampleType %in% bostSample[[i]]) %>%
+        dplyr::group_by(xAxis, yAxis) %>%
+        dplyr::summarise(
+          meanVal = mean(zAxis, na.rm = TRUE)
+        ) %>%
+        dplyr::mutate(
+          meanVal = ifelse(meanVal < 0, 0, meanVal)
+          # , idx = i
+        ) %>%
+        dplyr::ungroup() %>%
+        mutate_cond(xAxis == posLon & yAxis == posLat, posVal = meanVal) %>%
+        dplyr::mutate(posVal = na.exclude(posVal)) %>%
+        dplyr::filter(meanVal == max(meanVal, na.rm = TRUE)) %>%
+        dplyr::mutate(idx = i)
+    })
+
+    # saveFile = sprintf("%s/%s/bootSelData_%s-%s-%s.csv", globalVar$outPath, serviceName, bootNum, bootDo, bootIdx)
+    saveFile = sprintf("%s/%s/bootSelData_%s-%s-%s_%s-%s.csv", globalVar$outPath, serviceName, bootNum, bootDo, bootIdx, posLon, posLat)
+    dir.create(path_dir(saveFile), showWarnings = FALSE, recursive = TRUE)
+    readr::write_csv(x = bootSelData, file = saveFile)
+    cat(sprintf("[CHECK] saveFile : %s", saveFile), "\n")
+
+    # 부트스트랩을 통해 최대값 추출
+    # bootData = future_map_dfr(1:bootDo, function(i) {
+    #   sampleDataL1 %>%
+    #     dplyr::filter(sampleType %in% bostSample[[i]]) %>%
+    #     dplyr::group_by(xAxis, yAxis) %>%
+    #     dplyr::summarise(
+    #       meanVal = mean(zAxis, na.rm = TRUE)
+    #     ) %>%
+    #     dplyr::mutate(
+    #       meanVal = ifelse(meanVal < 0, 0, meanVal)
+    #     ) %>%
+    #     dplyr::ungroup() %>%
+    #     dplyr::filter(meanVal == max(meanVal, na.rm = TRUE)) %>%
+    #     dplyr::mutate(idx = i)
+    # })
+
+    # saveFile = sprintf("%s/%s/bootData_%s.csv", globalVar$outPath, serviceName, bootNum)
+    # saveFile = sprintf("%s/%s/bootData_%s-%s.csv", globalVar$outPath, serviceName, bootNum, bootDo)
+    # saveFile = sprintf("%s/%s/bootData_%s-%s-%s.csv", globalVar$outPath, serviceName, bootNum, bootDo, bootIdx)
+    # dir.create(path_dir(saveFile), showWarnings = FALSE, recursive = TRUE)
+    # readr::write_csv(x = bootData, file = saveFile)
+    # cat(sprintf("[CHECK] saveFile : %s", saveFile), "\n")
+
+    # 부트스트랩을 통해 특정 지점 추출
+    # bootPosData = future_map_dfr(1:bootDo, function(i) {
+    #   sampleDataL1 %>%
+    #     dplyr::filter(sampleType %in% bostSample[[i]]) %>%
+    #     dplyr::group_by(xAxis, yAxis) %>%
+    #     dplyr::summarise(
+    #       meanVal = mean(zAxis, na.rm = TRUE)
+    #     ) %>%
+    #     dplyr::mutate(
+    #       meanVal = ifelse(meanVal < 0, 0, meanVal)
+    #     ) %>%
+    #     dplyr::ungroup() %>%
+    #     dplyr::filter(xAxis == posLon, yAxis == posLat) %>%
+    #     dplyr::rename(
+    #       "posLon" = "xAxis"
+    #       , "posLat" = "yAxis"
+    #       , "posVal" = "meanVal"
+    #     ) %>%
+    #     dplyr::mutate(idx = i)
+    # })
+
+    # saveFile = sprintf("%s/%s/bootPosData_%s_%s-%s.csv", globalVar$outPath, serviceName, bootNum, posLon, posLat)
+    # saveFile = sprintf("%s/%s/bootPosData_%s-%s_%s-%s.csv", globalVar$outPath, serviceName, bootNum, bootDo, posLon, posLat)
+    # saveFile = sprintf("%s/%s/bootPosData_%s-%s-%s_%s-%s.csv", globalVar$outPath, serviceName, bootNum, bootDo, bootIdx, posLon, posLat)
+    # dir.create(path_dir(saveFile), showWarnings = FALSE, recursive = TRUE)
+    # readr::write_csv(x = bootPosData, file = saveFile)
+    # cat(sprintf("[CHECK] saveFile : %s", saveFile), "\n")
+  }
 }
 
-# bootNumList = c(30, 50, 60, 70)
-bootNumList = c(14)
-# bootNumList = c(42)
-# bootNumList = c(16, 30)
-bootNum = bootNumList[1]
+# # bootNumList = c(30, 50, 60, 70)
+# bootNumList = c(14)
+# # bootNumList = c(42)
+# # bootNumList = c(16, 30)
+# # bootNum = bootNumList[1]
 # for (bootNum in bootNumList) {
 #
 #   # saveFile = sprintf("%s/%s/bootData_%s.csv", globalVar$outPath, serviceName, bootNum)
-#   saveFile = sprintf("%s/%s/bootData_%s-%s.csv", globalVar$outPath, serviceName, bootNum, bootDo)
-#   bootMaxData = readr::read_csv(file = saveFile)
+#   # saveFile = sprintf("%s/%s/bootData_%s-%s.csv", globalVar$outPath, serviceName, bootNum, bootDo)
+#   # bootMaxData = readr::read_csv(file = saveFile)
 #
-#   # saveFile = sprintf("%s/%s/bootData_%s_%s-%s.csv", globalVar$outPath, serviceName, bootNum, posLon, posLat)
-#   # saveFile = sprintf("%s/%s/bootData_%s-%s_%s-%s.csv", globalVar$outPath, serviceName, bootNum, bootDo, posLon, posLat)
+#   # saveFile = sprintf("%s/%s/bootPosData_%s_%s-%s.csv", globalVar$outPath, serviceName, bootNum, posLon, posLat)
+#   # saveFile = sprintf("%s/%s/bootPosData_%s-%s_%s-%s.csv", globalVar$outPath, serviceName, bootNum, bootDo, posLon, posLat)
 #   # bootPosData = readr::read_csv(file = saveFile)
+#
+#   # bootIdx = bootIdxList[1]
+#   #
+#   # bootData = tibble::tibble()
+#   # for (bootIdx in bootIdxList) {
+#   #   saveBootFile = sprintf("%s/%s/bootData_%s-%s-%s.csv", globalVar$outPath, serviceName, bootNum, bootDo, bootIdx)
+#   #   bootMaxData = readr::read_csv(file = Sys.glob(saveBootFile))
+#   #
+#   #   saveBootPosFile = sprintf("%s/%s/bootPosData_%s-%s-%s_%s-%s.csv", globalVar$outPath, serviceName, bootNum, bootDo, bootIdx, posLon, posLat)
+#   #   bootPosData = readr::read_csv(file = Sys.glob(saveBootPosFile))
+#   #
+#   #   selData = bootMaxData %>%
+#   #     dplyr::left_join(bootPosData, by = c("idx" = "idx"))
+#   #
+#   #   bootData = dplyr::bind_rows(bootData, selData)
+#   # }
+#
+#   # bootData = bootData %>%
+#   #   dplyr::filter(posVal >= 0.69)
+#
+#   # saveFile = sprintf("%s/%s/bootData_%s-%s-*.csv", globalVar$outPath, serviceName, bootNum, bootDo)
+#   # fileList = Sys.glob(saveFile)
+#   #
+#   # bootMaxData = fileList %>%
+#   #   purrr::map(readr::read_csv) %>%
+#   #   purrr::reduce(dplyr::bind_rows)
+#   #
+#   # saveFile = sprintf("%s/%s/bootPosData_%s-%s-*_%s-%s.csv", globalVar$outPath, serviceName, bootNum, bootDo, posLon, posLat)
+#   # fileList = Sys.glob(saveFile)
+#   #
+#   # bootPosData = fileList %>%
+#   #   purrr::map(readr::read_csv) %>%
+#   #   purrr::reduce(dplyr::bind_rows)
+#
 #
 #   cat(sprintf("[CHECK] saveFile : %s", saveFile), "\n")
 #
-#   bootData = bootMaxData
+#   # bootData = bootMaxData
 #
 #   # bootData = bootMaxData %>%
 #   #   dplyr::filter(meanVal >= 0.78)
@@ -739,10 +840,12 @@ bootNum = bootNumList[1]
 #   #   dplyr::left_join(bootPosData, by = c("idx" = "idx")) %>%
 #   #   dplyr::filter(posVal >= 0.69)
 #
-#   summary(bootData)
+#
+#   # summary(bootData)
 #
 #   # saveImg = sprintf("%s/%s/%s_%s-%s.png", globalVar$figPath, serviceName, sheetName, "Mean Color Overlay", bootNum)
-#   saveImg = sprintf("%s/%s/%s-%s_%s-%s.png", globalVar$figPath, serviceName, sheetName, "Mean Color Overlay", bootNum, bootDo)
+#   # saveImg = sprintf("%s/%s/%s-%s_%s-%s.png", globalVar$figPath, serviceName, sheetName, "Mean Color Overlay", bootNum, bootDo)
+#   saveImg = sprintf("%s/%s/%s-%s_%s-%s_%s-%s.png", globalVar$figPath, serviceName, sheetName, "Mean Color Overlay", bootNum, bootDo, posLon, posLat)
 #   # saveImg = sprintf("%s/%s/%s_%s-%s-%s-%s.png", globalVar$figPath, serviceName, sheetName, "Mean Color Overlay", bootNum, posLon, posLat)
 #   dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
 #
@@ -766,10 +869,14 @@ bootNum = bootNumList[1]
 #     theme(text = element_text(size = 18))
 #
 #   ggsave(makePlot, filename = saveImg, width = 10, height = 10, dpi = 600)
+#   ggplot2::last_plot()
 #   cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 #
+#
+#
 #   # saveImg = sprintf("%s/%s/%s_%s-%s.png", globalVar$figPath, serviceName, sheetName, "Mean Black Overlay", bootNum)
-#   saveImg = sprintf("%s/%s/%s-%s_%s-%s.png", globalVar$figPath, serviceName, sheetName, "Mean Black Overlay", bootNum, bootDo)
+#   # saveImg = sprintf("%s/%s/%s-%s_%s-%s.png", globalVar$figPath, serviceName, sheetName, "Mean Black Overlay", bootNum, bootDo)
+#   saveImg = sprintf("%s/%s/%s-%s_%s-%s_%s-%s.png", globalVar$figPath, serviceName, sheetName, "Mean Black Overlay", bootNum, bootDo, posLon, posLat)
 #   #  saveImg = sprintf("%s/%s/%s_%s-%s-%s-%s.png", globalVar$figPath, serviceName, sheetName, "Mean Black Overlay", bootNum, posLon, posLat)
 #   dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
 #
@@ -791,6 +898,7 @@ bootNum = bootNumList[1]
 #     ) +
 #     theme(text = element_text(size = 18))
 #   ggsave(makePlot, filename = saveImg, width = 10, height = 10, dpi = 600)
+#   ggplot2::last_plot()
 #   cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 #
 #   # 2. 위도 28~34/경도 110~116 구역안의 점 개수
@@ -812,22 +920,22 @@ bootNum = bootNumList[1]
 #     cat(sprintf("[CHECK] statData : %s", statData), "\n")
 #     cat(sprintf("[CHECK] statDataL1 : %s", statDataL1), "\n")
 # }
-
+#
 # statDataL2 = bootData %>%
 #   dplyr::filter(
 #     meanVal >= 0.7
 #   ) %>%
 #   dplyr::summarise(cnt = n())
-
+#
 # 1. 만개의 점이 찍혀있는 위도 경도 그래프 : 2. 위도 경도 그래프 폴더 참조
 # 2. 위도 28~34/경도 110~116 구역안의 점 개수 : 171개
 # 3. 위도 34~42/경도 124~130 구역안의 점 개수 : 1761개
-
+#
 # 1. 만개의 점이 찍혀있는 위도 경도 그래프 : 20221228_결과 폴더 참조
 # 2. 위도 28~34/경도 110~116 구역안의 점 개수 : 240
 # 3. 위도 34~42/경도 124~130 구역안의 점 개수 : 607
-
-
+#
+#
 # ********************************************************************************************
 # 20221225_부스스트랩 주사위 목록
 # ********************************************************************************************
@@ -856,7 +964,7 @@ bootNum = bootNumList[1]
 #       dplyr::filter(meanVal == max(meanVal, na.rm = TRUE)) %>%
 #       dplyr::mutate(idx = i)
 # })
-
+#
 # bootData = tibble::tibble()
 # for (i in 1:length(bostSample)) {
 #   cat(sprintf("[CHECK] 진행률 : %.2f", i / length(bostSample) * 100.0), "\n")
