@@ -599,14 +599,14 @@ cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 
 saveImg = sprintf("%s/%s/%s_%s.png", globalVar$figPath, serviceName, sheetName, "Mean_Black")
 
-makePlot = ggplot(data = dataL4, aes(x = xAxis, y = yAxis, fill = meanVal, z = meanVal)) +
+makePlot = ggplot(data = dataL4, aes(x = xAxis, y = yAxis, z = meanVal)) +
   # geom_raster(interpolate = TRUE, na.rm = TRUE) +
   # scale_fill_gradientn(colours = cbMatlab, limits = c(0, 1.0), breaks = seq(0, 1.0, 0.2), na.value = NA) +
   # metR::geom_contour_fill(na.fill = TRUE, kriging = TRUE)
   geom_sf(data = mapGlobal, aes(x = NULL, y = NULL, fill = NULL, z = NULL), color = "black", fill = NA) +
   metR::geom_contour2(color = "black", alpha = 1.0, breaks = setBreakCont, show.legend = FALSE, size = 0.5) +
   metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, skip = 0, breaks = setBreakText, rotate = TRUE, na.rm = TRUE, size = 5) +
-   geom_point(data = maxData, aes(x = xAxis, y = yAxis), color = "red") +
+  geom_point(data = maxData, aes(x = xAxis, y = yAxis), color = "red") +
   metR::scale_x_longitude(breaks = seq(90, 150, 10), limits = c(89.99, 150.01), expand = c(0, 0)) +
   metR::scale_y_latitude(breaks = seq(10, 60, 10), limits = c(9.99, 60), expand = c(0, 0)) +
   labs(
