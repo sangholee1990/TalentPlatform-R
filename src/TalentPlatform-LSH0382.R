@@ -639,7 +639,8 @@ set.seed(123)
 # nohup Rscript TalentPlatform-LSH0382.R &
 
 # 표본 주사위
-sampleData = openxlsx::read.xlsx(fileInfo, sheet = "그룹정보")
+# sampleData = openxlsx::read.xlsx(fileInfo, sheet = "그룹정보")
+sampleData = openxlsx::read.xlsx(fileInfo, sheet = "그룹정보L2")
 
 sampleDataL1 = dataL3 %>%
   dplyr::left_join(sampleData, by = c("type" = "type")) %>%
@@ -652,17 +653,39 @@ sampleInfo = sampleData$type %>% unique()
 # bootDo = 10
 # bootDo = 1000
 bootDo = 10000
+# bootDo = 100000
 # bootDo = 300000
 
 # 경주 지점
 posLon = 129.2
 posLat = 35.8
 
-# 부스스트랩 주사위 목록
+# 부트스트랩 주사위 목록
 # bostSample = lapply(1:bootDo, function(i) sample(sampleInfo, size = 14, replace = FALSE))
 # bostSample = lapply(1:bootDo, function(i) sampling::strata(c("group"), size = c(9, 3, 2), method = "srswor", data=sampleData)$ID_unit)
 # bostSample = lapply(1:bootDo, function(i) sampling::strata(c("group"), size = c(27, 9, 6), method = "srswor", data=sampleData)$ID_unit)
 # bostSample = lapply(1:bootDo, function(i) sampling::strata(c("group"), size = c(3, 2, 9), method = "srswor", data=sampleData)$ID_unit)
+
+# 부트스트랩 중복검사
+# bostSampleL1 = data.frame(t(sapply(bostSample, c))) %>%
+#   as.tibble()
+#
+# bostSampleL2 = tibble::tibble()
+# for (i in 1:nrow(bostSampleL1)) {
+#   selData = bostSampleL1[i, ] %>%
+#     sort() %>%
+#     magrittr::set_colnames(c("X1", "X2", "X3", "X4", "X5", "X6", "X7", "X8", "X9", "X10", "X11", "X12", 'X13', 'X14'))
+#
+#   bostSampleL2 = dplyr::bind_rows(bostSampleL2, selData)
+# }
+#
+# bostSampleL3 = bostSampleL2 %>%
+#   dplyr::distinct(X1, X2, X3, X4, X5, X6, X7, X8, X9, X10, X11, X12, X13, X14)
+#
+# saveFile = sprintf("%s/%s/bostSampleL3_%s-%s.csv", globalVar$outPath, serviceName, bootNum, bootDo)
+# dir.create(path_dir(saveFile), showWarnings = FALSE, recursive = TRUE)
+# readr::write_csv(x = bostSampleL3, file = saveFile)
+# cat(sprintf("[CHECK] saveFile : %s", saveFile), "\n")
 
 # options(future.globals.maxSize = 9999999999999999)
 # plan(multisession, workers = parallelly::availableCores() - 5)
@@ -815,8 +838,18 @@ for (bootNum in bootNumList) {
     cat(sprintf("[CHECK] saveFile : %s", saveFile), "\n")
 
     selData = readr::read_csv(file = fileList, show_col_types = FALSE)
+
+    # selDataL2 = selData %>%
+    #   dplyr::distinct(xAxis, yAxis, meanVal, posVal)
+    # cat(sprintf("[CHECK] unique cnt : %s", nrow(selData) - nrow(selDataL2)), "\n")
+
     bootData = dplyr::bind_rows(bootData, selData)
   }
+
+  bootDataL2 = bootData %>%
+    dplyr::distinct(xAxis, yAxis, meanVal, posVal)
+
+  cat(sprintf("[CHECK] unique cnt : %s", nrow(bootData) - nrow(bootDataL2)), "\n")
 
   # saveFile = sprintf("%s/%s/bootData_%s-%s-*.csv", globalVar$outPath, serviceName, bootNum, bootDo)
   # fileList = Sys.glob(saveFile)
@@ -843,8 +876,13 @@ for (bootNum in bootNumList) {
 
 
   bootData = bootData %>%
-    dplyr::filter(posVal >= 0.69) %>%
-    dplyr::slice(1:10000)
+    dplyr::distinct(xAxis, yAxis, meanVal, posVal) %>%
+    dplyr::filter(
+      posVal >= 0.78
+    ) %>%
+    dplyr::slice(1:10000) %>%
+    dplyr::ungroup()
+
 
   # saveImg = sprintf("%s/%s/%s_%s-%s.png", globalVar$figPath, serviceName, sheetName, "Mean Color Overlay", bootNum)
   # saveImg = sprintf("%s/%s/%s-%s_%s-%s.png", globalVar$figPath, serviceName, sheetName, "Mean Color Overlay", bootNum, bootDo)
@@ -968,6 +1006,7 @@ for (bootNum in bootNumList) {
   cat(sprintf("[CHECK] bootData : %s", nrow(bootData)), "\n")
   cat(sprintf("[CHECK] statData : %s", statData), "\n")
   cat(sprintf("[CHECK] statDataL1 : %s", statDataL1), "\n")
+
 }
 
 # statDataL2 = bootData %>%
@@ -976,9 +1015,9 @@ for (bootNum in bootNumList) {
 #   ) %>%
 #   dplyr::summarise(cnt = n())
 
-# 1. 위도 경도 그래프 : 20230202_결과 폴더 참조 (점 개수 : 10000)
-# 2. 위도 28~34/경도 110~116 구역안의 점 개수 : 99
-# 3. 위도 34~42/경도 124~130 구역안의 점 개수 : 2739
+# 1. 위도 경도 그래프 : 20230203_결과 폴더 참조 (점 개수 : 194)
+# 2. 위도 28~34/경도 110~116 구역안의 점 개수 : 1
+# 3. 위도 34~42/경도 124~130 구역안의 점 개수 : 59
 
 
 # ********************************************************************************************
