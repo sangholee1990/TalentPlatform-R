@@ -523,105 +523,111 @@ for (sheetInfo in sheetList) {
 # **************************************************
 # 공간 평균
 # **************************************************
-# cat(sprintf("[CHECK] type : %s",dataL3$type %>% unique %>% length), "\n")
-#
-# selList = c(1, 6, 7, 9, 13, 15, 20, 53, 55, 64, 75, 76, 77, 78)
-#
-# dataL4 = dataL3 %>%
-#   dplyr::filter(type %in% selList) %>%
-#   dplyr::group_by(xAxis, yAxis) %>%
-#   dplyr::summarise(
-#     meanVal = mean(zAxis, na.rm = TRUE)
-#   ) %>%
-#   dplyr::mutate(
-#     meanVal = ifelse(meanVal < 0, 0, meanVal)
-#   )
-#
+cat(sprintf("[CHECK] type : %s",dataL3$type %>% unique %>% length), "\n")
+
+selList = c(1, 6, 7, 9, 13, 15, 20, 53, 55, 64, 75, 76, 77, 78)
+
+dataL4 = dataL3 %>%
+  dplyr::filter(type %in% selList) %>%
+  dplyr::group_by(xAxis, yAxis) %>%
+  dplyr::summarise(
+    meanVal = mean(zAxis, na.rm = TRUE)
+  ) %>%
+  dplyr::mutate(
+    meanVal = ifelse(meanVal < 0, 0, meanVal)
+  )
+
 # summary(dataL4)
+
+maxData = dataL4 %>%
+  dplyr::ungroup() %>%
+  dplyr::filter(meanVal == max(meanVal, na.rm = TRUE))
+
+# 경주 지점
+posLon = 129.2
+posLat = 35.8
+
+posData = dataL4 %>%
+  dplyr::ungroup() %>%
+  dplyr::filter(xAxis == posLon, yAxis == posLat)
+
+# setBreakCont = c(seq(0.70, 0, -0.04))
+# setBreakText = c(seq(0.70, 0.10, -0.04))
+
+setBreakCont = c(seq(0.78, 0, -0.04))
+setBreakText = c(seq(0.78, 0.10, -0.04))
+
+# setBreakCont = c(seq(0.58, 0, -0.04))
+# setBreakText = c(seq(0.58, 0.10, -0.04))
+
+# setBreakCont = c(seq(0.72, 0, -0.04))
+# setBreakText = c(seq(0.72, 0.10, -0.04))
 #
-# maxData = dataL4 %>%
-#   dplyr::ungroup() %>%
-#   dplyr::filter(meanVal == max(meanVal, na.rm = TRUE))
+# setBreakCont = c(seq(0.44, 0, -0.02))
+# setBreakText = c(seq(0.44, 0.10, -0.02))
 #
-# # 경주 지점
-# posLon = 129.2
-# posLat = 35.8
-#
-# posData = dataL4 %>%
-#   dplyr::ungroup() %>%
-#   dplyr::filter(xAxis == posLon, yAxis == posLat)
-#
-# # setBreakCont = c(seq(0.70, 0, -0.04))
-# # setBreakText = c(seq(0.70, 0.10, -0.04))
-#
-# setBreakCont = c(seq(0.78, 0, -0.04))
-# setBreakText = c(seq(0.78, 0.10, -0.04))
-#
-# # setBreakCont = c(seq(0.58, 0, -0.04))
-# # setBreakText = c(seq(0.58, 0.10, -0.04))
-#
-# # setBreakCont = c(seq(0.72, 0, -0.04))
-# # setBreakText = c(seq(0.72, 0.10, -0.04))
-# #
-# # setBreakCont = c(seq(0.44, 0, -0.02))
-# # setBreakText = c(seq(0.44, 0.10, -0.02))
-# #
-# # setBreakCont = c(seq(0.47, 0, -0.02))
-# # setBreakText = c(seq(0.47, 0.10, -0.02))
-#
-# # 평균식분도에 대한 최대값입니다.
-# # 모집단78개 : 0.7816083
-# saveImg = sprintf("%s/%s/%s_%s.png", globalVar$figPath, serviceName, sheetName, "Mean_Color")
-#
-# makePlot = ggplot(data = dataL4, aes(x = xAxis, y = yAxis, fill = meanVal, z = meanVal)) +
-#   geom_raster(interpolate = TRUE, na.rm = TRUE) +
-#   # metR::geom_contour_fill(na.fill = TRUE, kriging = TRUE) +
-#   scale_fill_gradientn(colours = cbMatlab, limits = c(0, 1.0), breaks = seq(0, 1.0, 0.2), na.value = NA) +
-#   geom_sf(data = mapGlobal, aes(x = NULL, y = NULL, fill = NULL, z = NULL), color = "black", fill = NA) +
-#   metR::geom_contour2(color = "black", alpha = 1.0, breaks = setBreakCont, show.legend = FALSE, size = 0.5) +
-#   metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, skip = 0, breaks = setBreakText, rotate = TRUE, na.rm = TRUE, size = 5) +
-#   geom_point(data = maxData, aes(x = xAxis, y = yAxis), color = "red") +
-#   metR::scale_x_longitude(breaks = seq(90, 150, 10), limits = c(89.99, 150.01), expand = c(0, 0)) +
-#   metR::scale_y_latitude(breaks = seq(10, 60, 10), limits = c(9.99, 60), expand = c(0, 0)) +
-#   labs(
-#     subtitle = NULL
-#     , x = NULL
-#     , y = NULL
-#     , fill = NULL
-#     , colour = NULL
-#     , title = NULL
-#   ) +
-#   theme(text = element_text(size = 18))
-#
-# ggsave(makePlot, filename = saveImg, width = 10, height = 10, dpi = 600)
-# ggplot2::last_plot()
-# cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
-#
-# saveImg = sprintf("%s/%s/%s_%s.png", globalVar$figPath, serviceName, sheetName, "Mean_Black")
-#
-# makePlot = ggplot(data = dataL4, aes(x = xAxis, y = yAxis, z = meanVal)) +
-#   # geom_raster(interpolate = TRUE, na.rm = TRUE) +
-#   # scale_fill_gradientn(colours = cbMatlab, limits = c(0, 1.0), breaks = seq(0, 1.0, 0.2), na.value = NA) +
-#   # metR::geom_contour_fill(na.fill = TRUE, kriging = TRUE)
-#   geom_sf(data = mapGlobal, aes(x = NULL, y = NULL, fill = NULL, z = NULL), color = "black", fill = NA) +
-#   metR::geom_contour2(color = "black", alpha = 1.0, breaks = setBreakCont, show.legend = FALSE, size = 0.5) +
-#   metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, skip = 0, breaks = setBreakText, rotate = TRUE, na.rm = TRUE, size = 5) +
-#   geom_point(data = maxData, aes(x = xAxis, y = yAxis), color = "red") +
-#   metR::scale_x_longitude(breaks = seq(90, 150, 10), limits = c(89.99, 150.01), expand = c(0, 0)) +
-#   metR::scale_y_latitude(breaks = seq(10, 60, 10), limits = c(9.99, 60), expand = c(0, 0)) +
-#   labs(
-#     subtitle = NULL
-#     , x = NULL
-#     , y = NULL
-#     , fill = NULL
-#     , colour = NULL
-#     , title = NULL
-#   ) +
-#   theme(text = element_text(size = 18))
-#
-# ggsave(makePlot, filename = saveImg, width = 10, height = 10, dpi = 600)
-# ggplot2::last_plot()
-# cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+# setBreakCont = c(seq(0.47, 0, -0.02))
+# setBreakText = c(seq(0.47, 0.10, -0.02))
+
+
+cat(sprintf("[CHECK] maxData : %s", maxData$meanVal), "\n")
+cat(sprintf("[CHECK] posData : %s", posData$meanVal), "\n")
+
+# 평균식분도에 대한 최대값 : "20230204_14개신라픽" 폴더 참조
+# 모집단78개 : 0.781607143522527
+# 경주지점 : 0.697976397970507
+
+saveImg = sprintf("%s/%s/%s_%s.png", globalVar$figPath, serviceName, sheetName, "Mean_Color")
+
+makePlot = ggplot(data = dataL4, aes(x = xAxis, y = yAxis, fill = meanVal, z = meanVal)) +
+  geom_raster(interpolate = TRUE, na.rm = TRUE) +
+  # metR::geom_contour_fill(na.fill = TRUE, kriging = TRUE) +
+  scale_fill_gradientn(colours = cbMatlab, limits = c(0, 1.0), breaks = seq(0, 1.0, 0.2), na.value = NA) +
+  geom_sf(data = mapGlobal, aes(x = NULL, y = NULL, fill = NULL, z = NULL), color = "black", fill = NA) +
+  metR::geom_contour2(color = "black", alpha = 1.0, breaks = setBreakCont, show.legend = FALSE, size = 0.5) +
+  metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, skip = 0, breaks = setBreakText, rotate = TRUE, na.rm = TRUE, size = 5) +
+  geom_point(data = maxData, aes(x = xAxis, y = yAxis), color = "red") +
+  metR::scale_x_longitude(breaks = seq(90, 150, 10), limits = c(89.99, 150.01), expand = c(0, 0)) +
+  metR::scale_y_latitude(breaks = seq(10, 60, 10), limits = c(9.99, 60), expand = c(0, 0)) +
+  labs(
+    subtitle = NULL
+    , x = NULL
+    , y = NULL
+    , fill = NULL
+    , colour = NULL
+    , title = NULL
+  ) +
+  theme(text = element_text(size = 18))
+
+ggsave(makePlot, filename = saveImg, width = 10, height = 10, dpi = 600)
+ggplot2::last_plot()
+cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+
+saveImg = sprintf("%s/%s/%s_%s.png", globalVar$figPath, serviceName, sheetName, "Mean_Black")
+
+makePlot = ggplot(data = dataL4, aes(x = xAxis, y = yAxis, z = meanVal)) +
+  # geom_raster(interpolate = TRUE, na.rm = TRUE) +
+  # scale_fill_gradientn(colours = cbMatlab, limits = c(0, 1.0), breaks = seq(0, 1.0, 0.2), na.value = NA) +
+  # metR::geom_contour_fill(na.fill = TRUE, kriging = TRUE)
+  geom_sf(data = mapGlobal, aes(x = NULL, y = NULL, fill = NULL, z = NULL), color = "black", fill = NA) +
+  metR::geom_contour2(color = "black", alpha = 1.0, breaks = setBreakCont, show.legend = FALSE, size = 0.5) +
+  metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, skip = 0, breaks = setBreakText, rotate = TRUE, na.rm = TRUE, size = 5) +
+  geom_point(data = maxData, aes(x = xAxis, y = yAxis), color = "red") +
+  metR::scale_x_longitude(breaks = seq(90, 150, 10), limits = c(89.99, 150.01), expand = c(0, 0)) +
+  metR::scale_y_latitude(breaks = seq(10, 60, 10), limits = c(9.99, 60), expand = c(0, 0)) +
+  labs(
+    subtitle = NULL
+    , x = NULL
+    , y = NULL
+    , fill = NULL
+    , colour = NULL
+    , title = NULL
+  ) +
+  theme(text = element_text(size = 18))
+
+ggsave(makePlot, filename = saveImg, width = 10, height = 10, dpi = 600)
+ggplot2::last_plot()
+cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 
 
 # **************************************************
@@ -839,9 +845,9 @@ for (bootNum in bootNumList) {
 
     selData = readr::read_csv(file = fileList, show_col_types = FALSE)
 
-    # selDataL2 = selData %>%
-    #   dplyr::distinct(xAxis, yAxis, meanVal, posVal)
-    # cat(sprintf("[CHECK] unique cnt : %s", nrow(selData) - nrow(selDataL2)), "\n")
+    selDataL2 = selData %>%
+      dplyr::distinct(xAxis, yAxis, meanVal, posVal, .keep_all=TRUE)
+    cat(sprintf("[CHECK] unique cnt : %s", nrow(selData) - nrow(selDataL2)), "\n")
 
     bootData = dplyr::bind_rows(bootData, selData)
   }
@@ -875,14 +881,26 @@ for (bootNum in bootNumList) {
   #   dplyr::filter(posVal >= 0.69)
 
 
-  bootData = bootData %>%
-    dplyr::distinct(xAxis, yAxis, meanVal, posVal) %>%
+  # 경주지점 0.68 이상
+  # 경주지점 0.69 이상
+  bootDataL2 = bootData %>%
+    # dplyr::group_by(xAxis, yAxis, meanVal, posVal) %>%
+    dplyr::distinct(xAxis, yAxis, meanVal, posVal, keep_all = TRUE) %>%
     dplyr::filter(
-      posVal >= 0.78
+      # posVal >= 0.68
+      posVal >= 0.69
     ) %>%
-    dplyr::slice(1:10000) %>%
-    dplyr::ungroup()
+    dplyr::slice(1:10000)
 
+  # 평균식분도 최대값 0.78 이상
+  # 붉은점 0.78 이상
+  bootDataL3 = bootDataL2 %>%
+     dplyr::filter(
+      meanVal >= 0.78
+    )
+
+  plotData = bootDataL2
+  # plotData = bootDataL3
 
   # saveImg = sprintf("%s/%s/%s_%s-%s.png", globalVar$figPath, serviceName, sheetName, "Mean Color Overlay", bootNum)
   # saveImg = sprintf("%s/%s/%s-%s_%s-%s.png", globalVar$figPath, serviceName, sheetName, "Mean Color Overlay", bootNum, bootDo)
@@ -891,7 +909,7 @@ for (bootNum in bootNumList) {
   dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
 
   # 1. 만개의 점이 찍혀있는 위도 경도 그래프
-  makePlot = ggplot(data = bootData, aes(x = xAxis, y = yAxis, color = meanVal)) +
+  makePlot = ggplot(data = plotData, aes(x = xAxis, y = yAxis, color = meanVal)) +
     # geom_point(size = 2, show.legend = TRUE) +
     geom_point(size = 1, show.legend = TRUE, alpha = 0.3) +
     # geom_point(size = 1, show.legend = TRUE) +
@@ -919,7 +937,7 @@ for (bootNum in bootNumList) {
   saveImg = sprintf("%s/%s/%s-%s_%s-%s_%s-%s.png", globalVar$figPath, serviceName, sheetName, "Mean Black Overlay", bootNum, bootDo, posLon, posLat)
   dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
 
-  makePlot = ggplot(data = bootData, aes(x = xAxis, y = yAxis, color = meanVal)) +
+  makePlot = ggplot(data = plotData, aes(x = xAxis, y = yAxis, color = meanVal)) +
     # geom_point(size = 2, color = "black", show.legend = FALSE) +
     geom_point(size = 1, color = "black", show.legend = FALSE, alpha = 0.3) +
     # geom_point(size = 1, color = "black", show.legend = FALSE) +
@@ -944,7 +962,7 @@ for (bootNum in bootNumList) {
   saveImg = sprintf("%s/%s/%s-%s_%s-%s_%s-%s.png", globalVar$figPath, serviceName, sheetName, "Density Color Overlay", bootNum, bootDo, posLon, posLat)
   dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
 
-  makePlot = ggplot(data = bootData, aes(x = xAxis, y = yAxis, color = meanVal)) +
+  makePlot = ggplot(data = plotData, aes(x = xAxis, y = yAxis, color = meanVal)) +
     stat_density2d(aes(fill = ..density..), n = 100 * 3, contour = FALSE, geom = "raster") +
     scale_fill_gradientn(colours = cbMatlab) +
     geom_sf(data = mapGlobal, aes(x = NULL, y = NULL, fill = NULL, z = NULL), color = "white", fill = NA) +
@@ -967,7 +985,7 @@ for (bootNum in bootNumList) {
   saveImg = sprintf("%s/%s/%s-%s_%s-%s_%s-%s.png", globalVar$figPath, serviceName, sheetName, "Density Black Overlay", bootNum, bootDo, posLon, posLat)
   dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
 
-  makePlot = ggplot(data = bootData, aes(x = xAxis, y = yAxis, color = meanVal)) +
+  makePlot = ggplot(data = plotData, aes(x = xAxis, y = yAxis, color = meanVal)) +
     stat_density2d(aes(fill = ..density..), n = 100 * 3, contour = FALSE, geom = "raster") +
     scale_fill_distiller(palette = "Greys") +
     geom_sf(data = mapGlobal, aes(x = NULL, y = NULL, fill = NULL, z = NULL), color = "yellow", fill = NA) +
@@ -988,7 +1006,7 @@ for (bootNum in bootNumList) {
   cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 
   # 2. 위도 28~34/경도 110~116 구역안의 점 개수
-  statData = bootData %>%
+  statData = plotData %>%
     dplyr::filter(
       dplyr::between(xAxis, 110, 116)
       , dplyr::between(yAxis, 28, 34)
@@ -996,14 +1014,14 @@ for (bootNum in bootNumList) {
     dplyr::summarise(cnt = n())
 
   # 3. 위도 34~42/경도 124~130 구역안의 점 개수
-  statDataL1 = bootData %>%
+  statDataL1 = plotData %>%
     dplyr::filter(
       dplyr::between(xAxis, 124, 130)
       , dplyr::between(yAxis, 34, 42)
     ) %>%
     dplyr::summarise(cnt = n())
 
-  cat(sprintf("[CHECK] bootData : %s", nrow(bootData)), "\n")
+  cat(sprintf("[CHECK] bootData : %s", nrow(plotData)), "\n")
   cat(sprintf("[CHECK] statData : %s", statData), "\n")
   cat(sprintf("[CHECK] statDataL1 : %s", statDataL1), "\n")
 
@@ -1015,9 +1033,17 @@ for (bootNum in bootNumList) {
 #   ) %>%
 #   dplyr::summarise(cnt = n())
 
-# 1. 위도 경도 그래프 : 20230203_결과 폴더 참조 (점 개수 : 194)
-# 2. 위도 28~34/경도 110~116 구역안의 점 개수 : 1
-# 3. 위도 34~42/경도 124~130 구역안의 점 개수 : 59
+# 1. 위도 경도 그래프 : 20230203_경주식분0.68이상 폴더 참조 (점 개수 : 10000)
+# 2. 위도 28~34/경도 110~116 구역안의 점 개수 : 104
+# 3. 위도 34~42/경도 124~130 구역안의 점 개수 : 2634
+
+# 1. 위도 경도 그래프 : 20230203_경주식분0.69이상 폴더 참조 (점 개수 : 10000)
+# 2. 위도 28~34/경도 110~116 구역안의 점 개수 : 104
+# 3. 위도 34~42/경도 124~130 구역안의 점 개수 : 2634
+
+# 1. 위도 경도 그래프 : 20230203_붉은점0.78이상 폴더 참조 (점 개수 : 834)
+# 2. 위도 28~34/경도 110~116 구역안의 점 개수 : 30
+# 3. 위도 34~42/경도 124~130 구역안의 점 개수 : 116
 
 
 # ********************************************************************************************
