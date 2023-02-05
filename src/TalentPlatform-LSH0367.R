@@ -28,7 +28,8 @@ if (env == "local") {
     , "logPath" = contextPath
   )
 } else {
-  source(here::here(file.path(contextPath, "src"), "InitConfig.R"), encoding = "UTF-8")
+  # source(here::here(file.path(contextPath, "src"), "InitConfig.R"), encoding = "UTF-8")
+  source(file.path(contextPath, "src", "InitConfig.R"))
 }
 
 #================================================
@@ -55,22 +56,27 @@ time <-format(seq.POSIXt(start, end, by = "10 min"), format = "%Y%m%d%H%M")
 
 # 격자 정보( No : 격자 번호)
 # xy_Bsn <- fread("Test_Info_xy_1km.txt", header=TRUE)
-xy_Bsn <- fread(file.path(globalVar$inpPath, serviceName, "Test_Info_xy_1km.txt"), header=TRUE)
+# xy_Bsn <- fread(file.path(globalVar$inpPath, serviceName, "Test_Info_xy_1km.txt"), header=TRUE)
+xy_Bsn <- fread(file.path(globalVar$inpPath, serviceName, "Test_Info_xy_1km_30.txt"), header=TRUE)
 # x       y             xy     No
 
 # 레이더 10분 강우(행: xy_Bsn의 No, 열 : 해당 기간 10분 레이더 값, 총 144개)
 # Rain <- fread("Test_RDR_1km_220906.txt", header=TRUE)
+# Rain <- fread(file.path(globalVar$inpPath, serviceName, "Test_RDR_1km_220906.txt"), header=TRUE)
 Rain <- fread(file.path(globalVar$inpPath, serviceName, "Test_RDR_1km_220906.txt"), header=TRUE)
 
 # 위와 같은 포맷, 해당 강우 모형별 값 
 # D_U1 <- fread("Test_D_U1_1km_220906.txt", header=TRUE)
 # D_N2 <- fread("Test_D_N2_1km_220906.txt", header=TRUE)
+# D_U1 <- fread(file.path(globalVar$inpPath, serviceName, "Test_D_U1_1km_220906.txt"), header=TRUE)
+# D_N2 <- fread(file.path(globalVar$inpPath, serviceName, "Test_D_N2_1km_220906.txt"), header=TRUE)
 D_U1 <- fread(file.path(globalVar$inpPath, serviceName, "Test_D_U1_1km_220906.txt"), header=TRUE)
 D_N2 <- fread(file.path(globalVar$inpPath, serviceName, "Test_D_N2_1km_220906.txt"), header=TRUE)
 
 # xy_Bsn의 격자내 특성값(행 : No*16개, No4 : 격자내 구분 , Adj~ : 주변격자, cnt~: 주변격자 유출특성, )
 # Info <- read.csv("Test_DB_V5.csv", fill = TRUE, colClasses =c( 'numeric', 'numeric', 'character','character', 'character', 'character', 'numeric', 'numeric', 'numeric', 'numeric', 'numeric', 'numeric', 'numeric', 'numeric'))
-Info <- read.csv(file.path(globalVar$inpPath, serviceName, "Test_DB_V5.csv"), fill = TRUE, colClasses =c( 'numeric', 'numeric', 'character','character', 'character', 'character', 'numeric', 'numeric', 'numeric', 'numeric', 'numeric', 'numeric', 'numeric', 'numeric'))
+# Info <- read.csv(file.path(globalVar$inpPath, serviceName, "Test_DB_V5.csv"), fill = TRUE, colClasses =c( 'numeric', 'numeric', 'character','character', 'character', 'character', 'numeric', 'numeric', 'numeric', 'numeric', 'numeric', 'numeric', 'numeric', 'numeric'))
+Info <- read.csv(file.path(globalVar$inpPath, serviceName, "Test_DB_30.csv"), fill = TRUE, colClasses =c( 'numeric', 'numeric', 'character','character', 'character', 'character', 'numeric', 'numeric', 'numeric', 'numeric', 'numeric', 'numeric', 'numeric', 'numeric'))
 
 summary(xy_Bsn)
 summary(Rain)
@@ -78,18 +84,26 @@ summary(D_U1)
 summary(D_N2)
 summary(Info)
 
+# colnames(Info)
+# head(Info)
+
 # 시간별(10M) 특성에 따른 격자별 최대값 산출
-# i = 36
+# i = 36 202209060600
 dataL1 = tibble::tibble()
 for (i in 36:length(time)){   # i<-36부터 test
 
     # 격자 번호와 레이더 값, 유출값 결합
     # 열을 선택 (29행)
-    All.RD_Bsn <- data.table(No=xy_Bsn$No, Rain=Rain[[i]], D_U1=D_U1[[i]], D_N2=D_N2[[i]])
+    # All.RD_Bsn <- data.table(No=xy_Bsn$No, Rain=Rain[[i]], D_U1=D_U1[[i]], D_N2=D_N2[[i]])
+    # All.RD_Bsn <- data.table(No=xy_Bsn$RRRCCC, Rain=Rain[[i]], D_U1=D_U1[[i]], D_N2=D_N2[[i]])
+    All.RD_Bsn <- data.table(No=xy_Bsn$RRRCCC, Rain=Rain[[i]], D_U1=D_U1[[i]], D_N2=D_N2[[i]])
     colnames(All.RD_Bsn)[1]<- "No"
 
     # 격자내 특성값(No4)에 결합 
     Info3 <- merge(Info, All.RD_Bsn, by='No')
+    # Info3 <- merge(Info, All.RD_Bsn, by='No') %>%
+    #   dplyr::filter(No == 270206)
+    # summary(Info3)
     # head(Info)
     # head(Info3)
     # tail(Info3)
@@ -111,11 +125,14 @@ for (i in 36:length(time)){   # i<-36부터 test
     # head(Rain)
     # head(D_U1)
     # head(D_N2)
+    # head(Info3)
     # colnames(Info3)
+
+    # summary(All.RD_Bsn)
 
     # merging Info3 with All.RD_Bsn, 주변격자의 모형별 유출량 값 결합
     # k = 4
-    for (k in 1:4){
+    for (k in 1:9){
         colnames(All.RD_Bsn)[1]<- paste0("Adj_No_", k)
         temp<- merge(Info3[paste0("Adj_No_", k)], All.RD_Bsn, by=paste0("Adj_No_", k), all.x=T)
         # temp<- merge(Info3[paste0("Adj_No_", k)], All.RD_Bsn, by=paste0("Adj_No_", k))
@@ -125,7 +142,7 @@ for (i in 36:length(time)){   # i<-36부터 test
 
     # colnames(Info3)
     # k = 4
-    for (k in 1:4){
+    for (k in 1:9){
         colnames(All.RD_Bsn)[1]<- paste0("Adj_No_", k)
         temp<- merge(Info3[paste0("Adj_No_", k)], All.RD_Bsn, by=paste0("Adj_No_", k), all.x=T)
         Info3[paste0("Adj_D_N2_", k)] <- temp[, 4]
@@ -134,6 +151,9 @@ for (i in 36:length(time)){   # i<-36부터 test
     # head(Info3)
     #
     # # Info3$Adj_D_N2_4
+
+   InfoData = Info3 %>%
+      dplyr::filter(No == 270206)
 
     colnames(All.RD_Bsn)[1]<- "No"
     # colnames(Info3)
@@ -144,8 +164,11 @@ for (i in 36:length(time)){   # i<-36부터 test
     # 모형별 유출량 산정, 주변격자의 유출량*특성값 연산
     # k = 4
     # k = 3
-    for ( k in 1:4){
-        Info3[paste0("No4.D_U1_", k)] <- (Info3[paste0("cnt_U1_", k)] * Info3[paste0("Adj_D_U1_", k)] * 0.7 + Info3[paste0("cnt_N2_", k)] * Info3[paste0("Adj_D_N2_", k)] * 0.8) / 15.0
+
+    k = 1
+    # colnames(Info3)
+    for ( k in 1:9){
+        Info3[paste0("No4.D_U1_", k)] <- (Info3[paste0("cnt_U1_", k)] * Info3[paste0("Adj_D_U1_", k)] * 0.7 + Info3[paste0("cnt_N2_", k)] * Info3[paste0("Adj_D_N2_", k)] * 0.3) / 64.0
     }
 
     # Info3 %>%
@@ -165,7 +188,10 @@ for (i in 36:length(time)){   # i<-36부터 test
     # 17 18  11 23
     # paste0("No4.D_U1_", k)
 
-    for ( k in 1:4){
+   colnames(Info3)
+
+    for ( k in 1:9){
+        # Info3[paste0("No4.D_N2_", k)] <- (Info3$D_U1*0.3+ Info3$D_N2*0.4+Info3[paste0("cnt_N2_", k)] * Info3[paste0("Adj_D_N2_", k)] * 0.8) / 15.0
         Info3[paste0("No4.D_N2_", k)] <- (Info3$D_U1*0.3+ Info3$D_N2*0.4+Info3[paste0("cnt_N2_", k)] * Info3[paste0("Adj_D_N2_", k)] * 0.8) / 15.0
     }
 
