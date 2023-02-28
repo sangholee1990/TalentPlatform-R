@@ -51,15 +51,17 @@ library(readr)
 library(httr)
 library(rvest)
 library(jsonlite)
-library(RCurl)
 library(dplyr)
 library(data.table)
 library(Rcpp)
-library(philentropy)
 library(h2o)
 library(readxl)
 library(stringr)
 
+# 초기화
+h2o::h2o.init(port = 8080, bind_to_localhost = FALSE)
+
+# 파일 읽기
 fileList = Sys.glob(file.path(globalVar$inpPath, serviceName, "발송마스타*.xls"))
 
 dataL2 = tibble::tibble()
@@ -96,6 +98,10 @@ dataL3 = dataL2 %>%
   dplyr::mutate(
     dtDate = lubridate::make_date(dtYear, dtMonth, 1)
     , dtXran = lubridate::decimal_date(dtDate)
+    , type = ifelse(type == "3통", "VA3", type)
+  ) %>% 
+  dplyr::mutate(
+    type = ifelse(type == "VA25우레탄", "VA25", type)
   )
 
 
@@ -133,12 +139,14 @@ testData = tibble(dtDate = seq(minDate, maxDate, "1 month")) %>%
     , dtXran = lubridate::decimal_date(dtDate)
   ) 
 
+# typeInfo = "GBY013531B"
+# sizeInfo = "255"
 
-typeList = dataL4$type %>% unique()
-sizeList = dataL4$size %>% unique()
+typeList = dataL4$type %>% unique() %>% sort()
+sizeList = dataL4$size %>% unique() %>% sort()
 for (typeInfo in typeList) {
   for (sizeInfo in sizeList) {
-  
+    
     trainData = dataL4 %>% 
       dplyr::filter(
         type == typeInfo
@@ -148,6 +156,10 @@ for (typeInfo in typeList) {
     # if (nrow(trainData) < 5) { next }
     if (nrow(trainData) < 10) { next }
     
+    saveXlsxFile = sprintf("%s/%s/shoesRate-%s-%s.xlsx", globalVar$outPath, serviceName, typeInfo, sizeInfo)
+    dir.create(fs::path_dir(saveXlsxFile), showWarnings = FALSE, recursive = TRUE)
+    
+    if (fs::file_exists(saveXlsxFile)) { next }
     cat(sprintf("[CHECK] %s-%s : %s", typeInfo, sizeInfo, nrow(trainData)), "\n")
     
     
@@ -157,30 +169,54 @@ for (typeInfo in typeList) {
     lmModel = lm(cnt ~ dtXran + dtYear + dtMonth, data = trainData)
     summary(lmModel)
 
-    testData$prdLM = predict(lmModel, newdata = testData)
+    testData$prdMLR = predict(lmModel, newdata = testData)
 
     # ******************************************************************************
     # 머신러닝 및 딥러닝 모형
     # ******************************************************************************
-    # 초기화
-    h2o::h2o.init()
-
-    # 모델 학습
-    amlModel = h2o::h2o.automl(
-      x = c("dtXran", "dtYear", "dtMonth")
-      , y = c("cnt")
-      , training_frame = h2o::as.h2o(trainData)
-      , validation_frame = h2o::as.h2o(trainData)
-      , nfolds = 5
-      , sort_metric = "RMSE"
-      , stopping_metric = "RMSE"
-      , seed = 1
-      , max_models = 10
-      , max_runtime_secs = 60
+    # 모형 학습
+    saveModel = sprintf("%s/%s/%s/%s-%s-%s-%s-%s.model", globalVar$outPath, serviceName, "AI-MODEL", "final", "h2o", typeInfo, sizeInfo, format(Sys.time(), "%Y%m%d"))
+    dir.create(fs::path_dir(saveModel), showWarnings = FALSE, recursive = TRUE)
+    
+    tryCatch(
+      expr = {
+        
+        # 초기화
+        amlModel = NA
+        h2o::h2o.init(port = 8080, bind_to_localhost = FALSE)
+        
+        # 모형 학습이 있을 경우
+        if (fs::file_exists(saveModel)) {
+          # amlModel = h2o::h2o.loadModel(saveModel)
+          amlModel = h2o::h2o.import_mojo(saveModel)
+        } else {
+          # 모형 학습
+          amlModel = h2o::h2o.automl(
+            x = c("dtXran", "dtYear", "dtMonth")
+            , y = c("cnt")
+            , training_frame = h2o::as.h2o(trainData)
+            , validation_frame = h2o::as.h2o(trainData)
+            , nfolds = 2
+            , sort_metric = "RMSE"
+            , stopping_metric = "RMSE"
+            , seed = 1
+            # , max_models = 10
+            , max_runtime_secs = 60
+          )
+          
+          amlBestModel = h2o::h2o.get_best_model(amlModel)
+          # h2o::h2o.saveModel(object = amlBestModel, path = fs::path_dir(saveModel), filename = fs::path_file(saveModel), force = TRUE)
+          h2o::h2o.save_mojo(object = amlBestModel, path = fs::path_dir(saveModel), filename = fs::path_file(saveModel), force = TRUE)
+        }
+        
+        print(amlModel)
+        
+        # 모형 예측 
+        if (class(amlModel)[1] == "H2ORegressionModel") {
+          testData$prdAML = as.data.frame(h2o::h2o.predict(object = amlModel, newdata = as.h2o(testData)))$predict
+        }
+      }
     )
-
-    testData$prdDL = as.data.frame(h2o::h2o.predict(object = amlModel, newdata = as.h2o(testData)))$predict
-
     
     # ******************************************************************************
     # 자료 병합
@@ -192,9 +228,6 @@ for (typeInfo in typeList) {
     # ******************************************************************************
     # 에측 결과 저장
     # ******************************************************************************
-    saveXlsxFile = sprintf("%s/%s/AI-ShoesRate-%s-%s.xlsx", globalVar$outPath, serviceName, typeInfo, sizeInfo)
-    dir.create(path_dir(saveXlsxFile), showWarnings = FALSE, recursive = TRUE)
-    
     wb = openxlsx::createWorkbook()
     openxlsx::addWorksheet(wb, "Sheet1")
     openxlsx::writeData(wb, "Sheet1", testDataL1, startRow = 1, startCol = 1, colNames = TRUE, rowNames = FALSE)
