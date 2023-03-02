@@ -1,12 +1,14 @@
 #=====================================
 # Init Confiure
 #=====================================
-rm(list = ls())
+# rm(list = ls())
 
 prjName = "knowledgeIn"
+contextPath = "E:/04. TalentPlatform/Github/TalentPlatform-R"
 
-source(here::here("E:/04. TalentPlatform/Github/TalentPlatform-R/src", "InitConfig.R"), encoding = "UTF-8")
+# source(here::here("E:/04. TalentPlatform/Github/TalentPlatform-R/src", "InitConfig.R"), encoding = "UTF-8")
 # source(here::here("./src", "InitConfig.R"), encoding = "UTF-8")
+source(file.path(contextPath, "src", "InitConfig.R"))
 
 showtext::showtext_opts(dpi = 100)
 showtext::showtext.auto()
@@ -8796,3 +8798,17 @@ library(readxl)
 
 fileInfo = Sys.glob(paste(globalVar$inpPath, "seoul.xlsx", sep = "/"))
 data = readxl::read_excel(fileInfo, sheet = "Sheet1")
+
+#================================================
+# 20230303 요구사항
+#================================================
+library(geosphere)
+
+daylength(38, '2022-01-01')
+# daylength(45, 1:365)
+# 
+# # average monthly daylength
+# dl <- daylength(45, 1:365)
+# tapply(dl, rep(1:12, c(31,28,31,30,31,30,31,31,30,31,30,31)), mean)
+# 
+

@@ -61,66 +61,124 @@ library(stringr)
 # 초기화
 h2o::h2o.init(port = 8080, bind_to_localhost = FALSE)
 
-# 파일 읽기
-fileList = Sys.glob(file.path(globalVar$inpPath, serviceName, "발송마스타*.xls"))
+# 기준값 파일 읽기
+# refFileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "모델명 기준값.xlsx"))
+# refData = readxl::read_excel(refFileInfo, sheet = 1, skip = 1, col_names = FALSE) %>% 
+#   magrittr::set_colnames(c("ref", "tmp", "tmp2"))
+# 
+# refData2 = readxl::read_excel(refFileInfo, sheet = 2, skip = 1, col_names = FALSE) %>% 
+#   magrittr::set_colnames(c("ref", "tmp", "tmp2", "tmp3"))
+# 
+# refData3 = dplyr::bind_rows(refData2, refData)
+# 
+# refModelSizeList = refData3$ref %>% unique() %>% sort()
+# reSizeList = stringr::str_extract(refModelSizeList, "-2[0-9]{2,2}") %>% unique() %>%  paste(collapse = "|")
+# refModelList = stringr::str_replace_all(refModelSizeList, reSizeList, replacement = "") %>% unique() %>% sort()
+# 
+# # 파일 읽기
+# fileList = Sys.glob(file.path(globalVar$inpPath, serviceName, "발송마스타*.xls"))
+# 
+# # fileInfo = fileList[1]
+# dataL2 = tibble::tibble()
+# for (fileInfo in fileList) {
+#   
+#   cat(sprintf("[CHECK] fileInfo : %s", fileInfo), "\n")
+#   
+#   data = readxl::read_excel(fileInfo, sheet = 1, col_names = FALSE) %>% 
+#     magrittr::set_colnames(c("sDate", "name")) %>% 
+#     dplyr::select(c("sDate", "name"))
+#   
+#   # head(data)
+# 
+#   # 기준값으로 대체 
+#   colList = colnames(refData3)
+#   for (i in 1:nrow(refData3)) {
+#     refVal = get("ref", refData3[i, ])
+#     if (is.na(refVal)) { next }
+#     
+#     for (j in 2:ncol(refData3)) {
+#       tmpVal = get(colList[j], refData3[i, ])
+#       if (is.na(tmpVal)) { next }
+#       data$name = stringr::str_replace(data$name, tmpVal, replacement = refVal)
+#     }
+#   }
+#   
+#   # head(data)
+#   
+#   refModelPattern = paste(refModelList, collapse = "|") %>% 
+#     stringr::str_replace_all("\\(", replacement = "\\\\(") %>% 
+#     stringr::str_replace_all("\\)", replacement = "\\\\)")
+#   
+#   tmp = stringr::str_match(data$name, refModelPattern)
+#   tmp2 = stringr::str_match(data$name, "-2[0-9]{2,2}")
+#   tmp3 = stringr::str_match(data$name, "[0-9]개")
+#   tmp4 = ifelse(is.na(tmp3), "1개", tmp3)
+#   
+#   type = tmp
+#   size = stringr::str_replace(tmp2, "\\-", replacement = "") %>% as.numeric()
+#   cnt = stringr::str_replace(tmp4, "개", replacement = "") %>% as.numeric()
+# 
+#   dataL1 = dplyr::bind_cols(data, data.frame(type, cnt, size)) %>%
+#     dplyr::filter(
+#       ! is.na(type), ! is.na(cnt), ! is.na(size)
+#     ) %>%
+#     dplyr::mutate(
+#       dtDate = readr::parse_date(as.character(sDate), "%Y%m%d")
+#       , dtYear = lubridate::year(dtDate)
+#       , dtMonth = lubridate::month(dtDate)
+#     ) %>%
+#     readr::type_convert()
+# 
+#   dataL2 = dplyr::bind_rows(dataL2, dataL1)
+# }
 
-dataL2 = tibble::tibble()
-for (fileInfo in fileList) {
-  cat(sprintf("[CHECK] fileInfo : %s", fileInfo), "\n")
-  
-  data = readxl::read_excel(fileInfo, sheet = 1, col_names = FALSE) %>% 
-    magrittr::set_colnames(c("sDate", "name")) %>% 
-    dplyr::select(c("sDate", "name"))
-  
-  tmp = stringr::str_match(data$name, "[:graph:]*\\-[0-9]{3,3}\\-[0-9]개")
-  tmp2 = stringr::str_split_fixed(tmp, "-", 3) %>% as.tibble()
-  
-  type = stringr::str_replace(tmp2$V1, "\\◎|\\★|ㅁ.", replacement = "")
-  size = stringr::str_replace(tmp2$V2, "\\-", replacement = "") %>% as.numeric()
-  cnt = stringr::str_replace(tmp2$V3, "개", replacement = "") %>% as.numeric()
+# 가공파일 생성
+saveFile = sprintf("%s/%s/shoesRateData.xlsx", globalVar$inpPath, serviceName)
+# dir.create(fs::path_dir(saveFile), showWarnings = FALSE, recursive = TRUE)
+# wb = openxlsx::createWorkbook()
+# openxlsx::addWorksheet(wb, "Sheet1")
+# openxlsx::writeData(wb, "Sheet1", dataL2, startRow = 1, startCol = 1, colNames = TRUE, rowNames = FALSE)
+# 
+# openxlsx::saveWorkbook(wb, file = saveFile, overwrite = TRUE)
+# cat(sprintf("[CHECK] saveFile : %s", saveFile), "\n")
 
-  dataL1 = dplyr::bind_cols(data, data.frame(type, cnt, size)) %>% 
-    dplyr::filter(
-      ! is.na(type), ! is.na(cnt), ! is.na(size)
-    ) %>%
-    dplyr::mutate(
-      dtDate = readr::parse_date(as.character(sDate), "%Y%m%d")
-      , dtYear = lubridate::year(dtDate)
-      , dtMonth = lubridate::month(dtDate)
-    ) %>% 
-    readr::type_convert()
-
-  dataL2 = dplyr::bind_rows(dataL2, dataL1)
-}
-
+dataL2 = openxlsx::read.xlsx(saveFile) %>% 
+  as.tibble()
 
 dataL3 = dataL2 %>% 
   dplyr::mutate(
     dtDate = lubridate::make_date(dtYear, dtMonth, 1)
     , dtXran = lubridate::decimal_date(dtDate)
-    , type = ifelse(type == "3통", "VA3", type)
-  ) %>% 
-  dplyr::mutate(
-    type = ifelse(type == "VA25우레탄", "VA25", type)
   )
+  
+
+# dataL3 = dataL2 %>% 
+#   dplyr::mutate(
+#     dtDate = lubridate::make_date(dtYear, dtMonth, 1)
+#     , dtXran = lubridate::decimal_date(dtDate)
+#     , type = ifelse(type == "3통", "VA3", type)
+#   ) %>% 
+#   dplyr::mutate(
+#     type = ifelse(type == "VA25우레탄", "VA25", type)
+#   )
 
 
 # 1차 가공자료
-chkData = dataL3 %>% 
-  dplyr::group_by(type) %>%
-  dplyr::summarise(
-    cnt = sum(cnt, na.rm = TRUE)
-  ) %>% 
-  dplyr::arrange(desc(cnt))
+# chkData = dataL3 %>% 
+#   dplyr::group_by(type) %>%
+#   dplyr::summarise(
+#     cnt = sum(cnt, na.rm = TRUE)
+#   ) %>% 
+#   dplyr::arrange(desc(cnt))
+# 
+# summary(chkData)
 
-summary(chkData)
-
-chkDataL1 = chkData %>% 
-  dplyr::filter(cnt > mean(cnt, na.rm = TRUE))
+# chkDataL1 = chkData %>% 
+#   dplyr::filter(cnt > mean(cnt, na.rm = TRUE))
 
 # 2차 가공자료
 dataL4 = dataL3 %>% 
-  dplyr::filter(type %in% chkDataL1$type) %>% 
+  # dplyr::filter(type %in% chkDataL1$type) %>% 
   dplyr::group_by(dtDate, dtYear, dtMonth, dtXran, type, size) %>%
   dplyr::summarise(
     cnt = sum(cnt, na.rm = TRUE)
@@ -139,8 +197,8 @@ testData = tibble(dtDate = seq(minDate, maxDate, "1 month")) %>%
     , dtXran = lubridate::decimal_date(dtDate)
   ) 
 
-# typeInfo = "GBY013531B"
-# sizeInfo = "255"
+# typeInfo = "YG-0131(BR)"
+# sizeInfo = "240"
 
 typeList = dataL4$type %>% unique() %>% sort()
 sizeList = dataL4$size %>% unique() %>% sort()
@@ -183,7 +241,6 @@ for (typeInfo in typeList) {
         
         # 초기화
         amlModel = NA
-        h2o::h2o.init(port = 8080, bind_to_localhost = FALSE)
         
         # 모형 학습이 있을 경우
         if (fs::file_exists(saveModel)) {
@@ -212,7 +269,7 @@ for (typeInfo in typeList) {
         print(amlModel)
         
         # 모형 예측 
-        if (class(amlModel)[1] == "H2ORegressionModel") {
+        if (! is.na(amlModel)) {
           testData$prdAML = as.data.frame(h2o::h2o.predict(object = amlModel, newdata = as.h2o(testData)))$predict
         }
       }
@@ -232,10 +289,12 @@ for (typeInfo in typeList) {
     openxlsx::addWorksheet(wb, "Sheet1")
     openxlsx::writeData(wb, "Sheet1", testDataL1, startRow = 1, startCol = 1, colNames = TRUE, rowNames = FALSE)
     openxlsx::saveWorkbook(wb, file = saveXlsxFile, overwrite = TRUE)
-    
     cat(sprintf("[CHECK] saveXlsxFile : %s", saveXlsxFile), "\n")
+    
   }
 }
+
+h2o::h2o.shutdown(prompt = FALSE)
 
 
 #================================================
