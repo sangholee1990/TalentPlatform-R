@@ -537,11 +537,11 @@ sampleData = openxlsx::read.xlsx(fileInfo, sheet = "그룹정보")
 # 붉은점이상치픽
 selList = c(74, 57, 34, 17, 5, 31, 14, 7, 60, 63, 38, 37, 28, 16)
 
-# sampleData$type %>% unique
-# sampleData$sampleType %>% unique
-# dataL3$type %>% unique
-# dataL4$sampleType %>% unique
-# dataL4$type %>% unique
+# sampleData$type %>% unique()
+# sampleData$sampleType %>% unique()
+# dataL3$type %>% unique()
+# dataL4$sampleType %>% unique()
+# dataL4$type %>% unique()
 
 dataL4 = dataL3 %>%
   dplyr::left_join(sampleData, by = c("type" = "type")) %>%
