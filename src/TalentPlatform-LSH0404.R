@@ -57,6 +57,7 @@ if (env == "local") {
 # install.packages("coda")
 # install.packages("C:/Users/sin17/Desktop/Rgeoprofile_1.2.tar.gz", repos = NULL, type ="source", dependencies = TRUE)
 # install.packages("C:/Users/sangh/OneDrive/바탕 화면/Rgeoprofile_1.2.tar.gz", repos = NULL, type ="source", dependencies = TRUE)
+# install.packages("/SYSTEMS/TMP/Rgeoprofile_1.2.tar.gz", repos = NULL, type ="source", dependencies = TRUE)
 
 # 라이브러리 읽기
 library(Rgeoprofile)
