@@ -58,9 +58,6 @@ library(h2o)
 library(readxl)
 library(stringr)
 
-# 초기화
-h2o::h2o.init(port = 8080, bind_to_localhost = FALSE)
-
 # 기준값 파일 읽기
 # refFileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "모델명 기준값.xlsx"))
 # refData = readxl::read_excel(refFileInfo, sheet = 1, skip = 1, col_names = FALSE) %>% 
@@ -197,8 +194,8 @@ testData = tibble(dtDate = seq(minDate, maxDate, "1 month")) %>%
     , dtXran = lubridate::decimal_date(dtDate)
   ) 
 
-# typeInfo = "YG-0131(BR)"
-# sizeInfo = "240"
+# typeInfo = "HS-5005"
+# sizeInfo = "250"
 
 typeList = dataL4$type %>% unique() %>% sort()
 sizeList = dataL4$size %>% unique() %>% sort()
@@ -214,21 +211,28 @@ for (typeInfo in typeList) {
     # if (nrow(trainData) < 5) { next }
     if (nrow(trainData) < 10) { next }
     
+    cntList = trainData$cnt %>% unique() %>% sort()
+    if (length(cntList) < 2) { next }
+    
     saveXlsxFile = sprintf("%s/%s/shoesRate-%s-%s.xlsx", globalVar$outPath, serviceName, typeInfo, sizeInfo)
     dir.create(fs::path_dir(saveXlsxFile), showWarnings = FALSE, recursive = TRUE)
     
-    if (fs::file_exists(saveXlsxFile)) { next }
+    # if (fs::file_exists(saveXlsxFile)) { next }
     cat(sprintf("[CHECK] %s-%s : %s", typeInfo, sizeInfo, nrow(trainData)), "\n")
-    
     
     # ******************************************************************************
     # 다중선형회귀모형
     # ******************************************************************************
-    lmModel = lm(cnt ~ dtXran + dtYear + dtMonth, data = trainData)
-    summary(lmModel)
-
-    testData$prdMLR = predict(lmModel, newdata = testData)
-
+    tryCatch(
+      expr = {
+        
+        lmModel = lm(cnt ~ dtXran + dtYear + dtMonth, data = trainData)
+        # summary(lmModel)
+    
+        testData$prdMLR = predict(lmModel, newdata = testData)
+      }
+    )
+    
     # ******************************************************************************
     # 머신러닝 및 딥러닝 모형
     # ******************************************************************************
@@ -241,13 +245,10 @@ for (typeInfo in typeList) {
         
         # 초기화
         amlModel = NA
+        h2o::h2o.init(port = 8080, bind_to_localhost = FALSE)
         
-        # 모형 학습이 있을 경우
-        if (fs::file_exists(saveModel)) {
-          # amlModel = h2o::h2o.loadModel(saveModel)
-          amlModel = h2o::h2o.import_mojo(saveModel)
-        } else {
-          # 모형 학습
+        # 학습 모형이 없는 경우
+        if (! fs::file_exists(saveModel)) {
           amlModel = h2o::h2o.automl(
             x = c("dtXran", "dtYear", "dtMonth")
             , y = c("cnt")
@@ -266,12 +267,16 @@ for (typeInfo in typeList) {
           h2o::h2o.save_mojo(object = amlBestModel, path = fs::path_dir(saveModel), filename = fs::path_file(saveModel), force = TRUE)
         }
         
-        print(amlModel)
-        
-        # 모형 예측 
-        if (! is.na(amlModel)) {
+        if (fs::file_exists(saveModel) && stringr::str_detect(class(amlModel)[1], "H2OAutoML|H2ORegressionModel")) {
+          
+          # 모형 불러오기
+          amlModel = h2o::h2o.import_mojo(saveModel)
+          
+          # 모형 예측 
           testData$prdAML = as.data.frame(h2o::h2o.predict(object = amlModel, newdata = as.h2o(testData)))$predict
         }
+        
+        h2o::h2o.shutdown(prompt = FALSE)
       }
     )
     
@@ -293,8 +298,6 @@ for (typeInfo in typeList) {
     
   }
 }
-
-h2o::h2o.shutdown(prompt = FALSE)
 
 
 #================================================
