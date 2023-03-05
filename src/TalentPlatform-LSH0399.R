@@ -135,11 +135,15 @@ fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "LSH0399_일식 �
 # **************************************************
 # 시트 선택
 # **************************************************
-# 시트 1 : 모집단78개
-sheetInfo = 1
+# 시트 1 : 모집단163개
+# sheetInfo = 1
+
+# 시트 1 : 모집단86개
+sheetInfo = 2
 
 sheetName = dplyr::case_when(
   sheetInfo == 1 ~ "모집단163개"
+  , sheetInfo == 2 ~ "모집단86개"
   , TRUE ~ NA_character_
 )
 
@@ -224,8 +228,11 @@ sheetName = dplyr::case_when(
 # **************************************************
 # 시트에 따른 데이터 병합
 # **************************************************
-sheetList = c(1)
-sheetName = "모집단163개"
+# sheetList = c(1)
+# sheetName = "모집단163개"
+
+sheetList = c(2)
+sheetName = "모집단86개"
 
 # sheetInfo = sheetList[1]
 dataL3 = tibble::tibble()
@@ -269,7 +276,7 @@ for (sheetInfo in sheetList) {
 cat(sprintf("[CHECK] type : %s", dataL3$type %>% unique %>% length), "\n")
 
 # 표본 주사위
-sampleData = openxlsx::read.xlsx(fileInfo, sheet = "그룹정보")
+# sampleData = openxlsx::read.xlsx(fileInfo, sheet = "그룹정보")
 
 # 신라픽
 # selList = c(1, 6, 7, 9, 13, 15, 20, 53, 55, 64, 75, 76, 77, 78)
@@ -277,8 +284,12 @@ sampleData = openxlsx::read.xlsx(fileInfo, sheet = "그룹정보")
 # 3번픽
 # selList = c(60, 8, 32, 72, 24, 47, 45, 7, 37, 75, 38, 57, 21, 9)
 
+# selList = c(79, 155, 46, 22, 117, 114, 26, 123, 107, 128, "27(0.96)", 45, 40, 31, 70, 72)
+
 # sampleData$type %>% unique
 # sampleData$sampleType %>% unique
+# dataL3$type %>% unique()
+# dataL4$type %>% unique()
 
 dataL4 = dataL3 %>%
   # dplyr::left_join(sampleData, by = c("type" = "type")) %>%
@@ -332,15 +343,22 @@ posData = dataL4 %>%
   dplyr::ungroup() %>%
   dplyr::filter(xAxis == posLon, yAxis == posLat)
 
-setBreakCont = c(seq(0.29, 0, -0.01))
-setBreakText = c(seq(0.29, 0.10, -0.01))
-
 cat(sprintf("[CHECK] maxData : %s", maxData$meanVal), "\n")
 cat(sprintf("[CHECK] posData : %s", posData$meanVal), "\n")
 
-# 평균식분도 결과 : "20230305_결과" 폴더 참조
-# 최대평균 : 0.290168170694625 
-# 경주지점 : 0.232696550301638 
+setBreakCont = c(seq(0.51, 0, -0.02))
+setBreakText = c(seq(0.51, 0.10, -0.02))
+
+# 지점(경도90-위도10) 선택
+#    xAxis yAxis meanVal posVal sampleInfo
+#    <dbl> <dbl>   <dbl>  <dbl> <chr>
+#  1    90    10   0.416 0.291  79-155-46-22-117-114-26-123-107-128-27(0.96)-45-40-31-70-72
+# bootData %>%
+#   dplyr::filter(xAxis == 90, yAxis == 10)
+
+# 평균식분도 결과 : "20230306_86개 모집단의 평균식분도" 폴더 참조
+# 최대평균 : 0.518542217867816
+# 경주지점 : 0.468578825517671
 
 # dataL4 %>% 
 #   dplyr::filter(yAxis == 50)
@@ -413,15 +431,16 @@ set.seed(123)
 # nohup Rscript TalentPlatform-LSH0382.R &
 
 # 표본 주사위
-sampleData = openxlsx::read.xlsx(fileInfo, sheet = "그룹정보")
-# sampleData = openxlsx::read.xlsx(fileInfo, sheet = "그룹정보L2")
+# sampleData = openxlsx::read.xlsx(fileInfo, sheet = "그룹정보")
+# # sampleData = openxlsx::read.xlsx(fileInfo, sheet = "그룹정보L2")
+#
+# sampleDataL1 = dataL3 %>%
+#   dplyr::left_join(sampleData, by = c("type" = "type")) %>%
+#   dplyr::select(-group, -sampleType)
 
-sampleDataL1 = dataL3 %>%
-  dplyr::left_join(sampleData, by = c("type" = "type")) %>%
-  dplyr::select(-group, -sampleType)
+sampleDataL1 = dataL3
 
-# sampleInfo = dataL3$type %>% unique()
-sampleInfo = sampleData$type %>% unique()
+sampleInfo = sampleDataL1$type %>% unique()
 
 # 부트스트랩 횟수
 # bootDo = 10
@@ -499,9 +518,15 @@ for (bootIdx in bootIdxList) {
 
     bostSampleL1 = data.frame(t(sapply(bostSample, c)))
     # saveFile = sprintf("%s/%s/bostSampleL1_%s-%s.csv", globalVar$outPath, serviceName, bootNum, bootDo)
-    saveFile = sprintf("%s/%s/bostSampleL1_%s-%s-%s.csv", globalVar$outPath, serviceName, bootNum, bootDo, bootIdx)
+    # saveFile = sprintf("%s/%s/bostSampleL1_%s-%s-%s.csv", globalVar$outPath, serviceName, bootNum, bootDo, bootIdx)
+    saveFile = sprintf("%s/%s/%s_bostSampleL1_%s-%s-%s.csv", globalVar$outPath, serviceName, sheetName, bootNum, bootDo, bootIdx)
     dir.create(path_dir(saveFile), showWarnings = FALSE, recursive = TRUE)
     readr::write_csv(x = bostSampleL1, file = saveFile)
+
+    # sampleDataL1 %>%
+    #     dplyr::filter(type %in% bostSample[[i]]) %>%
+    #     dplyr::select(type) %>%
+    #     unique()
 
     # 부트스트랩을 통해 병렬처리
     bootSelData = furrr::future_map_dfr(1:bootDo, function(i) {
@@ -521,7 +546,8 @@ for (bootIdx in bootIdxList) {
     })
 
     # saveFile = sprintf("%s/%s/bootSelData_%s-%s-%s.csv", globalVar$outPath, serviceName, bootNum, bootDo, bootIdx)
-    saveFile = sprintf("%s/%s/bootSelData_%s-%s-%s_%s-%s.csv", globalVar$outPath, serviceName, bootNum, bootDo, bootIdx, posLon, posLat)
+    # saveFile = sprintf("%s/%s/bootSelData_%s-%s-%s_%s-%s.csv", globalVar$outPath, serviceName, bootNum, bootDo, bootIdx, posLon, posLat)
+    saveFile = sprintf("%s/%s/%s_bootSelData_%s-%s-%s_%s-%s.csv", globalVar$outPath, serviceName, sheetName, bootNum, bootDo, bootIdx, posLon, posLat)
     dir.create(path_dir(saveFile), showWarnings = FALSE, recursive = TRUE)
     readr::write_csv(x = bootSelData, file = saveFile)
     cat(sprintf("[CHECK] saveFile : %s", saveFile), "\n")
@@ -590,72 +616,37 @@ bootNumList = c(16)
 # bootNum = bootNumList[1]
 for (bootNum in bootNumList) {
 
-  # saveFile = sprintf("%s/%s/bootData_%s.csv", globalVar$outPath, serviceName, bootNum)
-  # saveFile = sprintf("%s/%s/bootData_%s-%s.csv", globalVar$outPath, serviceName, bootNum, bootDo)
-  # bootMaxData = readr::read_csv(file = saveFile)
-
-  # saveFile = sprintf("%s/%s/bootPosData_%s_%s-%s.csv", globalVar$outPath, serviceName, bootNum, posLon, posLat)
-  # saveFile = sprintf("%s/%s/bootPosData_%s-%s_%s-%s.csv", globalVar$outPath, serviceName, bootNum, bootDo, posLon, posLat)
-  # bootPosData = readr::read_csv(file = saveFile)
-
-  # saveBootFile = sprintf("%s/%s/bootData_%s-%s-%s.csv", globalVar$outPath, serviceName, bootNum, bootDo, bootIdx)
-  # bootMaxData = readr::read_csv(file = Sys.glob(saveBootFile))
-  # saveBootPosFile = sprintf("%s/%s/bootPosData_%s-%s-%s_%s-%s.csv", globalVar$outPath, serviceName, bootNum, bootDo, bootIdx, posLon, posLat)
-  # bootPosData = readr::read_csv(file = Sys.glob(saveBootPosFile))
-  # selData = bootMaxData %>%
-  #   dplyr::left_join(bootPosData, by = c("idx" = "idx"))
-
   # bootIdx = bootIdxList[1]
   bootData = tibble::tibble()
   for (bootIdx in bootIdxList) {
     # saveFile = sprintf("%s/%s/bostSampleL1_%s-%s-%s.csv", globalVar$outPath, serviceName, bootNum, bootDo, bootIdx)
-    # fileList = Sys.glob(saveFile)
-    # if (length(fileList) < 1) { next }
-    #
-    # sampleData = readr::read_csv(file =fileList, show_col_types = FALSE) %>%
-    #   dplyr::mutate(sampleInfo = paste(X1, X2, X3, X4, X5, X6, X7, X8, X9, X10, X11, X12, X13, X14, sep = "-")) %>%
-    #   dplyr::select(sampleInfo)
+    saveFile = sprintf("%s/%s/%s_bostSampleL1_%s-%s-%s.csv", globalVar$outPath, serviceName, sheetName, bootNum, bootDo, bootIdx)
+    fileList = Sys.glob(saveFile)
+    if (length(fileList) < 1) { next }
 
-    saveFile = sprintf("%s/%s/bootSelData_%s-%s-%s_%s-%s.csv", globalVar$outPath, serviceName, bootNum, bootDo, bootIdx, posLon, posLat)
+    sampleData = readr::read_csv(file = fileList, show_col_types = FALSE) %>%
+      dplyr::mutate(sampleInfo = paste(X1, X2, X3, X4, X5, X6, X7, X8, X9, X10, X11, X12, X13, X14, X15, X16, sep = "-")) %>%
+      dplyr::select(sampleInfo)
+
+    # saveFile = sprintf("%s/%s/bootSelData_%s-%s-%s_%s-%s.csv", globalVar$outPath, serviceName, bootNum, bootDo, bootIdx, posLon, posLat)
+    saveFile = sprintf("%s/%s/%s_bootSelData_%s-%s-%s_%s-%s.csv", globalVar$outPath, serviceName, sheetName, bootNum, bootDo, bootIdx, posLon, posLat)
     fileList = Sys.glob(saveFile)
     if (length(fileList) < 1) { next }
 
     cat(sprintf("[CHECK] saveFile : %s", saveFile), "\n")
 
-    selData = readr::read_csv(file = fileList, show_col_types = FALSE)
-    # selData = readr::read_csv(file = fileList, show_col_types = FALSE) %>%
-    #   dplyr::bind_cols(sampleData)
-
-    # selDataL2 = selData %>%
-    #   dplyr::distinct(xAxis, yAxis, meanVal, posVal, .keep_all=TRUE)
-    # cat(sprintf("[CHECK] unique cnt : %s", nrow(selData) - nrow(selDataL2)), "\n")
+    selData = readr::read_csv(file = fileList, show_col_types = FALSE) %>%
+      dplyr::bind_cols(sampleData)
 
     bootData = dplyr::bind_rows(bootData, selData)
   }
 
-  # saveFile = sprintf("%s/%s/bootData_%s-%s-*.csv", globalVar$outPath, serviceName, bootNum, bootDo)
-  # fileList = Sys.glob(saveFile)
-  #
-  # bootMaxData = fileList %>%
-  #   purrr::map(readr::read_csv) %>%
-  #   purrr::reduce(dplyr::bind_rows)
-  #
-  # saveFile = sprintf("%s/%s/bootPosData_%s-%s-*_%s-%s.csv", globalVar$outPath, serviceName, bootNum, bootDo, posLon, posLat)
-  # fileList = Sys.glob(saveFile)
-  #
-  # bootPosData = fileList %>%
-  #   purrr::map(readr::read_csv) %>%
-  #   purrr::reduce(dplyr::bind_rows)
-
-  # bootData = bootMaxData
-
-  # bootData = bootMaxData %>%
-  #   dplyr::filter(meanVal >= 0.78)
-
-  # bootData = bootMaxData %>%
-  #   dplyr::left_join(bootPosData, by = c("idx" = "idx")) %>%
-  #   dplyr::filter(posVal >= 0.69)
-
+  # # A tibble: 43 × 5
+  #    xAxis yAxis meanVal posVal sampleInfo
+  #    <dbl> <dbl>   <dbl>  <dbl> <chr>
+  #  1    90    10   0.416 0.291  79-155-46-22-117-114-26-123-107-128-27(0.96)-45-40-31-70-72
+  # bootData %>%
+  #   dplyr::filter(xAxis == 90, yAxis == 10)
 
   # 경주지점 0.68 이상
   # 경주지점 0.69 이상
@@ -680,8 +671,8 @@ for (bootNum in bootNumList) {
       meanVal >= 0.70
     )
 
-  plotData = bootDataL2
-  # plotData = bootDataL3
+  # plotData = bootDataL2
+  plotData = bootDataL3
 
   saveImg = sprintf("%s/%s/%s-%s_%s-%s_%s-%s.png", globalVar$figPath, serviceName, sheetName, "Hist", bootNum, bootDo, posLon, posLat)
   dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
@@ -798,48 +789,26 @@ for (bootNum in bootNumList) {
   cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 
   # 2. 위도 28~34/경도 110~116 구역안의 점 개수
-  statData = plotData %>%
-    dplyr::distinct(xAxis, yAxis, meanVal, posVal, keep_all = TRUE) %>%
-    dplyr::filter(
-      dplyr::between(xAxis, 110, 116)
-      , dplyr::between(yAxis, 28, 34)
-    ) %>%
-    dplyr::summarise(cnt = n())
-
-  # 3. 위도 34~42/경도 124~130 구역안의 점 개수
-  statDataL1 = plotData %>%
-    dplyr::distinct(xAxis, yAxis, meanVal, posVal, keep_all = TRUE) %>%
-    dplyr::filter(
-      dplyr::between(xAxis, 124, 130)
-      , dplyr::between(yAxis, 34, 42)
-    ) %>%
-    dplyr::summarise(cnt = n())
-
-  # statDataL2 = plotData %>%
+  # statData = plotData %>%
   #   dplyr::distinct(xAxis, yAxis, meanVal, posVal, keep_all = TRUE) %>%
   #   dplyr::filter(
-  #     xAxis <= 122
-  #     , yAxis <= 35
+  #     dplyr::between(xAxis, 110, 116)
+  #     , dplyr::between(yAxis, 28, 34)
   #   ) %>%
   #   dplyr::summarise(cnt = n())
 
-  # statDataL2 = plotData %>%
-  #   dplyr::distinct(xAxis, yAxis, meanVal, posVal, sampleInfo, keep_all = TRUE) %>%
+  # 3. 위도 34~42/경도 124~130 구역안의 점 개수
+  # statDataL1 = plotData %>%
+  #   dplyr::distinct(xAxis, yAxis, meanVal, posVal, keep_all = TRUE) %>%
   #   dplyr::filter(
-  #     dplyr::between(xAxis, 90, 105)
-  #     , dplyr::between(yAxis, 20, 50)
-  #   )
-
-  # statDataL2 = plotData %>%
-  #   dplyr::filter(
-  #     meanVal == min(plotData$meanVal, na.rm = TRUE)
-  #   )
-  #
-  # View(statDataL2)
+  #     dplyr::between(xAxis, 124, 130)
+  #     , dplyr::between(yAxis, 34, 42)
+  #   ) %>%
+  #   dplyr::summarise(cnt = n())
 
   cat(sprintf("[CHECK] bootData : %s", nrow(plotData)), "\n")
-  cat(sprintf("[CHECK] statData : %s", statData), "\n")
-  cat(sprintf("[CHECK] statDataL1 : %s", statDataL1), "\n")
+  # cat(sprintf("[CHECK] statData : %s", statData), "\n")
+  # cat(sprintf("[CHECK] statDataL1 : %s", statDataL1), "\n")
 
 }
 
@@ -849,13 +818,8 @@ for (bootNum in bootNumList) {
 #   ) %>%
 #   dplyr::summarise(cnt = n())
 
-# 1. 위도 경도 그래프 : "20230305_163개모집단-16개추출-붉은점" 폴더 참조 (점 개수 : 10000)
-# 2. 위도 28~34/경도 110~116 구역안의 점 개수 : 179
-# 3. 위도 34~42/경도 124~130 구역안의 점 개수 : 1835
-
-# 1. 위도 경도 그래프 : "20230305_163개모집단-16개추출-붉은점0.7이상" 폴더 참조 (점 개수 : 895)
-# 2. 위도 28~34/경도 110~116 구역안의 점 개수 : 16
-# 3. 위도 34~42/경도 124~130 구역안의 점 개수 : 132
+# 위도 경도 그래프 : "20230306_86개모집단-16개추출-붉은점" 폴더 참조 (점 개수 : 10000)
+# 위도 경도 그래프 : "20230306_86개모집단-16개추출-붉은점0.7이상" 폴더 참조 (점 개수 : 895)
 
 
 # ********************************************************************************************
