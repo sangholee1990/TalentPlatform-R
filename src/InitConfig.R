@@ -578,6 +578,25 @@ cbPlasma = rev(viridis::plasma(11))
 #   }
 # )
 
+
+# try(
+#   expr = {
+#     urlDtlInfo = urlDtlList[j,]
+#     
+#     tmpData = tibble::tibble(
+#       "번호" = urlDtlInfo$num
+#       , "본문" = getXpathText(urlDtlInfo$value)
+#       , "URL" = urlDtlInfo$value
+#     )
+#     
+#     urlDtlData = dplyr::bind_rows(urlDtlData, tmpData)
+#     
+#     # 시간 지연 설정
+#     Sys.sleep(0.5)
+#   }
+#   , silent = TRUE
+# )
+
 # library(tidyverse)
 # library(ggplot2)
 # library(lubridate)
