@@ -138,10 +138,10 @@ fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "LSH0405_일식 �
 # 시트 선택
 # **************************************************
 # 시트 1 : 남송(57)
-# sheetInfo = 1
+sheetInfo = 1
 
 # 시트 1 : 남송추가(33)
-sheetInfo = 2
+# sheetInfo = 2
 
 sheetName = dplyr::case_when(
   sheetInfo == 1 ~ "남송(57)"
@@ -280,8 +280,10 @@ for (sheetInfo in sheetList) {
 # **************************************************
 # 공간 평균
 # **************************************************
-cat(sprintf("[CHECK] type : %s", dataL3$type %>% unique %>% length), "\n")
-
+typeList = dataL3$type %>% unique() 
+cat(sprintf("[CHECK] typeList : %s", length(typeList)), "\n")
+print(typeList)
+        
 # 표본 주사위
 # sampleData = openxlsx::read.xlsx(fileInfo, sheet = "그룹정보")
 
@@ -357,8 +359,11 @@ cat(sprintf("[CHECK] posData : %s", posData$meanVal), "\n")
 # setBreakText = c(seq(0.51, 0.10, -0.02))
 
 maxFloorVal = floor(maxData$meanVal * 100) / 100
-setBreakCont = c(seq(maxFloorVal, 0, -0.02))
-setBreakText = c(seq(maxFloorVal, 0.10, -0.02))
+# setBreakCont = c(seq(maxFloorVal, 0, -0.02))
+# setBreakText = c(seq(maxFloorVal, 0.10, -0.02))
+
+setBreakCont = c(seq(maxFloorVal, 0, -0.04))
+setBreakText = c(seq(maxFloorVal, 0, -0.04))
 
 # 지점(경도90-위도10) 선택
 #    xAxis yAxis meanVal posVal sampleInfo
@@ -511,7 +516,8 @@ plan(multisession, workers = parallelly::availableCores() - 5)
 # 부트스트랩 추출 개수
 # bootNum = 70
 # bootNumList = c(14)
-bootNumList = c(16)
+# bootNumList = c(16)
+bootNumList = c(57)
 # bootNumList = c(42)
 # bootNumList = c(16, 30)
 # bootNumList = c(30, 50, 60, 70)
@@ -631,7 +637,8 @@ bootIdxList = seq(1, 1)
 # bootIdxList = seq(1, 60)
 # bootNumList = c(30, 50, 60, 70)
 # bootNumList = c(14)
-bootNumList = c(16)
+# bootNumList = c(16)
+bootNumList = c(57)
 # bootNumList = c(42)
 # bootNumList = c(16, 30)
 # bootNum = bootNumList[1]
@@ -646,8 +653,10 @@ for (bootNum in bootNumList) {
     if (length(fileList) < 1) { next }
 
     sampleData = readr::read_csv(file = fileList, show_col_types = FALSE) %>%
-      dplyr::mutate(sampleInfo = paste(X1, X2, X3, X4, X5, X6, X7, X8, X9, X10, X11, X12, X13, X14, X15, X16, sep = "-")) %>%
+      tidyr::unite(sampleInfo, sep = "-") %>%
       dplyr::select(sampleInfo)
+
+      # dplyr::mutate(sampleInfo = paste(X1, X2, X3, X4, X5, X6, X7, X8, X9, X10, X11, X12, X13, X14, X15, X16, sep = "-")) %>%
 
     # saveFile = sprintf("%s/%s/bootSelData_%s-%s-%s_%s-%s.csv", globalVar$outPath, serviceName, bootNum, bootDo, bootIdx, posLon, posLat)
     saveFile = sprintf("%s/%s/%s_bootSelData_%s-%s-%s_%s-%s.csv", globalVar$outPath, serviceName, sheetName, bootNum, bootDo, bootIdx, posLon, posLat)
@@ -692,8 +701,8 @@ for (bootNum in bootNumList) {
       meanVal >= 0.70
     )
 
-  # plotData = bootDataL2
-  plotData = bootDataL3
+  plotData = bootDataL2
+  # plotData = bootDataL3
 
   saveImg = sprintf("%s/%s/%s-%s_%s-%s_%s-%s.png", globalVar$figPath, serviceName, sheetName, "Hist", bootNum, bootDo, posLon, posLat)
   dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
@@ -841,6 +850,8 @@ for (bootNum in bootNumList) {
 
 # 위도 경도 그래프 : "20230306_86개모집단-16개추출-붉은점" 폴더 참조 (점 개수 : 10000)
 # 위도 경도 그래프 : "20230306_86개모집단-16개추출-붉은점0.7이상" 폴더 참조 (점 개수 : 895)
+
+# 위도 경도 그래프 : "20230314_90개모집단-57개추출-붉은점" 폴더 참조 (점 개수 : 10000)
 
 
 # ********************************************************************************************
