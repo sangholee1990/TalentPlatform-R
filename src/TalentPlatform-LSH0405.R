@@ -121,12 +121,8 @@ gridData = noncompliance::expand.grid.DT(
   newLon
   , newLat
   , col.names = c("lon", "lat")
-<<<<<<< HEAD
 ) %>% 
   as.tibble()
-=======
-)
->>>>>>> origin/main
 
 # fileInfo = Sys.glob(file.path(globalVar$inpPath, "mapImageToData.xlsx"))
 # fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0195_일식 식분도 이미지 데이터 추출.xlsx"))
@@ -169,11 +165,8 @@ typeList = data$type %>% unique()
 # typeInfo = typeList[1]
 for (typeInfo in typeList) {
 
-<<<<<<< HEAD
   # if (! stringr::str_detect(typeInfo, regex("1134.7.23_O|1167.4.21_O|1199.1.28_O"))) { next }
 
-=======
->>>>>>> origin/main
   tmpData = data %>%
     as.tibble() %>%
     dplyr::filter(
@@ -240,7 +233,6 @@ for (typeInfo in typeList) {
 # 시트에 따른 데이터 병합
 # **************************************************
 # sheetList = c(1)
-<<<<<<< HEAD
 # sheetName = "남송(57)"
 
 # sheetList = c(2)
@@ -248,12 +240,6 @@ for (typeInfo in typeList) {
 
 sheetList = c(1, 2)
 sheetName = "남송(57)+남송추가(33)"
-=======
-# sheetName = "모집단163개"
-
-sheetList = c(2)
-sheetName = "모집단86개"
->>>>>>> origin/main
 
 # sheetInfo = sheetList[1]
 dataL3 = tibble::tibble()
@@ -350,11 +336,7 @@ dataL4 = dataL3 %>%
 # dataL4$meanVal = round(dataL4$meanVal, 3)
 # cat(sprintf("[CHECK] type : %s", dataL4$type %>% unique %>% length), "\n")
 
-<<<<<<< HEAD
 # summary(dataL4)
-=======
-summary(dataL4)
->>>>>>> origin/main
 
 maxData = dataL4 %>%
   dplyr::ungroup() %>%
@@ -371,17 +353,12 @@ posData = dataL4 %>%
 cat(sprintf("[CHECK] maxData : %s", maxData$meanVal), "\n")
 cat(sprintf("[CHECK] posData : %s", posData$meanVal), "\n")
 
-<<<<<<< HEAD
 # setBreakCont = c(seq(0.51, 0, -0.02))
 # setBreakText = c(seq(0.51, 0.10, -0.02))
 
 maxFloorVal = floor(maxData$meanVal * 100) / 100
 setBreakCont = c(seq(maxFloorVal, 0, -0.02))
 setBreakText = c(seq(maxFloorVal, 0.10, -0.02))
-=======
-setBreakCont = c(seq(0.51, 0, -0.02))
-setBreakText = c(seq(0.51, 0.10, -0.02))
->>>>>>> origin/main
 
 # 지점(경도90-위도10) 선택
 #    xAxis yAxis meanVal posVal sampleInfo
@@ -390,7 +367,6 @@ setBreakText = c(seq(0.51, 0.10, -0.02))
 # bootData %>%
 #   dplyr::filter(xAxis == 90, yAxis == 10)
 
-<<<<<<< HEAD
 # 평균식분도 결과 : "20230313_남송(57)의 평균식분도" 폴더 참조
 # 최대평균 : 0.44385300963374 
 # 경주지점 : 0.435081836758275 
@@ -404,20 +380,11 @@ setBreakText = c(seq(0.51, 0.10, -0.02))
 # 경주지점 : 0.251390980986777 
 
 # https://drive.google.com/drive/folders/1Nj1sV6Q-w4K2LXdXyM6GAWZvEIq5AjlL?usp=sharing
-=======
-# 평균식분도 결과 : "20230306_86개 모집단의 평균식분도" 폴더 참조
-# 최대평균 : 0.518542217867816
-# 경주지점 : 0.468578825517671
->>>>>>> origin/main
 
 # dataL4 %>% 
 #   dplyr::filter(yAxis == 50)
 
 saveImg = sprintf("%s/%s/%s_%s.png", globalVar$figPath, serviceName, sheetName, "Mean_Color")
-<<<<<<< HEAD
-=======
-
->>>>>>> origin/main
 makePlot = ggplot(data = dataL4, aes(x = xAxis, y = yAxis, fill = meanVal, z = meanVal)) +
   geom_raster(interpolate = TRUE, na.rm = TRUE) +
   # metR::geom_contour_fill(na.fill = TRUE, kriging = TRUE) +
@@ -442,13 +409,8 @@ ggsave(makePlot, filename = saveImg, width = 10, height = 10, dpi = 600)
 # ggplot2::last_plot()
 cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 
-<<<<<<< HEAD
 
 saveImg = sprintf("%s/%s/%s_%s.png", globalVar$figPath, serviceName, sheetName, "Mean_Black")
-=======
-saveImg = sprintf("%s/%s/%s_%s.png", globalVar$figPath, serviceName, sheetName, "Mean_Black")
-
->>>>>>> origin/main
 makePlot = ggplot(data = dataL4, aes(x = xAxis, y = yAxis, z = meanVal)) +
   # geom_raster(interpolate = TRUE, na.rm = TRUE) +
   # scale_fill_gradientn(colours = cbMatlab, limits = c(0, 1.0), breaks = seq(0, 1.0, 0.2), na.value = NA) +
@@ -474,10 +436,7 @@ ggsave(makePlot, filename = saveImg, width = 10, height = 10, dpi = 600)
 cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 
 
-<<<<<<< HEAD
 
-=======
->>>>>>> origin/main
 # **************************************************
 # 시뮬레이션 모의
 # **************************************************
