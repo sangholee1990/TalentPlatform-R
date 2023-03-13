@@ -48,7 +48,7 @@ if (env == "local") {
 # 라이브러리 읽기
 library(ggmap)
 library(tidyverse)
-ggmap::register_google(key = "AIzaSyD0d6wMKB4UHwtVkHIPhWISq4MkzDFqdu4")
+# ggmap::register_google(key = "")
 
 # 강원도 춘천 영역
 posLon = 127.7357

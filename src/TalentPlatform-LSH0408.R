@@ -55,7 +55,7 @@ library(gridExtra)
 library(cowplot)
 library(viridis)
 library(tidyverse)
-ggmap::register_google(key = "AIzaSyD0d6wMKB4UHwtVkHIPhWISq4MkzDFqdu4")
+# ggmap::register_google(key = "")
 
 
 # ------------------------------------------------------------------
