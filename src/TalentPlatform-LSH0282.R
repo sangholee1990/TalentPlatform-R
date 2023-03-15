@@ -199,6 +199,9 @@ testData = tibble(dtDate = seq(minDate, maxDate, "1 month")) %>%
 
 typeList = dataL4$type %>% unique() %>% sort()
 sizeList = dataL4$size %>% unique() %>% sort()
+
+# typeInfo = "MS-6002(BK)"
+# sizeInfo = "265"
 for (typeInfo in typeList) {
   for (sizeInfo in sizeList) {
     
@@ -210,7 +213,8 @@ for (typeInfo in typeList) {
     
     # if (nrow(trainData) < 5) { next }
     if (nrow(trainData) < 10) { next }
-    
+
+    # 판매량 중복 개수 검사
     cntList = trainData$cnt %>% unique() %>% sort()
     if (length(cntList) < 2) { next }
     
@@ -239,46 +243,58 @@ for (typeInfo in typeList) {
     # 모형 학습
     saveModel = sprintf("%s/%s/%s/%s-%s-%s-%s-%s.model", globalVar$outPath, serviceName, "AI-MODEL", "final", "h2o", typeInfo, sizeInfo, format(Sys.time(), "%Y%m%d"))
     dir.create(fs::path_dir(saveModel), showWarnings = FALSE, recursive = TRUE)
-    
-    tryCatch(
-      expr = {
-        
-        # 초기화
-        amlModel = NA
-        h2o::h2o.init(port = 8080, bind_to_localhost = FALSE)
-        
-        # 학습 모형이 없는 경우
-        if (! fs::file_exists(saveModel)) {
+
+    # 3번 재시도 수행
+    for (i in 1:3) {
+
+      tryCatch(
+        expr = {
+
+          # 초기화
+          amlModel = NA
+          h2o::h2o.init(port = 8080, bind_to_localhost = FALSE)
+          # h2o::h2o.init(bind_to_localhost = FALSE)
+
+          # 학습 모형이 없는 경우
+          # if (! fs::file_exists(saveModel)) {
+
+          # 학습 모형에 관계없이 매번 수행
           amlModel = h2o::h2o.automl(
             x = c("dtXran", "dtYear", "dtMonth")
             , y = c("cnt")
             , training_frame = h2o::as.h2o(trainData)
             , validation_frame = h2o::as.h2o(trainData)
-            , nfolds = 2
+            # , nfolds = 2
+              # , max_models = 30
             , sort_metric = "RMSE"
             , stopping_metric = "RMSE"
             , seed = 1
-            # , max_models = 10
             , max_runtime_secs = 60
           )
-          
+
           amlBestModel = h2o::h2o.get_best_model(amlModel)
           # h2o::h2o.saveModel(object = amlBestModel, path = fs::path_dir(saveModel), filename = fs::path_file(saveModel), force = TRUE)
           h2o::h2o.save_mojo(object = amlBestModel, path = fs::path_dir(saveModel), filename = fs::path_file(saveModel), force = TRUE)
+          # }
+
+          if (fs::file_exists(saveModel) && stringr::str_detect(class(amlModel)[1], "H2OAutoML|H2ORegressionModel")) {
+
+            # 모형 불러오기
+            amlModel = h2o::h2o.import_mojo(saveModel)
+
+            # 모형 예측
+            testData$prdAML = as.data.frame(h2o::h2o.predict(object = amlModel, newdata = as.h2o(testData)))$predict
+          }
+
+          h2o::h2o.shutdown(prompt = FALSE)
+
+          # 모형 예측 중복 개수 검사
+          # 2개 이상일 경우 반복문 중지
+          cntList = testData$prdAML %>% unique() %>% sort()
+          if (length(cntList) > 1) { break }
         }
-        
-        if (fs::file_exists(saveModel) && stringr::str_detect(class(amlModel)[1], "H2OAutoML|H2ORegressionModel")) {
-          
-          # 모형 불러오기
-          amlModel = h2o::h2o.import_mojo(saveModel)
-          
-          # 모형 예측 
-          testData$prdAML = as.data.frame(h2o::h2o.predict(object = amlModel, newdata = as.h2o(testData)))$predict
-        }
-        
-        h2o::h2o.shutdown(prompt = FALSE)
-      }
-    )
+      )
+    }
     
     # ******************************************************************************
     # 자료 병합
