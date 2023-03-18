@@ -80,25 +80,27 @@ ctpMapInfo = Sys.glob(file.path(globalVar$mapPath, "koreaInfo/TL_SCCO_CTPRVN.shp
   sf::st_read(quiet = TRUE, options = "ENCODING=EUC-KR") %>%
   sf::st_transform(sp::CRS("+proj=longlat"))
 
+# makePlot = ggplot(data = ctpMapInfo, aes(x = NULL, y = NULL, fill = NULL, z = NULL, label = CTP_KOR_NM)) +
+#   theme_bw() +
+#   coord_fixed(ratio = 1) +
+#   labs(x = NULL, y = NULL) +
+#   geom_sf(color = "black", fill = NA) +
+#   geom_sf_text(color = "black", size = 3)
+#
+# mainTitle = sprintf("%s", "ctpMapInfo")
+# saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
+# dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
+# ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
+# cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+
 makePlot = ggplot(data = ctpMapInfo, aes(x = NULL, y = NULL, fill = NULL, z = NULL, label = CTP_KOR_NM)) +
   theme_bw() +
   coord_fixed(ratio = 1) +
   labs(x = NULL, y = NULL) +
   geom_sf(color = "black", fill = NA) +
-  geom_sf_text(color = "black", size = 3)
-
-mainTitle = sprintf("%s", "ctpMapInfo")
-saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
-dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
-ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
-cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
-
-makePlot = ggplot(data = ctpMapInfo, aes(x = NULL, y = NULL, fill = NULL, z = NULL, label = CTP_KOR_NM)) +
-  theme_bw() +
-  coord_fixed(ratio = 1) +
-  labs(x = NULL, y = NULL) +
-  geom_sf(color = "black", fill = NA) #+
-# geom_sf_text(color = "black", size = 3)
+  ggspatial::annotation_scale(location = "br", bar_cols = c("grey60", "white"), text_family = "ArcherPro Book", width_hint = 0.2) +
+  ggspatial::annotation_north_arrow(location = "tr", which_north = "true", pad_x = unit(0.1, "in"), pad_y = unit(0.1, "in"), style = ggspatial::north_arrow_nautical(fill = c("grey40", "white"), line_col = "grey20", text_family = "ArcherPro Book"))
+  # geom_sf_text(color = "black", size = 3)
 
 mainTitle = sprintf("%s", "ctpMapInfo-noLabel")
 saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
@@ -113,24 +115,26 @@ sigMapInfo = Sys.glob(file.path(globalVar$mapPath, "koreaInfo/TL_SCCO_SIG.shp"))
   sf::st_read(quiet = TRUE, options = "ENCODING=EUC-KR") %>%
   sf::st_transform(sp::CRS("+proj=longlat"))
 
+# makePlot = ggplot(data = sigMapInfo, aes(x = NULL, y = NULL, fill = NULL, z = NULL, label = SIG_KOR_NM)) +
+#   theme_bw() +
+#   coord_fixed(ratio = 1) +
+#   labs(x = NULL, y = NULL) +
+#   geom_sf(color = "black", fill = NA) +
+#   geom_sf_text(color = "black", size = 2)
+#
+# mainTitle = sprintf("%s", "sigMapInfo")
+# saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
+# dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
+# ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
+# cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+
 makePlot = ggplot(data = sigMapInfo, aes(x = NULL, y = NULL, fill = NULL, z = NULL, label = SIG_KOR_NM)) +
   theme_bw() +
   coord_fixed(ratio = 1) +
   labs(x = NULL, y = NULL) +
   geom_sf(color = "black", fill = NA) +
-  geom_sf_text(color = "black", size = 2)
-
-mainTitle = sprintf("%s", "sigMapInfo")
-saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
-dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
-ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
-cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
-
-makePlot = ggplot(data = sigMapInfo, aes(x = NULL, y = NULL, fill = NULL, z = NULL, label = SIG_KOR_NM)) +
-  theme_bw() +
-  coord_fixed(ratio = 1) +
-  labs(x = NULL, y = NULL) +
-  geom_sf(color = "black", fill = NA) #+
+  ggspatial::annotation_scale(location = "br", bar_cols = c("grey60", "white"), text_family = "ArcherPro Book", width_hint = 0.2) +
+  ggspatial::annotation_north_arrow(location = "tr", which_north = "true", pad_x = unit(0.1, "in"), pad_y = unit(0.1, "in"), style = ggspatial::north_arrow_nautical(fill = c("grey40", "white"), line_col = "grey20", text_family = "ArcherPro Book"))
 # geom_sf_text(color = "black", size = 2)
 
 mainTitle = sprintf("%s", "sigMapInfo-noLabel")
@@ -156,7 +160,9 @@ makePlot = ggplot(data = dongMapInfo, aes(x = NULL, y = NULL, fill = NULL, z = N
   theme_bw() +
   coord_fixed(ratio = 1) +
   labs(x = NULL, y = NULL) +
-  geom_sf(color = "black", fill = NA) # +
+  geom_sf(color = "black", fill = NA) +
+  ggspatial::annotation_scale(location = "br", bar_cols = c("grey60", "white"), text_family = "ArcherPro Book", width_hint = 0.2) +
+  ggspatial::annotation_north_arrow(location = "tr", which_north = "true", pad_x = unit(0.1, "in"), pad_y = unit(0.1, "in"), style = ggspatial::north_arrow_nautical(fill = c("grey40", "white"), line_col = "grey20", text_family = "ArcherPro Book"))
 # geom_sf_text(color = "black", size = 5)
 
 mainTitle = sprintf("%s", "dongMapInfo-noLabel")
@@ -165,24 +171,26 @@ dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
 ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
 cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 
+# makePlot = ggplot(data = dongMapInfoL1, aes(x = NULL, y = NULL, fill = NULL, z = NULL, label = adm_dr_nm)) +
+#   theme_bw() +
+#   coord_fixed(ratio = 1) +
+#   labs(x = NULL, y = NULL) +
+#   geom_sf(color = "black", fill = NA) +
+#   geom_sf_text(color = "black", size = 2)
+#
+# mainTitle = sprintf("%s", "dongDtlMapInfo")
+# saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
+# dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
+# ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
+# cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+
 makePlot = ggplot(data = dongMapInfoL1, aes(x = NULL, y = NULL, fill = NULL, z = NULL, label = adm_dr_nm)) +
   theme_bw() +
   coord_fixed(ratio = 1) +
   labs(x = NULL, y = NULL) +
   geom_sf(color = "black", fill = NA) +
-  geom_sf_text(color = "black", size = 2)
-
-mainTitle = sprintf("%s", "dongDtlMapInfo")
-saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
-dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
-ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
-cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
-
-makePlot = ggplot(data = dongMapInfoL1, aes(x = NULL, y = NULL, fill = NULL, z = NULL, label = adm_dr_nm)) +
-  theme_bw() +
-  coord_fixed(ratio = 1) +
-  labs(x = NULL, y = NULL) +
-  geom_sf(color = "black", fill = NA) #+
+  ggspatial::annotation_scale(location = "br", bar_cols = c("grey60", "white"), text_family = "ArcherPro Book", width_hint = 0.2) +
+  ggspatial::annotation_north_arrow(location = "tr", which_north = "true", pad_x = unit(0.1, "in"), pad_y = unit(0.1, "in"), style = ggspatial::north_arrow_nautical(fill = c("grey40", "white"), line_col = "grey20", text_family = "ArcherPro Book"))
 # geom_sf_text(color = "black", size = 5)
 
 mainTitle = sprintf("%s", "dongDtlMapInfo-noLabel")
@@ -191,24 +199,26 @@ dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
 ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
 cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 
+# makePlot = ggplot(data = dongMapInfoL2, aes(x = NULL, y = NULL, fill = NULL, z = NULL, label = adm_dr_nm)) +
+#   theme_bw() +
+#   coord_fixed(ratio = 1) +
+#   labs(x = NULL, y = NULL) +
+#   geom_sf(color = "black", fill = NA) +
+#   geom_sf_text(color = "black", size = 4)
+#
+# mainTitle = sprintf("%s", "dongDtl2MapInfo")
+# saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
+# dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
+# ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
+# cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+
 makePlot = ggplot(data = dongMapInfoL2, aes(x = NULL, y = NULL, fill = NULL, z = NULL, label = adm_dr_nm)) +
   theme_bw() +
   coord_fixed(ratio = 1) +
   labs(x = NULL, y = NULL) +
   geom_sf(color = "black", fill = NA) +
-  geom_sf_text(color = "black", size = 4)
-
-mainTitle = sprintf("%s", "dongDtl2MapInfo")
-saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
-dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
-ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
-cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
-
-makePlot = ggplot(data = dongMapInfoL2, aes(x = NULL, y = NULL, fill = NULL, z = NULL, label = adm_dr_nm)) +
-  theme_bw() +
-  coord_fixed(ratio = 1) +
-  labs(x = NULL, y = NULL) +
-  geom_sf(color = "black", fill = NA) # +
+  ggspatial::annotation_scale(location = "br", bar_cols = c("grey60", "white"), text_family = "ArcherPro Book", width_hint = 0.2) +
+  ggspatial::annotation_north_arrow(location = "tr", which_north = "true", pad_x = unit(0.1, "in"), pad_y = unit(0.1, "in"), style = ggspatial::north_arrow_nautical(fill = c("grey40", "white"), line_col = "grey20", text_family = "ArcherPro Book"))
   # geom_sf_text(color = "black", size = 4)
 
 mainTitle = sprintf("%s", "dongDtl2MapInfo-noLabel")
@@ -216,6 +226,7 @@ saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
 dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
 ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
 cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+
 
 # ================================================
 # 20230314 특정 지역 선정

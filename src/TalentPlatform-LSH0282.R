@@ -200,6 +200,13 @@ testData = tibble(dtDate = seq(minDate, maxDate, "1 month")) %>%
 typeList = dataL4$type %>% unique() %>% sort()
 sizeList = dataL4$size %>% unique() %>% sort()
 
+# h2o::h2o.shutdown(prompt = FALSE)
+
+# h2o::h2o.init()
+h2o::h2o.init(port = 8080, bind_to_localhost = TRUE)
+# h2o::h2o.init(bind_to_localhost = FALSE)
+
+
 # typeInfo = "MS-6002(BK)"
 # sizeInfo = "265"
 for (typeInfo in typeList) {
@@ -252,8 +259,6 @@ for (typeInfo in typeList) {
 
           # 초기화
           amlModel = NA
-          h2o::h2o.init(port = 8080, bind_to_localhost = FALSE)
-          # h2o::h2o.init(bind_to_localhost = FALSE)
 
           # 학습 모형이 없는 경우
           # if (! fs::file_exists(saveModel)) {
@@ -286,8 +291,6 @@ for (typeInfo in typeList) {
             testData$prdAML = as.data.frame(h2o::h2o.predict(object = amlModel, newdata = as.h2o(testData)))$predict
           }
 
-          h2o::h2o.shutdown(prompt = FALSE)
-
           # 모형 예측 중복 개수 검사
           # 2개 이상일 경우 반복문 중지
           cntList = testData$prdAML %>% unique() %>% sort()
@@ -295,7 +298,7 @@ for (typeInfo in typeList) {
         }
       )
     }
-    
+
     # ******************************************************************************
     # 자료 병합
     # ******************************************************************************
@@ -314,6 +317,8 @@ for (typeInfo in typeList) {
     
   }
 }
+
+h2o::h2o.shutdown(prompt = FALSE)
 
 
 #================================================
