@@ -138,12 +138,16 @@ fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "LSH0399_일식 �
 # 시트 1 : 모집단163개
 # sheetInfo = 1
 
-# 시트 1 : 모집단86개
-sheetInfo = 2
+# 시트 2 : 모집단86개
+# sheetInfo = 2
+
+# 시트 3 : 양자강집단84개
+sheetInfo = 3
 
 sheetName = dplyr::case_when(
   sheetInfo == 1 ~ "모집단163개"
   , sheetInfo == 2 ~ "모집단86개"
+  , sheetInfo == 3 ~ "양자강집단84개"
   , TRUE ~ NA_character_
 )
 
@@ -231,8 +235,11 @@ sheetName = dplyr::case_when(
 # sheetList = c(1)
 # sheetName = "모집단163개"
 
-sheetList = c(2)
-sheetName = "모집단86개"
+# sheetList = c(2)
+# sheetName = "모집단86개"
+
+sheetList = c(3)
+sheetName = "양자강집단84개"
 
 # sheetInfo = sheetList[1]
 dataL3 = tibble::tibble()
@@ -481,7 +488,8 @@ posLat = 35.8
 # cat(sprintf("[CHECK] saveFile : %s", saveFile), "\n")
 
 options(future.globals.maxSize = 9999999999999999)
-plan(multisession, workers = parallelly::availableCores() - 5)
+plan(multisession, workers = parallelly::availableCores() - 2)
+# plan(multisession, workers = parallelly::availableCores() - 5)
 # plan(multisession, workers = parallelly::availableCores() - 10)
 # plan(multisession, workers = parallelly::availableCores() - 20)
 # future::plan(multisession, workers = 10)
@@ -625,7 +633,7 @@ for (bootNum in bootNumList) {
     if (length(fileList) < 1) { next }
 
     sampleData = readr::read_csv(file = fileList, show_col_types = FALSE) %>%
-      dplyr::mutate(sampleInfo = paste(X1, X2, X3, X4, X5, X6, X7, X8, X9, X10, X11, X12, X13, X14, X15, X16, sep = "-")) %>%
+      tidyr::unite(sampleInfo, sep = "-") %>%
       dplyr::select(sampleInfo)
 
     # saveFile = sprintf("%s/%s/bootSelData_%s-%s-%s_%s-%s.csv", globalVar$outPath, serviceName, bootNum, bootDo, bootIdx, posLon, posLat)
@@ -671,8 +679,8 @@ for (bootNum in bootNumList) {
       meanVal >= 0.70
     )
 
-  # plotData = bootDataL2
-  plotData = bootDataL3
+  plotData = bootDataL2
+  # plotData = bootDataL3
 
   saveImg = sprintf("%s/%s/%s-%s_%s-%s_%s-%s.png", globalVar$figPath, serviceName, sheetName, "Hist", bootNum, bootDo, posLon, posLat)
   dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
@@ -818,9 +826,11 @@ for (bootNum in bootNumList) {
 #   ) %>%
 #   dplyr::summarise(cnt = n())
 
-# 위도 경도 그래프 : "20230306_86개모집단-16개추출-붉은점" 폴더 참조 (점 개수 : 10000)
-# 위도 경도 그래프 : "20230306_86개모집단-16개추출-붉은점0.7이상" 폴더 참조 (점 개수 : 895)
+# 빈도분포 그래프 : "20230205_붉은점0.75이상_빈도분포" 폴더 참조
+# https://drive.google.com/drive/folders/1WFYlYk71aQNaXm4MlsLd9A_MWe7ijSjq?usp=sharing
 
+# 콘솔화면, 막대그래프와 밀집그래프 : "20230320_84개모집단-16개추출-붉은점" 폴더 참조
+# https://drive.google.com/drive/folders/1WFtFfjP6hOCp737qJciNDMvhSlQQpaKc?usp=sharing
 
 # ********************************************************************************************
 # 20221225_부스스트랩 주사위 목록

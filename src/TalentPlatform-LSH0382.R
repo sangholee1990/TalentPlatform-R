@@ -129,7 +129,8 @@ gridData = noncompliance::expand.grid.DT(
 # fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0259_일식 식분도 이미지 데이터 추출.xlsx"))
 # fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0330_일식 식분도 이미지 데이터 추출.xlsx"))
 # fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0382_일식 식분도 이미지 데이터 추출.xlsx"))
-fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "일식 식분도 이미지 데이터 추출.xlsx"))
+# fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "일식 식분도 이미지 데이터 추출.xlsx"))
+fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "LSH0382_일식 식분도 이미지 데이터 추출.xlsx"))
 
 # **************************************************
 # 시트 선택
@@ -928,10 +929,10 @@ for (bootNum in bootNumList) {
   bootDataL2 = bootData %>%
     dplyr::distinct(xAxis, yAxis, meanVal, posVal, keep_all = TRUE) %>%
     # dplyr::distinct(xAxis, yAxis, meanVal, posVal, sampleInfo, keep_all = TRUE) %>%
-    # dplyr::filter(
+    dplyr::filter(
     #   # posVal >= 0.68
-    #   posVal >= 0.69
-    # ) %>%
+      posVal >= 0.69
+    ) %>%
     dplyr::slice(1:10000)
 
   # 평균식분도 최대값 0.78 이상
@@ -955,10 +956,10 @@ for (bootNum in bootNumList) {
   dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
   png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
   
-  histData = hist(bootDataL2$meanVal)
-  hist(bootDataL2$meanVal, main = NULL, xlab = NULL)
-  text(histData$mids, histData$counts + 50, labels = histData$counts)
-  
+  histData = hist(plotData$meanVal)
+  hist(plotData$meanVal, main = NULL, xlab = NULL)
+  text(histData$mids, histData$counts, pos = 3, labels = histData$counts)
+
   dev.off()
   cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
   
