@@ -280,7 +280,9 @@ for (sheetInfo in sheetList) {
 # **************************************************
 # 공간 평균
 # **************************************************
-cat(sprintf("[CHECK] type : %s", dataL3$type %>% unique %>% length), "\n")
+typeList = dataL3$type %>% unique()
+cat(sprintf("[CHECK] typeList : %s", length(typeList)), "\n")
+print(typeList)
 
 # 표본 주사위
 # sampleData = openxlsx::read.xlsx(fileInfo, sheet = "그룹정보")
@@ -343,8 +345,12 @@ maxData = dataL4 %>%
   dplyr::filter(meanVal == max(meanVal, na.rm = TRUE))
 
 # 경주 지점
-posLon = 129.2
-posLat = 35.8
+# posLon = 129.2
+# posLat = 35.8
+
+# # 특정 지점
+# posLon = 114
+# posLat = 32
 
 posData = dataL4 %>%
   dplyr::ungroup() %>%
@@ -353,22 +359,17 @@ posData = dataL4 %>%
 cat(sprintf("[CHECK] maxData : %s", maxData$meanVal), "\n")
 cat(sprintf("[CHECK] posData : %s", posData$meanVal), "\n")
 
-setBreakCont = c(seq(0.51, 0, -0.02))
-setBreakText = c(seq(0.51, 0.10, -0.02))
+maxFloorVal = floor(maxData$meanVal * 100) / 100
 
-# 지점(경도90-위도10) 선택
-#    xAxis yAxis meanVal posVal sampleInfo
-#    <dbl> <dbl>   <dbl>  <dbl> <chr>
-#  1    90    10   0.416 0.291  79-155-46-22-117-114-26-123-107-128-27(0.96)-45-40-31-70-72
-# bootData %>%
-#   dplyr::filter(xAxis == 90, yAxis == 10)
+setBreakCont = c(seq(maxFloorVal, 0, -0.04))
+setBreakText = c(seq(maxFloorVal, 0, -0.04))
+# setBreakCont = c(seq(0.51, 0, -0.02))
+# setBreakText = c(seq(0.51, 0.10, -0.02))
 
-# 평균식분도 결과 : "20230306_86개 모집단의 평균식분도" 폴더 참조
-# 최대평균 : 0.518542217867816
-# 경주지점 : 0.468578825517671
+# 평균식분도 결과 : "20230320_양자강집단84개의 평균식분도" 폴더 참조
+# 최대평균 : 0.566372856131227
+# 경주지점 : 0.483112241120878
 
-# dataL4 %>% 
-#   dplyr::filter(yAxis == 50)
 
 saveImg = sprintf("%s/%s/%s_%s.png", globalVar$figPath, serviceName, sheetName, "Mean_Color")
 
@@ -457,8 +458,12 @@ bootDo = 10000
 # bootDo = 300000
 
 # 경주 지점
-posLon = 129.2
-posLat = 35.8
+# posLon = 129.2
+# posLat = 35.8
+
+# 특정 지점
+posLon = 114
+posLat = 32
 
 # 부트스트랩 주사위 목록
 # bostSample = lapply(1:bootDo, function(i) sample(sampleInfo, size = 14, replace = FALSE))
@@ -527,7 +532,8 @@ for (bootIdx in bootIdxList) {
     bostSampleL1 = data.frame(t(sapply(bostSample, c)))
     # saveFile = sprintf("%s/%s/bostSampleL1_%s-%s.csv", globalVar$outPath, serviceName, bootNum, bootDo)
     # saveFile = sprintf("%s/%s/bostSampleL1_%s-%s-%s.csv", globalVar$outPath, serviceName, bootNum, bootDo, bootIdx)
-    saveFile = sprintf("%s/%s/%s_bostSampleL1_%s-%s-%s.csv", globalVar$outPath, serviceName, sheetName, bootNum, bootDo, bootIdx)
+    # saveFile = sprintf("%s/%s/%s_bostSampleL1_%s-%s-%s.csv", globalVar$outPath, serviceName, sheetName, bootNum, bootDo, bootIdx)
+    saveFile = sprintf("%s/%s/%s_bostSampleL1_%s-%s-%s_%s-%s.csv", globalVar$outPath, serviceName, sheetName, bootNum, bootDo, bootIdx, posLon, posLat)
     dir.create(path_dir(saveFile), showWarnings = FALSE, recursive = TRUE)
     readr::write_csv(x = bostSampleL1, file = saveFile)
 
@@ -628,7 +634,8 @@ for (bootNum in bootNumList) {
   bootData = tibble::tibble()
   for (bootIdx in bootIdxList) {
     # saveFile = sprintf("%s/%s/bostSampleL1_%s-%s-%s.csv", globalVar$outPath, serviceName, bootNum, bootDo, bootIdx)
-    saveFile = sprintf("%s/%s/%s_bostSampleL1_%s-%s-%s.csv", globalVar$outPath, serviceName, sheetName, bootNum, bootDo, bootIdx)
+    # saveFile = sprintf("%s/%s/%s_bostSampleL1_%s-%s-%s.csv", globalVar$outPath, serviceName, sheetName, bootNum, bootDo, bootIdx)
+    saveFile = sprintf("%s/%s/%s_bostSampleL1_%s-%s-%s_%s-%s.csv", globalVar$outPath, serviceName, sheetName, bootNum, bootDo, bootIdx, posLon, posLat)
     fileList = Sys.glob(saveFile)
     if (length(fileList) < 1) { next }
 
@@ -658,13 +665,14 @@ for (bootNum in bootNumList) {
 
   # 경주지점 0.68 이상
   # 경주지점 0.69 이상
+  # 특정지점 0.70 이상
   bootDataL2 = bootData %>%
     dplyr::distinct(xAxis, yAxis, meanVal, posVal, keep_all = TRUE) %>%
-    # dplyr::distinct(xAxis, yAxis, meanVal, posVal, sampleInfo, keep_all = TRUE) %>%
-    # dplyr::filter(
+    dplyr::filter(
       # posVal >= 0.68
       # posVal >= 0.69
-    # ) %>%
+      posVal >= 0.70
+    ) %>%
     dplyr::slice(1:10000)
 
   # 평균식분도 최대값 0.78 이상
@@ -685,9 +693,10 @@ for (bootNum in bootNumList) {
   saveImg = sprintf("%s/%s/%s-%s_%s-%s_%s-%s.png", globalVar$figPath, serviceName, sheetName, "Hist", bootNum, bootDo, posLon, posLat)
   dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
   png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
+  mainTitle = sprintf("Count : %s",  length(plotData$meanVal))
 
   histData = hist(plotData$meanVal)
-  hist(plotData$meanVal, main = NULL, xlab = NULL)
+  hist(plotData$meanVal, main = mainTitle, xlab = NULL)
   text(histData$mids, histData$counts, pos = 3, labels = histData$counts)
 
   dev.off()
@@ -831,6 +840,9 @@ for (bootNum in bootNumList) {
 
 # 콘솔화면, 막대그래프와 밀집그래프 : "20230320_84개모집단-16개추출-붉은점" 폴더 참조
 # https://drive.google.com/drive/folders/1WFtFfjP6hOCp737qJciNDMvhSlQQpaKc?usp=sharing
+
+# 데이터/그래프 결과 : "20230322_84개모집단-16개추출-붉은점(경도114-위도32)" 폴더 참조
+# https://drive.google.com/drive/folders/1WhesmTuLifsEwo3QstnbRQao6rUS4iHu?usp=sharing
 
 # ********************************************************************************************
 # 20221225_부스스트랩 주사위 목록
