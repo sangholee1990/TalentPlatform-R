@@ -133,7 +133,6 @@ gridData = noncompliance::expand.grid.DT(
 # fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "LSH0399_일식 식분도 이미지 데이터 추출.xlsx"))
 fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "LSH0405_일식 식분도 이미지 데이터 추출.xlsx"))
 
-
 # **************************************************
 # 시트 선택
 # **************************************************
@@ -507,7 +506,8 @@ posLat = 35.8
 # cat(sprintf("[CHECK] saveFile : %s", saveFile), "\n")
 
 options(future.globals.maxSize = 9999999999999999)
-plan(multisession, workers = parallelly::availableCores() - 5)
+plan(multisession, workers = parallelly::availableCores() - 2)
+# plan(multisession, workers = parallelly::availableCores() - 5)
 # plan(multisession, workers = parallelly::availableCores() - 10)
 # plan(multisession, workers = parallelly::availableCores() - 20)
 # future::plan(multisession, workers = 10)
@@ -707,9 +707,10 @@ for (bootNum in bootNumList) {
   saveImg = sprintf("%s/%s/%s-%s_%s-%s_%s-%s.png", globalVar$figPath, serviceName, sheetName, "Hist", bootNum, bootDo, posLon, posLat)
   dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
   png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
+  mainTitle = sprintf("Count : %s",  length(plotData$meanVal))
 
   histData = hist(plotData$meanVal)
-  hist(plotData$meanVal, main = NULL, xlab = NULL)
+  hist(plotData$meanVal, main = mainTitle, xlab = NULL)
   text(histData$mids, histData$counts, pos = 3, labels = histData$counts)
 
   dev.off()
@@ -850,7 +851,6 @@ for (bootNum in bootNumList) {
 
 # 위도 경도 그래프 : "20230306_86개모집단-16개추출-붉은점" 폴더 참조 (점 개수 : 10000)
 # 위도 경도 그래프 : "20230306_86개모집단-16개추출-붉은점0.7이상" 폴더 참조 (점 개수 : 895)
-
 # 위도 경도 그래프 : "20230314_90개모집단-57개추출-붉은점" 폴더 참조 (점 개수 : 10000)
 
 

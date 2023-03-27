@@ -511,7 +511,8 @@ bootNumList = c(16)
 # bootNumList = c(78)
 
 # 병렬횟수 설정
-bootIdxList = seq(1, 1)
+# bootIdxList = seq(1, 1)
+bootIdxList = seq(2, 5)
 # bootIdxList = seq(1, 30)
 # bootIdxList = seq(31, 60)
 # bootIdxList = seq(1, 300)
@@ -627,6 +628,19 @@ bootIdxList = seq(1, 1)
 bootNumList = c(16)
 # bootNumList = c(42)
 # bootNumList = c(16, 30)
+
+# 부트스트랩 횟수
+bootDo = 10000
+
+# 경주 지점
+# posLon = 129.2
+# posLat = 35.8
+
+# 특정 지점
+posLon = 114
+posLat = 32
+
+
 # bootNum = bootNumList[1]
 for (bootNum in bootNumList) {
 

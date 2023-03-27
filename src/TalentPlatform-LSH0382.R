@@ -396,8 +396,12 @@ fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "LSH0382_일식 �
 # 시트 1 : 모집단78개
 sheetInfo = 1
 
+# 시트 4 : 신라픽14개+모집단2개(163)
+sheetInfo = 4
+
 sheetName = dplyr::case_when(
   sheetInfo == 1 ~ "모집단78개"
+  , sheetInfo == 4 ~ "신라픽14개+모집단2개(163)"
   , TRUE ~ NA_character_
 )
 
@@ -481,8 +485,11 @@ sheetName = dplyr::case_when(
 # **************************************************
 # 시트에 따른 데이터 병합
 # **************************************************
-sheetList = c(1)
-sheetName = "모집단78개"
+# sheetList = c(1)
+# sheetName = "모집단78개"
+
+sheetList = c(4)
+sheetName = "신라픽14개+모집단2개(163)"
 
 # sheetInfo = sheetList[1]
 
@@ -524,7 +531,9 @@ for (sheetInfo in sheetList) {
 # **************************************************
 # 공간 평균
 # **************************************************
-cat(sprintf("[CHECK] type : %s",dataL3$type %>% unique %>% length), "\n")
+typeList = dataL3$type %>% unique()
+cat(sprintf("[CHECK] typeList : %s", length(typeList)), "\n")
+print(typeList)
 
 # 표본 주사위
 sampleData = openxlsx::read.xlsx(fileInfo, sheet = "그룹정보")
@@ -536,7 +545,7 @@ sampleData = openxlsx::read.xlsx(fileInfo, sheet = "그룹정보")
 # selList = c(60, 8, 32, 72, 24, 47, 45, 7, 37, 75, 38, 57, 21, 9)
 
 # 붉은점이상치픽
-selList = c(74, 57, 34, 17, 5, 31, 14, 7, 60, 63, 38, 37, 28, 16)
+# selList = c(74, 57, 34, 17, 5, 31, 14, 7, 60, 63, 38, 37, 28, 16)
 
 # sampleData$type %>% unique()
 # sampleData$sampleType %>% unique()
@@ -545,8 +554,8 @@ selList = c(74, 57, 34, 17, 5, 31, 14, 7, 60, 63, 38, 37, 28, 16)
 # dataL4$type %>% unique()
 
 dataL4 = dataL3 %>%
-  dplyr::left_join(sampleData, by = c("type" = "type")) %>%
-  dplyr::filter(sampleType %in% selList) %>%
+  # dplyr::left_join(sampleData, by = c("type" = "type")) %>%
+  # dplyr::filter(sampleType %in% selList) %>%
   # dplyr::filter(type %in% selList) %>%
   dplyr::group_by(xAxis, yAxis) %>%
   dplyr::summarise(
@@ -558,7 +567,7 @@ dataL4 = dataL3 %>%
 
 # cat(sprintf("[CHECK] type : %s", dataL4$type %>% unique %>% length), "\n")
 
-summary(dataL4)
+# summary(dataL4)
 
 maxData = dataL4 %>%
   dplyr::ungroup() %>%
@@ -578,8 +587,9 @@ posData = dataL4 %>%
 # setBreakCont = c(seq(0.78, 0, -0.04))
 # setBreakText = c(seq(0.78, 0.10, -0.04))
 
-setBreakCont = c(seq(0.77, 0, -0.04))
-setBreakText = c(seq(0.77, 0.10, -0.04))
+maxFloorVal = floor(maxData$meanVal * 100) / 100
+setBreakCont = c(seq(maxFloorVal, 0, -0.04))
+setBreakText = c(seq(maxFloorVal, 0, -0.04))
 
 # setBreakCont = c(seq(0.78, 0, -0.04))
 # setBreakText = c(seq(0.78, 0.10, -0.04))
@@ -614,6 +624,10 @@ cat(sprintf("[CHECK] posData : %s", posData$meanVal), "\n")
 # 평균식분도 결과 : "20230305_붉은점이상치픽" 폴더 참조
 # 최대평균 : 0.779541534227114 
 # 경주지점 : 0.711924216798106 
+
+# 평균식분도 결과 : "20230327_신라픽14개+모집단2개(163)" 폴더 참조
+# 최대평균 : 0.711301033231367 (위도 : 114.800, 경도 : 32.4000)
+# 경주지점 : 0.604964449666547
 
 saveImg = sprintf("%s/%s/%s_%s.png", globalVar$figPath, serviceName, sheetName, "Mean_Color")
 
@@ -731,7 +745,8 @@ posLat = 35.8
 # readr::write_csv(x = bostSampleL3, file = saveFile)
 # cat(sprintf("[CHECK] saveFile : %s", saveFile), "\n")
 
-# options(future.globals.maxSize = 9999999999999999)
+options(future.globals.maxSize = 9999999999999999)
+plan(multisession, workers = parallelly::availableCores() - 2)
 # plan(multisession, workers = parallelly::availableCores() - 5)
 # plan(multisession, workers = parallelly::availableCores() - 10)
 # plan(multisession, workers = parallelly::availableCores() - 20)
@@ -749,7 +764,8 @@ bootNumList = c(14)
 # bootNumList = c(78)
 
 # 병렬횟수 설정
-bootIdxList = seq(1, 30)
+bootIdxList = seq(1, 5)
+# bootIdxList = seq(1, 30)
 # bootIdxList = seq(31, 60)
 # bootIdxList = seq(1, 300)
 # bootIdxList = seq(301, 600)
@@ -849,7 +865,8 @@ for (bootIdx in bootIdxList) {
 }
 
 
-bootIdxList = seq(1, 60)
+bootIdxList = seq(1, 5)
+# bootIdxList = seq(1, 60)
 # bootNumList = c(30, 50, 60, 70)
 bootNumList = c(14)
 # bootNumList = c(42)
@@ -933,7 +950,8 @@ for (bootNum in bootNumList) {
     #   # posVal >= 0.68
       posVal >= 0.69
     ) %>%
-    dplyr::slice(1:10000)
+    dplyr::slice(1:1000)
+    # dplyr::slice(1:10000)
 
   # 평균식분도 최대값 0.78 이상
   # 붉은점 0.78 이상
@@ -946,18 +964,24 @@ for (bootNum in bootNumList) {
       meanVal >= 0.75
     )
 
-  # plotData = bootDataL2
-  plotData = bootDataL3
-  
+  plotData = bootDataL2
+  # plotData = bootDataL3
+
+  saveFile = sprintf("%s/%s/bootDataL2_%s-%s-%s_%s-%s.csv", globalVar$outPath, serviceName, bootNum, bootDo, bootIdx, posLon, posLat)
+  dir.create(path_dir(saveFile), showWarnings = FALSE, recursive = TRUE)
+  readr::write_csv(x = bootDataL2, file = saveFile)
+  cat(sprintf("[CHECK] saveFile : %s", saveFile), "\n")
+
   # histData = hist(plotData$meanVal, xlim = c(0.65, 0.90))
   # hist(plotData$meanVal, xlim = c(0.65, 0.90))
   
   saveImg = sprintf("%s/%s/%s-%s_%s-%s_%s-%s.png", globalVar$figPath, serviceName, sheetName, "Hist", bootNum, bootDo, posLon, posLat)
   dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
   png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
+  mainTitle = sprintf("Count : %s",  length(plotData$meanVal))
   
   histData = hist(plotData$meanVal)
-  hist(plotData$meanVal, main = NULL, xlab = NULL)
+  hist(plotData$meanVal, main = mainTitle, xlab = NULL)
   text(histData$mids, histData$counts, pos = 3, labels = histData$counts)
 
   dev.off()
@@ -1131,9 +1155,11 @@ for (bootNum in bootNumList) {
 # 2. 위도 28~34/경도 110~116 구역안의 점 개수 : 69
 # 3. 위도 34~42/경도 124~130 구역안의 점 개수 : 633
 
-# 1. 위도 경도 그래프 : "20230305_붉은점0.75이상" 폴더 참조 (점 개수 : 256 )
+# 1. 위도 경도 그래프 : "20230305_붉은점0.75이상" 폴더 참조 (점 개수 : 256)
 # 2. 위도 28~34/경도 110~116 구역안의 점 개수 : 10
 # 3. 위도 34~42/경도 124~130 구역안의 점 개수 : 32
+
+# 1. 위도 경도 그래프 : "20230305_붉은점0.75이상" 폴더 참조 (점 개수 : 256)
 
 
 # ********************************************************************************************

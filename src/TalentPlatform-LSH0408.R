@@ -57,8 +57,8 @@ library(gridExtra)
 library(cowplot)
 library(viridis)
 library(tidyverse)
+library(RANN)
 # ggmap::register_google(key = "")
-
 
 # ------------------------------------------------------------------
 # ANALYSIS FOR "INVESTIGATING SHERLOCK HOLMES: USING GEOGRAPHIC
@@ -86,12 +86,23 @@ library(tidyverse)
 # ------------------------------------------------------------------
 # IMPORT DATA AND SET PARAMETERS
 # ------------------------------------------------------------------
-criFileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "realpoint.csv"))
-srcFileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "suspect.csv"))
+# 건대입구역 상권 데이터
 
-crime_data = readr::read_csv(criFileInfo)
+# # 유동인구가 방문한 좌표
+# criFileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "realpoint.csv"))
+# crime_data = readr::read_csv(criFileInfo)
+#
+# # 가맹정이 있는 좌표
+# srcFileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "suspect.csv"))
 # source_data = readr::read_csv(srcFileInfo)
-source_data = readr::read_csv(criFileInfo)
+
+# 유동인구가 방문한 좌표
+criFileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "suspect.csv"))
+crime_data = readr::read_csv(criFileInfo)
+
+# 가맹정이 있는 좌표
+srcFileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "realpoint.csv"))
+source_data = readr::read_csv(srcFileInfo)
 
 summary(crime_data)
 summary(source_data)
@@ -139,7 +150,7 @@ length(sourceNames)
 # ------------------------------------------------------------------
 # RUN MCMC
 # ------------------------------------------------------------------
-
+# 유동 인구
 m = RgeoProfile::geoMCMC(data = d, params = p)
 
 # ------------------------------------------------------------------
@@ -164,9 +175,13 @@ map1 <- RgeoProfile::geoPlotMap(params = p,
                                 crimeCol = "black")
 
 # add crimes
-map2 <- map1 + geom_point(aes(x = d$longitude, y = d$latitude), col = "black", size = 0.25, pch = 20)
+# 유동인구
+map2 <- map1 + geom_point(aes(x = d$longitude, y = d$latitude), col = "black", size = 1, pch = 20)
 # add sources
-map3 <- map2 + geom_point(aes(x = s$longitude[1:3], y = s$latitude[1:3]), col = "red", pch = 15, size = 1.5)
+
+# 가맹점
+# map3 <- map2 + geom_point(aes(x = s$longitude[1:3], y = s$latitude[1:3]), col = "red", pch = 15, size = 1.5)
+map3 <- map2 + geom_point(aes(x = s$longitude, y = s$latitude), col = "red", pch = 15, size = 1.5)
 
 # add legend and change size
 map4 <- map3 +
@@ -191,6 +206,102 @@ ggsave(fig1a, filename = saveImg, width = 10, height = 8, dpi = 600)
 cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 
 
+# ************************************************************************
+# 최근접 화소 찾기
+# ************************************************************************
+plotData = fig1a$layers[[3]]$data %>%
+  as.tibble()
+
+nearData = RANN::nn2(
+  data = plotData %>% dplyr::select(x, y)
+  , query = crime_data %>% dplyr::select(X, Y) %>% dplyr::rename(x = X, y = Y)
+  , k = 1
+)
+
+plotDataL2 = dplyr::bind_cols(crime_data, plotData[nearData$nn.idx, ])
+
+# nearData = RANN::nn2(plotDataL1, query = source_data, k = 1)
+# plotDataL2 = dplyr::bind_cols(source_data, plotData[nearData$nn.idx, ])
+
+plotDataL3 = plotDataL2 %>%
+  dplyr::select(ID, X, Y, z, cut, col) %>%
+  dplyr::rename(hitScore = z)
+
+
+plotDataL4 = plotDataL3 %>%
+  dplyr::group_by(cut) %>%
+  dplyr::summarise(
+    meanVal = mean(hitScore, na.rm = TRUE)
+    , sdVal = sd(hitScore, na.rm = TRUE)
+  )
+
+
+
+ggplot(data = plotDataL4, aes(x = cut, y = meanVal, color = cut, group = cut)) +
+  # geom_bar(stat = "identity", width = 0.5, position=position_dodge(width = 0.5), fill = "white", show.legend = FALSE) +
+  # geom_bar_pattern(stat = "identity", width = 0.4, position=position_dodge(width = 0.5)) +
+   geom_point(size = 2.5, pch = c(22, 22, 15, 15), stroke = 1) +
+  # geom_errorbar(aes(ymin=maenVal - sdVal, ymax=maenVal + sdVal), width=.2,  position=position_dodge(.9)) +
+  geom_errorbar(width = 0.3, aes(ymin=meanVal - sdVal, ymax=meanVal + sdVal, group = cut), position = position_dodge(0.5), show.legend = FALSE) +
+  # labs(title = NULL, x = "Season", y = bquote('Concentration  ['*µg/m^3*']'), colour = NULL, fill = NULL, subtitle = plotSubTitle) +
+  # scale_x_datetime(date_labels = "%Y-%m-%d", date_breaks = "1 month") +
+  # scale_x_continuous(minor_breaks = seq(1, 12, 1), breaks=seq(1, 12, 1), limits=c(1,  12)) +
+  # scale_y_continuous(minor_breaks = seq(-0.1, 20, 5), breaks=seq(-0.5, 20, 5), limits=c(-0.5, 20)) +
+  # scale_y_continuous(limits=c(-1.36, 20)) +
+  # scale_x_discrete(labels = c("Cl-" =  bquote(CI^'-'), "SO42-" =  bquote(SO[4]^'2-'), "NO3-" = bquote(NO[3]^'-'))) +
+  theme(
+    text = element_text(size = 18)
+    # , axis.text.x = element_text(angle = 45, hjust = 1)
+    , legend.position = "top"
+  )# +
+  # facet_wrap(~season, scale = "free_x") +
+  # facet_wrap(~season) +
+  # ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
+
+ggplot2::last_plot()
+
+
+
+
+
+
+# ------------------------------------------------------------------
+# Figure 3b error plot of hs for acd sites
+# ------------------------------------------------------------------
+means <- c(mean(response[treatment == "low"]), mean(response[treatment == "medium"]), mean(response[treatment == "high"]))
+sds <- c(sd(response[treatment == "low"]), sd(response[treatment == "medium"]), sd(response[treatment == "high"]))
+lowers <- means - sds
+lowers[3] <- 0
+errorBarDF <- data.frame(Priority = factor(c("low", "med", "high"), c("low", "med", "high")), means = means, lower = lowers, upper = means + sds)
+# error bars
+fig3b <- ggplot(data = errorBarDF,
+                mapping = aes(x = Priority,
+                              ymin = lower,
+                              y = means,
+                              ymax = upper,
+                              col = Priority,
+                              shape = Priority)) +
+  geom_errorbar() +
+  geom_point(size = 2.5, pch = c(22, 15, 15), stroke = 1) +
+  xlab("priority") +
+  ylab("hit score percentage") +
+  theme(legend.position = "none") +
+  scale_color_manual(values = c("black", "darkgray", "red")) +
+  coord_flip() +
+  ggtitle("B") +
+  theme(axis.text = element_text(size = 6),
+        axis.title = element_text(size = 6))
+
+# fig 3b
+
+# create and save fig 3
+figure3 <- grid.arrange(fig3a, fig3b, ncol = 1)
+
+
+
+
+print("adasdasd")
+
 # ------------------------------------------------------------------
 # HITSCORE PERCENTAGES
 # NB hard coded to use first three source names (eg just ACD)
@@ -200,13 +311,13 @@ cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 
 # get hitscores for blue plaques
 hs <- RgeoProfile::geoReportHitscores(params = p, source = s, surface = m$geoProfile)
-hs <- cbind(RgeoProfile::geoReportHitscores(params = p, source = s, surface = m$geoProfile), sourceNames)
+# hs <- cbind(RgeoProfile::geoReportHitscores(params = p, source = s, surface = m$geoProfile), sourceNames)
 head(hs)
 
 # where do ACD sites rank in list?
 ordered <- hs[order(hs[, 3]),]
-which(ordered[, 4] == "ACD")
-which(ordered[, 4] == "ACD") / nrow(ordered)
+# which(ordered[, 4] == "ACD")
+# which(ordered[, 4] == "ACD") / nrow(ordered)
 
 # what is lowest hitscore?
 lowestHS <- which(hs[, 3] == min(hs[, 3]))
@@ -231,7 +342,7 @@ length(which(sort(hs[, 3]) < sherlock_hs[, 3]))
 # author_source <- read.table("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX", header = FALSE)
 # author_source <- read.table(srcFileInfo, header = FALSE)
 # author_source = readr::read_csv(srcFileInfo)
-author_source = readr::read_csv(criFileInfo)
+# author_source = readr::read_csv(criFileInfo)
 
 # remove suspects outside of the sudy area and coverts sources to correct format
 # suspectRowsToInclude <- intersect(
@@ -264,8 +375,8 @@ authorHS
 # should be in four columns, for decimal longitude and decomal latitude, apriority and description
 # acd <- read.table("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX", header = FALSE)
 # acd = readr::read_csv(srcFileInfo)
-# acd = readr::read_csv(srcFileInfo)
-acd = readr::read_csv(criFileInfo)
+acd = readr::read_csv(srcFileInfo)
+# acd = readr::read_csv(criFileInfo)
 
 acd_df <- acd
 # acdCode <- acd[, 3]
@@ -273,6 +384,7 @@ acdCode <- acd$ID
 acdDesc <- acd[,]
 # acd <- geoDataSource(acd[, 1], acd[, 2])
 acd <- geoDataSource(acd$X, acd$Y)
+# acd <- geoDataSource(acd$longitude, acd$latitude)
 # acdHS <- data.frame(geoReportHitscores(params = p, source = acd, surface = m$geoProfile), acdCode, acdDesc[, 4])
 acdHS <- data.frame(geoReportHitscores(params = p, source = acd, surface = m$geoProfile), acdCode, acdDesc$ID)
 acdHS
@@ -313,10 +425,11 @@ map5 <- geoPlotMap(params = zoom_p,
                    gpLegend = TRUE)
 
 # map6 <- map5 + geom_point(aes(x = d$longitude, y = d$latitude), col = "black", size = 0.5, pch = 20)
-map6 <- map5 + geom_point(aes(x = d$longitude, y = d$latitude), col = "black", size = 4, pch = 20)
+map6 <- map5 + geom_point(aes(x = d$longitude, y = d$latitude), col = "black", size = 2, pch = 20)
 
 # add sources
-map7 <- map6 + geom_point(aes(x = s$longitude[1:3], y = s$latitude[1:3]), col = "red", size = 5, pch = 15)
+# map7 <- map6 + geom_point(aes(x = s$longitude[1:3], y = s$latitude[1:3]), col = "red", size = 1.5, pch = 15)
+map7 <- map6 + geom_point(aes(x = s$longitude, y = s$latitude), col = "red", size = 1.5, pch = 15)
 
 
 # add legend and change sizes
@@ -375,10 +488,11 @@ map9 <- geoPlotMap(params = zoom_p2,
                    gpLegend = TRUE)
 
 # map10 <- map9 + geom_point(aes(x = d$longitude, y = d$latitude), col = "black", size = 0.5, pch = 20)
-map10 <- map9 + geom_point(aes(x = d$longitude, y = d$latitude), col = "black", size = 4, pch = 20)
+map10 <- map9 + geom_point(aes(x = d$longitude, y = d$latitude), col = "black", size = 2, pch = 20)
 # add sources
 # map11 <- map10 + geom_point(aes(x = s$longitude[1:3], y = s$latitude[1:3]), col = "red", size = 0.5 + 1, pch = 15)
-map11 <- map10 + geom_point(aes(x = s$longitude[1:3], y = s$latitude[1:3]), col = "red", size = 5, pch = 15)
+# map11 <- map10 + geom_point(aes(x = s$longitude[1:3], y = s$latitude[1:3]), col = "red", size = 5, pch = 15)
+map11 <- map10 + geom_point(aes(x = s$longitude, y = s$latitude), col = "red", size = 1.5, pch = 15)
 
 # add legend and change size
 map12 <- map11 +
@@ -421,7 +535,7 @@ cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 # ------------------------------------------------------------------
 # fig 2 authors only
 # map13 <- map2 + geom_point(aes(x = author_source$longitude, y = author_source$latitude), col = "red", pch = 15, size = 0.5)
-map13 <- map2 + geom_point(aes(x = author_source$X, y = author_source$Y), col = "red", pch = 15, size = 0.5)
+map13 <- map2 + geom_point(aes(x = author_source$X, y = author_source$Y), col = "red", pch = 15, size = 2)
 
 # add labels
 text_nudge <- rep(0.005, 30)
@@ -450,6 +564,8 @@ map15 <- map14 +
 # fig 2
 fig2 <- map15
 
+
+
 mainTitle = sprintf("%s", "fig2")
 saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
 dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
@@ -460,13 +576,13 @@ cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 # Figure 3a acd sites
 # ------------------------------------------------------------------
 # fig 3a
-# highRows <- which(acd_df[, 3] == "high")
-# medRows <- which(acd_df[, 3] == "medium")
-# lowRows <- which(acd_df[, 3] == "low")
-#
-# highS <- geoDataSource(acd_df[highRows, 1], acd_df[highRows, 2])
-# medS <- geoDataSource(acd_df[medRows, 1], acd_df[medRows, 2])
-# lowS <- geoDataSource(acd_df[lowRows, 1], acd_df[lowRows, 2])
+highRows <- which(acd_df[, 3] == "high")
+medRows <- which(acd_df[, 3] == "medium")
+lowRows <- which(acd_df[, 3] == "low")
+
+highS <- geoDataSource(acd_df[highRows, 1], acd_df[highRows, 2])
+medS <- geoDataSource(acd_df[medRows, 1], acd_df[medRows, 2])
+lowS <- geoDataSource(acd_df[lowRows, 1], acd_df[lowRows, 2])
 #
 # # open squares for low priority
 # plusLow <- map1 + geom_point(aes(x = lowS$longitude, y = lowS$latitude), col = "black", size = 1.5, pch = 22)
