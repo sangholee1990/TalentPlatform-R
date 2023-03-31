@@ -394,7 +394,7 @@ fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "LSH0382_일식 �
 # )
 
 # 시트 1 : 모집단78개
-sheetInfo = 1
+# sheetInfo = 1
 
 # 시트 4 : 신라픽14개+모집단2개(163)
 sheetInfo = 4
@@ -944,8 +944,8 @@ for (bootNum in bootNumList) {
   # 경주지점 0.68 이상
   # 경주지점 0.69 이상
   bootDataL2 = bootData %>%
-    dplyr::distinct(xAxis, yAxis, meanVal, posVal, keep_all = TRUE) %>%
-    # dplyr::distinct(xAxis, yAxis, meanVal, posVal, sampleInfo, keep_all = TRUE) %>%
+    # dplyr::distinct(xAxis, yAxis, meanVal, posVal, keep_all = TRUE) %>%
+    dplyr::distinct(xAxis, yAxis, meanVal, posVal, sampleInfo, keep_all = TRUE) %>%
     dplyr::filter(
     #   # posVal >= 0.68
       posVal >= 0.69

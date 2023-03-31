@@ -139,10 +139,10 @@ fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "LSH0399_일식 �
 # sheetInfo = 1
 
 # 시트 2 : 모집단86개
-# sheetInfo = 2
+sheetInfo = 2
 
 # 시트 3 : 양자강집단84개
-sheetInfo = 3
+# sheetInfo = 3
 
 sheetName = dplyr::case_when(
   sheetInfo == 1 ~ "모집단163개"
@@ -235,11 +235,11 @@ sheetName = dplyr::case_when(
 # sheetList = c(1)
 # sheetName = "모집단163개"
 
-# sheetList = c(2)
-# sheetName = "모집단86개"
+sheetList = c(2)
+sheetName = "모집단86개"
 
-sheetList = c(3)
-sheetName = "양자강집단84개"
+# sheetList = c(3)
+# sheetName = "양자강집단84개"
 
 # sheetInfo = sheetList[1]
 dataL3 = tibble::tibble()
@@ -447,7 +447,6 @@ set.seed(123)
 #   dplyr::select(-group, -sampleType)
 
 sampleDataL1 = dataL3
-
 sampleInfo = sampleDataL1$type %>% unique()
 
 # 부트스트랩 횟수
@@ -458,12 +457,12 @@ bootDo = 10000
 # bootDo = 300000
 
 # 경주 지점
-# posLon = 129.2
-# posLat = 35.8
+posLon = 129.2
+posLat = 35.8
 
 # 특정 지점
-posLon = 114
-posLat = 32
+# posLon = 114
+# posLat = 32
 
 # 부트스트랩 주사위 목록
 # bostSample = lapply(1:bootDo, function(i) sample(sampleInfo, size = 14, replace = FALSE))
@@ -486,6 +485,30 @@ posLat = 32
 #
 # bostSampleL3 = bostSampleL2 %>%
 #   dplyr::distinct(X1, X2, X3, X4, X5, X6, X7, X8, X9, X10, X11, X12, X13, X14)
+
+bostSampleL2 = tibble::tibble()
+for (i in 1:nrow(sampleData)) {
+  selData = sampleData[i, ] %>%
+    sort() %>%
+    magrittr::set_colnames(c("X1", "X2", "X3", "X4", "X5", "X6", "X7", "X8", "X9", "X10", "X11", "X12", 'X13', 'X14', 'X15', 'X16'))
+
+  bostSampleL2 = dplyr::bind_rows(bostSampleL2, selData)
+}
+
+bostSampleL3 = bostSampleL2 %>%
+  dplyr::distinct(X1, X2, X3, X4, X5, X6, X7, X8, X9, X10, X11, X12, X13, X14, X15, X16) %>%
+  tidyr::unite(sampleInfo, sep = "-") %>%
+  dplyr::arrange(sampleInfo)
+
+
+sampleRef = c("1", "6", "7", "9", "13", "15", "20", "53", "55", "64", "75", "76", "77", "78", "145(0.96)", "159")
+sampleRef %>%
+  t() %>%
+   as.tibble() %>%
+  sort() %>%
+  tidyr::unite(sampleInfo, sep = "-")
+
+
 #
 # saveFile = sprintf("%s/%s/bostSampleL3_%s-%s.csv", globalVar$outPath, serviceName, bootNum, bootDo)
 # dir.create(path_dir(saveFile), showWarnings = FALSE, recursive = TRUE)
@@ -633,12 +656,12 @@ bootNumList = c(16)
 bootDo = 10000
 
 # 경주 지점
-# posLon = 129.2
-# posLat = 35.8
+posLon = 129.2
+posLat = 35.8
 
 # 특정 지점
-posLon = 114
-posLat = 32
+# posLon = 114
+# posLat = 32
 
 
 # bootNum = bootNumList[1]
@@ -648,8 +671,8 @@ for (bootNum in bootNumList) {
   bootData = tibble::tibble()
   for (bootIdx in bootIdxList) {
     # saveFile = sprintf("%s/%s/bostSampleL1_%s-%s-%s.csv", globalVar$outPath, serviceName, bootNum, bootDo, bootIdx)
-    # saveFile = sprintf("%s/%s/%s_bostSampleL1_%s-%s-%s.csv", globalVar$outPath, serviceName, sheetName, bootNum, bootDo, bootIdx)
-    saveFile = sprintf("%s/%s/%s_bostSampleL1_%s-%s-%s_%s-%s.csv", globalVar$outPath, serviceName, sheetName, bootNum, bootDo, bootIdx, posLon, posLat)
+    saveFile = sprintf("%s/%s/%s_bostSampleL1_%s-%s-%s.csv", globalVar$outPath, serviceName, sheetName, bootNum, bootDo, bootIdx)
+    # saveFile = sprintf("%s/%s/%s_bostSampleL1_%s-%s-%s_%s-%s.csv", globalVar$outPath, serviceName, sheetName, bootNum, bootDo, bootIdx, posLon, posLat)
     fileList = Sys.glob(saveFile)
     if (length(fileList) < 1) { next }
 
@@ -676,6 +699,7 @@ for (bootNum in bootNumList) {
   #  1    90    10   0.416 0.291  79-155-46-22-117-114-26-123-107-128-27(0.96)-45-40-31-70-72
   # bootData %>%
   #   dplyr::filter(xAxis == 90, yAxis == 10)
+
 
   # 경주지점 0.68 이상
   # 경주지점 0.69 이상

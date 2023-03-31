@@ -58,6 +58,9 @@ library(cowplot)
 library(viridis)
 library(tidyverse)
 library(RANN)
+library(gridExtra)
+library(multcomp)
+library(geosphere)
 # ggmap::register_google(key = "")
 
 # ------------------------------------------------------------------
@@ -212,95 +215,106 @@ cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 plotData = fig1a$layers[[3]]$data %>%
   as.tibble()
 
+# 유동 인구 : crime_data
 nearData = RANN::nn2(
   data = plotData %>% dplyr::select(x, y)
   , query = crime_data %>% dplyr::select(X, Y) %>% dplyr::rename(x = X, y = Y)
   , k = 1
 )
 
-plotDataL2 = dplyr::bind_cols(crime_data, plotData[nearData$nn.idx, ])
+plotDataL1 = dplyr::bind_cols(crime_data, plotData[nearData$nn.idx, ])
 
-# nearData = RANN::nn2(plotDataL1, query = source_data, k = 1)
-# plotDataL2 = dplyr::bind_cols(source_data, plotData[nearData$nn.idx, ])
+# plotDataL1$cut %>%  unique() %>% sort()
+plotDataL2 = plotDataL1 %>%
+  dplyr::select(ID, X, Y, z, cut, col) %>%
+  dplyr::rename(hitScore = z) %>%
+  dplyr::mutate(
+    type = dplyr::case_when(
+      0 <= hitScore & hitScore < 10 ~ "low"
+      , 10 <= hitScore & hitScore < 50 ~ "medium"
+      , 50 <= hitScore & hitScore <= 100 ~ "high"
+    )
+  ) %>%
+  dplyr::arrange(desc(hitScore))
+
+saveFile = sprintf("%s/%s/%s 프로파일 등고선.csv", globalVar$outPath, serviceName, "fig1a_유동인구")
+dir.create(path_dir(saveFile), showWarnings = FALSE, recursive = TRUE)
+readr::write_csv(x = plotDataL2, file = saveFile)
+cat(sprintf("[CHECK] saveFile : %s", saveFile), "\n")
 
 plotDataL3 = plotDataL2 %>%
-  dplyr::select(ID, X, Y, z, cut, col) %>%
-  dplyr::rename(hitScore = z)
-
-
-plotDataL4 = plotDataL3 %>%
   dplyr::group_by(cut) %>%
   dplyr::summarise(
     meanVal = mean(hitScore, na.rm = TRUE)
     , sdVal = sd(hitScore, na.rm = TRUE)
   )
 
+mainTitle = sprintf("%s 프로파일 등고선", "fig1a_유동인구")
+saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
+dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
 
-
-ggplot(data = plotDataL4, aes(x = cut, y = meanVal, color = cut, group = cut)) +
-  # geom_bar(stat = "identity", width = 0.5, position=position_dodge(width = 0.5), fill = "white", show.legend = FALSE) +
-  # geom_bar_pattern(stat = "identity", width = 0.4, position=position_dodge(width = 0.5)) +
+makePlot = ggplot(data = plotDataL3, aes(x = cut, y = meanVal, color = cut, group = cut)) +
    geom_point(size = 2.5, pch = c(22, 22, 15, 15), stroke = 1) +
-  # geom_errorbar(aes(ymin=maenVal - sdVal, ymax=maenVal + sdVal), width=.2,  position=position_dodge(.9)) +
   geom_errorbar(width = 0.3, aes(ymin=meanVal - sdVal, ymax=meanVal + sdVal, group = cut), position = position_dodge(0.5), show.legend = FALSE) +
-  # labs(title = NULL, x = "Season", y = bquote('Concentration  ['*µg/m^3*']'), colour = NULL, fill = NULL, subtitle = plotSubTitle) +
-  # scale_x_datetime(date_labels = "%Y-%m-%d", date_breaks = "1 month") +
-  # scale_x_continuous(minor_breaks = seq(1, 12, 1), breaks=seq(1, 12, 1), limits=c(1,  12)) +
-  # scale_y_continuous(minor_breaks = seq(-0.1, 20, 5), breaks=seq(-0.5, 20, 5), limits=c(-0.5, 20)) +
-  # scale_y_continuous(limits=c(-1.36, 20)) +
-  # scale_x_discrete(labels = c("Cl-" =  bquote(CI^'-'), "SO42-" =  bquote(SO[4]^'2-'), "NO3-" = bquote(NO[3]^'-'))) +
+  labs(x = "priority", y = "hit score percentage", fill = NULL, subtitle = mainTitle) +
+  scale_color_manual(values = c("black", "gray", "blue", "red")) +
+  coord_flip() +
   theme(
     text = element_text(size = 18)
     # , axis.text.x = element_text(angle = 45, hjust = 1)
-    , legend.position = "top"
-  )# +
-  # facet_wrap(~season, scale = "free_x") +
-  # facet_wrap(~season) +
-  # ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
+    , legend.position = "none"
+  )
 
-ggplot2::last_plot()
+ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
+cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 
 
 
+# # 가맹점 : source_data
+# nearData = RANN::nn2(
+#   data = plotData %>% dplyr::select(x, y)
+#   , query = source_data %>% dplyr::select(X, Y) %>% dplyr::rename(x = X, y = Y)
+#   , k = 1
+# )
+#
+# plotDataL1 = dplyr::bind_cols(source_data, plotData[nearData$nn.idx, ])
+#
+# plotDataL2 = plotDataL1 %>%
+#   dplyr::select(ID, X, Y, z, cut, col) %>%
+#   dplyr::rename(hitScore = z) %>%
+#   dplyr::arrange(desc(hitScore))
+#
+# saveFile = sprintf("%s/%s/%s 프로파일 등고선.csv", globalVar$outPath, serviceName, "fig1a_가맹점")
+# dir.create(path_dir(saveFile), showWarnings = FALSE, recursive = TRUE)
+# readr::write_csv(x = plotDataL2, file = saveFile)
+# cat(sprintf("[CHECK] saveFile : %s", saveFile), "\n")
+#
+# plotDataL3 = plotDataL2 %>%
+#   dplyr::group_by(cut) %>%
+#   dplyr::summarise(
+#     meanVal = mean(hitScore, na.rm = TRUE)
+#     , sdVal = sd(hitScore, na.rm = TRUE)
+#   )
+#
+# mainTitle = sprintf("%s 프로파일 등고선", "fig1a_가맹점")
+# saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
+# dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
+#
+# makePlot = ggplot(data = plotDataL3, aes(x = cut, y = meanVal, color = cut, group = cut)) +
+#    geom_point(size = 2.5, pch = c(22, 22, 15, 15), stroke = 1) +
+#   geom_errorbar(width = 0.3, aes(ymin=meanVal - sdVal, ymax=meanVal + sdVal, group = cut), position = position_dodge(0.5), show.legend = FALSE) +
+#   labs(x = "priority", y = "hit score percentage", fill = NULL, subtitle = mainTitle) +
+#   scale_color_manual(values = c("black", "gray", "blue", "red")) +
+#   coord_flip() +
+#   theme(
+#     text = element_text(size = 18)
+#     # , axis.text.x = element_text(angle = 45, hjust = 1)
+#     , legend.position = "none"
+#   )
+#
+# ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
+# cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 
-
-
-# ------------------------------------------------------------------
-# Figure 3b error plot of hs for acd sites
-# ------------------------------------------------------------------
-means <- c(mean(response[treatment == "low"]), mean(response[treatment == "medium"]), mean(response[treatment == "high"]))
-sds <- c(sd(response[treatment == "low"]), sd(response[treatment == "medium"]), sd(response[treatment == "high"]))
-lowers <- means - sds
-lowers[3] <- 0
-errorBarDF <- data.frame(Priority = factor(c("low", "med", "high"), c("low", "med", "high")), means = means, lower = lowers, upper = means + sds)
-# error bars
-fig3b <- ggplot(data = errorBarDF,
-                mapping = aes(x = Priority,
-                              ymin = lower,
-                              y = means,
-                              ymax = upper,
-                              col = Priority,
-                              shape = Priority)) +
-  geom_errorbar() +
-  geom_point(size = 2.5, pch = c(22, 15, 15), stroke = 1) +
-  xlab("priority") +
-  ylab("hit score percentage") +
-  theme(legend.position = "none") +
-  scale_color_manual(values = c("black", "darkgray", "red")) +
-  coord_flip() +
-  ggtitle("B") +
-  theme(axis.text = element_text(size = 6),
-        axis.title = element_text(size = 6))
-
-# fig 3b
-
-# create and save fig 3
-figure3 <- grid.arrange(fig3a, fig3b, ncol = 1)
-
-
-
-
-print("adasdasd")
 
 # ------------------------------------------------------------------
 # HITSCORE PERCENTAGES
@@ -310,8 +324,8 @@ print("adasdasd")
 # ------------------------------------------------------------------
 
 # get hitscores for blue plaques
-hs <- RgeoProfile::geoReportHitscores(params = p, source = s, surface = m$geoProfile)
-# hs <- cbind(RgeoProfile::geoReportHitscores(params = p, source = s, surface = m$geoProfile), sourceNames)
+# hs <- RgeoProfile::geoReportHitscores(params = p, source = s, surface = m$geoProfile)
+hs <- cbind(RgeoProfile::geoReportHitscores(params = p, source = s, surface = m$geoProfile), sourceNames)
 head(hs)
 
 # where do ACD sites rank in list?
@@ -342,7 +356,7 @@ length(which(sort(hs[, 3]) < sherlock_hs[, 3]))
 # author_source <- read.table("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX", header = FALSE)
 # author_source <- read.table(srcFileInfo, header = FALSE)
 # author_source = readr::read_csv(srcFileInfo)
-# author_source = readr::read_csv(criFileInfo)
+author_source = readr::read_csv(criFileInfo)
 
 # remove suspects outside of the sudy area and coverts sources to correct format
 # suspectRowsToInclude <- intersect(
@@ -369,14 +383,20 @@ authorHS <- cbind(RgeoProfile::geoReportHitscores(params = p, source = author_so
 authorHS <- authorHS[order(authorHS[, 3]),]
 authorHS
 
+
 # ------------------------------------------------------------------
 # acd sites only
 # ------------------------------------------------------------------
 # should be in four columns, for decimal longitude and decomal latitude, apriority and description
 # acd <- read.table("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX", header = FALSE)
 # acd = readr::read_csv(srcFileInfo)
-acd = readr::read_csv(srcFileInfo)
+# acd = readr::read_csv(srcFileInfo)
 # acd = readr::read_csv(criFileInfo)
+
+
+saveFile = sprintf("%s/%s/%s 프로파일 등고선.csv", globalVar$outPath, serviceName, "fig1a_유동인구")
+acd = readr::read_csv(saveFile)
+cat(sprintf("[CHECK] saveFile : %s", saveFile), "\n")
 
 acd_df <- acd
 # acdCode <- acd[, 3]
@@ -386,7 +406,7 @@ acdDesc <- acd[,]
 acd <- geoDataSource(acd$X, acd$Y)
 # acd <- geoDataSource(acd$longitude, acd$latitude)
 # acdHS <- data.frame(geoReportHitscores(params = p, source = acd, surface = m$geoProfile), acdCode, acdDesc[, 4])
-acdHS <- data.frame(geoReportHitscores(params = p, source = acd, surface = m$geoProfile), acdCode, acdDesc$ID)
+acdHS <- data.frame(geoReportHitscores(params = p, source = acd, surface = m$geoProfile), acdCode, acdDesc$type)
 acdHS
 
 # ------------------------------------------------------------------
@@ -517,8 +537,6 @@ cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 
 
 # combine and save figure 1
-library(gridExtra)
-
 margin = theme(plot.margin = unit(c(0.1, 0.5, 0.1, 0.1), "cm"))
 
 figure1 <- grid.arrange(grobs = lapply(list(fig1a, fig1b, fig1c), "+", margin), layout_matrix = matrix(c(1, 1, 2, 3), 2, 2, byrow = TRUE))
@@ -564,8 +582,6 @@ map15 <- map14 +
 # fig 2
 fig2 <- map15
 
-
-
 mainTitle = sprintf("%s", "fig2")
 saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
 dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
@@ -576,136 +592,167 @@ cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 # Figure 3a acd sites
 # ------------------------------------------------------------------
 # fig 3a
-highRows <- which(acd_df[, 3] == "high")
-medRows <- which(acd_df[, 3] == "medium")
-lowRows <- which(acd_df[, 3] == "low")
+# highRows <- which(acd_df[, 3] == "high")
+# medRows <- which(acd_df[, 3] == "medium")
+# lowRows <- which(acd_df[, 3] == "low")
+highRows <- which(acd_df$type == "high")
+medRows <- which(acd_df$type == "medium")
+lowRows <- which(acd_df$type == "low")
 
-highS <- geoDataSource(acd_df[highRows, 1], acd_df[highRows, 2])
-medS <- geoDataSource(acd_df[medRows, 1], acd_df[medRows, 2])
-lowS <- geoDataSource(acd_df[lowRows, 1], acd_df[lowRows, 2])
-#
-# # open squares for low priority
-# plusLow <- map1 + geom_point(aes(x = lowS$longitude, y = lowS$latitude), col = "black", size = 1.5, pch = 22)
-# # add gray squares plus additional black borders for medium priority
-# plusMed <- plusLow +
-#   geom_point(aes(x = medS$longitude, y = medS$latitude), col = "darkgray", size = 1.5, pch = 15) +
-#   geom_point(aes(x = medS$longitude, y = medS$latitude), col = "black", size = 1.5, pch = 22)
-# # add red squares for high priority again with larger duplicates with black outline
-# plusHigh <- plusMed +
-#   geom_point(aes(x = highS$longitude, y = highS$latitude), col = "red", size = 1.5, pch = 15) +
-#   geom_point(aes(x = highS$longitude, y = highS$latitude), col = "black", size = 1.5, pch = 22)
-#
-# # add legend and change size
-# plusHigh <- plusHigh +
-#   scale_fill_gradientn(name = "Hit score\npercentage",
-#                        colours = rev(plasma(10, alpha = 0.5)),
-#                        breaks = c(5, 50, 99),
-#                        labels = c("5", "50", "100")) +
-#   theme(legend.position = c(0.91, 0.79),
-#         legend.title = element_text(size = 6),
-#         legend.text = element_text(size = 6),
-#         axis.text = element_text(size = 6),
-#         axis.title = element_text(size = 6)) +
-#   guides(fill = guide_colourbar(barwidth = 1, barheight = 4)) +
-#   ggtitle("A")
-#
-# # fig 5
-# fig3a <- plusHigh
-#
-# # ------------------------------------------------------------------
-# # Statistical Analysis
-# # ------------------------------------------------------------------
-#
-# # linear model (full data)
-# response <- acdHS[, 3]
+# highS <- geoDataSource(acd_df[highRows, 1], acd_df[highRows, 2])
+# medS <- geoDataSource(acd_df[medRows, 1], acd_df[medRows, 2])
+# lowS <- geoDataSource(acd_df[lowRows, 1], acd_df[lowRows, 2])
+highS <- RgeoProfile::geoDataSource(acd_df[highRows, ]$X, acd_df[highRows, ]$Y)
+medS <- RgeoProfile::geoDataSource(acd_df[medRows, ]$X, acd_df[medRows, ]$Y)
+lowS <- RgeoProfile::geoDataSource(acd_df[lowRows, ]$X, acd_df[lowRows, ]$Y)
+
+# open squares for low priority
+plusLow <- map1 + geom_point(aes(x = lowS$longitude, y = lowS$latitude), col = "black", size = 1.5, pch = 22)
+
+# add gray squares plus additional black borders for medium priority
+plusMed <- plusLow +
+  geom_point(aes(x = medS$longitude, y = medS$latitude), col = "darkgray", size = 1.5, pch = 15) +
+  geom_point(aes(x = medS$longitude, y = medS$latitude), col = "black", size = 1.5, pch = 22)
+# add red squares for high priority again with larger duplicates with black outline
+
+plusHigh <- plusMed +
+  geom_point(aes(x = highS$longitude, y = highS$latitude), col = "red", size = 1.5, pch = 15) +
+  geom_point(aes(x = highS$longitude, y = highS$latitude), col = "black", size = 1.5, pch = 22)
+
+# add legend and change size
+plusHigh <- plusHigh +
+  scale_fill_gradientn(name = "Hit score\npercentage",
+                       colours = rev(plasma(10, alpha = 0.5)),
+                       breaks = c(5, 50, 99),
+                       labels = c("5", "50", "100")) +
+  theme(legend.position = c(0.91, 0.79),
+        legend.title = element_text(size = 6),
+        legend.text = element_text(size = 6),
+        axis.text = element_text(size = 6),
+        axis.title = element_text(size = 6)) +
+  guides(fill = guide_colourbar(barwidth = 1, barheight = 4)) +
+  ggtitle("A")
+
+# fig 5
+fig3a <- plusHigh
+
+mainTitle = sprintf("%s", "fig3a")
+saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
+dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
+ggsave(fig3a, filename = saveImg, width = 10, height = 8, dpi = 600)
+cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+
+# ------------------------------------------------------------------
+# Statistical Analysis
+# ------------------------------------------------------------------
+
+# linear model (full data)
+response <- acdHS[, 3]
 # treatment <- acdHS[, 4]
-#
-# # relevel treatment so order i low/med/high, here "treatment" simply refers
-# # to what kind of category we place on the location associated with ACD be that
-# # low, medium or high
-#
-# treatment <- relevel(treatment, "medium")
-# treatment <- relevel(treatment, "low")
-#
-# mod1 <- lm(response ~ treatment)
-# summary(mod1)
-#
-# # pairwise comparisons
+treatment = as.factor(acdHS[, 5])
+
+# relevel treatment so order i low/med/high, here "treatment" simply refers
+# to what kind of category we place on the location associated with ACD be that
+# low, medium or high
+
+treatment <- relevel(treatment, "medium")
+treatment <- relevel(treatment, "low")
+
+mod1 <- lm(response ~ treatment)
+summary(mod1)
+
+# pairwise comparisons
 # install.packages("multcomp")
-# library(multcomp)
-# g1 <- glht(mod1, linfct = mcp(treatment = "Tukey"))
-# summary(g1)
-#
-# # ------------------------------------------------------------------
-# # Figure 3b error plot of hs for acd sites
-# # ------------------------------------------------------------------
-# means <- c(mean(response[treatment == "low"]), mean(response[treatment == "medium"]), mean(response[treatment == "high"]))
-# sds <- c(sd(response[treatment == "low"]), sd(response[treatment == "medium"]), sd(response[treatment == "high"]))
-# lowers <- means - sds
-# lowers[3] <- 0
-# errorBarDF <- data.frame(Priority = factor(c("low", "med", "high"), c("low", "med", "high")), means = means, lower = lowers, upper = means + sds)
-# # error bars
-# fig3b <- ggplot(data = errorBarDF,
-#                 mapping = aes(x = Priority,
-#                               ymin = lower,
-#                               y = means,
-#                               ymax = upper,
-#                               col = Priority,
-#                               shape = Priority)) +
-#   geom_errorbar() +
-#   geom_point(size = 2.5, pch = c(22, 15, 15), stroke = 1) +
-#   xlab("priority") +
-#   ylab("hit score percentage") +
-#   theme(legend.position = "none") +
-#   scale_color_manual(values = c("black", "darkgray", "red")) +
-#   coord_flip() +
-#   ggtitle("B") +
-#   theme(axis.text = element_text(size = 6),
-#         axis.title = element_text(size = 6))
-#
-# # fig 3b
-#
-# # create and save fig 3
-# figure3 <- grid.arrange(fig3a, fig3b, ncol = 1)
-#
-#
-# # ------------------------------------------------------------------
-# # distances between sites
-# # ------------------------------------------------------------------
-# # all pairwise distances
+library(multcomp)
+g1 <- glht(mod1, linfct = mcp(treatment = "Tukey"))
+summary(g1)
+
+# ------------------------------------------------------------------
+# Figure 3b error plot of hs for acd sites
+# ------------------------------------------------------------------
+means <- c(mean(response[treatment == "low"]), mean(response[treatment == "medium"]), mean(response[treatment == "high"]))
+sds <- c(sd(response[treatment == "low"]), sd(response[treatment == "medium"]), sd(response[treatment == "high"]))
+lowers <- means - sds
+#lowers[3] <- 0
+errorBarDF <- data.frame(Priority = factor(c("low", "med", "high"), c("low", "med", "high")), means = means, lower = lowers, upper = means + sds)
+# error bars
+fig3b <- ggplot(data = errorBarDF,
+                mapping = aes(x = Priority,
+                              ymin = lower,
+                              y = means,
+                              ymax = upper,
+                              col = Priority,
+                              shape = Priority)) +
+  geom_errorbar() +
+  geom_point(size = 2.5, pch = c(22, 15, 15), stroke = 1) +
+  xlab("priority") +
+  ylab("hit score percentage") +
+  theme(legend.position = "none") +
+  scale_color_manual(values = c("black", "darkgray", "red")) +
+  coord_flip() +
+  ggtitle("B") +
+  theme(axis.text = element_text(size = 6),
+        axis.title = element_text(size = 6))
+
+
+mainTitle = sprintf("%s", "fig3b")
+saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
+dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
+ggsave(fig3b, filename = saveImg, width = 10, height = 8, dpi = 600)
+cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+
+
+# fig 3b
+
+# create and save fig 3
+figure3 <- grid.arrange(fig3a, fig3b, ncol = 1)
+
+mainTitle = sprintf("%s", "figure3")
+saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
+dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
+ggsave(figure3, filename = saveImg, width = 10, height = 8, dpi = 600)
+cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+
+# ------------------------------------------------------------------
+# distances between sites
+# ------------------------------------------------------------------
+# all pairwise distances
 # library(geosphere)
 # lowP <- acdHS[which(acdHS[, 4] == "low"), 2:1]
 # mediumP <- acdHS[which(acdHS[, 4] == "medium"), 2:1]
 # highP <- acdHS[which(acdHS[, 4] == "high"), 2:1]
-#
-# # mean distance from low to nearest high
-# lowPminima <- rep(NA, nrow(lowP))
-# for (i in 1:length(lowPminima))
-# { lowPminima[i] <- min(distGeo(lowP[i,], highP)) }
-# lowPminima
-# mean(lowPminima)
-# sd(lowPminima)
-#
-# # mean distance from medium to nearest high
-# mediumPminima <- rep(NA, nrow(mediumP))
-# for (i in 1:length(medmiumPminima))
-# { mediumPminima[i] <- min(distGeo(mediumP[i,], highP)) }
-# mediumPminima
-# mean(mediumPminima)
-# sd(mediumPminima)
-#
-# # mean distance from low/medium to nearest high
-# mean(c(lowPminima, mediumPminima))
-# sd(c(lowPminima, mediumPminima))
-#
-# # how many low and medmium sites fall within six sigma of a high priority site?
-# length(which(c(lowPminima, mediumPminima) < (6 * 1000 * mean(m$sigma))))
-# # total low and medium priority sites
-# length(c(lowPminima, mediumPminima))
-#
-# # ------------------------------------------------------------------
-# # marginal distribution of the number of source locations
-# # ------------------------------------------------------------------
+lowP <- acdHS[which(acdHS[, 5] == "low"), 2:1]
+mediumP <- acdHS[which(acdHS[, 5] == "medium"), 2:1]
+highP <- acdHS[which(acdHS[, 5] == "high"), 2:1]
+
+# mean distance from low to nearest high
+lowPminima <- rep(NA, nrow(lowP))
+for (i in 1:length(lowPminima))
+{ lowPminima[i] <- min(distGeo(lowP[i,], highP)) }
+lowPminima
+mean(lowPminima)
+sd(lowPminima)
+
+# mean distance from medium to nearest high
+mediumPminima <- rep(NA, nrow(mediumP))
+for (i in 1:length(mediumPminima))
+{ mediumPminima[i] <- min(distGeo(mediumP[i,], highP)) }
+mediumPminima
+mean(mediumPminima)
+sd(mediumPminima)
+
+# mean distance from low/medium to nearest high
+mean(c(lowPminima, mediumPminima))
+sd(c(lowPminima, mediumPminima))
+
+# how many low and medmium sites fall within six sigma of a high priority site?
+length(which(c(lowPminima, mediumPminima) < (6 * 1000 * mean(m$sigma))))
+# total low and medium priority sites
+length(c(lowPminima, mediumPminima))
+
+# ------------------------------------------------------------------
+# marginal distribution of the number of source locations
+# ------------------------------------------------------------------
 # n_sources_frequency <- as.data.frame(table(m$unique_groups))
 # names(n_sources_frequency) <- c("Sources", "Frequency")
 # ggplot(n_sources_frequency, aes(x = Sources, y = Frequency)) + geom_bar(stat = "identity", fill = "#FF6666")
