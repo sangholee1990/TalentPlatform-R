@@ -394,10 +394,10 @@ fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "LSH0382_일식 �
 # )
 
 # 시트 1 : 모집단78개
-# sheetInfo = 1
+sheetInfo = 1
 
 # 시트 4 : 신라픽14개+모집단2개(163)
-sheetInfo = 4
+# sheetInfo = 4
 
 sheetName = dplyr::case_when(
   sheetInfo == 1 ~ "모집단78개"
@@ -485,11 +485,11 @@ sheetName = dplyr::case_when(
 # **************************************************
 # 시트에 따른 데이터 병합
 # **************************************************
-# sheetList = c(1)
-# sheetName = "모집단78개"
+sheetList = c(1)
+sheetName = "모집단78개"
 
-sheetList = c(4)
-sheetName = "신라픽14개+모집단2개(163)"
+# sheetList = c(4)
+# sheetName = "신라픽14개+모집단2개(163)"
 
 # sheetInfo = sheetList[1]
 
@@ -764,8 +764,8 @@ bootNumList = c(14)
 # bootNumList = c(78)
 
 # 병렬횟수 설정
-bootIdxList = seq(1, 5)
-# bootIdxList = seq(1, 30)
+# bootIdxList = seq(1, 5)
+bootIdxList = seq(1, 30)
 # bootIdxList = seq(31, 60)
 # bootIdxList = seq(1, 300)
 # bootIdxList = seq(301, 600)
@@ -784,9 +784,12 @@ for (bootIdx in bootIdxList) {
 
     bostSampleL1 = data.frame(t(sapply(bostSample, c)))
     # saveFile = sprintf("%s/%s/bostSampleL1_%s-%s.csv", globalVar$outPath, serviceName, bootNum, bootDo)
-    saveFile = sprintf("%s/%s/bostSampleL1_%s-%s-%s.csv", globalVar$outPath, serviceName, bootNum, bootDo, bootIdx)
+    # saveFile = sprintf("%s/%s/bostSampleL1_%s-%s-%s.csv", globalVar$outPath, serviceName, bootNum, bootDo, bootIdx)
+    saveFile = sprintf("%s/%s/%s_bostSampleL1_%s-%s-%s_%s-%s.csv", globalVar$outPath, serviceName, sheetName, bootNum, bootDo, bootIdx, posLon, posLat)
     dir.create(path_dir(saveFile), showWarnings = FALSE, recursive = TRUE)
     readr::write_csv(x = bostSampleL1, file = saveFile)
+
+    # sampleDataL1$type %>% unique() %>% sort()
 
     # 부트스트랩을 통해 병렬처리
     bootSelData = furrr::future_map_dfr(1:bootDo, function(i) {
@@ -806,7 +809,7 @@ for (bootIdx in bootIdxList) {
     })
 
     # saveFile = sprintf("%s/%s/bootSelData_%s-%s-%s.csv", globalVar$outPath, serviceName, bootNum, bootDo, bootIdx)
-    saveFile = sprintf("%s/%s/bootSelData_%s-%s-%s_%s-%s.csv", globalVar$outPath, serviceName, bootNum, bootDo, bootIdx, posLon, posLat)
+    saveFile = sprintf("%s/%s/%s_bootSelData_%s-%s-%s_%s-%s.csv", globalVar$outPath, serviceName, sheetName, bootNum, bootDo, bootIdx, posLon, posLat)
     dir.create(path_dir(saveFile), showWarnings = FALSE, recursive = TRUE)
     readr::write_csv(x = bootSelData, file = saveFile)
     cat(sprintf("[CHECK] saveFile : %s", saveFile), "\n")
@@ -865,7 +868,10 @@ for (bootIdx in bootIdxList) {
 }
 
 
-bootIdxList = seq(1, 5)
+# bootIdxList = seq(1, 5)
+# bootIdxList = seq(1, 30)
+# bootIdxList = seq(1, 1)
+bootIdxList = seq(2, 2)
 # bootIdxList = seq(1, 60)
 # bootNumList = c(30, 50, 60, 70)
 bootNumList = c(14)
@@ -892,15 +898,19 @@ for (bootNum in bootNumList) {
   # bootIdx = bootIdxList[1]
   bootData = tibble::tibble()
   for (bootIdx in bootIdxList) {
-    saveFile = sprintf("%s/%s/bostSampleL1_%s-%s-%s.csv", globalVar$outPath, serviceName, bootNum, bootDo, bootIdx)
+      # saveFile = sprintf("%s/%s/bostSampleL1_%s-%s-%s.csv", globalVar$outPath, serviceName, bootNum, bootDo, bootIdx)
+    saveFile = sprintf("%s/%s/%s_bostSampleL1_%s-%s-%s_%s-%s.csv", globalVar$outPath, serviceName, sheetName, bootNum, bootDo, bootIdx, posLon, posLat)
     fileList = Sys.glob(saveFile)
     if (length(fileList) < 1) { next }
 
-    sampleData = readr::read_csv(file =fileList, show_col_types = FALSE) %>%
-      dplyr::mutate(sampleInfo = paste(X1, X2, X3, X4, X5, X6, X7, X8, X9, X10, X11, X12, X13, X14, sep = "-")) %>%
+     # sampleData = readr::read_csv(file =fileList, show_col_types = FALSE) %>%
+     #  dplyr::mutate(sampleInfo = paste(X1, X2, X3, X4, X5, X6, X7, X8, X9, X10, X11, X12, X13, X14, sep = "-")) %>%
+     #  dplyr::select(sampleInfo)
+    sampleData = readr::read_csv(file = fileList, show_col_types = FALSE) %>%
+      tidyr::unite(sampleInfo, sep = "-") %>%
       dplyr::select(sampleInfo)
 
-    saveFile = sprintf("%s/%s/bootSelData_%s-%s-%s_%s-%s.csv", globalVar$outPath, serviceName, bootNum, bootDo, bootIdx, posLon, posLat)
+    saveFile = sprintf("%s/%s/%s_bootSelData_%s-%s-%s_%s-%s.csv", globalVar$outPath, serviceName, sheetName, bootNum, bootDo, bootIdx, posLon, posLat)
     fileList = Sys.glob(saveFile)
     if (length(fileList) < 1) { next }
 
@@ -946,12 +956,12 @@ for (bootNum in bootNumList) {
   bootDataL2 = bootData %>%
     # dplyr::distinct(xAxis, yAxis, meanVal, posVal, keep_all = TRUE) %>%
     dplyr::distinct(xAxis, yAxis, meanVal, posVal, sampleInfo, keep_all = TRUE) %>%
-    dplyr::filter(
+    # dplyr::filter(
     #   # posVal >= 0.68
-      posVal >= 0.69
-    ) %>%
-    dplyr::slice(1:1000)
-    # dplyr::slice(1:10000)
+    #   posVal >= 0.69
+    # ) %>%
+    # dplyr::slice(1:1000)
+    dplyr::slice(1:10000)
 
   # 평균식분도 최대값 0.78 이상
   # 붉은점 0.78 이상
@@ -967,7 +977,7 @@ for (bootNum in bootNumList) {
   plotData = bootDataL2
   # plotData = bootDataL3
 
-  saveFile = sprintf("%s/%s/bootDataL2_%s-%s-%s_%s-%s.csv", globalVar$outPath, serviceName, bootNum, bootDo, bootIdx, posLon, posLat)
+  saveFile = sprintf("%s/%s/%s_bootDataL2_%s-%s-%s_%s-%s.csv", globalVar$outPath, serviceName, sheetName, bootNum, bootDo, bootIdx, posLon, posLat)
   dir.create(path_dir(saveFile), showWarnings = FALSE, recursive = TRUE)
   readr::write_csv(x = bootDataL2, file = saveFile)
   cat(sprintf("[CHECK] saveFile : %s", saveFile), "\n")

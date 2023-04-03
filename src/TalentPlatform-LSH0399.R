@@ -139,10 +139,10 @@ fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "LSH0399_일식 �
 # sheetInfo = 1
 
 # 시트 2 : 모집단86개
-sheetInfo = 2
+# sheetInfo = 2
 
 # 시트 3 : 양자강집단84개
-# sheetInfo = 3
+sheetInfo = 3
 
 sheetName = dplyr::case_when(
   sheetInfo == 1 ~ "모집단163개"
@@ -235,11 +235,11 @@ sheetName = dplyr::case_when(
 # sheetList = c(1)
 # sheetName = "모집단163개"
 
-sheetList = c(2)
-sheetName = "모집단86개"
+# sheetList = c(2)
+# sheetName = "모집단86개"
 
-# sheetList = c(3)
-# sheetName = "양자강집단84개"
+sheetList = c(3)
+sheetName = "양자강집단84개"
 
 # sheetInfo = sheetList[1]
 dataL3 = tibble::tibble()
@@ -261,7 +261,7 @@ for (sheetInfo in sheetList) {
       dplyr::select(-type)
     
     dataL1 = MBA::mba.points(tmpData, gridData)
-    
+
     dataL2 = dataL1 %>%
       as.data.frame() %>%
       as.tibble() %>%
@@ -280,148 +280,148 @@ for (sheetInfo in sheetList) {
 # **************************************************
 # 공간 평균
 # **************************************************
-typeList = dataL3$type %>% unique()
-cat(sprintf("[CHECK] typeList : %s", length(typeList)), "\n")
-print(typeList)
-
-# 표본 주사위
-# sampleData = openxlsx::read.xlsx(fileInfo, sheet = "그룹정보")
-
-# 신라픽
-# selList = c(1, 6, 7, 9, 13, 15, 20, 53, 55, 64, 75, 76, 77, 78)
-
-# 3번픽
-# selList = c(60, 8, 32, 72, 24, 47, 45, 7, 37, 75, 38, 57, 21, 9)
-
-# selList = c(79, 155, 46, 22, 117, 114, 26, 123, 107, 128, "27(0.96)", 45, 40, 31, 70, 72)
-
-# sampleData$type %>% unique
-# sampleData$sampleType %>% unique
-# dataL3$type %>% unique()
-# dataL4$type %>% unique()
-
-dataL4 = dataL3 %>%
-  # dplyr::left_join(sampleData, by = c("type" = "type")) %>%
-  # dplyr::filter(sampleType %in% selList) %>%
-  # dplyr::filter(type %in% selList) %>%
-  dplyr::group_by(xAxis, yAxis) %>%
-  dplyr::summarise(
-    meanVal = mean(zAxis, na.rm = TRUE)
-  ) %>%
-  dplyr::mutate(
-    meanVal = ifelse(meanVal < 0, 0, meanVal)
-  )
-
-
-# 가공 데이터
-# saveXlsxFile = sprintf("%s/%s/%s_%s.xlsx", globalVar$outPath, serviceName, sheetName, "DataProc")
-# dir.create(path_dir(saveXlsxFile), showWarnings = FALSE, recursive = TRUE)
-# wb = openxlsx::createWorkbook()
-# openxlsx::addWorksheet(wb, "모집단 가공")
-# openxlsx::writeData(wb, "모집단 가공", dataL3, startRow = 1, startCol = 1, colNames = TRUE, rowNames = FALSE)
-# openxlsx::addWorksheet(wb, "평균 가공")
-# openxlsx::writeData(wb, "평균 가공", dataL4, startRow = 1, startCol = 1, colNames = TRUE, rowNames = FALSE)
-# openxlsx::saveWorkbook(wb, file = saveXlsxFile, overwrite = TRUE)
-# cat(sprintf("[CHECK] saveXlsxFile : %s", saveXlsxFile), "\n")
-# 
-# saveFile = sprintf("%s/%s/%s_%s.csv", globalVar$outPath, serviceName, sheetName, "모집단 가공")
-# dir.create(path_dir(saveFile), showWarnings = FALSE, recursive = TRUE)
-# readr::write_csv(dataL3, saveFile)
-# cat(sprintf("[CHECK] saveFile : %s", saveFile), "\n")
-# 
-# saveFile = sprintf("%s/%s/%s_%s.csv", globalVar$outPath, serviceName, sheetName, "평균 가공")
-# dir.create(path_dir(saveFile), showWarnings = FALSE, recursive = TRUE)
-# readr::write_csv(dataL4, saveFile)
-# cat(sprintf("[CHECK] saveFile : %s", saveFile), "\n")
-
-
-# dataL4$meanVal = round(dataL4$meanVal, 3)
-# cat(sprintf("[CHECK] type : %s", dataL4$type %>% unique %>% length), "\n")
-
-summary(dataL4)
-
-maxData = dataL4 %>%
-  dplyr::ungroup() %>%
-  dplyr::filter(meanVal == max(meanVal, na.rm = TRUE))
-
-# 경주 지점
-# posLon = 129.2
-# posLat = 35.8
-
-# # 특정 지점
-# posLon = 114
-# posLat = 32
-
-posData = dataL4 %>%
-  dplyr::ungroup() %>%
-  dplyr::filter(xAxis == posLon, yAxis == posLat)
-
-cat(sprintf("[CHECK] maxData : %s", maxData$meanVal), "\n")
-cat(sprintf("[CHECK] posData : %s", posData$meanVal), "\n")
-
-maxFloorVal = floor(maxData$meanVal * 100) / 100
-
-setBreakCont = c(seq(maxFloorVal, 0, -0.04))
-setBreakText = c(seq(maxFloorVal, 0, -0.04))
-# setBreakCont = c(seq(0.51, 0, -0.02))
-# setBreakText = c(seq(0.51, 0.10, -0.02))
-
-# 평균식분도 결과 : "20230320_양자강집단84개의 평균식분도" 폴더 참조
-# 최대평균 : 0.566372856131227
-# 경주지점 : 0.483112241120878
-
-
-saveImg = sprintf("%s/%s/%s_%s.png", globalVar$figPath, serviceName, sheetName, "Mean_Color")
-
-makePlot = ggplot(data = dataL4, aes(x = xAxis, y = yAxis, fill = meanVal, z = meanVal)) +
-  geom_raster(interpolate = TRUE, na.rm = TRUE) +
-  # metR::geom_contour_fill(na.fill = TRUE, kriging = TRUE) +
-  scale_fill_gradientn(colours = cbMatlab, limits = c(0, 1.0), breaks = seq(0, 1.0, 0.2), na.value = NA) +
-  geom_sf(data = mapGlobal, aes(x = NULL, y = NULL, fill = NULL, z = NULL), color = "black", fill = NA) +
-  metR::geom_contour2(color = "black", alpha = 1.0, breaks = setBreakCont, show.legend = FALSE, size = 0.5) +
-  metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, skip = 0, breaks = setBreakText, rotate = TRUE, na.rm = TRUE, size = 5) +
-  geom_point(data = maxData, aes(x = xAxis, y = yAxis), color = "red") +
-  metR::scale_x_longitude(breaks = seq(90, 150, 10), limits = c(89.99, 150.01), expand = c(0, 0)) +
-  metR::scale_y_latitude(breaks = seq(10, 60, 10), limits = c(9.99, 60), expand = c(0, 0)) +
-  labs(
-    subtitle = NULL
-    , x = NULL
-    , y = NULL
-    , fill = NULL
-    , colour = NULL
-    , title = NULL
-  ) +
-  theme(text = element_text(size = 18))
-
-ggsave(makePlot, filename = saveImg, width = 10, height = 10, dpi = 600)
-# ggplot2::last_plot()
-cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
-
-saveImg = sprintf("%s/%s/%s_%s.png", globalVar$figPath, serviceName, sheetName, "Mean_Black")
-
-makePlot = ggplot(data = dataL4, aes(x = xAxis, y = yAxis, z = meanVal)) +
-  # geom_raster(interpolate = TRUE, na.rm = TRUE) +
-  # scale_fill_gradientn(colours = cbMatlab, limits = c(0, 1.0), breaks = seq(0, 1.0, 0.2), na.value = NA) +
-  # metR::geom_contour_fill(na.fill = TRUE, kriging = TRUE)
-  geom_sf(data = mapGlobal, aes(x = NULL, y = NULL, fill = NULL, z = NULL), color = "black", fill = NA) +
-  metR::geom_contour2(color = "black", alpha = 1.0, breaks = setBreakCont, show.legend = FALSE, size = 0.5) +
-  metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, skip = 0, breaks = setBreakText, rotate = TRUE, na.rm = TRUE, size = 5) +
-  geom_point(data = maxData, aes(x = xAxis, y = yAxis), color = "red") +
-  metR::scale_x_longitude(breaks = seq(90, 150, 10), limits = c(89.99, 150.01), expand = c(0, 0)) +
-  metR::scale_y_latitude(breaks = seq(10, 60, 10), limits = c(9.99, 60), expand = c(0, 0)) +
-  labs(
-    subtitle = NULL
-    , x = NULL
-    , y = NULL
-    , fill = NULL
-    , colour = NULL
-    , title = NULL
-  ) +
-  theme(text = element_text(size = 18))
-
-ggsave(makePlot, filename = saveImg, width = 10, height = 10, dpi = 600)
-# ggplot2::last_plot()
-cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+# typeList = dataL3$type %>% unique()
+# cat(sprintf("[CHECK] typeList : %s", length(typeList)), "\n")
+# print(typeList)
+#
+# # 표본 주사위
+# # sampleData = openxlsx::read.xlsx(fileInfo, sheet = "그룹정보")
+#
+# # 신라픽
+# # selList = c(1, 6, 7, 9, 13, 15, 20, 53, 55, 64, 75, 76, 77, 78)
+#
+# # 3번픽
+# # selList = c(60, 8, 32, 72, 24, 47, 45, 7, 37, 75, 38, 57, 21, 9)
+#
+# # selList = c(79, 155, 46, 22, 117, 114, 26, 123, 107, 128, "27(0.96)", 45, 40, 31, 70, 72)
+#
+# # sampleData$type %>% unique
+# # sampleData$sampleType %>% unique
+# # dataL3$type %>% unique()
+# # dataL4$type %>% unique()
+#
+# dataL4 = dataL3 %>%
+#   # dplyr::left_join(sampleData, by = c("type" = "type")) %>%
+#   # dplyr::filter(sampleType %in% selList) %>%
+#   # dplyr::filter(type %in% selList) %>%
+#   dplyr::group_by(xAxis, yAxis) %>%
+#   dplyr::summarise(
+#     meanVal = mean(zAxis, na.rm = TRUE)
+#   ) %>%
+#   dplyr::mutate(
+#     meanVal = ifelse(meanVal < 0, 0, meanVal)
+#   )
+#
+#
+# # 가공 데이터
+# # saveXlsxFile = sprintf("%s/%s/%s_%s.xlsx", globalVar$outPath, serviceName, sheetName, "DataProc")
+# # dir.create(path_dir(saveXlsxFile), showWarnings = FALSE, recursive = TRUE)
+# # wb = openxlsx::createWorkbook()
+# # openxlsx::addWorksheet(wb, "모집단 가공")
+# # openxlsx::writeData(wb, "모집단 가공", dataL3, startRow = 1, startCol = 1, colNames = TRUE, rowNames = FALSE)
+# # openxlsx::addWorksheet(wb, "평균 가공")
+# # openxlsx::writeData(wb, "평균 가공", dataL4, startRow = 1, startCol = 1, colNames = TRUE, rowNames = FALSE)
+# # openxlsx::saveWorkbook(wb, file = saveXlsxFile, overwrite = TRUE)
+# # cat(sprintf("[CHECK] saveXlsxFile : %s", saveXlsxFile), "\n")
+# #
+# # saveFile = sprintf("%s/%s/%s_%s.csv", globalVar$outPath, serviceName, sheetName, "모집단 가공")
+# # dir.create(path_dir(saveFile), showWarnings = FALSE, recursive = TRUE)
+# # readr::write_csv(dataL3, saveFile)
+# # cat(sprintf("[CHECK] saveFile : %s", saveFile), "\n")
+# #
+# # saveFile = sprintf("%s/%s/%s_%s.csv", globalVar$outPath, serviceName, sheetName, "평균 가공")
+# # dir.create(path_dir(saveFile), showWarnings = FALSE, recursive = TRUE)
+# # readr::write_csv(dataL4, saveFile)
+# # cat(sprintf("[CHECK] saveFile : %s", saveFile), "\n")
+#
+#
+# # dataL4$meanVal = round(dataL4$meanVal, 3)
+# # cat(sprintf("[CHECK] type : %s", dataL4$type %>% unique %>% length), "\n")
+#
+# summary(dataL4)
+#
+# maxData = dataL4 %>%
+#   dplyr::ungroup() %>%
+#   dplyr::filter(meanVal == max(meanVal, na.rm = TRUE))
+#
+# # 경주 지점
+# # posLon = 129.2
+# # posLat = 35.8
+#
+# # # 특정 지점
+# # posLon = 114
+# # posLat = 32
+#
+# posData = dataL4 %>%
+#   dplyr::ungroup() %>%
+#   dplyr::filter(xAxis == posLon, yAxis == posLat)
+#
+# cat(sprintf("[CHECK] maxData : %s", maxData$meanVal), "\n")
+# cat(sprintf("[CHECK] posData : %s", posData$meanVal), "\n")
+#
+# maxFloorVal = floor(maxData$meanVal * 100) / 100
+#
+# setBreakCont = c(seq(maxFloorVal, 0, -0.04))
+# setBreakText = c(seq(maxFloorVal, 0, -0.04))
+# # setBreakCont = c(seq(0.51, 0, -0.02))
+# # setBreakText = c(seq(0.51, 0.10, -0.02))
+#
+# # 평균식분도 결과 : "20230320_양자강집단84개의 평균식분도" 폴더 참조
+# # 최대평균 : 0.566372856131227
+# # 경주지점 : 0.483112241120878
+#
+#
+# saveImg = sprintf("%s/%s/%s_%s.png", globalVar$figPath, serviceName, sheetName, "Mean_Color")
+#
+# makePlot = ggplot(data = dataL4, aes(x = xAxis, y = yAxis, fill = meanVal, z = meanVal)) +
+#   geom_raster(interpolate = TRUE, na.rm = TRUE) +
+#   # metR::geom_contour_fill(na.fill = TRUE, kriging = TRUE) +
+#   scale_fill_gradientn(colours = cbMatlab, limits = c(0, 1.0), breaks = seq(0, 1.0, 0.2), na.value = NA) +
+#   geom_sf(data = mapGlobal, aes(x = NULL, y = NULL, fill = NULL, z = NULL), color = "black", fill = NA) +
+#   metR::geom_contour2(color = "black", alpha = 1.0, breaks = setBreakCont, show.legend = FALSE, size = 0.5) +
+#   metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, skip = 0, breaks = setBreakText, rotate = TRUE, na.rm = TRUE, size = 5) +
+#   geom_point(data = maxData, aes(x = xAxis, y = yAxis), color = "red") +
+#   metR::scale_x_longitude(breaks = seq(90, 150, 10), limits = c(89.99, 150.01), expand = c(0, 0)) +
+#   metR::scale_y_latitude(breaks = seq(10, 60, 10), limits = c(9.99, 60), expand = c(0, 0)) +
+#   labs(
+#     subtitle = NULL
+#     , x = NULL
+#     , y = NULL
+#     , fill = NULL
+#     , colour = NULL
+#     , title = NULL
+#   ) +
+#   theme(text = element_text(size = 18))
+#
+# ggsave(makePlot, filename = saveImg, width = 10, height = 10, dpi = 600)
+# # ggplot2::last_plot()
+# cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+#
+# saveImg = sprintf("%s/%s/%s_%s.png", globalVar$figPath, serviceName, sheetName, "Mean_Black")
+#
+# makePlot = ggplot(data = dataL4, aes(x = xAxis, y = yAxis, z = meanVal)) +
+#   # geom_raster(interpolate = TRUE, na.rm = TRUE) +
+#   # scale_fill_gradientn(colours = cbMatlab, limits = c(0, 1.0), breaks = seq(0, 1.0, 0.2), na.value = NA) +
+#   # metR::geom_contour_fill(na.fill = TRUE, kriging = TRUE)
+#   geom_sf(data = mapGlobal, aes(x = NULL, y = NULL, fill = NULL, z = NULL), color = "black", fill = NA) +
+#   metR::geom_contour2(color = "black", alpha = 1.0, breaks = setBreakCont, show.legend = FALSE, size = 0.5) +
+#   metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, skip = 0, breaks = setBreakText, rotate = TRUE, na.rm = TRUE, size = 5) +
+#   geom_point(data = maxData, aes(x = xAxis, y = yAxis), color = "red") +
+#   metR::scale_x_longitude(breaks = seq(90, 150, 10), limits = c(89.99, 150.01), expand = c(0, 0)) +
+#   metR::scale_y_latitude(breaks = seq(10, 60, 10), limits = c(9.99, 60), expand = c(0, 0)) +
+#   labs(
+#     subtitle = NULL
+#     , x = NULL
+#     , y = NULL
+#     , fill = NULL
+#     , colour = NULL
+#     , title = NULL
+#   ) +
+#   theme(text = element_text(size = 18))
+#
+# ggsave(makePlot, filename = saveImg, width = 10, height = 10, dpi = 600)
+# # ggplot2::last_plot()
+# cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 
 
 # **************************************************
@@ -457,12 +457,17 @@ bootDo = 10000
 # bootDo = 300000
 
 # 경주 지점
-posLon = 129.2
-posLat = 35.8
+# posLon = 129.2
+# posLat = 35.8
 
 # 특정 지점
 # posLon = 114
 # posLat = 32
+
+# 특정 지점
+posLon = 114.8
+posLat = 32.4
+
 
 # 부트스트랩 주사위 목록
 # bostSample = lapply(1:bootDo, function(i) sample(sampleInfo, size = 14, replace = FALSE))
@@ -486,27 +491,27 @@ posLat = 35.8
 # bostSampleL3 = bostSampleL2 %>%
 #   dplyr::distinct(X1, X2, X3, X4, X5, X6, X7, X8, X9, X10, X11, X12, X13, X14)
 
-bostSampleL2 = tibble::tibble()
-for (i in 1:nrow(sampleData)) {
-  selData = sampleData[i, ] %>%
-    sort() %>%
-    magrittr::set_colnames(c("X1", "X2", "X3", "X4", "X5", "X6", "X7", "X8", "X9", "X10", "X11", "X12", 'X13', 'X14', 'X15', 'X16'))
+# bostSampleL2 = tibble::tibble()
+# for (i in 1:nrow(sampleData)) {
+#   selData = sampleData[i, ] %>%
+#     sort() %>%
+#     magrittr::set_colnames(c("X1", "X2", "X3", "X4", "X5", "X6", "X7", "X8", "X9", "X10", "X11", "X12", 'X13', 'X14', 'X15', 'X16'))
+#
+#   bostSampleL2 = dplyr::bind_rows(bostSampleL2, selData)
+# }
 
-  bostSampleL2 = dplyr::bind_rows(bostSampleL2, selData)
-}
-
-bostSampleL3 = bostSampleL2 %>%
-  dplyr::distinct(X1, X2, X3, X4, X5, X6, X7, X8, X9, X10, X11, X12, X13, X14, X15, X16) %>%
-  tidyr::unite(sampleInfo, sep = "-") %>%
-  dplyr::arrange(sampleInfo)
+# bostSampleL3 = bostSampleL2 %>%
+#   dplyr::distinct(X1, X2, X3, X4, X5, X6, X7, X8, X9, X10, X11, X12, X13, X14, X15, X16) %>%
+#   tidyr::unite(sampleInfo, sep = "-") %>%
+#   dplyr::arrange(sampleInfo)
 
 
-sampleRef = c("1", "6", "7", "9", "13", "15", "20", "53", "55", "64", "75", "76", "77", "78", "145(0.96)", "159")
-sampleRef %>%
-  t() %>%
-   as.tibble() %>%
-  sort() %>%
-  tidyr::unite(sampleInfo, sep = "-")
+# sampleRef = c("1", "6", "7", "9", "13", "15", "20", "53", "55", "64", "75", "76", "77", "78", "145(0.96)", "159")
+# sampleRef %>%
+#   t() %>%
+#    as.tibble() %>%
+#   sort() %>%
+#   tidyr::unite(sampleInfo, sep = "-")
 
 
 #
@@ -516,8 +521,8 @@ sampleRef %>%
 # cat(sprintf("[CHECK] saveFile : %s", saveFile), "\n")
 
 options(future.globals.maxSize = 9999999999999999)
-plan(multisession, workers = parallelly::availableCores() - 2)
-# plan(multisession, workers = parallelly::availableCores() - 5)
+# plan(multisession, workers = parallelly::availableCores() - 2)
+plan(multisession, workers = parallelly::availableCores() - 5)
 # plan(multisession, workers = parallelly::availableCores() - 10)
 # plan(multisession, workers = parallelly::availableCores() - 20)
 # future::plan(multisession, workers = 10)
@@ -535,12 +540,14 @@ bootNumList = c(16)
 
 # 병렬횟수 설정
 # bootIdxList = seq(1, 1)
-bootIdxList = seq(2, 5)
-# bootIdxList = seq(1, 30)
+# bootIdxList = seq(2, 5)
+bootIdxList = seq(1, 30)
 # bootIdxList = seq(31, 60)
 # bootIdxList = seq(1, 300)
 # bootIdxList = seq(301, 600)
 # bootIdxList = seq(1, 2)
+
+
 
 # bootIdx = bootIdxList[1]
 # bootNum = bootNumList[1]
@@ -557,6 +564,7 @@ for (bootIdx in bootIdxList) {
     # saveFile = sprintf("%s/%s/bostSampleL1_%s-%s.csv", globalVar$outPath, serviceName, bootNum, bootDo)
     # saveFile = sprintf("%s/%s/bostSampleL1_%s-%s-%s.csv", globalVar$outPath, serviceName, bootNum, bootDo, bootIdx)
     # saveFile = sprintf("%s/%s/%s_bostSampleL1_%s-%s-%s.csv", globalVar$outPath, serviceName, sheetName, bootNum, bootDo, bootIdx)
+    # saveFile = sprintf("%s/%s/%s_bostSampleL1_%s-%s-%s_%s-%s.csv", globalVar$outPath, serviceName, sheetName, bootNum, bootDo, bootIdx, posLon, posLat)
     saveFile = sprintf("%s/%s/%s_bostSampleL1_%s-%s-%s_%s-%s.csv", globalVar$outPath, serviceName, sheetName, bootNum, bootDo, bootIdx, posLon, posLat)
     dir.create(path_dir(saveFile), showWarnings = FALSE, recursive = TRUE)
     readr::write_csv(x = bostSampleL1, file = saveFile)
@@ -565,6 +573,8 @@ for (bootIdx in bootIdxList) {
     #     dplyr::filter(type %in% bostSample[[i]]) %>%
     #     dplyr::select(type) %>%
     #     unique()
+
+    # sampleDataL1$type %>% unique() %>% sort()
 
     # 부트스트랩을 통해 병렬처리
     bootSelData = furrr::future_map_dfr(1:bootDo, function(i) {
@@ -578,13 +588,15 @@ for (bootIdx in bootIdxList) {
           meanVal = ifelse(meanVal < 0, 0, meanVal)
         ) %>%
         dplyr::ungroup() %>%
-        mutate_cond(xAxis == posLon & yAxis == posLat, posVal = meanVal) %>%
+        # mutate_cond(xAxis == posLon & yAxis == posLat, posVal = meanVal) %>%
+        mutate_cond(xAxis == posLon & yAxis >= posLat & yAxis <= posLat + 0.1, posVal = meanVal) %>%
         dplyr::mutate(posVal = na.exclude(posVal)) %>%
         dplyr::filter(meanVal == max(meanVal, na.rm = TRUE))
     })
 
     # saveFile = sprintf("%s/%s/bootSelData_%s-%s-%s.csv", globalVar$outPath, serviceName, bootNum, bootDo, bootIdx)
     # saveFile = sprintf("%s/%s/bootSelData_%s-%s-%s_%s-%s.csv", globalVar$outPath, serviceName, bootNum, bootDo, bootIdx, posLon, posLat)
+    # saveFile = sprintf("%s/%s/%s_bootSelData_%s-%s-%s_%s-%s.csv", globalVar$outPath, serviceName, sheetName, bootNum, bootDo, bootIdx, posLon, posLat)
     saveFile = sprintf("%s/%s/%s_bootSelData_%s-%s-%s_%s-%s.csv", globalVar$outPath, serviceName, sheetName, bootNum, bootDo, bootIdx, posLon, posLat)
     dir.create(path_dir(saveFile), showWarnings = FALSE, recursive = TRUE)
     readr::write_csv(x = bootSelData, file = saveFile)
@@ -644,25 +656,14 @@ for (bootIdx in bootIdxList) {
 }
 
 
-bootIdxList = seq(1, 1)
+# bootIdxList = seq(1, 1)
+bootIdxList = seq(1, 30)
 # bootIdxList = seq(1, 60)
 # bootNumList = c(30, 50, 60, 70)
 # bootNumList = c(14)
 bootNumList = c(16)
 # bootNumList = c(42)
 # bootNumList = c(16, 30)
-
-# 부트스트랩 횟수
-bootDo = 10000
-
-# 경주 지점
-posLon = 129.2
-posLat = 35.8
-
-# 특정 지점
-# posLon = 114
-# posLat = 32
-
 
 # bootNum = bootNumList[1]
 for (bootNum in bootNumList) {
@@ -671,8 +672,9 @@ for (bootNum in bootNumList) {
   bootData = tibble::tibble()
   for (bootIdx in bootIdxList) {
     # saveFile = sprintf("%s/%s/bostSampleL1_%s-%s-%s.csv", globalVar$outPath, serviceName, bootNum, bootDo, bootIdx)
-    saveFile = sprintf("%s/%s/%s_bostSampleL1_%s-%s-%s.csv", globalVar$outPath, serviceName, sheetName, bootNum, bootDo, bootIdx)
+    # saveFile = sprintf("%s/%s/%s_bostSampleL1_%s-%s-%s.csv", globalVar$outPath, serviceName, sheetName, bootNum, bootDo, bootIdx)
     # saveFile = sprintf("%s/%s/%s_bostSampleL1_%s-%s-%s_%s-%s.csv", globalVar$outPath, serviceName, sheetName, bootNum, bootDo, bootIdx, posLon, posLat)
+    saveFile = sprintf("%s/%s/%s_bostSampleL1_%s-%s-%s_%s-%s.csv", globalVar$outPath, serviceName, sheetName, bootNum, bootDo, bootIdx, posLon, posLat)
     fileList = Sys.glob(saveFile)
     if (length(fileList) < 1) { next }
 
@@ -681,6 +683,7 @@ for (bootNum in bootNumList) {
       dplyr::select(sampleInfo)
 
     # saveFile = sprintf("%s/%s/bootSelData_%s-%s-%s_%s-%s.csv", globalVar$outPath, serviceName, bootNum, bootDo, bootIdx, posLon, posLat)
+    # saveFile = sprintf("%s/%s/%s_bootSelData_%s-%s-%s_%s-%s.csv", globalVar$outPath, serviceName, sheetName, bootNum, bootDo, bootIdx, posLon, posLat)
     saveFile = sprintf("%s/%s/%s_bootSelData_%s-%s-%s_%s-%s.csv", globalVar$outPath, serviceName, sheetName, bootNum, bootDo, bootIdx, posLon, posLat)
     fileList = Sys.glob(saveFile)
     if (length(fileList) < 1) { next }
@@ -709,7 +712,7 @@ for (bootNum in bootNumList) {
     dplyr::filter(
       # posVal >= 0.68
       # posVal >= 0.69
-      posVal >= 0.70
+      posVal >= 0.71
     ) %>%
     dplyr::slice(1:10000)
 
@@ -727,6 +730,11 @@ for (bootNum in bootNumList) {
 
   plotData = bootDataL2
   # plotData = bootDataL3
+
+  saveFile = sprintf("%s/%s/%s_bootDataL2_%s-%s-%s_%s-%s.csv", globalVar$outPath, serviceName, sheetName, bootNum, bootDo, bootIdx, posLon, posLat)
+  dir.create(path_dir(saveFile), showWarnings = FALSE, recursive = TRUE)
+  readr::write_csv(x = bootDataL2, file = saveFile)
+  cat(sprintf("[CHECK] saveFile : %s", saveFile), "\n")
 
   saveImg = sprintf("%s/%s/%s-%s_%s-%s_%s-%s.png", globalVar$figPath, serviceName, sheetName, "Hist", bootNum, bootDo, posLon, posLat)
   dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
