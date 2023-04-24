@@ -1,4 +1,3 @@
-
 #===============================================================================================
 # Routine : Main R program
 #
@@ -499,9 +498,9 @@ for (sheetInfo in sheetList) {
   # data = xlsx::read.xlsx(fileInfo, sheetIndex = sheetInfo) %>%
   data = openxlsx::read.xlsx(fileInfo, sheet = sheetInfo) %>%
     tibble::as.tibble()
-  
+
   typeList = data$type %>% unique
-  
+
   for (typeInfo in typeList) {
 
     tmpData = data %>%
@@ -510,9 +509,9 @@ for (sheetInfo in sheetList) {
         , !is.na(val)
       ) %>%
       dplyr::select(-type)
-    
+
     dataL1 = MBA::mba.points(tmpData, gridData)
-    
+
     dataL2 = dataL1 %>%
       as.data.frame() %>%
       as.tibble() %>%
@@ -522,7 +521,7 @@ for (sheetInfo in sheetList) {
         , zAxis = xyz.est.z
       ) %>%
       dplyr::mutate(type = typeInfo)
-    
+
     dataL3 = dplyr::bind_rows(dataL3, dataL2)
   }
 }
@@ -547,23 +546,33 @@ sampleData = openxlsx::read.xlsx(fileInfo, sheet = "그룹정보")
 # 붉은점이상치픽
 # selList = c(74, 57, 34, 17, 5, 31, 14, 7, 60, 63, 38, 37, 28, 16)
 
+# selList = c(1, 6, 7, "9(0.96)", 13, 15, 20)
+# selList = c(53, 55, 64, 75, 76, "77(0.96)", 78, "145(0.96)", 159)
+# selList = c(13, "16(0.96)", 72, 10, 31, "32(0.96)", 17, 12, "4(0.96)", 15, 76, 35, 8, 53)
+selList = c(26, 52, 25, "9(0.96)", 45, 50, 55, 34, 56, 73, 74, "27(0.96)", 24, 35)
+
 # sampleData$type %>% unique()
 # sampleData$sampleType %>% unique()
 # dataL3$type %>% unique()
 # dataL4$sampleType %>% unique()
 # dataL4$type %>% unique()
 
+typeList = dataL4$type %>% unique()
+cat(sprintf("[CHECK] typeList : %s", length(typeList)), "\n")
+print(typeList)
+
 dataL4 = dataL3 %>%
   # dplyr::left_join(sampleData, by = c("type" = "type")) %>%
   # dplyr::filter(sampleType %in% selList) %>%
-  # dplyr::filter(type %in% selList) %>%
+  dplyr::filter(type %in% selList) %>%
   dplyr::group_by(xAxis, yAxis) %>%
   dplyr::summarise(
     meanVal = mean(zAxis, na.rm = TRUE)
   ) %>%
   dplyr::mutate(
     meanVal = ifelse(meanVal < 0, 0, meanVal)
-  )
+  ) %>%
+  dplyr::filter(meanVal >= 0.75)
 
 # cat(sprintf("[CHECK] type : %s", dataL4$type %>% unique %>% length), "\n")
 
@@ -588,8 +597,14 @@ posData = dataL4 %>%
 # setBreakText = c(seq(0.78, 0.10, -0.04))
 
 maxFloorVal = floor(maxData$meanVal * 100) / 100
-setBreakCont = c(seq(maxFloorVal, 0, -0.04))
-setBreakText = c(seq(maxFloorVal, 0, -0.04))
+# setBreakCont = c(seq(maxFloorVal, 0, -0.04))
+# setBreakText = c(seq(maxFloorVal, 0, -0.04))
+
+setBreakCont = c(seq(maxFloorVal, 0, -0.05))
+setBreakText = c(seq(maxFloorVal, 0, -0.05))
+
+# setBreakCont = c(seq(0.7, 0, -0.05))
+# setBreakText = c(seq(0.7, 0, -0.05))
 
 # setBreakCont = c(seq(0.78, 0, -0.04))
 # setBreakText = c(seq(0.78, 0.10, -0.04))
@@ -609,7 +624,6 @@ setBreakText = c(seq(maxFloorVal, 0, -0.04))
 # setBreakCont = c(seq(0.47, 0, -0.02))
 # setBreakText = c(seq(0.47, 0.10, -0.02))
 
-
 cat(sprintf("[CHECK] maxData : %s", maxData$meanVal), "\n")
 cat(sprintf("[CHECK] posData : %s", posData$meanVal), "\n")
 
@@ -626,8 +640,33 @@ cat(sprintf("[CHECK] posData : %s", posData$meanVal), "\n")
 # 경주지점 : 0.711924216798106 
 
 # 평균식분도 결과 : "20230327_신라픽14개+모집단2개(163)" 폴더 참조
-# 최대평균 : 0.711301033231367 (위도 : 114.800, 경도 : 32.4000)
+# 최대평균 : 0.711301033231367
 # 경주지점 : 0.604964449666547
+
+# 평균식분도 결과 : "20230420_신라픽 16개 평균_2개 분할_7개 평균식분도" 폴더 참조
+# 최대평균 : 0.908783475868509
+# 경주지점 : 0.779841166979657
+
+# 평균식분도 결과 : "20230420_신라픽 16개 평균_2개 분할_9개 평균식분도" 폴더 참조
+# 최대평균 : 0.582707646317471
+# 경주지점 : 0.468949225089684
+
+# 평균식분도 결과 : "20230420_78개모집단_1만개추출_14개 평균_2개 분할_전자 평균식분도" 폴더 참조
+# 최대평균 : 0.783819038536363
+# 경주지점 : 0.70262107512657
+
+# 평균식분도 결과 : "20230420_78개모집단_1만개추출_14개 평균_2개 분할_후자 평균식분도" 폴더 참조
+# 최대평균 : 0.768437732829629
+# 경주지점 : 0.696760328356961
+
+# 평균식분도 결과 : "20230420_78개모집단_1만개추출_14개 평균_2개 분할_전자(+경주조건0.75이상)" 폴더 참조
+# 최대평균 : 0.783819038536363
+# 경주지점 : NA
+
+# 평균식분도 결과 : "20230420_78개모집단_1만개추출_14개 평균_2개 분할_후자(+경주조건0.75이상)" 폴더 참조
+# 최대평균 : 0.783819038536363
+# 경주지점 : NA
+
 
 saveImg = sprintf("%s/%s/%s_%s.png", globalVar$figPath, serviceName, sheetName, "Mean_Color")
 
@@ -658,13 +697,58 @@ cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 saveImg = sprintf("%s/%s/%s_%s.png", globalVar$figPath, serviceName, sheetName, "Mean_Black")
 
 makePlot = ggplot(data = dataL4, aes(x = xAxis, y = yAxis, z = meanVal)) +
-  # geom_raster(interpolate = TRUE, na.rm = TRUE) +
-  # scale_fill_gradientn(colours = cbMatlab, limits = c(0, 1.0), breaks = seq(0, 1.0, 0.2), na.value = NA) +
-  # metR::geom_contour_fill(na.fill = TRUE, kriging = TRUE)
   geom_sf(data = mapGlobal, aes(x = NULL, y = NULL, fill = NULL, z = NULL), color = "black", fill = NA) +
   metR::geom_contour2(color = "black", alpha = 1.0, breaks = setBreakCont, show.legend = FALSE, size = 0.5) +
   metR::geom_text_contour(stroke = 0.2, check_overlap = TRUE, skip = 0, breaks = setBreakText, rotate = TRUE, na.rm = TRUE, size = 5) +
   geom_point(data = maxData, aes(x = xAxis, y = yAxis), color = "red") +
+  metR::scale_x_longitude(breaks = seq(90, 150, 10), limits = c(89.99, 150.01), expand = c(0, 0)) +
+  metR::scale_y_latitude(breaks = seq(10, 60, 10), limits = c(9.99, 60), expand = c(0, 0)) +
+  labs(
+    subtitle = NULL
+    , x = NULL
+    , y = NULL
+    , fill = NULL
+    , colour = NULL
+    , title = NULL
+  ) +
+  theme(text = element_text(size = 18))
+
+ggsave(makePlot, filename = saveImg, width = 10, height = 10, dpi = 600)
+# ggplot2::last_plot()
+cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+
+saveImg = sprintf("%s/%s/%s_%s.png", globalVar$figPath, serviceName, sheetName, "Mean Color Overlay")
+dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
+
+# 1. 만개의 점이 찍혀있는 위도 경도 그래프
+makePlot = ggplot(data = dataL4, aes(x = xAxis, y = yAxis, color = meanVal)) +
+  # geom_point(size = 2, show.legend = TRUE) +
+  geom_point(size = 1, show.legend = TRUE, alpha = 0.3) +
+  # geom_point(size = 1, show.legend = TRUE) +
+  scale_color_gradientn(colours = cbMatlab) +
+  geom_sf(data = mapGlobal, aes(x = NULL, y = NULL, fill = NULL, z = NULL), color = "black", fill = NA) +
+  metR::scale_x_longitude(breaks = seq(90, 150, 10), limits = c(89.99, 150.01), expand = c(0, 0)) +
+  metR::scale_y_latitude(breaks = seq(10, 60, 10), limits = c(9.99, 60), expand = c(0, 0)) +
+  labs(
+    subtitle = NULL
+    , x = NULL
+    , y = NULL
+    , fill = NULL
+    , colour = NULL
+    , title = NULL
+  ) +
+  theme(text = element_text(size = 18))
+
+ggsave(makePlot, filename = saveImg, width = 10, height = 10, dpi = 600)
+# ggplot2::last_plot()
+cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+
+saveImg = sprintf("%s/%s/%s-%s.png", globalVar$figPath, serviceName, sheetName, "Mean Black Overlay")
+dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
+
+makePlot = ggplot(data = dataL4, aes(x = xAxis, y = yAxis, color = meanVal)) +
+  geom_point(size = 1, color = "black", show.legend = FALSE, alpha = 0.3) +
+  geom_sf(data = mapGlobal, aes(x = NULL, y = NULL, fill = NULL, z = NULL), color = "black", fill = NA) +
   metR::scale_x_longitude(breaks = seq(90, 150, 10), limits = c(89.99, 150.01), expand = c(0, 0)) +
   metR::scale_y_latitude(breaks = seq(10, 60, 10), limits = c(9.99, 60), expand = c(0, 0)) +
   labs(
@@ -870,8 +954,8 @@ for (bootIdx in bootIdxList) {
 
 # bootIdxList = seq(1, 5)
 # bootIdxList = seq(1, 30)
-# bootIdxList = seq(1, 1)
-bootIdxList = seq(2, 2)
+bootIdxList = seq(1, 1)
+# bootIdxList = seq(2, 2)
 # bootIdxList = seq(1, 60)
 # bootNumList = c(30, 50, 60, 70)
 bootNumList = c(14)
@@ -898,14 +982,14 @@ for (bootNum in bootNumList) {
   # bootIdx = bootIdxList[1]
   bootData = tibble::tibble()
   for (bootIdx in bootIdxList) {
-      # saveFile = sprintf("%s/%s/bostSampleL1_%s-%s-%s.csv", globalVar$outPath, serviceName, bootNum, bootDo, bootIdx)
+    # saveFile = sprintf("%s/%s/bostSampleL1_%s-%s-%s.csv", globalVar$outPath, serviceName, bootNum, bootDo, bootIdx)
     saveFile = sprintf("%s/%s/%s_bostSampleL1_%s-%s-%s_%s-%s.csv", globalVar$outPath, serviceName, sheetName, bootNum, bootDo, bootIdx, posLon, posLat)
     fileList = Sys.glob(saveFile)
     if (length(fileList) < 1) { next }
 
-     # sampleData = readr::read_csv(file =fileList, show_col_types = FALSE) %>%
-     #  dplyr::mutate(sampleInfo = paste(X1, X2, X3, X4, X5, X6, X7, X8, X9, X10, X11, X12, X13, X14, sep = "-")) %>%
-     #  dplyr::select(sampleInfo)
+    # sampleData = readr::read_csv(file =fileList, show_col_types = FALSE) %>%
+    #  dplyr::mutate(sampleInfo = paste(X1, X2, X3, X4, X5, X6, X7, X8, X9, X10, X11, X12, X13, X14, sep = "-")) %>%
+    #  dplyr::select(sampleInfo)
     sampleData = readr::read_csv(file = fileList, show_col_types = FALSE) %>%
       tidyr::unite(sampleInfo, sep = "-") %>%
       dplyr::select(sampleInfo)
@@ -974,8 +1058,8 @@ for (bootNum in bootNumList) {
       meanVal >= 0.75
     )
 
-  plotData = bootDataL2
-  # plotData = bootDataL3
+  # plotData = bootDataL2
+  plotData = bootDataL3
 
   saveFile = sprintf("%s/%s/%s_bootDataL2_%s-%s-%s_%s-%s.csv", globalVar$outPath, serviceName, sheetName, bootNum, bootDo, bootIdx, posLon, posLat)
   dir.create(path_dir(saveFile), showWarnings = FALSE, recursive = TRUE)
@@ -984,19 +1068,23 @@ for (bootNum in bootNumList) {
 
   # histData = hist(plotData$meanVal, xlim = c(0.65, 0.90))
   # hist(plotData$meanVal, xlim = c(0.65, 0.90))
-  
+
   saveImg = sprintf("%s/%s/%s-%s_%s-%s_%s-%s.png", globalVar$figPath, serviceName, sheetName, "Hist", bootNum, bootDo, posLon, posLat)
   dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
   png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
-  mainTitle = sprintf("Count : %s",  length(plotData$meanVal))
-  
-  histData = hist(plotData$meanVal)
-  hist(plotData$meanVal, main = mainTitle, xlab = NULL)
+  mainTitle = sprintf("Count : %s", length(plotData$meanVal))
+
+  breakList = seq(0.35, max(plotData$meanVal, na.rm = TRUE) + 0.05, by = 0.05)
+  tickList = seq(0.35, max(plotData$meanVal, na.rm = TRUE) + 0.05, by = 0.05)
+
+  histData = hist(plotData$meanVal, breaks = breakList)
+  hist(plotData$meanVal, main = mainTitle, xlab = NULL, breaks = breakList, xaxt = "n")
+  axis(side = 1, at = tickList)
   text(histData$mids, histData$counts, pos = 3, labels = histData$counts)
 
   dev.off()
   cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
-  
+
   # chkData = plotData %>%
   #   dplyr::filter(xAxis < 92) %>% 
   #   dplyr::left_join(bootData, by = c("xAxis" = "xAxis", "yAxis" = "yAxis", "meanVal" = "meanVal"))
