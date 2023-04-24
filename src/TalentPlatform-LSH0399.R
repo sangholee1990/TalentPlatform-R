@@ -130,6 +130,7 @@ gridData = noncompliance::expand.grid.DT(
 # fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0382_일식 식분도 이미지 데이터 추출.xlsx"))
 # fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "일식 식분도 이미지 데이터 추출.xlsx"))
 fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "LSH0399_일식 식분도 이미지 데이터 추출.xlsx"))
+# fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "20230406_LSH0399_일식 식분도 이미지 데이터 추출.xlsx"))
 
 
 # **************************************************
@@ -246,7 +247,7 @@ dataL3 = tibble::tibble()
 for (sheetInfo in sheetList) {
 
   # data = xlsx::read.xlsx(fileInfo, sheetIndex = sheetInfo) %>%
-  data = openxlsx::read.xlsx(fileInfo, sheet = sheetInfo) %>%
+  data = openxlsx::read.xlsx(fileInfo, sheet = sheetName) %>%
     tibble::as.tibble()
   
   # typeInfo = typeList[1]
@@ -280,10 +281,10 @@ for (sheetInfo in sheetList) {
 # **************************************************
 # 공간 평균
 # **************************************************
-# typeList = dataL3$type %>% unique()
-# cat(sprintf("[CHECK] typeList : %s", length(typeList)), "\n")
-# print(typeList)
-#
+typeList = dataL3$type %>% unique()
+cat(sprintf("[CHECK] typeList : %s", length(typeList)), "\n")
+print(typeList)
+
 # # 표본 주사위
 # # sampleData = openxlsx::read.xlsx(fileInfo, sheet = "그룹정보")
 #
@@ -541,13 +542,17 @@ bootNumList = c(16)
 # 병렬횟수 설정
 # bootIdxList = seq(1, 1)
 # bootIdxList = seq(2, 5)
-bootIdxList = seq(1, 30)
+# bootIdxList = seq(1, 30)
+# bootIdxList = seq(1, 120)
+bootIdxList = seq(200, 300)
 # bootIdxList = seq(31, 60)
 # bootIdxList = seq(1, 300)
 # bootIdxList = seq(301, 600)
 # bootIdxList = seq(1, 2)
 
-
+ # 부스스트랩 주사위 목록
+bootNum = bootNumList[1]
+refOBootSample = lapply(1:(bootDo * max(bootIdxList, na.rm = TRUE)), function(i) sample(sampleInfo, size = bootNum, replace = FALSE))
 
 # bootIdx = bootIdxList[1]
 # bootNum = bootNumList[1]
@@ -557,8 +562,9 @@ for (bootIdx in bootIdxList) {
 
   for (bootNum in bootNumList) {
 
-    # 부스스트랩 주사위 목록
-    bostSample = lapply(1:bootDo, function(i) sample(sampleInfo, size = bootNum, replace = FALSE))
+    srtIdx = (bootDo * (bootIdx - 1)) + 1
+    endIdx = bootDo * bootIdx
+    bostSample = refOBootSample[srtIdx:endIdx]
 
     bostSampleL1 = data.frame(t(sapply(bostSample, c)))
     # saveFile = sprintf("%s/%s/bostSampleL1_%s-%s.csv", globalVar$outPath, serviceName, bootNum, bootDo)
@@ -657,8 +663,10 @@ for (bootIdx in bootIdxList) {
 
 
 # bootIdxList = seq(1, 1)
-bootIdxList = seq(1, 30)
+# bootIdxList = seq(1, 30)
 # bootIdxList = seq(1, 60)
+# bootIdxList = seq(1, 120)
+bootIdxList = seq(1, 300)
 # bootNumList = c(30, 50, 60, 70)
 # bootNumList = c(14)
 bootNumList = c(16)
@@ -869,7 +877,7 @@ for (bootNum in bootNumList) {
   #   ) %>%
   #   dplyr::summarise(cnt = n())
 
-  cat(sprintf("[CHECK] bootData : %s", nrow(plotData)), "\n")
+  cat(sprintf("[CHECK] plotData : %s", nrow(plotData)), "\n")
   # cat(sprintf("[CHECK] statData : %s", statData), "\n")
   # cat(sprintf("[CHECK] statDataL1 : %s", statDataL1), "\n")
 
