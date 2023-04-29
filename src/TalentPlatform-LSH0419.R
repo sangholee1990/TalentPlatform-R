@@ -206,18 +206,50 @@ data = allData %>%
   dplyr::select(-key) %>%
   tibble::rowid_to_column()
 
-selData = data %>%
-  dplyr::filter(type == "우수군") %>%
-  dplyr::select(-c("type")) %>%
-  dplyr::rename(
-    "Q7.1(우수군)" = "Q7.1"
-  )
+# selData = data %>%
+#   dplyr::filter(type == "우수군") %>%
+#   dplyr::select(-c("type")) %>%
+#   dplyr::rename(
+#     "Q7.1(우수군)" = "Q7.1"
+#   )
+#
+# dataL1 = data %>%
+#   dplyr::left_join(selData, by = c("rowid" = "rowid")) %>%
+#   dplyr::select(-c("type", "rowid")) %>%
+#   dplyr::mutate_if(is.character, factor) %>%
+#   as.data.frame()
 
 dataL1 = data %>%
-  dplyr::left_join(selData, by = c("rowid" = "rowid")) %>%
-  dplyr::select(-c("type", "rowid")) %>%
-  dplyr::mutate_if(is.character, factor) %>%
+  dplyr::mutate(
+    ANS7.1 = dplyr::case_when(
+      stringr::str_detect(Q7.1, regex("거리가 가까워서")) ~ 1
+      , stringr::str_detect(Q7.1, regex("학비가 저렴하거나 장학금 혜택 때문에")) ~ 2
+      , stringr::str_detect(Q7.1, regex("전공에 비전이 있다고 생각해서")) ~ 3
+      , stringr::str_detect(Q7.1, regex("동기 및 선후배들이 좋아서")) ~ 4
+      , stringr::str_detect(Q7.1, regex("대안이 없어서")) ~ 5
+      , stringr::str_detect(Q7.1, regex("기타")) ~ 6
+    )
+  ) %>%
+  # dplyr::mutate_if(is.character, factor) %>%
   as.data.frame()
+
+# Estimate the Partial Credit Model
+mod <- mirt(dataL1$ANS7.1, 1, itemtype = "Rasch",
+            technical = list(removeEmptyRows = TRUE),
+            verbose = FALSE)
+
+# We set the seed to reproduce the same results
+library(RColorBrewer)
+library(WrightMap)
+
+set.seed(2020)
+rasch.sim.thetas <- rnorm(1000)
+rasch.sim.thresholds <- runif(10, -3, 3)
+wrightMap( rasch.sim.thetas, rasch.sim.thresholds)
+
+# Create the item-person map
+itempersonmap(mod)
+
 
 # 1. 거리가 가까워서
 # 2. 학비가 저렴하거나 장학금 혜택 때문에
@@ -317,7 +349,6 @@ dataL1$type = forcats::fct_relevel(dataL1$type, c("부적응군", "우수군", "
 # data$key = forcats::fct_relevel(data$key, c("낮음", "보통", "높음"))
 
 
-
 # 1. 거리가 가까워서
 # 2. 학비가 저렴하거나 장학금 혜택 때문에
 # 3. 전공에 비전이 있다고 생각해서
@@ -363,9 +394,6 @@ makePlot = sjPlot::plot_likert(dataL3) +
 
 ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
 cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
-
-
-
 
 
 plotSubTitle = sprintf("%s", "Q12 및 집단에 따른 생활적응 및 심리적응의 점수 분포")
