@@ -717,53 +717,53 @@ ggsave(makePlot, filename = saveImg, width = 10, height = 10, dpi = 600)
 # ggplot2::last_plot()
 cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 
-saveImg = sprintf("%s/%s/%s_%s.png", globalVar$figPath, serviceName, sheetName, "Mean Color Overlay")
-dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
-
-# 1. 만개의 점이 찍혀있는 위도 경도 그래프
-makePlot = ggplot(data = dataL4, aes(x = xAxis, y = yAxis, color = meanVal)) +
-  # geom_point(size = 2, show.legend = TRUE) +
-  geom_point(size = 1, show.legend = TRUE, alpha = 0.3) +
-  # geom_point(size = 1, show.legend = TRUE) +
-  scale_color_gradientn(colours = cbMatlab) +
-  geom_sf(data = mapGlobal, aes(x = NULL, y = NULL, fill = NULL, z = NULL), color = "black", fill = NA) +
-  metR::scale_x_longitude(breaks = seq(90, 150, 10), limits = c(89.99, 150.01), expand = c(0, 0)) +
-  metR::scale_y_latitude(breaks = seq(10, 60, 10), limits = c(9.99, 60), expand = c(0, 0)) +
-  labs(
-    subtitle = NULL
-    , x = NULL
-    , y = NULL
-    , fill = NULL
-    , colour = NULL
-    , title = NULL
-  ) +
-  theme(text = element_text(size = 18))
-
-ggsave(makePlot, filename = saveImg, width = 10, height = 10, dpi = 600)
-# ggplot2::last_plot()
-cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
-
-saveImg = sprintf("%s/%s/%s-%s.png", globalVar$figPath, serviceName, sheetName, "Mean Black Overlay")
-dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
-
-makePlot = ggplot(data = dataL4, aes(x = xAxis, y = yAxis, color = meanVal)) +
-  geom_point(size = 1, color = "black", show.legend = FALSE, alpha = 0.3) +
-  geom_sf(data = mapGlobal, aes(x = NULL, y = NULL, fill = NULL, z = NULL), color = "black", fill = NA) +
-  metR::scale_x_longitude(breaks = seq(90, 150, 10), limits = c(89.99, 150.01), expand = c(0, 0)) +
-  metR::scale_y_latitude(breaks = seq(10, 60, 10), limits = c(9.99, 60), expand = c(0, 0)) +
-  labs(
-    subtitle = NULL
-    , x = NULL
-    , y = NULL
-    , fill = NULL
-    , colour = NULL
-    , title = NULL
-  ) +
-  theme(text = element_text(size = 18))
-
-ggsave(makePlot, filename = saveImg, width = 10, height = 10, dpi = 600)
-# ggplot2::last_plot()
-cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+# saveImg = sprintf("%s/%s/%s_%s.png", globalVar$figPath, serviceName, sheetName, "Mean Color Overlay")
+# dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
+#
+# # 1. 만개의 점이 찍혀있는 위도 경도 그래프
+# makePlot = ggplot(data = dataL4, aes(x = xAxis, y = yAxis, color = meanVal)) +
+#   # geom_point(size = 2, show.legend = TRUE) +
+#   geom_point(size = 1, show.legend = TRUE, alpha = 0.3) +
+#   # geom_point(size = 1, show.legend = TRUE) +
+#   scale_color_gradientn(colours = cbMatlab) +
+#   geom_sf(data = mapGlobal, aes(x = NULL, y = NULL, fill = NULL, z = NULL), color = "black", fill = NA) +
+#   metR::scale_x_longitude(breaks = seq(90, 150, 10), limits = c(89.99, 150.01), expand = c(0, 0)) +
+#   metR::scale_y_latitude(breaks = seq(10, 60, 10), limits = c(9.99, 60), expand = c(0, 0)) +
+#   labs(
+#     subtitle = NULL
+#     , x = NULL
+#     , y = NULL
+#     , fill = NULL
+#     , colour = NULL
+#     , title = NULL
+#   ) +
+#   theme(text = element_text(size = 18))
+#
+# ggsave(makePlot, filename = saveImg, width = 10, height = 10, dpi = 600)
+# # ggplot2::last_plot()
+# cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+#
+# saveImg = sprintf("%s/%s/%s-%s.png", globalVar$figPath, serviceName, sheetName, "Mean Black Overlay")
+# dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
+#
+# makePlot = ggplot(data = dataL4, aes(x = xAxis, y = yAxis, color = meanVal)) +
+#   geom_point(size = 1, color = "black", show.legend = FALSE, alpha = 0.3) +
+#   geom_sf(data = mapGlobal, aes(x = NULL, y = NULL, fill = NULL, z = NULL), color = "black", fill = NA) +
+#   metR::scale_x_longitude(breaks = seq(90, 150, 10), limits = c(89.99, 150.01), expand = c(0, 0)) +
+#   metR::scale_y_latitude(breaks = seq(10, 60, 10), limits = c(9.99, 60), expand = c(0, 0)) +
+#   labs(
+#     subtitle = NULL
+#     , x = NULL
+#     , y = NULL
+#     , fill = NULL
+#     , colour = NULL
+#     , title = NULL
+#   ) +
+#   theme(text = element_text(size = 18))
+#
+# ggsave(makePlot, filename = saveImg, width = 10, height = 10, dpi = 600)
+# # ggplot2::last_plot()
+# cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 
 
 # **************************************************
@@ -849,7 +849,7 @@ bootNumList = c(14)
 
 # 병렬횟수 설정
 # bootIdxList = seq(1, 5)
-bootIdxList = seq(1, 30)
+# bootIdxList = seq(1, 30)
 # bootIdxList = seq(31, 60)
 # bootIdxList = seq(1, 300)
 # bootIdxList = seq(301, 600)
@@ -954,11 +954,11 @@ for (bootIdx in bootIdxList) {
 
 # bootIdxList = seq(1, 5)
 # bootIdxList = seq(1, 30)
-bootIdxList = seq(1, 1)
+# bootIdxList = seq(1, 1)
 # bootIdxList = seq(2, 2)
-# bootIdxList = seq(1, 60)
+bootIdxList = seq(1, 60)
 # bootNumList = c(30, 50, 60, 70)
-bootNumList = c(14)
+# bootNumList = c(14)
 # bootNumList = c(42)
 # bootNumList = c(16, 30)
 # bootNum = bootNumList[1]
@@ -1038,12 +1038,12 @@ for (bootNum in bootNumList) {
   # 경주지점 0.68 이상
   # 경주지점 0.69 이상
   bootDataL2 = bootData %>%
-    # dplyr::distinct(xAxis, yAxis, meanVal, posVal, keep_all = TRUE) %>%
     dplyr::distinct(xAxis, yAxis, meanVal, posVal, sampleInfo, keep_all = TRUE) %>%
-    # dplyr::filter(
-    #   # posVal >= 0.68
-    #   posVal >= 0.69
-    # ) %>%
+    # dplyr::distinct(xAxis, yAxis, meanVal, posVal, keep_all = TRUE) %>%
+    dplyr::filter(
+      # posVal >= 0.68
+      posVal >= 0.69
+    ) %>%
     # dplyr::slice(1:1000)
     dplyr::slice(1:10000)
 
