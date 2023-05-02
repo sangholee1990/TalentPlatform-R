@@ -66,6 +66,65 @@ library(likert)
 library(naniar)
 library(likert)
 library(mirt)
+library(ggmirt)
+library(grid)
+
+itempersonmap = function(mod) {
+  require("mirt")
+  require("dplyr")
+  require("reshape2")
+  require("ggplot2")
+  require("cowplot")
+
+  if (unique(mod@Model$itemtype) != "Rasch") {
+    stop('You must select itemtype = "Rasch" for all items')
+  } else {
+
+    pars <- as.data.frame(coef(mod, IRTpars = TRUE, simplify = TRUE)$items)
+
+    pars <- pars %>%
+      dplyr::select(-a) %>%
+      mutate(item = row.names(pars)) %>%
+      melt(data = .,
+           id.vars = "item",
+           variable.name = "threshold",
+           value.name = "parameter")
+
+    pars_mean <- pars %>%
+      group_by(item) %>%
+      summarise(mean_threshold = mean(parameter))
+
+    theta <- as.data.frame(fscores(mod)) %>%
+      rename(theta = F1)
+
+    # Histogram of latent trait distribution
+    p1 <- ggplot(data = theta,
+                 aes(x = theta)) +
+      geom_histogram(bins = 30, fill = "royalblue2", colour = "lightgray") +
+      theme_bw(base_size = 13) +
+      theme(axis.text.x = element_text(angle = 45)) +
+      labs(x = "Latent Trait", y = "") +
+      scale_x_continuous(limits = c(-5, 5), breaks = seq(-5, 5, by = 1)) +
+      coord_flip() +
+      scale_y_reverse()
+
+    # Dot and line plot of item thresholds
+    p2 <- ggplot(data = pars,
+                 aes(x = item, y = parameter)) +
+      geom_line() +
+      geom_point(aes(shape = threshold), size = 3, colour = "indianred1") +
+      geom_point(data = pars_mean, aes(x = item, y = mean_threshold), size = 3,
+                 colour = "black", shape = 8) +
+      theme_bw(base_size = 13) +
+      theme(axis.text.x = element_text(angle = 45, hjust = 1),
+            legend.position = "none") +
+      labs(x = "", y = "Item Thresholds", shape = "Threshold") +
+      scale_y_continuous(position = "right", limits = c(-5, 5), breaks = seq(-5, 5, by = 1))
+
+    # Combine the plots together
+    cowplot::plot_grid(p1, p2, align = "h")
+  }
+}
 
 # 파일 읽기
 fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "컨설팅+분석의뢰서_+shlee1990_+20230425_3.xlsx"))
@@ -196,30 +255,27 @@ data = allData %>%
     )
   ) %>%
   dplyr::select(-c("생활적응")) %>%
-  na.omit() %>%
-  tidyr::separate("Q7.1", c("Q7a", "Q7b", "Q7c", "Q7d"), sep = ", ") %>%
-  gather(-type, key = "key", value = "Q7.1") %>%
   dplyr::filter(
     !is.na(Q7.1)
     , Q7.1 != "1학년"
   ) %>%
-  dplyr::select(-key) %>%
+  dplyr::mutate(
+    A1 = ifelse(stringr::str_detect(Q7.1, regex("거리가 가까워서")), 1, 0)
+    , A2 = ifelse(stringr::str_detect(Q7.1, regex("학비가 저렴하거나 장학금 혜택 때문에")), 1, 0)
+    , A3 = ifelse(stringr::str_detect(Q7.1, regex("전공에 비전이 있다고 생각해서")), 1, 0)
+    , A4 = ifelse(stringr::str_detect(Q7.1, regex("동기 및 선후배들이 좋아서")), 1, 0)
+    , A5 = ifelse(stringr::str_detect(Q7.1, regex("대안이 없어서")), 1, 0)
+    , A6 = ifelse(stringr::str_detect(Q7.1, regex("기타")), 1, 0)
+  ) %>%
   tibble::rowid_to_column()
 
-# selData = data %>%
-#   dplyr::filter(type == "우수군") %>%
-#   dplyr::select(-c("type")) %>%
-#   dplyr::rename(
-#     "Q7.1(우수군)" = "Q7.1"
-#   )
-#
-# dataL1 = data %>%
-#   dplyr::left_join(selData, by = c("rowid" = "rowid")) %>%
-#   dplyr::select(-c("type", "rowid")) %>%
-#   dplyr::mutate_if(is.character, factor) %>%
-#   as.data.frame()
-
 dataL1 = data %>%
+  # dplyr::select(A1, A2, A3, A4, A5, A6) %>%
+  dplyr::select(A1, A2, A3, A4, A5) #%>%
+# apply(., 2, function(x) x - 1)
+
+
+dataL2 = data %>%
   dplyr::mutate(
     ANS7.1 = dplyr::case_when(
       stringr::str_detect(Q7.1, regex("거리가 가까워서")) ~ 1
@@ -230,25 +286,26 @@ dataL1 = data %>%
       , stringr::str_detect(Q7.1, regex("기타")) ~ 6
     )
   ) %>%
-  # dplyr::mutate_if(is.character, factor) %>%
-  as.data.frame()
+  tidyr::gather(-rowid, -Q7.1, -ANS7.1, -type, key = "key", value = "val")
 
-# Estimate the Partial Credit Model
-mod <- mirt(dataL1$ANS7.1, 1, itemtype = "Rasch",
-            technical = list(removeEmptyRows = TRUE),
-            verbose = FALSE)
+#
 
-# We set the seed to reproduce the same results
-library(RColorBrewer)
-library(WrightMap)
+modelRes = mirt::mirt(dataL1, model = 1, itemtype = "Rasch")
+summary(modelRes)
 
-set.seed(2020)
-rasch.sim.thetas <- rnorm(1000)
-rasch.sim.thresholds <- runif(10, -3, 3)
-wrightMap( rasch.sim.thetas, rasch.sim.thresholds)
+ggmirt::itempersonMap(modelRes)
 
-# Create the item-person map
-itempersonmap(mod)
+itempersonmap(modelRes)
+
+plot(modelRes)
+
+# 설문 조사 응답이 다원적이기 때문에 항목 임계값을 추정하기 위해 PCM이 선택됩니다. technical = list(removeEmptyRows=TRUE)설문 조사의 모든 항목을 건너뛴 응답자가 79명이므로 추가합니다 .
+# 따라서 모델을 추정하기 전에 제거해야 합니다.
+# 모델 추정 결과를 "mod"로 저장하고 있습니다.
+# 모델이 제대로 수렴되면 항목-사람 맵을 만드는 데 필요한 모든 정보가 이 개체에 저장됩니다
+# mirt. itempersonmap(mod)추정이 완료되면 항목-사람 맵을 만드는 데 사용할 수 있습니다 .
+# 도표에서 빨간색 점은 각 항목에 대한 항목 임계값(4개의 응답 범주를 구분하는 3개의 임계값)을 나타내고
+# 별표는 각 항목에 대한 임계값의 평균값을 나타냅니다. 이 임계값이 높을수록 더 많은 "팀워크"가 필요합니다. 플롯의 왼쪽에는 잠재 특성(즉, 팀워크 구성)의 분포도 표시됩니다.
 
 
 # 1. 거리가 가까워서
@@ -258,18 +315,18 @@ itempersonmap(mod)
 # 5. 별대른 대안이 없어서
 # 6. 기타
 
-plotSubTitle = sprintf("%s (%s)", "Q7.1 전체 및 우수군 집단에 따른 항목별 점수 분포", nameInfo)
-saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, plotSubTitle)
-
-makePlot = sjPlot::plot_likert(dataL1) +
-  labs(subtitle = plotSubTitle) +
-  theme(
-    text = element_text(size = 16)
-    , legend.position = "top"
-  )
-
-ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
-cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+# plotSubTitle = sprintf("%s (%s)", "Q7.1 전체 및 우수군 집단에 따른 항목별 점수 분포", nameInfo)
+# saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, plotSubTitle)
+#
+# makePlot = sjPlot::plot_likert(dataL1) +
+#   labs(subtitle = plotSubTitle) +
+#   theme(
+#     text = element_text(size = 16)
+#     , legend.position = "top"
+#   )
+#
+# ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
+# cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 
 # ****************************************************************************
 # 4번
@@ -328,33 +385,83 @@ data = allData %>%
       생활적응 > bot30 & 생활적응 < top30 ~ "적응군",
       생활적응 >= top30 ~ "우수군"
     )
-    , type2 = ifel
+    , type2 = ifelse(위기군여부 > 0, "위기군", NA)
+  ) %>%
+  dplyr::mutate(
+    type3 = dplyr::case_when(
+      type == "부적응군" & type2 == "위기군" ~ "부적응군-위기군",
+      type == "부적응군" ~ "부적응군",
+      type2 == "위기군" ~ "위기군"
+    )
   ) %>%
   dplyr::filter(
-    !is.na(생활적응)
-    , !is.na(심리적응)
-    , !is.na(Q12)
-  )
+    type == "부적응군" | type2 == "위기군"
+  ) %>%
+  tibble::rowid_to_column()
 
 dataL1 = data %>%
-  tidyr::gather(-type, -Q12, key = "key", value = "val") %>%
-  dplyr::group_by(type, key, Q12) %>%
-  dplyr::summarise(
-    meanVal = mean(val, na.rm = TRUE)
+  dplyr::mutate(
+    부적응군 = ifelse(stringr::str_detect(type3, regex("부적응군")), 1, 0)
+    , 위기군 = ifelse(stringr::str_detect(type3, regex("위기군")), 1, 0)
+    , `부적응군-위기군` = ifelse(stringr::str_detect(type3, regex("부적응군-위기군")), 1, 0)
   ) %>%
-  dplyr::mutate_if(is.character, factor)
+  dplyr::select(rowid, 부적응군, 위기군, `부적응군-위기군`, 생활적응, 심리적응) %>%
+  as.data.frame()
 
-dataL1$type = forcats::fct_relevel(dataL1$type, c("부적응군", "우수군", "적응군"))
-# data$key = forcats::fct_relevel(data$key)
-# data$key = forcats::fct_relevel(data$key, c("낮음", "보통", "높음"))
+UpSetR::upset(
+  dataL1
+  , sets.bar.color = "grey"
+  , attribute.plots = list(
+    gridrows = 60
+    , ncols = 2
+    , plots = list(
+      list(plot = scatter_plot, x = "rowid", y = "생활적응")
+      , list(plot = scatter_plot, x = "rowid", y = "심리적응")
+    )
+  )
+  , sets = c("부적응군", "부적응군-위기군", "위기군")
+  , queries = list(
+    list(query = intersects, params = list("위기군"), active = TRUE)
+    , list(query = intersects, params = list("부적응군"), active = TRUE)
+  )
+)
+
+# library(ComplexUpset)
+# ComplexUpset::set_size(10, 8)
+size = get_size_mode('exclusive_intersection')
+ComplexUpset::upset(
+  dataL1
+  , c("부적응군", "부적응군-위기군", "위기군")
+  # , name = NULL
+  , width_ratio = 0.3
+  # , min_size = 20
+  # , base_annotations = list(
+  #   'Intersection size' = intersection_size(
+  #     text_mapping = aes(
+  #       label = paste0(!!upset_text_percentage(), '\n(', !!size, ')'
+  #       )
+  #     )
+  #   )
+  #     # ylim(c(0, 300))
+  # )
+  , annotations = list(
+    '생활적응' = (
+      ggplot(mapping = aes(y = 생활적응)) +
+        geom_jitter(aes(color = 생활적응), na.rm = TRUE) +
+        geom_violin(alpha = 0.5, na.rm = TRUE)
+    )
+    , '심리적응' = (
+      ggplot(mapping = aes(y = 심리적응)) +
+        geom_jitter(aes(color = 심리적응), na.rm = TRUE) +
+        geom_violin(alpha = 0.5, na.rm = TRUE)
+    )
+  )
+)
 
 
-# 1. 거리가 가까워서
-# 2. 학비가 저렴하거나 장학금 혜택 때문에
-# 3. 전공에 비전이 있다고 생각해서
-# 4. 동기 및 선후배들이 좋아서
-# 5. 별대른 대안이 없어서
-# 6. 기타
+print(10,)
+# 정성적 데이터, 정량적 데이터의 조합과 산포도 등을 동시에 플롯하여 데이터 세트의 특징을 탐색적으로 파악하는 데 편리한 "UpSetR" 패키지입니다.
+# 조금, 사용법에 버릇이 있습니다만 「사용 데이터 예를 최소 구성」에 출력예를 소개합니다.
 
 
 dataL2 = data %>%
@@ -414,155 +521,46 @@ ggsave(makePlot, filename = saveImg, width = 8, height = 10, dpi = 600)
 cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 
 
-# names(dataL1)
-# rownames(dataL1)
-# dataL1 = data %>%
-#   dplyr::mutate_if(is.character, factor) %>%
-#   as.data.frame()
-# # dplyr::select("Q12")
-#
-# gg_miss_var(dataL1)
-# gg_miss_upset(dataL1)
-#
-# gg_miss_var(airquality, facet = Month)
-#
-#
-# library(ShinyItemAnalysis)
+library("UpSetR")
+
+#####準備#####################
+#データ例の作成
+TestData <- data.frame(Group = paste0("Group", 1:100),
+                       Data1 = sample(0:1, 100, replace = TRUE),
+                       Data2 = sample(0:1, 100, replace = TRUE),
+                       Data3 = sample(0:1, 100, replace = TRUE),
+                       Data4 = sample(0:200, 100, replace = TRUE),
+                       Data5 = sample(100:300, 100, replace = TRUE))
+##############################
+
+#そのままプロット:upsetコマンド
+upset(TestData)
+
+#グラフ下部にプロットを追加:attribute.plotsオプション
+#ggplot2が必要です
+#ggplot2を利用するためにtidyverseパッケージを読み込み
+#tidyverseパッケージがなければインストール
+# if(!require("tidyverse", quietly = TRUE)){
+#   install.packages("tidyverse");require("tidyverse")
+# }
+#プロット
+upset(TestData,
+      attribute.plots =
+        list(gridrows = 60, ncols = 2,
+             plots = list(list(plot = scatter_plot, x = "Group", y = "Data4"),
+                          list(plot = scatter_plot, x = "Group", y = "Data5"))))
 
 
-# summary(dataL1)
-# # gg_miss_upset(dataL1, nsets = 10)
-# naniar::gg_miss_upset(dataL1)
-# naniar::gg_miss_upset(data)
-# gg_miss_upset(airquality)
-# gg_miss_var(airquality)
+#グラフの色を指定:sets.bar.color, sets, queriesオプション
+upset(TestData, sets.bar.color = "#56B4E9",
+      attribute.plots =
+        list(gridrows = 60, ncols = 2,
+             plots = list(list(plot = scatter_plot, x = "Group", y = "Data4"),
+                          list(plot = scatter_plot, x = "Group", y = "Data5"))),
+      sets = c("Data1", "Data2", "Data3"),
+      queries = list(list(query = intersects, params = list("Data1"), active = FALSE),
+                     list(query = intersects, params = list("Data2"), active = TRUE)))
 
-# gg_miss_upset(airquality, nsets = 10)
-# gg_miss_upset(airquality, nsets = 10, nintersects = 10)
-# gg_miss_upset(riskfactors)
-# gg_miss_upset(riskfactors, nsets = 10)
-# gg_miss_upset(riskfactors, nsets = 10, nintersects = 10)
-
-items <- dd %>%
-  # Change responses from 1-2-3-4 to 0-1-2-3 by subtracting 1
-  apply(., 2, function(x) x - 1)
-
-# Estimate the Partial Credit Model
-mod <- mirt(items, 1, itemtype = "Rasch",
-            technical = list(removeEmptyRows = TRUE),
-            verbose = FALSE)
-
-
-# Create the item-person map
-itempersonmap(mod)
-
-data <- sim_irt(500, 8, seed = 123)
-mod <- mirt(data, 1, itemtype = "2PL", verbose = FALSE)
-itempersonMap(mod)
-
-
-# tidyr::gather(-성격2, -type, key = "key", value = "val") %>%
-# dplyr::select(-성격2) %>%
-# dplyr::group_by(type, key) %>%
-# dplyr::summarise(
-#   meanVal = mean(val, na.rm = TRUE)
-# )
-
-# data$type = forcats::fct_relevel(data$type, c("낮음", "보통", "높음"))
-# data$key = forcats::fct_relevel(data$key, c("낮음", "보통", "높음"))
-#
-# ggplot(data, aes(x = key, y = meanVal, fill = key)) +
-#   geom_bar(position = "dodge", stat = "identity") +
-#   geom_text(aes(label = round(meanVal, 0)), vjust = 1.6, color = "white", size = 5) +
-#   labs(x = "법정동", y = "연소득당 거래금액", fill = NULL, subtitle = "법정동에 따른 연소득당 거래금액 히스토그램") +
-#   # scale_fill_gradientn(colours = cbMatlab, na.value = NA) +
-#   theme(
-#     text = element_text(size = 18)
-#     , axis.text.x = element_text(angle = 45, hjust = 1)
-#   ) +
-#   facet_wrap(~type, scale = "free_x")
-# # ggsave(filename = saveImg, width = 12, height = 8
-#
-
-
-#
-# dplyr::select(-c("생활적응")) %>%
-# na.omit() %>%
-# tidyr::separate("Q7.1", c("Q7a", "Q7b", "Q7c", "Q7d"), sep = ", ") %>%
-# gather(-type, key = "key", value = "Q7.1") %>%
-# dplyr::filter(
-#   !is.na(Q7.1)
-#   , Q7.1 != "1학년"
-# ) %>%
-# dplyr::select(-key) %>%
-# tibble::rowid_to_column()
-
-dd
-names(dd)
-rownames(dd)
-
-selData = data %>%
-  dplyr::filter(type == "우수군") %>%
-  dplyr::select(-c("type")) %>%
-  dplyr::rename(
-    "Q7.1(우수군)" = "Q7.1"
-  )
-
-names(dd)
-rownames(dd)
-
-dataL1 = data %>%
-  dplyr::left_join(selData, by = c("rowid" = "rowid")) %>%
-  dplyr::select(-c("type", "rowid")) %>%
-  dplyr::mutate_if(is.character, factor) %>%
-  as.data.frame()
-
-# data = allData %>%
-#   dplyr::select("생활적응", "특성11", "이전에.학교중단에.대한.생각을.했으나,.학교를.더.다니게.된.이유는.무엇입니까?") %>%
-#   na.omit()
-#
-# dataL1 = data %>% dplyr::mutate(
-#   type = dplyr::case_when(
-#     생활적응 <= bot30 ~ "부적응군",
-#     생활적응 > bot30 & 생활적응 < top30 ~ "적응군",
-#     생활적응 >= top30 ~ "우수군"
-#   )
-# )
-#
-# # dataL1$type = forcats::fct_relevel(dataL1$type, c("부적응군", "우수군", "적응군"))
-# # dataL1$type = forcats::fct_relevel(dataL1$type, c("부적응군", "우수군", "적응군"))
-#
-# dataL2 = dataL1 %>%
-#   dplyr::mutate_if(is.character, factor) %>%
-#   as.data.frame()
-#
-# likert(dataL2[, 3:3])
-#
-# plot(likert(dataL2[, 3:4]))
-#
-# # dataL1[,1:2]
-# plot(likert(dataL1[, 2:3]), ordered = F, wrap = 60)
-# plot(likert(dataL1[, 3:3]))
-#
-# likert(dataL1[, 3:3])
-#
-#
-# dataL1$type = forcats::fct_relevel(dataL1$type, c("부적응군", "우수군", "적응군"))
-# dataL1$key = forcats::fct_relevel(dataL1$key, c("낮음", "보통", "높음"))
-# dataL1$key2 = forcats::fct_relevel(dataL1$key2, c("낮음", "보통", "높음"))
-
-
-#
-# dataL1 = data %>%
-#   as.tibble() %>%
-#   dplyr::filter(
-#     ! is.na(before)
-#     , ! is.na(after)
-#   ) %>%
-#   dplyr::mutate(
-#     id = dplyr::row_number()
-#   ) %>%
-#   gather(-id, key = "key", value = "val")
 #
 # # *****************************************
 # # 시각화
