@@ -148,42 +148,81 @@ data = allData %>%
 bot30 = quantile(data$`생활적응`, probs = 0.30)
 top30 = quantile(data$`생활적응`, probs = 0.70)
 
-dataL1 = data %>% dplyr::mutate(
-  type = dplyr::case_when(
-    생활적응 <= bot30 ~ "부적응군",
-    생활적응 > bot30 & 생활적응 < top30 ~ "적응군",
-    생활적응 >= top30 ~ "우수군"
+dataL1 = data %>%
+  dplyr::mutate(
+    type = dplyr::case_when(
+      생활적응 <= bot30 ~ "부적응군",
+      생활적응 > bot30 & 생활적응 < top30 ~ "적응군",
+      생활적응 >= top30 ~ "우수군"
+    )
+    , key = dplyr::case_when(
+      보호요인 < 35 ~ "낮음",
+      보호요인 >= 35 & 보호요인 < 65 ~ "보통",
+      보호요인 >= 65 ~ "높음"
+    )
+    , key2 = dplyr::case_when(
+      심리적응 < 35 ~ "낮음",
+      심리적응 >= 35 & 심리적응 < 65 ~ "보통",
+      심리적응 >= 65 ~ "높음"
+    )
   )
-  , key = dplyr::case_when(
-    보호요인 < 35 ~ "낮음",
-    보호요인 >= 35 & 보호요인 < 65 ~ "보통",
-    보호요인 >= 65 ~ "높음"
-  )
-  , key2 = dplyr::case_when(
-    심리적응 < 35 ~ "낮음",
-    심리적응 >= 35 & 심리적응 < 65 ~ "보통",
-    심리적응 >= 65 ~ "높음"
-  )
-)
 
 
-dataL1$type = forcats::fct_relevel(dataL1$type, c("부적응군", "우수군", "적응군"))
+dataL1$type = forcats::fct_relevel(dataL1$type, c("부적응군", "적응군", "우수군"))
 dataL1$key = forcats::fct_relevel(dataL1$key, c("낮음", "보통", "높음"))
 dataL1$key2 = forcats::fct_relevel(dataL1$key2, c("낮음", "보통", "높음"))
 
-plotSubTitle = sprintf("%s", "생활적응에 따른 보호요인 및 심리적용 상자그림")
+# plotSubTitle = sprintf("%s", "생활적응에 따른 보호요인 및 심리적용 상자그림")
+# saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, plotSubTitle)
+#
+# makePlot = ggplot(data = dataL1, aes(x = key, y = 심리적응)) +
+#   geom_boxplot(size = 0.5) +
+#   geom_jitter(alpha = 0.2) +
+#   facet_grid(key2 ~ type) +
+#   theme_bw() +
+#   labs(x = "보호 요인", y = "심리 적응", subtitle = plotSubTitle) +
+#   theme(text = element_text(size = 16))
+#
+# ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
+# cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+
+plotSubTitle = sprintf("%s", "생활적응에 따른 심리적응 상자그림")
 saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, plotSubTitle)
 
 makePlot = ggplot(data = dataL1, aes(x = key, y = 심리적응)) +
   geom_boxplot(size = 0.5) +
   geom_jitter(alpha = 0.2) +
-  facet_grid(key2 ~ type) +
+  stat_summary(fun = mean, geom = "point", shape = 23, size = 3, fill = "red", aes(group = type)) +
+  facet_grid( ~ type) +
   theme_bw() +
-  labs(x = "보호 요인", y = "심리 적응", subtitle = plotSubTitle) +
+  labs(x = "보호 요인", y = "심리 적용", subtitle = plotSubTitle) +
   theme(text = element_text(size = 16))
 
 ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
 cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+
+plotSubTitle = sprintf("%s", "생활적응에 따른 보호요인 상자그림")
+saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, plotSubTitle)
+
+makePlot = ggplot(data = dataL1, aes(x = key2, y = 보호요인)) +
+  geom_boxplot(size = 0.5) +
+  geom_jitter(alpha = 0.2) +
+  stat_summary(fun = mean, geom = "point", shape = 23, size = 3, fill = "red", aes(group = type)) +
+  facet_grid( ~ type) +
+  theme_bw() +
+  labs(x = "심리 적응", y = "보호 요인", subtitle = plotSubTitle) +
+  theme(text = element_text(size = 16))
+
+ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
+cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+
+dataL1 %>%
+  dplyr::group_by(type) %>%
+  dplyr::summarise(
+    meanVal = mean(보호요인, na.rm = TRUE)
+    , meanVal2 = mean(심리적응, na.rm = TRUE)
+    , meanVal3 = mean(생활적응, na.rm = TRUE)
+  )
 
 # ****************************************************************************
 # 2번
