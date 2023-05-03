@@ -188,55 +188,98 @@ cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 # ****************************************************************************
 # 2번
 # ****************************************************************************
+# dataList = list(allData = allData, subData = subData)
+#
+# nameInfo = "allData"
+# for (nameInfo in names(dataList)) {
+#
+#   data = get(nameInfo, dataList) %>%
+#     dplyr::rename(
+#       "Q5" = "지난.학기.지도교수와.면담을.한.횟수는.어느.정도인지.체크해주세요."
+#     ) %>%
+#     dplyr::select("생활적응", "Q5") %>%
+#     dplyr::mutate(
+#       type = dplyr::case_when(
+#         생활적응 <= bot30 ~ "부적응군",
+#         생활적응 > bot30 & 생활적응 < top30 ~ "적응군",
+#         생활적응 >= top30 ~ "우수군"
+#       )
+#     ) %>%
+#     dplyr::select(-c("생활적응")) %>%
+#     na.omit() %>%
+#     tibble::rowid_to_column()
+#
+#   selData = data %>%
+#     dplyr::filter(type == "우수군") %>%
+#     dplyr::select(-c("type")) %>%
+#     dplyr::rename(
+#       "Q5(우수군)" = "Q5"
+#     )
+#
+#   dataL1 = data %>%
+#     dplyr::left_join(selData, by = c("rowid" = "rowid")) %>%
+#     dplyr::select(-c("type", "rowid")) %>%
+#     dplyr::mutate_if(is.character, factor) %>%
+#     as.data.frame()
+#
+#   plotSubTitle = sprintf("%s (%s)", "Q5 전체 및 우수군 집단에 따른 항목별 점수 분포", nameInfo)
+#   saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, plotSubTitle)
+#
+#   # plot(likert::likert(dataL1))
+#   makePlot = sjPlot::plot_likert(dataL1) +
+#     labs(subtitle = plotSubTitle) +
+#     theme(
+#       text = element_text(size = 16)
+#       , legend.position = "top"
+#     )
+#
+#   ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
+#   cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+# }
+
+# ▶ 특성11 높음, 보통, 낮음 을 명목변수 3개로 분류하여
+# 각 집단 (높음,보통,낮음) 간 적응특성4 요인 점수를 비교하는 그래프로 변경 부탁드립니다.
 dataList = list(allData = allData, subData = subData)
 
 nameInfo = "allData"
+
+dataL1 = tibble::tibble()
 for (nameInfo in names(dataList)) {
 
   data = get(nameInfo, dataList) %>%
-    dplyr::rename(
-      "Q5" = "지난.학기.지도교수와.면담을.한.횟수는.어느.정도인지.체크해주세요."
-    ) %>%
-    dplyr::select("생활적응", "Q5") %>%
+    dplyr::select("특성11", "적응특성4") %>%
     dplyr::mutate(
       type = dplyr::case_when(
-        생활적응 <= bot30 ~ "부적응군",
-        생활적응 > bot30 & 생활적응 < top30 ~ "적응군",
-        생활적응 >= top30 ~ "우수군"
+        특성11 < 40 ~ "낮음",
+        특성11 >= 40 & 특성11 < 61 ~ "보통",
+        특성11 >= 61 ~ "높음"
       )
     ) %>%
-    dplyr::select(-c("생활적응")) %>%
     na.omit() %>%
-    tibble::rowid_to_column()
+    tibble::rowid_to_column() %>%
+    dplyr::mutate(key = ifelse(nameInfo == "allData", "전체", "설문"))
 
-  selData = data %>%
-    dplyr::filter(type == "우수군") %>%
-    dplyr::select(-c("type")) %>%
-    dplyr::rename(
-      "Q5(우수군)" = "Q5"
-    )
-
-  dataL1 = data %>%
-    dplyr::left_join(selData, by = c("rowid" = "rowid")) %>%
-    dplyr::select(-c("type", "rowid")) %>%
-    dplyr::mutate_if(is.character, factor) %>%
-    as.data.frame()
-
-  plotSubTitle = sprintf("%s (%s)", "Q5 전체 및 우수군 집단에 따른 항목별 점수 분포", nameInfo)
-  saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, plotSubTitle)
-
-  # plot(likert::likert(dataL1))
-  makePlot = sjPlot::plot_likert(dataL1) +
-    labs(subtitle = plotSubTitle) +
-    theme(
-      text = element_text(size = 16)
-      , legend.position = "top"
-    )
-
-  ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
-  cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+  dataL1 = dplyr::bind_rows(dataL1, data)
 }
 
+dataL1$type = forcats::fct_relevel(dataL1$type, c("낮음", "보통", "높음"))
+
+plotSubTitle = sprintf("%s", "특성11 집단에 따른 적응특성4 점수 분포")
+saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, plotSubTitle)
+
+makePlot = ggplot(dataL1, aes(x = key, y = 적응특성4, fill = key)) +
+  geom_boxplot(size = 0.5) +
+  geom_jitter(alpha = 0.2) +
+  labs(x = NULL, y = "적응특성4 점수", fill = NULL, subtitle = plotSubTitle) +
+  theme(
+    text = element_text(size = 16)
+    , axis.text.x = element_text(angle = 45, hjust = 1)
+    , legend.position = "top"
+  ) +
+  facet_wrap(~type, scale = "free_x")
+
+ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
+cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 
 # ****************************************************************************
 # 3번
@@ -255,10 +298,11 @@ data = allData %>%
       생활적응 >= top30 ~ "우수군"
     )
   ) %>%
-  dplyr::select(-c("생활적응")) %>%
+  # dplyr::select(-c("생활적응")) %>%
   dplyr::filter(
     !is.na(Q7.1)
     , Q7.1 != "1학년"
+    # , type == "우수군"
   ) %>%
   dplyr::mutate(
     A1 = ifelse(stringr::str_detect(Q7.1, regex("거리가 가까워서")), 1, 0)
@@ -271,25 +315,57 @@ data = allData %>%
   tibble::rowid_to_column()
 
 dataL1 = data %>%
-  dplyr::select(A1, A2, A3, A4, A5)
+  dplyr::select(A1, A2, A3, A4, A5, A6, 생활적응)
 
-modelRes = mirt::mirt(dataL1, model = 1, itemtype = "Rasch")
-summary(modelRes)
 
-ggmirt::itempersonMap(modelRes)
+# plotSubTitle = sprintf("%s", "Q12 부적응군 및 위기군 집단에 따른 생활적응 및 심리적응 분포")
+# saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, plotSubTitle)
 
-plotSubTitle = sprintf("%s (%s)", "Q7.1 전체에 따른 항목별 점수 분포", nameInfo)
+plotSubTitle = sprintf("%s", "Q7.1 전체에 따른 항목별 점수 분포")
 saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, plotSubTitle)
 
-makePlot = itemPersonMap(modelRes) +
+size = get_size_mode('exclusive_intersection')
+makePlot = ComplexUpset::upset(
+  dataL1
+  , c("A1", "A2", "A3", "A4", "A5", "A6")
+  , name = "집단"
+  , width_ratio = 0.3
+  , annotations = list(
+    '생활적응' = (
+      ggplot(mapping = aes(y = 생활적응)) +
+        geom_jitter(aes(color = 생활적응), na.rm = TRUE) +
+        geom_violin(alpha = 0.5, na.rm = TRUE)
+    )
+  )
+) +
   labs(subtitle = plotSubTitle) +
   theme(
-    text = element_text(size = 16)
+    text = element_text(size = 12)
     , legend.position = "top"
   )
 
 ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
 cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+
+
+#
+# modelRes = mirt::mirt(dataL1, model = 1, itemtype = "Rasch")
+# summary(modelRes)
+#
+# ggmirt::itempersonMap(modelRes)
+#
+# plotSubTitle = sprintf("%s (%s)", "Q7.1 전체에 따른 항목별 점수 분포", nameInfo)
+# saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, plotSubTitle)
+#
+# makePlot = itemPersonMap(modelRes) +
+#   labs(subtitle = plotSubTitle) +
+#   theme(
+#     text = element_text(size = 16)
+#     , legend.position = "top"
+#   )
+#
+# ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
+# cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 
 # plot(modelRes)
 
@@ -305,7 +381,6 @@ cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 #     )
 #   ) %>%
 #   tidyr::gather(-rowid, -Q7.1, -ANS7.1, -type, key = "key", value = "val")
-
 
 
 # 설문 조사 응답이 다원적이기 때문에 항목 임계값을 추정하기 위해 PCM이 선택됩니다. technical = list(removeEmptyRows=TRUE)설문 조사의 모든 항목을 건너뛴 응답자가 79명이므로 추가합니다 .
@@ -473,13 +548,9 @@ makePlot = ComplexUpset::upset(
 ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
 cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 
-
-# print(10,)
 # 정성적 데이터, 정량적 데이터의 조합과 산포도 등을 동시에 플롯하여 데이터 세트의 특징을 탐색적으로 파악하는 데 편리한 "UpSetR" 패키지입니다.
 # 조금, 사용법에 버릇이 있습니다만 「사용 데이터 예를 최소 구성」에 출력예를 소개합니다.
 
-
-#
 # # *****************************************
 # # 시각화
 # # *****************************************
