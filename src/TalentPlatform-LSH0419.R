@@ -194,7 +194,7 @@ makePlot = ggplot(data = dataL1, aes(x = key, y = 심리적응)) +
   geom_boxplot(size = 0.5) +
   geom_jitter(alpha = 0.2) +
   stat_summary(fun = mean, geom = "point", shape = 23, size = 3, fill = "red", aes(group = type)) +
-  facet_grid( ~ type) +
+  facet_grid(~type) +
   theme_bw() +
   labs(x = "보호 요인", y = "심리 적용", subtitle = plotSubTitle) +
   theme(text = element_text(size = 16))
@@ -211,7 +211,7 @@ makePlot = ggplot(data = dataL1, aes(x = key2, y = 보호요인)) +
   geom_boxplot(size = 0.5) +
   geom_jitter(alpha = 0.2) +
   stat_summary(fun = mean, geom = "point", shape = 23, size = 3, fill = "red", aes(group = type)) +
-  facet_grid( ~ type) +
+  facet_grid(~type) +
   theme_bw() +
   labs(x = "심리 적응", y = "보호 요인", subtitle = plotSubTitle) +
   theme(text = element_text(size = 16))
@@ -220,7 +220,7 @@ makePlot = ggplot(data = dataL1, aes(x = key2, y = 보호요인)) +
 ggsave(makePlot, filename = saveImg, width = 10, device = "svg", height = 8, dpi = 600)
 cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 
-dataL1 %>%
+data %>%
   dplyr::group_by(type) %>%
   dplyr::summarise(
     meanVal = mean(보호요인, na.rm = TRUE)
@@ -322,7 +322,7 @@ makePlot = ggplot(dataL1, aes(x = type, y = 적응특성4, fill = type)) +
     # , axis.text.x = element_text(angle = 45, hjust = 1)
     , legend.position = "top"
   )
-  # facet_wrap(~type, scale = "free_x")
+# facet_wrap(~type, scale = "free_x")
 
 # ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
 ggsave(makePlot, filename = saveImg, device = "svg", width = 10, height = 8, dpi = 600)
@@ -529,7 +529,7 @@ dataL1 %>%
 # ****************************************************************************
 # 5번
 # ****************************************************************************
-colnames(subData)
+colnames(allData)
 
 data = allData %>%
   dplyr::rename(
@@ -619,6 +619,95 @@ cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 
 data %>%
   dplyr::group_by(type3) %>%
+  dplyr::summarise(
+    meanVal = mean(생활적응, na.rm = TRUE)
+    , meanVal2 = mean(심리적응, na.rm = TRUE)
+  )
+
+
+# 문항 12.4
+colnames(allData)
+
+data = allData %>%
+  dplyr::rename(
+    "Q12.4" = "학생상담센터를.이용한.적이.없다면.그.이유는.무엇입니까?"
+  ) %>%
+  dplyr::select("위기군여부", "생활적응", "심리적응", "Q12.4") %>%
+  dplyr::mutate(
+    type = dplyr::case_when(
+      생활적응 <= bot30 ~ "부적응군",
+      생활적응 > bot30 & 생활적응 < top30 ~ "적응군",
+      생활적응 >= top30 ~ "우수군"
+    )
+    , type2 = ifelse(위기군여부 > 0, "위기군", NA)
+  ) %>%
+  dplyr::filter(
+    # type == "부적응군" | type2 == "위기군"
+    !is.na(Q12.4)
+  ) %>%
+  dplyr::mutate(
+    A1 = ifelse(stringr::str_detect(Q12.4, regex("기관")), 1, 0)
+    , A2 = ifelse(stringr::str_detect(Q12.4, regex("어떤 프로그램")), 1, 0)
+    , A3 = ifelse(stringr::str_detect(Q12.4, regex("실시 프로그램")), 1, 0)
+    , A4 = ifelse(stringr::str_detect(Q12.4, regex("관심이 가는 프로그램")), 1, 0)
+    , A5 = ifelse(stringr::str_detect(Q12.4, regex("개인정보")), 1, 0)
+  ) %>%
+  tibble::rowid_to_column()
+
+
+# <다중응답>
+# 1. 기관이 있는 지 몰랐다.
+# 2. 어떤 프로그램이 운영되는지 알지 못했다.
+# 3. 실시 프로그램들이 나에게 도움이 될 것이라고 생각하지 않았다.
+# 4. 관심이 가는 프로그램이 있었지만 신청방법을 알지 못했다.
+# 5. 나의 개인정보, 상담내용 등에 대한 비밀보장이 될 지 걱정되었다.
+
+dataL1 = data %>%
+  # dplyr::mutate(
+  #   부적응군 = ifelse(stringr::str_detect(type3, regex("부적응군")), 1, 0)
+  #   , 위기군 = ifelse(stringr::str_detect(type3, regex("위기군")), 1, 0)
+  #   , `부적응군-위기군` = ifelse(stringr::str_detect(type3, regex("부적응군-위기군")), 1, 0)
+  # ) %>%
+  # dplyr::select(rowid, 부적응군, 위기군, `부적응군-위기군`, 생활적응, 심리적응) %>%
+  dplyr::select(rowid, A1, A2, A3, A4, A5, 생활적응, 심리적응) %>%
+  as.data.frame()
+
+plotSubTitle = sprintf("%s", "Q12.4 학생상담센터 없는 이유에 따른 생활적응 및 심리적응 분포")
+# saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, plotSubTitle)
+saveImg = sprintf("%s/%s/%s.svg", globalVar$figPath, serviceName, plotSubTitle)
+
+size = get_size_mode('exclusive_intersection')
+makePlot = ComplexUpset::upset(
+  dataL1
+  , c("A1", "A2", "A3", "A4", "A5")
+  , name = "집단"
+  , width_ratio = 0.3
+  , annotations = list(
+    '생활적응' = (
+      ggplot(mapping = aes(y = 생활적응)) +
+        geom_jitter(aes(color = 생활적응), na.rm = TRUE) +
+        geom_violin(alpha = 0.5, na.rm = TRUE)
+    )
+    , '심리적응' = (
+      ggplot(mapping = aes(y = 심리적응)) +
+        geom_jitter(aes(color = 심리적응), na.rm = TRUE) +
+        geom_violin(alpha = 0.5, na.rm = TRUE)
+    )
+  )
+) +
+  labs(subtitle = plotSubTitle) +
+  theme(
+    text = element_text(size = 12)
+    , legend.position = "top"
+  )
+
+# ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
+ggsave(makePlot, filename = saveImg, device = "svg", width = 10, height = 8, dpi = 600)
+cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+
+dataL1 %>%
+#   dplyr::group_by(type3) %>%
+  dplyr::group_by(A1, A2, A3, A4, A5) %>%
   dplyr::summarise(
     meanVal = mean(생활적응, na.rm = TRUE)
     , meanVal2 = mean(심리적응, na.rm = TRUE)
