@@ -187,7 +187,8 @@ dataL1$key2 = forcats::fct_relevel(dataL1$key2, c("낮음", "보통", "높음"))
 # cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 
 plotSubTitle = sprintf("%s", "생활적응에 따른 심리적응 상자그림")
-saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, plotSubTitle)
+# saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, plotSubTitle)
+saveImg = sprintf("%s/%s/%s.svg", globalVar$figPath, serviceName, plotSubTitle)
 
 makePlot = ggplot(data = dataL1, aes(x = key, y = 심리적응)) +
   geom_boxplot(size = 0.5) +
@@ -198,11 +199,13 @@ makePlot = ggplot(data = dataL1, aes(x = key, y = 심리적응)) +
   labs(x = "보호 요인", y = "심리 적용", subtitle = plotSubTitle) +
   theme(text = element_text(size = 16))
 
-ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
+# ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
+ggsave(makePlot, filename = saveImg, width = 10, device = "svg", height = 8, dpi = 600)
 cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 
 plotSubTitle = sprintf("%s", "생활적응에 따른 보호요인 상자그림")
-saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, plotSubTitle)
+# saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, plotSubTitle)
+saveImg = sprintf("%s/%s/%s.svg", globalVar$figPath, serviceName, plotSubTitle)
 
 makePlot = ggplot(data = dataL1, aes(x = key2, y = 보호요인)) +
   geom_boxplot(size = 0.5) +
@@ -213,7 +216,8 @@ makePlot = ggplot(data = dataL1, aes(x = key2, y = 보호요인)) +
   labs(x = "심리 적응", y = "보호 요인", subtitle = plotSubTitle) +
   theme(text = element_text(size = 16))
 
-ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
+# ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
+ggsave(makePlot, filename = saveImg, width = 10, device = "svg", height = 8, dpi = 600)
 cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 
 dataL1 %>%
@@ -305,7 +309,8 @@ for (nameInfo in names(dataList)) {
 dataL1$type = forcats::fct_relevel(dataL1$type, c("낮음", "보통", "높음"))
 
 plotSubTitle = sprintf("%s", "특성11 집단에 따른 적응특성4 점수 분포")
-saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, plotSubTitle)
+# saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, plotSubTitle)
+saveImg = sprintf("%s/%s/%s.svg", globalVar$figPath, serviceName, plotSubTitle)
 
 makePlot = ggplot(dataL1, aes(x = type, y = 적응특성4, fill = type)) +
   geom_boxplot(size = 0.5) +
@@ -319,7 +324,8 @@ makePlot = ggplot(dataL1, aes(x = type, y = 적응특성4, fill = type)) +
   )
   # facet_wrap(~type, scale = "free_x")
 
-ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
+# ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
+ggsave(makePlot, filename = saveImg, device = "svg", width = 10, height = 8, dpi = 600)
 cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 
 dataL1 %>%
@@ -370,7 +376,8 @@ dataL1 = data %>%
 # saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, plotSubTitle)
 
 plotSubTitle = sprintf("%s", "Q7.1 전체에 따른 항목별 점수 분포")
-saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, plotSubTitle)
+# saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, plotSubTitle)
+saveImg = sprintf("%s/%s/%s.svg", globalVar$figPath, serviceName, plotSubTitle)
 
 size = get_size_mode('exclusive_intersection')
 makePlot = ComplexUpset::upset(
@@ -392,7 +399,8 @@ makePlot = ComplexUpset::upset(
     , legend.position = "top"
   )
 
-ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
+# ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
+ggsave(makePlot, filename = saveImg, device = "svg", width = 10, height = 8, dpi = 600)
 cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 
 # 1. 거리가 가까워서
@@ -491,7 +499,8 @@ for (keyInfo in keyList) {
     dplyr::filter(stringr::str_detect(key, regex(keyInfo)))
 
   plotSubTitle = sprintf("성격2 요인 집단에 따른 %s의 점수 분포", keyInfo)
-  saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, plotSubTitle)
+  # saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, plotSubTitle)
+  saveImg = sprintf("%s/%s/%s.svg", globalVar$figPath, serviceName, plotSubTitle)
 
   makePlot = ggplot(dataL1, aes(x = key, y = meanVal, fill = key)) +
     geom_bar(position = "dodge", stat = "identity") +
@@ -504,7 +513,8 @@ for (keyInfo in keyList) {
     ) +
     facet_wrap(~type, scale = "free_x")
 
-  ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
+  # ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
+  ggsave(makePlot, filename = saveImg, device = "svg", width = 10, height = 8, dpi = 600)
   cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 }
 
@@ -575,7 +585,8 @@ dataL1 = data %>%
 # )
 
 plotSubTitle = sprintf("%s", "Q12 부적응군 및 위기군 집단에 따른 생활적응 및 심리적응 분포")
-saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, plotSubTitle)
+# saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, plotSubTitle)
+saveImg = sprintf("%s/%s/%s.svg", globalVar$figPath, serviceName, plotSubTitle)
 
 size = get_size_mode('exclusive_intersection')
 makePlot = ComplexUpset::upset(
@@ -602,7 +613,8 @@ makePlot = ComplexUpset::upset(
     , legend.position = "top"
   )
 
-ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
+# ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
+ggsave(makePlot, filename = saveImg, device = "svg", width = 10, height = 8, dpi = 600)
 cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 
 data %>%
