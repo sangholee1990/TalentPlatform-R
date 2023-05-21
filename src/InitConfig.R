@@ -68,8 +68,8 @@
 #=====================================
 # Init Library
 #=====================================
-if (Sys.info()["sysname"] == "Windows") {
-  .libPaths("E:/04. TalentPlatform/Github/TalentPlatform-R/resources/lib")
+if (Sys.info()[["sysname"]] == "Windows") {
+  # .libPaths("E:/04. TalentPlatform/Github/TalentPlatform-R/resources/lib")
 } else {
   Sys.setenv(PROJ_LIB = "/usr/local/anaconda3/envs/r36/share/proj")
 }
@@ -156,9 +156,9 @@ globalVar = list(
   , "srcPath" = file.path(contextPath, "src")
   , "resPath" = file.path(contextPath, "resources")
   , "cfgPath" = file.path(contextPath, "resources", "config")
-  , "inpPath" = ifelse(Sys.info()["sysname"] == "Windows", file.path(contextPath, "resources", "input", prjName), "/DATA/INPUT")
-  , "figPath" = ifelse(Sys.info()["sysname"] == "Windows", file.path(contextPath, "resources", "fig", prjName), "/DATA/FIG")
-  , "outPath" = ifelse(Sys.info()["sysname"] == "Windows", file.path(contextPath, "resources", "output", prjName), "/DATA/OUTPUT")
+  , "inpPath" = ifelse(Sys.info()[["sysname"]] == "Windows", file.path(contextPath, "resources", "input", prjName), "/DATA/INPUT")
+  , "figPath" = ifelse(Sys.info()[["sysname"]] == "Windows", file.path(contextPath, "resources", "fig", prjName), "/DATA/FIG")
+  , "outPath" = ifelse(Sys.info()[["sysname"]] == "Windows", file.path(contextPath, "resources", "output", prjName), "/DATA/OUTPUT")
   , "logPath" = file.path(contextPath, "resources", "log", prjName)
   , "tmpPath" = file.path(contextPath, "resources", "tmp", prjName)
   , "mapPath" = file.path(contextPath, "resources", "config", "mapInfo")
@@ -237,7 +237,7 @@ library(fs)
 #=====================================
 # Set Fun
 #=====================================
-saveLogFile = sprintf("%s/%s_%s_%s_%s.log", globalVar$logPath, Sys.info()["sysname"], Sys.info()["nodename"], prjName, format(Sys.time(), "%Y%m%d"))
+saveLogFile = sprintf("%s/%s_%s_%s_%s.log", globalVar$logPath, Sys.info()[["sysname"]], Sys.info()[["nodename"]], prjName, format(Sys.time(), "%Y%m%d"))
 
 log = log4r::create.logger()
 log4r::logfile(log) = saveLogFile

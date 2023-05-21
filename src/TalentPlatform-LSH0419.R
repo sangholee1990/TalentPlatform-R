@@ -28,7 +28,7 @@ if (Sys.info()["sysname"] == "Windows") {
 } else {
   contextPath = ifelse(env == "local", ".", "/SYSTEMS/PROG/R/PyCharm")
 }
-
+3
 if (env == "local") {
   globalVar = list(
     "inpPath" = contextPath
