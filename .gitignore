@@ -42,3 +42,4 @@ fig.html
 # git rm --cached .idea/ -r
 testSys.zip
 fort.6
+/testSys-*/
