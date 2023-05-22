@@ -1,0 +1,68 @@
+---
+title: "GSE_BigData_Prediction_Assignment1"
+author: "Add your name"
+date: "`r Sys.Date()`"
+output: word_document
+---
+
+## Set the working directory and read in the dataset (`PISA2018MS_KOR_BQ.rdata`)
+
+```{r readin}
+# working directory path를 지정하고 dataset을 넣은 뒤, 아래 세 라인의 #를 지우고 activate해 주세요.
+infile <- outfile <-  getwd()
+setwd(infile)
+load("PISA2018MS_KOR_BQ.rdata")
+```
+
+## Prediction task using the linear regression
+
+### Check the dimension of the dataset
+```{r dim}
+dim(PISA2018MS_KOR)
+
+```
+
+### Compute the mean and sd of PV1MATH variable (outcome variable)
+```{r outcome}
+mean(PISA2018MS_KOR$PV1MATH, na.rm = TRUE)
+sd(PISA2018MS_KOR$PV1MATH, na.rm = TRUE)
+```
+
+### Fit the following three prediction models and return the summary of each model: 
+* M1: PV1MATH by EMOSUPS
+* M2: PV1MATH by explanatory variable: EMOSUPS,  ST004D01T (gender)
+* M3: PV1MATH by explanatory variables: EMOSUPS, ST004D01T (gender), interaction between EMOSUPS and ST004D01T (gender)
+```{r linear_reg}
+M1 = lm(PV1MATH ~ EMOSUPS, data = PISA2018MS_KOR)
+summary(M1)
+
+
+PISA2018MS_KOR2 = PISA2018MS_KOR
+
+M2 = lm(PV1MATH ~ EMOSUPS + ST004D01T, data = PISA2018MS_KOR)
+summary(M2)
+
+M3 = lm(PV1MATH ~ EMOSUPS + ST004D01T + EMOSUPS * ST004D01T, data = PISA2018MS_KOR)
+summary(M3)
+
+```
+
+### Interpret the coefficients of M2 and M3
+#### M2 계수 추정치 해석
+* 절편 (intercept) 추정치 = 522.432: EMOSUPS가 0일 때 여학생들의 평균 수학 점수가 522.432
+* ST004D01T 추정치 =  : 
+* EMOSUPS 추정치 = : 
+
+#### M3 계수 추정치 해석
+* 절편 (intercept) 추정치 = 522.544: EMOSUPS가 0일 때 여학생들의 평균 수학 점수가 522.544
+* ST004D01T 추정치 =  :
+* EMOSUPS 추정치 =  :
+* as.factor(ST004D01T) =   :   
+* 상호작용 효과가 ~~ 하므로, ~~다고 결론내릴 수 있음
+
+# Check the assumptions of M2 using the `plot` function
+```{r assumption}
+plot(M2)
+
+```
+
