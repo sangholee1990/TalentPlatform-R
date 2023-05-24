@@ -11,7 +11,7 @@ output: word_document
 # working directory path를 지정하고 dataset을 넣은 뒤, 아래 세 라인의 #를 지우고 activate해 주세요.
 infile <- outfile <-  getwd()
 setwd(infile)
-load("PISA2018MS_KOR_BQ.rdata")
+load("LSH0424/PISA2018MS_KOR_BQ.rdata")
 
 data = PISA2018MS_KOR[ , c("PV1MATH", "EMOSUPS", "ST004D01T")]
 dataL1 = na.omit(data)
