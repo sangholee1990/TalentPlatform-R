@@ -30,6 +30,12 @@ fig.html
 *.txt
 *.pdf
 *.ini
+.csv
+.txt
+.bin
+.RData
+.Rhistory
+.Rproj
 
 #=========================================
 # 캐시 지우기
