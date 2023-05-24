@@ -36,6 +36,7 @@ fig.html
 .RData
 .Rhistory
 .Rproj
+.rdata
 
 #=========================================
 # 캐시 지우기
