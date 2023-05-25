@@ -635,7 +635,7 @@ nrow(data_iptw)
 Surv_obj = Surv(data_iptw$MACCE2_d, data_iptw$MACCE2 == 1)
 
 # fit a Cox model
-fit_unweighted = coxph(Surv_obj ~ CCB, data = data_iptw)
+# fit_unweighted = coxph(Surv_obj ~ CCB, data = data_iptw)
 
 # create weights
 weights = ifelse(data_iptw$CCB == 1, 1 / temp$ipw, 1)
@@ -645,10 +645,18 @@ fit_weighted = coxph(Surv_obj ~ CCB, data = data_iptw, weights = weights)
 
 # generate Kaplan-Meier curves
 kmfit_weighted = survfit(fit_weighted)
-kmfit_unweighted = survfit(fit_unweighted)
+# kmfit_unweighted = survfit(fit_unweighted)
 
 fits = list("weighted" = kmfit_weighted, "unweighted" = kmfit_unweighted)
 
+
+# fit <- survfit(Surv(MACCE2_d, MACCE2 == 1) ~ CCB, data = temp_2)
+# fit
+# ggsurvplot(fit, title = "MACCE2", data = temp_2,
+#            fun = "cumhaz", risk.table = TRUE, conf.int = FALSE,
+#            legend = "right", legend.labs = c("no CCB", "CCB"), palette = c("gray 39", "orangered"),
+#            xlim = c(0, 1825), break.time.by = 365, xlab = "Follow-up duration (days)",
+#            ylim = c(0, 0.2), break.by = 0.05)
 
 plotSubTitle = sprintf("%s", "IPTW에 따른 kaplan-meier 곡선")
 saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, plotSubTitle)
