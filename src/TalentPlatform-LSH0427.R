@@ -50,6 +50,9 @@ library(tidyverse)
 library(xlsx)
 library(ggpubr)
 library(ggrepel)
+library(Hmisc)
+library(corrplot)
+
 
 # 파일 읽기
 fileList = Sys.glob(file.path(globalVar$inpPath, serviceName, "*.xlsx"))
@@ -76,3 +79,28 @@ makePlot = ggpubr::ggscatter(
   ) +
   ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
 cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+
+# 자료 전처리
+dataL1 = data %>% 
+  dplyr::select(gdp, rsf)
+
+# 상관계수 테이블
+corData = Hmisc::rcorr(as.matrix(dataL1))
+corMat = corData$r
+pMat = corData$P
+
+# 상관계수 그림
+plotSubTitle = sprintf("%s", "2021년 유럽 기준으로 언론자유지수 및 경제성장률의 상관계수")
+saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, plotSubTitle)
+dir.create(fs::path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
+
+png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
+corrplot(corMat, type = "upper", order = "hclust", method = "number", p.mat = pMat, sig.level = 0.05, insig = "blank")
+dev.off()
+
+cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+
+
+
+
+
