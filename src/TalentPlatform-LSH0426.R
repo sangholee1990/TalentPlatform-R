@@ -99,9 +99,9 @@ library(survival)
 # PTRG <-read.csv(file="C:/Users/User/Desktop/PTRG_DES/data/PTRG_DES_20220723_update.csv",header=TRUE)
 
 # 파일 읽기
-# fileList = Sys.glob(file.path(globalVar$inpPath, serviceName, "PTRG_DES_20220723_update.csv"))
-# fileInfo = fileList[1]
-# 
+fileList = Sys.glob(file.path(globalVar$inpPath, serviceName, "PTRG_DES_20220723_update.csv"))
+fileInfo = fileList[1]
+
 # data <- read.csv(file = fileInfo, header = TRUE)
 # PTRG <- read.csv(file = fileInfo, header = TRUE)
 # 
