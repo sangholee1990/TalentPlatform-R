@@ -596,6 +596,9 @@ nrow(data_iptw)
 Surv_obj_CCB = Surv(data_iptw[data_iptw$CCB == 1,]$MACCE2_d, data_iptw[data_iptw$CCB == 1,]$MACCE2 == 1)
 Surv_obj_noCCB = Surv(data_iptw[data_iptw$CCB == 0,]$MACCE2_d, data_iptw[data_iptw$CCB == 0,]$MACCE2 == 1)
 
+# create weights
+weights = ifelse(data_iptw$CCB == 1, 1 / temp$ipw, 1)
+
 # Fit a weighted Cox model for each group
 fit_CCB = coxph(Surv_obj_CCB ~ CCB, data = data_iptw[data_iptw$CCB == 1, ], weights = weights[data_iptw$CCB == 1])
 fit_noCCB = coxph(Surv_obj_noCCB ~ CCB, data = data_iptw[data_iptw$CCB == 0, ], weights = weights[data_iptw$CCB == 0])
