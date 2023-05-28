@@ -99,8 +99,3 @@ corrplot(corMat, type = "upper", order = "hclust", method = "number", p.mat = pM
 dev.off()
 
 cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
-
-
-
-
-
