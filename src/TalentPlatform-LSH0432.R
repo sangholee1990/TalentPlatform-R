@@ -11,7 +11,7 @@
 #================================================
 # 요구사항
 #================================================
-# R을 이용한 2021년 유럽 기준으로 언론자유지수 및 경제성장률의 추세 시각화
+# R을 이용한 기업간의 이직의 영향 분석
 
 # ================================================
 # 초기 환경변수 설정
@@ -21,7 +21,7 @@ env = "dev"  # 개발 : 원도우 환경, 작업환경 (사용자 환경 시 con
 # env = "oper"  # 운영 : 리눅스 환경, 작업환경 (사용자 환경 시 contextPath) 설정
 
 prjName = "test"
-serviceName = "LSH0427"
+serviceName = "LSH0432"
 
 if (Sys.info()[["sysname"]] == "Windows") {
   contextPath = ifelse(env == "local", ".", "C:/SYSTEMS/PROG/R/TalentPlatform-R")
@@ -53,12 +53,91 @@ library(ggrepel)
 library(Hmisc)
 library(corrplot)
 
+# loading packages
+library(DBI)
+library(dplyr)
+library(ggplot2)
+library(ggpubr)
+library(sjPlot)
+library(Hmisc)
+library(pequod)
+library(car)
+library(R.matlab)
+library(VGAM)
+library(multilevel)
+library(plm)
+library(tidyr)
+library(lmtest)
 
+
+# Set working directory (adjust this so it points to the directory on your machine 
+# where the files are)
+# setwd("E:/R")
+
+
+
+# creating a new dataset "finaldata"
+# finaldata <- read.csv(file = "emba_dataset_team project.csv")
+# summary(finaldata)
+
+
+
+##### testing the models  ###################################################################
 # 파일 읽기
-fileList = Sys.glob(file.path(globalVar$inpPath, serviceName, "*.xlsx"))
+fileList = Sys.glob(file.path(globalVar$inpPath, serviceName, "emba_dataset_team+project.csv"))
 
-data = xlsx::read.xlsx(fileList[1], sheetIndex = 1) %>%
-  tibble::as.tibble()
+data = readr::read_csv(fileList) %>% 
+  readr::type_convert()
+
+summary(data)
+
+# 전체 변수에 대한 다중선형 회귀모형 수행
+# 독립변수 : 2019년 기준 직원 이직률 (turnover19) 제외한 전체 변수
+# 종속변수 : 2019년 기준 직원 이직률 (turnover19)
+lmFit = lm(turnover19 ~ ., data = data)
+
+# 전체 변수에 대한 요약 결과
+summary(lmFit)
+
+# 전체 변수에서 변수 선택
+stepFit = step(lmFit)
+
+# 유의미한 변수에 대한 요약 결과
+summary(stepFit)
+
+stepFit$coefficients %>% sort() %>% round(4)
+# 2019년 채용 인력 중 퇴사자 비율
+# 2019년 기준 기업의 혁신 전략
+# 2019 년 기준 노사관계 대립 정도
+
+# 기업 id
+
+
+# 2019년 기준 직원 인당 연평균 교육훈련 시간
+# 2019년 기준 노조 유무 (유노조=1, 무노조=0)
+
+
+lmFit = pequod::lmres(turnover19 ~ ., data = data)
+summary(lmFit)
+
+# 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # 2021년 유럽 기준으로 언론자유지수 및 경제성장률의 추세 시각화
 plotSubTitle = sprintf("%s", "2021년 유럽 기준으로 언론자유지수 및 경제성장률의 추세 시각화")
