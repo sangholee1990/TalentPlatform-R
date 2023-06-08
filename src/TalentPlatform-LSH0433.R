@@ -151,25 +151,27 @@ meanAgg = mean(data$Aggression, na.rm = TRUE)
 data$type = ifelse(data$Aggression >= meanAgg, "meanUp", "meanDown")
 
 # F검정
-fTest = var.test(Television ~ type, data = data, conf.level = 0.95)
+fTest = var.test(Computer_Games ~ type, data = data, conf.level = 0.95)
+# fTest = var.test(Parenting_Style ~ type, data = data, conf.level = 0.95)
 
-# F검정 결과 유의수준 p-value < 0.05 이하로서 대립가설이 채택 (두 그룹은 분산 동일)
+# F검정 결과 유의수준 p-value >= 0.05 이상으로서 대립가설이 채택 (두 그룹은 분산 동일)
 print(fTest)
 
 # F test to compare two variances
 # 
-# data:  Television by type
-# F = 1.1880083, num df = 334, denom df = 330, p-value = 0.1171472
+# data:  Computer_Games by type
+# F = 0.92591807, num df = 334, denom df = 330, p-value = 0.483382
 # alternative hypothesis: true ratio of variances is not equal to 1
 # 95 percent confidence interval:
-#   0.9576236154 1.4736099402
+#   0.746359272 1.148512239
 # sample estimates:
 #   ratio of variances
-# 1.1880083
+# 0.92591807
 
 
 # T검정 (등분산 가정 O)
-tTest = t.test(Television ~ type, data = data, conf.level = 0.95, var.equal = TRUE, paired = FALSE)
+tTest = t.test(Computer_Games ~ type, data = data, conf.level = 0.95, var.equal = TRUE, paired = FALSE)
+# tTest = t.test(Parenting_Style ~ type, data = data, conf.level = 0.95, var.equal = TRUE, paired = FALSE)
 
 # T검정 결과 유의수준 p-value < 0.05 이하로서 귀무가설 기각 (두 그룹은 평균 차이)
 # 즉 두 그룹 (평균 이상 meanUp, 평균 미만 meanDown)은 컴퓨터 게임 시간에 따라 통계적으로 유의미한 차이를 보임
@@ -177,14 +179,14 @@ print(tTest)
 
 # Two Sample t-test
 # 
-# data:  Television by type
-# t = -3.5164393, df = 664, p-value = 0.0004671544
+# data:  Computer_Games by type
+# t = -2.7990405, df = 664, p-value = 0.005274276
 # alternative hypothesis: true difference in means between group meanDown and group meanUp is not equal to 0
 # 95 percent confidence interval:
-#   -0.13045436945 -0.03696765473
+#   -0.12550306093 -0.02201693363
 # sample estimates:
 #   mean in group meanDown   mean in group meanUp
-# -0.06918023626          0.01453077583
+# -0.02627725124          0.04748274604
 
 # 5. 이상의 결과와 추가적인 분석을 통해 아동의 공격성과 컴퓨터 게임이 관련이 있다고 할 수 있는지에 대해 종합적으로 서술하시오.
 # 회귀모형과 F/T검정 분석 결과를 토대로 아동의 공격성과 컴퓨터 게임 사이의 관련성을 종합적으로 서술하면 다음과 같다.
