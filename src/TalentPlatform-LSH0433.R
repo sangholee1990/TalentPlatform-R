@@ -105,8 +105,7 @@ pairs(data)
 lmFit = lm(Aggression ~ Parenting_Style + Sibling_Aggression, data = data)
 summary(lmFit)
 
-# 3. Parenting_style과 Sibling_aggression이 Aggression에 미치는 영향력을 통제했을 때, tv나 컴퓨터
-# 게임으로 아동의 공격성을 예측할 수 있는가?
+# 3. Parenting_style과 Sibling_aggression이 Aggression에 미치는 영향력을 통제했을 때, tv나 컴퓨터 게임으로 아동의 공격성을 예측할 수 있는가?
 # 아동의 공격성을 예측 가능하나 성능은 2번 회귀모형보다 높으나 개선 필요함
 
 # 독립변수 (Parenting_Style, Sibling_Aggression, Television, Computer_Games) 및 종속변수 (Aggression)를 설정하여 회귀모형을 적합하였다. 
@@ -141,6 +140,25 @@ summary(lmFit)
 
 lmFit2 = lm(Aggression ~ Parenting_Style + Sibling_Aggression + Television + Computer_Games, data = data)
 summary(lmFit2)
+
+# 두 회귀모형 비교
+# Model 1: 종속변수 Aggression 및 독립변수 Parenting_Style, Sibling_Aggression
+# Model 2: 종속변수 Aggression 및 독립변수 Parenting_Style, Sibling_Aggression, Television, Computer_Games
+# 두 회귀모형 간의 통계적으로 검정하는 F검정 결과를 나태냄.
+# 그 결과 유의수준 (p-value)은 0.0018로서 유의수준 0.05 이하에서 통계적 유의미한 결과를 보임
+# 따라서 Parenting_Style, Sibling_Aggression을 통제했음에도 불구하고 Television, Computer_Games는 아동의 공격성을 예측하는데 추가적인 영향을 미침
+anova(lmFit, lmFit2)
+
+# Analysis of Variance Table
+# 
+# Model 1: Aggression ~ Parenting_Style + Sibling_Aggression
+# Model 2: Aggression ~ Parenting_Style + Sibling_Aggression + Television + 
+#   Computer_Games
+# Res.Df       RSS Df Sum of Sq       F    Pr(>F)   
+# 1    663 64.229956                                  
+# 2    661 63.013559  2 1.2163969 6.37988 0.0018016 **
+#   ---
+#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
 
 
 # 4. 공격성이 평균 이상인 아동들과 평균 미만인 아동들 사이에 컴퓨터 게임 시간에 차이가 있는가?
