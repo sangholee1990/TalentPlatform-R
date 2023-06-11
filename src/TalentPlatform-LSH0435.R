@@ -87,6 +87,6 @@ trainData = data.frame(n = 1:3005)
 trainData$cnt = sapply(trainData$n, function(x) sum(primes::is_prime(2:x), na.rm = TRUE))
 
 # 인공신경망 학습
-nnetModel = nnet(cnt ~ n, data = trainData, size = 50,, maxit=5000, linout = TRUE)
+nnetModel = nnet(cnt ~ n, data = trainData, size = 50, maxit=5000, linout = TRUE)
 
 predict(nnetModel, newdata=data.frame(n=c(2:100))) %>% floor
