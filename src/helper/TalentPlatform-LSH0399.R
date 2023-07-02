@@ -368,7 +368,8 @@ posData = dataL4 %>%
 cat(sprintf("[CHECK] maxData : %s", maxData$meanVal), "\n")
 cat(sprintf("[CHECK] posData : %s", posData$meanVal), "\n")
 
-maxFloorVal = floor(maxData$meanVal * 100) / 100
+# maxFloorVal = floor(maxData$meanVal * 100) / 100
+maxFloorVal = 0.42
 
 setBreakCont = c(seq(maxFloorVal, 0, -0.04))
 setBreakText = c(seq(maxFloorVal, 0, -0.04))
