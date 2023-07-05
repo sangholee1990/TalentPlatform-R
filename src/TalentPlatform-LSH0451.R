@@ -81,7 +81,7 @@ sysOpt = list(
   # 사용자 아이디/비밀번호
   "userId" = "0438306931"
   , "userPw" = "yusan2f6931"
-  
+
   # 시작일/종료일
   , "srtDate" = "2008-01-01"
   , "endDate" = "2023-12-31"
@@ -127,6 +127,7 @@ for (i in 1:length(dtDateList)) {
   ses$executeScript("$('#SEARCH_YEAR').val(arguments[0]);", list(sYear))
   ses$executeScript("$('#SEARCH_MONTH').val(arguments[0]);", list(sMonth))
   ses$executeScript("getData();")
+  # Sys.sleep(1)
   Sys.sleep(0.5)
   
   data = ses$getSource()[[1]] %>%
@@ -153,8 +154,9 @@ for (i in 1:length(dtDateList)) {
    
   if (isCheck) next
   
+  colNameList = c("일자", "최대수요(kW)", "전력사용량(kWh)-중간부하", "전력사용량(kWh)-최대부하", "전력사용량(kWh)-경부하", "전력사용량(kWh)-계", "전력량요금(원)-중간부하", "전력량요금(원)-최대부하", "전력량요금(원)-경부하", "전력량요금(원)-계")
   dataL2 = dataL1 %>% 
-    magrittr::set_colnames(colnames(data))
+    magrittr::set_colnames(colNameList)
   
   if (nrow(dataL2) < 1) next
   saveFile = sprintf("%s/%s/%s/%s.csv", globalVar$outPath, serviceName, stringr::str_sub(sysOpt$userId, -4), format(dtDateInfo, "%Y.%m"))
