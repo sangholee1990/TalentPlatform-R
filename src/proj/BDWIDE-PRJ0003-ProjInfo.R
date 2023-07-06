@@ -51,13 +51,15 @@ library(readr)
 library(fs)
 library(openxlsx)
 library(fs)
-
+library(magrittr)
 
 #==================================================================================================
 # 재능플랫폼 목록 조회
 #==================================================================================================
 globalVar$inpPath = "G:/내 드라이브/shlee/04. TalentPlatform/[재능플랫폼] 최종납품"
+colNameList = c("작업 번호", "작업 상태", "서비스 코드", "서비스 이름")
 
+# 자료 수집
 data = dplyr::bind_rows(
   tibble::tibble(prjDir = fs::path_file(list.dirs(file.path(globalVar$inpPath), recursive = FALSE)))
   , tibble::tibble(prjDir = fs::path_file(list.dirs(file.path(globalVar$inpPath, "[완료]"), recursive = FALSE)))
@@ -65,6 +67,7 @@ data = dplyr::bind_rows(
   , tibble::tibble(prjDir = fs::path_file(list.dirs(file.path(globalVar$inpPath, "[완료-미응답]"), recursive = FALSE)))
 )
 
+# 자료 가공
 dataL1 = data %>%
   dplyr::filter(
     stringr::str_detect(prjDir, regex("LSH"))
@@ -79,13 +82,15 @@ dataL1 = data %>%
   ) %>% 
   tidyr::separate(prjName, sep = "\\. ", into = c("serviceNum", "serviceName") ) %>% 
   dplyr::arrange(serviceNum) %>% 
-  tibble::rowid_to_column()
+  tibble::rowid_to_column() %>%
+  magrittr::set_colnames(colNameList)
 
 
+# 엑셀 저장
 saveXlsxFile = sprintf("%s/%s/%s_%s.xlsx", globalVar$outPath, serviceName, "재능플랫폼 외주목록", format(Sys.time(), "%Y%m%d"))
 dir.create(fs::path_dir(saveXlsxFile), showWarnings = FALSE, recursive = TRUE)
 wb = openxlsx::createWorkbook()
 openxlsx::addWorksheet(wb, "외주목록")
 openxlsx::writeData(wb, "외주목록", dataL1, startRow = 1, startCol = 1, colNames = TRUE, rowNames = FALSE)
-openxlsx::saveWorkbook(wb, file = saveXlsxFile, overwrite = FALSE)
+openxlsx::saveWorkbook(wb, file = saveXlsxFile, overwrite = TRUE)
 cat(sprintf("[CHECK] saveXlsxFile : %s", saveXlsxFile), "\n")

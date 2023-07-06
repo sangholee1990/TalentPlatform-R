@@ -31,7 +31,6 @@
 # 
 # 저장할 수 있으면 좋겠습니다.
 
-
 # ================================================
 # 초기 환경변수 설정
 # ================================================
@@ -78,17 +77,17 @@ library(janitor)
 library(stringr)
 library(purrr)
 
-
 sysOpt = list(
   # 사용자 아이디/비밀번호
   "userId" = "0438306931"
   , "userPw" = "yusan2f6931"
-  
+
   # 시작일/종료일
   , "srtDate" = "2008-01-01"
   , "endDate" = "2023-12-31"
 )
 
+# 전역 설절
 options(readr.num_columns = 0)
 
 # 설치 방법
@@ -114,18 +113,22 @@ ses$go("https://pp.kepco.co.kr/re/re0103N.do?menu_id=O010406")
 
 # 날짜 목록을 기준으로 반복문 수행
 dtDateList = seq(lubridate::ymd(sysOpt$srtDate), lubridate::ymd(sysOpt$endDate), by = "1 month")
+# i = 1
 for (i in 1:length(dtDateList)) {
   dtDateInfo = dtDateList[i]
-  nYear = lubridate::year(dtDateInfo)
-  nMonth = lubridate::month(dtDateInfo)
+  sYear = format(dtDateInfo, "%Y")
+  sMonth = format(dtDateInfo, "%m")
+  dataL2 = tibble::tibble()
   
   if (Sys.Date() < dtDateInfo) next
 
-  cat(sprintf("nYear : %s / nMonth : %s", nYear, nMonth), "\n")
+  cat(sprintf("nYear : %s / nMonth : %s", sYear, sMonth), "\n")
 
-  ses$executeScript("$('#SEARCH_YEAR').val(arguments[0]);", list(nYear))
-  ses$executeScript("$('#SEARCH_MONTH').val(arguments[0]);", list(nMonth))
-  ses$executeScript("getData();", list())
+  ses$executeScript("$('#SEARCH_YEAR').val(arguments[0]);", list(sYear))
+  ses$executeScript("$('#SEARCH_MONTH').val(arguments[0]);", list(sMonth))
+  ses$executeScript("getData();")
+  # Sys.sleep(1)
+  Sys.sleep(0.5)
   
   data = ses$getSource()[[1]] %>%
     xml2::read_html() %>%
@@ -151,9 +154,11 @@ for (i in 1:length(dtDateList)) {
    
   if (isCheck) next
   
+  colNameList = c("일자", "최대수요(kW)", "전력사용량(kWh)-중간부하", "전력사용량(kWh)-최대부하", "전력사용량(kWh)-경부하", "전력사용량(kWh)-계", "전력량요금(원)-중간부하", "전력량요금(원)-최대부하", "전력량요금(원)-경부하", "전력량요금(원)-계")
   dataL2 = dataL1 %>% 
-    magrittr::set_colnames(colnames(data))
+    magrittr::set_colnames(colNameList)
   
+  if (nrow(dataL2) < 1) next
   saveFile = sprintf("%s/%s/%s/%s.csv", globalVar$outPath, serviceName, stringr::str_sub(sysOpt$userId, -4), format(dtDateInfo, "%Y.%m"))
   dir.create(fs::path_dir(saveFile), showWarnings = FALSE, recursive = TRUE)
   readr::write_csv(dataL2, saveFile)
