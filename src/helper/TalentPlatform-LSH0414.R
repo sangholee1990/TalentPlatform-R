@@ -23,8 +23,8 @@ env = "dev"  # 개발 : 원도우 환경, 작업환경 (사용자 환경 시 con
 prjName = "test"
 serviceName = "LSH0414"
 
-if (Sys.info()["sysname"] == "Windows") {
-  contextPath = ifelse(env == "local", ".", "E:/04. TalentPlatform/Github/TalentPlatform-R")
+if (Sys.info()[["sysname"]] == "Windows") {
+  contextPath = ifelse(env == "local", ".", "C:/SYSTEMS/PROG/R/TalentPlatform-R")
 } else {
   contextPath = ifelse(env == "local", ".", "/SYSTEMS/PROG/R/PyCharm")
 }
@@ -51,7 +51,6 @@ library(ggplot2)
 library(ggpubr)
 library(webr)
 
-
 # 파일 읽기
 fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "K.TAEAN호설치전후평가_230405.xlsx"))
 data = openxlsx::read.xlsx(fileInfo, sheet = 1)
@@ -65,7 +64,22 @@ dataL1 = data %>%
   dplyr::mutate(
     id = dplyr::row_number()
   ) %>%
-  gather(-id, key = "key", value = "val")
+  tidyr::gather(-id, key = "key", value = "val") %>% 
+  dplyr::filter(key %in% c("before", "after")) 
+
+dataL2 = dataL1 %>% 
+  tidyr::pivot_wider(names_from = key, values_from = val) %>% 
+  dplyr::mutate(rat = 100 - (after / before * 100)) %>% 
+  dplyr::mutate(key = "ratio")
+
+dataL3 = dataL2 %>%
+  dplyr::select(-id, -before, -after) %>% 
+  dplyr::summarise_all(list(
+    sum = ~sum(., na.rm = TRUE),
+    mean = ~mean(., na.rm = TRUE),
+    max = ~max(., na.rm = TRUE),
+    min = ~min(., na.rm = TRUE)
+  ))
 
 # *****************************************
 # 시각화
@@ -90,6 +104,30 @@ makePlot = ggpubr::ggscatter(
 ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
 ggplot2::last_plot()
 cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+
+
+plotSubTitle = sprintf("%s", "제품전후 전력량에 따른 절감율 추이")
+saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, plotSubTitle)
+dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
+
+makePlot = ggpubr::ggscatter(
+  data = dataL2, x = "id", y = "rat"
+  , add = "reg.line", alpha = 0.3
+) +
+  labs(title = NULL, x = "인덱스", y = "절감 비율", fill = NULL, color = NULL, subtitle = plotSubTitle) +
+  theme_bw() +
+  ggpubr::stat_regline_equation(label.x.npc = 0.0, label.y.npc = 0.95, size = 6) +
+  ggpubr::stat_cor(label.x.npc = 0.5, label.y.npc = 0.95, p.accuracy = 0.01, r.accuracy = 0.01, size = 6) +
+  theme(
+    text = element_text(size = 18)
+    # , legend.position = "top"
+    , legend.position = "none"
+  )
+
+ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
+ggplot2::last_plot()
+cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+
 
 plotSubTitle = sprintf("%s", "제품전후 전력량에 따른 밀도함수")
 saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, plotSubTitle)
