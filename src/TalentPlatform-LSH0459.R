@@ -116,14 +116,17 @@ dataL1 = data2022 %>%
     "before" = "sumVal.x"
     ,  "after" = "sumVal.y"
   ) %>% 
-  dplyr::ungroup() %>% 
-  dplyr::select(before, after) %>% 
+  dplyr::ungroup() %>%
+  dplyr::select(before, after) %>%
   dplyr::filter(! is.na(before), ! is.na(after)) %>% 
   dplyr::mutate(
     id = dplyr::row_number()
   ) %>%
-  tidyr::gather(-id, key = "key", value = "val") %>% 
-  dplyr::filter(! id %in% c(46))
+  tidyr::gather(-id, key = "key", value = "val") %>%
+  dplyr::filter(
+    ! id %in% c(1, 45, 46)
+    , val < 2500000
+    )
 
 dataL1$key = as.factor(dataL1$key)
 
@@ -135,6 +138,16 @@ dataL2 = dataL1 %>%
 
 dataL3 = dataL2 %>%
   dplyr::select(-id, -before, -after, -key) %>% 
+  dplyr::summarise_all(list(
+    sum = ~sum(., na.rm = TRUE),
+    mean = ~mean(., na.rm = TRUE),
+    max = ~max(., na.rm = TRUE),
+    min = ~min(., na.rm = TRUE)
+  ))
+
+dataL1 %>% 
+  dplyr::select(-id) %>% 
+  dplyr::group_by(key) %>% 
   dplyr::summarise_all(list(
     sum = ~sum(., na.rm = TRUE),
     mean = ~mean(., na.rm = TRUE),
@@ -263,14 +276,15 @@ dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
 plot(fTest) +
   ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
 
+ggplot2::last_plot()
 cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 
 # T 검정
 # 등분산 가정 O
-# tTest = t.test(val ~ key, data = dataL1, conf.level = 0.95, var.equal = TRUE, paired = FALSE)
+tTest = t.test(val ~ key, data = dataL1, conf.level = 0.95, var.equal = TRUE, paired = FALSE)
 
 # 등분산 가정 X
-tTest = t.test(val ~ key, data = dataL1, conf.level = 0.95, var.equal = FALSE, paired = FALSE)
+# tTest = t.test(val ~ key, data = dataL1, conf.level = 0.95, var.equal = FALSE, paired = FALSE)
 
 # T 검정에서 유의수준 p-value는 0.01 이하로서 귀무가설 기각 (두 그룹은 평균 차이)
 print(tTest)
@@ -282,4 +296,6 @@ dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
 plot(tTest) +
   ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
 
+ggplot2::last_plot()
 cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+
