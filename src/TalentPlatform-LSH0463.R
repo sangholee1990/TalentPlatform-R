@@ -63,31 +63,45 @@ for (fileInfo in fileList) {
   cat(sprintf("[CHECK] fileInfo : %s", fileInfo), "\n")
     
   orgData = openxlsx::read.xlsx(fileInfo, sheet = 1, startRow = 1)
+  data = tibble::tibble()
   
-  data = orgData %>% 
-    tibble::as.tibble() %>% 
-    dplyr::rename(
-      sDate = "관측일자"
-      , sTime = "관측시간"
-      , alt = "유의파고(m)"
-      , inv = "유의파주기(sec)"
-    ) %>% 
-    readr::type_convert() %>% 
-    dplyr::filter(
-      ! is.na(alt)
-      , ! is.na(inv)
-    ) %>% 
-    dplyr::mutate(across(where(is.character), as.numeric)) %>% 
-    dplyr::mutate(
-      sDateTime = paste(sDate, sTime, sep = " ")
-    ) %>% 
-    dplyr::mutate(
-      dtDateTime = readr::parse_datetime(sDateTime, format = "%Y-%m-%d %H:%M:%S")
-    ) %>% 
-    dplyr::filter(
-      dplyr::between(alt, 3, 16)
-      , inv >= 9
-    )
+  tryCatch(
+    expr = {
+      data = orgData %>% 
+        tibble::as.tibble() %>% 
+        dplyr::rename(
+          sDate = "관측일자"
+          , sTime = "관측시간"
+          , alt = "유의파고(m)"
+          , inv = "유의파주기(sec)"
+        ) %>% 
+        readr::type_convert() %>% 
+        dplyr::filter(
+          ! is.na(alt)
+          , ! is.na(inv)
+        ) %>% 
+        dplyr::mutate(across(where(is.character), as.numeric)) %>% 
+        dplyr::mutate(
+          sDateTime = paste(sDate, sTime, sep = " ")
+        ) %>% 
+        dplyr::mutate(
+          dtDateTime = readr::parse_datetime(sDateTime, format = "%Y-%m-%d %H:%M:%S")
+        ) %>% 
+        dplyr::filter(
+          dplyr::between(alt, 3, 16)
+          , inv >= 9
+        )
+    }
+    
+    , warning = function(warning) {
+      cat(sprintf("[WARN] warning : %s", warning), "\n")
+    }
+    
+    , error = function(error) {
+      cat(sprintf("[ERROR] error : %s", error), "\n")
+    }
+  )
+  
 
   if (nrow(data) < 1) { next }
   
