@@ -1,0 +1,243 @@
+---
+title: "Assignment 4: Capital Bikeshare"
+author: "Sangwon Yum"
+date: "`r Sys.Date()`"
+documentclass: article
+geometry: margin=1in
+fontsize: 11pt
+output:
+  pdf_document:
+    toc: false
+    df_print: kable
+    fig_caption: false
+    number_sections: false
+    dev: pdf
+    highlight: tango
+    latex_engine: xelatex
+  html_document:
+    theme: default
+    self_contained: true
+    toc: false
+    df_print: kable
+    fig_caption: false
+    number_sections: false
+    smart: true
+    dev: svg
+---
+```{r setup, include = FALSE, echo=FALSE}
+# DO NOT ALTER THIS CHUNK
+knitr::opts_chunk$set(
+  echo = TRUE,
+  eval = TRUE,
+  fig.width = 5,
+  fig.asp = 0.618,
+  dpi = 120,
+  fig.align = "center",
+  cache = FALSE
+)
+# Load required packages
+suppressPackageStartupMessages(library(tidyverse))
+suppressPackageStartupMessages(library(lubridate))
+suppressPackageStartupMessages(library(geosphere))
+suppressPackageStartupMessages(library(moments))
+
+bikeshare <- readRDS("bikeshare_data.RDS")
+```
+## Exercise 1
+i. Identify two continuous variables in this dataset.
+```{r, warning=FALSE}
+# start_lat, start_lng, end_lat, end_lng
+bikeshare %>%
+   dplyr::select(
+     start_lat, start_lng, end_lat, end_lng
+   ) %>%
+  View()
+```
+ii. Identify two categorical variables in this dataset. 
+```{r, warning=FALSE}
+# rideable_type and member_casual
+bikeshare %>%
+   dplyr::select(
+     rideable_type, member_casual
+   ) %>%
+  View()
+```
+
+iii. What does each row in the dataset represent?
+```{r, warning=FALSE}
+#  [1] "ride_id"            "rideable_type"      "started_at"         "ended_at"          
+#  [5] "start_station_name" "start_station_id"   "end_station_name"   "end_station_id"    
+#  [9] "start_lat"          "start_lng"          "end_lat"            "end_lng"           
+# [13] "member_casual"  
+bikeshare %>%
+  colnames() %>%
+  View()
+```
+## Exercise 2
+```{r, warning=FALSE}
+bikeshareL1 <- bikeshare %>%
+   mutate(
+     # duration = ended_at - started_at
+     duration = difftime(ended_at, started_at, units = "hours")
+   ) 
+```
+## Exercise 3
+```{r}
+bikeshareL1 %>%
+  ggplot() +
+  geom_histogram(mapping = aes(x = duration)) +
+  labs(title = "Histogram of Bike Usage Duration", x = "Duration (hours)")
+```
+i. Describe the center, shape and modality of the histogram +
+```{r}
+bikeshareL1 %>%
+  ggplot() +
+  geom_boxplot(mapping = aes(x = duration)) +
+  labs(title = "Boxplot of Bike Usage Duration", x = "Duration (hours)")
+```
+ii. Describe the center and skewness of the boxplot using the template provided
++
+```{r}
+bikeshareL1 %>%
+  ggplot() +
+  geom_violin(mapping = aes(x = duration, y = "")) +
+  labs(title = "Violin Plot of Bike Usage Duration", x = "Duration (hours)")
+```
+iii. Describe the shape and center of the plot +
+iv. Cannot be described as a violin or stringray +
+## Exercise 4
+```{r}
+bikeshare = bikeshareL1 %>% 
+  dplyr::mutate(
+    min_distance = distHaversine(cbind(start_lng, start_lat), cbind(end_lng, end_lat))
+  )
+```
+
+## Exercise 5
+```{r}
+bikeshare %>%
+  ggplot() +
+  geom_histogram(mapping = aes(x = min_distance)) +
+  labs(title = "Histogram of Bike Usage Min distance", x = "Min distance (meters)")
+```
+
+```{r}
+bikeshare %>%
+  ggplot() +
+  geom_boxplot(mapping = aes(x = min_distance)) +
+  labs(title = "Boxplot of Bike Usage Min distance", x = "Min distance (meters)")
+```
+
+```{r}
+bikeshare %>%
+  ggplot() +
+  geom_violin(mapping = aes(x = min_distance, y = "")) +
+  labs(title = "Violin Plot of Bike Usage Min distance", x = "Min distance (meters)")
+```
+
+## Exercise 6
+```{r}
+bikeshare %>%
+  ggplot(aes(x = duration, y = min_distance)) +
+  geom_point() +
+  labs(title = "Scatterplot of Duration vs. Min Distance", x = "Duration", y = "Min Distance (meters)")
+```
+```{r}
+bikeshare %>%
+  ggplot(aes(x = duration, y = min_distance)) +
+  geom_point(alpha = 0.5) +  # Adjust alpha for transparency, value can be between 0 and 1.
+  labs(title = "Scatterplot of Duration vs. Min Distance with Alpha", x = "Duration", y = "Min Distance (meters)")
+```
+
+```{r}
+bikeshare %>%
+  ggplot(aes(x = duration, y = min_distance)) +
+  geom_bin2d() +
+  labs(title = "Heatmap of Duration vs. Min Distance", x = "Duration", y = "Min Distance (meters)") +
+  scale_fill_viridis_c(trans = "log")
+```
+
+```{r}
+bikeshare %>%
+  mutate(
+    log_duration = log(as.numeric(duration, units = "hours"))
+    , log_min_distance = log(as.numeric(min_distance))
+    ) %>% 
+  ggplot(aes(x = log_duration, y = log_min_distance)) +
+  geom_point() +
+  labs(title = "Scatterplot with Log Scaled Axes", x = "Log(Duration)", y = "Log(Min Distance)")
+```
+
+
+## Exercise 7
+```{r}
+bikeshare %>% 
+  dplyr::summarise(
+    mean = mean(duration, na.rm = TRUE)
+    , median = median(duration, na.rm = TRUE)
+    , sd = sd(duration, na.rm = TRUE)
+    , skewness = moments::skewness(duration, na.rm = TRUE)
+    , min = min(duration, na.rm = TRUE)
+    , max = max(duration, na.rm = TRUE)
+    , n = n()
+  )
+```
+```{r}
+# 평균 주행 거리가 가장 긴 자전거 라이더 그룹은 무엇입니까? casual
+# 캐주얼 라이더와 회원 라이더의 자전거 라이딩 시간 패턴을 예상하셨나요? 
+
+# 회원과 일반 라이더의 탑승 횟수 (cnt)를 계산합니다.
+# 가장 많은 라이딩을 한 라이더 그룹은 무엇입니까? member
+  
+bikeshare %>%
+  dplyr::group_by(member_casual) %>% 
+  dplyr::summarise(
+    mean = mean(duration, na.rm = TRUE)
+    , median = median(duration, na.rm = TRUE)
+    , sd = sd(duration, na.rm = TRUE)
+    , min = min(duration, na.rm = TRUE)
+    , max = max(duration, na.rm = TRUE)
+    , n = n()
+  )
+```
+
+## Exercise 8
+```{r}
+bikeshare %>%
+  ggplot(aes(x = duration, fill = member_casual)) +
+  geom_histogram(position = "identity", alpha = 0.3, bins = 20) +
+  labs(title = "Distribution of Riding Time by Rider Type", x = "Duration (hours)")
+```
+
+```{r}
+bikeshare %>%
+  ggplot(aes(x = member_casual, y = duration)) +
+  geom_violin() +
+  labs(title = "Distribution of Riding Time by Rider Type", x = "Rider Type", y = "Duration (hours)")
+```
+
+ii. Describe the center and skewness of the boxplot using the template provided
++
+```{r}
+bikeshare %>%
+  ggplot(aes(x = duration, y = min_distance)) +
+  geom_bin2d() + 
+  facet_wrap(~ member_casual) +
+  labs(title = "Heatmap of Duration vs. Min Distance by Rider Type", x = "Duration (hours)", y = "Min Distance") +
+  scale_fill_viridis_c(trans = "log")
+```
+
+
+## Exercise 9
+```{r}
+# 주행 시간 (duration)과 최소 거리 (min_distance) 간의 관계성을 파악하기 위해서 산점도를 시각화하여 중심성, 관계성, 분산, 공분산의 측면에서 분석함
+# (중심성) 대부분의 member는 단 시간 내 짧은 거리를 나타내는 지역에 집중됨. 이는 많은 사용자들이 짧은 주행을 선호한다는 것을 의미함
+# (관계성) 주행 시간에 따라 최소 거리 사이에 양의 상관 관계성을 보임.
+# (분산) 주행 시간과 최소 거리에 대한 광범위한 분산이 있어, 사용자 행동이 다양함. 특히 member는 빠른 통근을 위해 꾸준히 일정한 요금을 지불하여 자전거를 사용하나 casual은 일반 사용자로서 여가 활동이나 단기적인 이동 목적으로 자전거를 이용함
+# (공분산) 앞서 분산에서와 같이 좌측 하단에서 우측 상단 (주행 시간에 따른 최소거리)으로 점차 상승하는 관계를 보이며 이는 양의 공분산이 있음을 의미함
+
+bikeshare %>%
+  ggplot(aes(x = duration, y = min_distance, color = member_casual)) +
+  geom_point(alpha = 0.5, position = "jitter") +
+  labs(title = "Scatterplot of Duration vs. Min Distance", x = "Duration", y = "Min Distance")
+```
