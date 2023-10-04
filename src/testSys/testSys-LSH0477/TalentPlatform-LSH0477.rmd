@@ -1,0 +1,184 @@
+---
+title: "Lab 5: Data cleaning"
+author: "Sangwon Yum"
+date: "`r Sys.Date()`"
+documentclass: article
+geometry: margin=1in
+fontsize: 11pt
+output:
+  html_document:
+    highlight: tango
+    theme: default
+    toc: false
+    df_print: kable
+    fig_caption: false
+    number_sections: false
+    smart: true
+    dev: svg
+    self_contained: true
+  pdf_document:
+    toc: false
+    df_print: kable
+    fig_caption: false
+    number_sections: false
+    highlight: tango
+    dev: pdf
+  github_document:
+    toc: true
+    toc_depth: 4
+    dev: svg
+    df_print: kable
+    html_preview: false
+    pandoc_args: --webtex
+---
+
+```{r setup, include = FALSE}
+# DO NOT ALTER THIS CHUNK
+# Set knitr options
+knitr::opts_chunk$set(
+  echo = TRUE,
+  eval = TRUE,
+  cache = FALSE,
+  warning = FALSE,
+  message = FALSE,
+  fig.width = 5,
+  fig.asp = 0.618,
+  fig.align = "center",
+  out.width = "80%",
+  dpi = 120
+)
+# Load required packages
+suppressPackageStartupMessages(library(tidyverse))
+suppressPackageStartupMessages(library(lubridate))
+# Load dataset
+towed <- read_rds("towed_vehicles.rds")
+```
+
+
+## Exercises
+### Exercise 1
+```{r, warning=FALSE}
+towed_renamed = towed %>% 
+  rename_all(~ str_to_lower(.) %>%
+               str_replace_all(pattern = "\\s+", replacement = "_"))
+print(colnames(towed))
+print(colnames(towed_renamed))
+```
+
+
+
+### Exercise 2
+```{r, warning=FALSE}
+towed_renamed_2 = towed_renamed %>% 
+  mutate(tow_date = mdy(tow_date))
+str(towed_renamed_2)
+
+
+tow_make_count = towed_renamed_2 %>%
+  count(make) %>%
+  arrange(n)
+```
+
+### Exercise 3
+- Q) Number of unique values
+- A) 78
+
+- Q) Number of values with a count of 1
+- A) 28
+```{r, warning=FALSE}
+unique_cnt = towed_renamed_2 %>%
+  summarise(unique_values = n_distinct(make))
+print(unique_cnt)
+
+first_cnt <- tow_make_count %>%
+  filter(n == 1) %>%
+  nrow()
+print(first_cnt)
+```
+
+
+### Exercise 4
+```{r, warning=FALSE}
+slice_function = function(data, i = 1) {
+  inv = 10
+  start = (i - 1) * inv + 1
+  end = i * inv
+  
+  dataL1 = data %>%
+    slice(start:end)
+  
+  makePlot = ggplot(data = dataL1) +
+    geom_col(mapping = aes(x = fct_rev(make), y = n)) +
+    coord_flip() +
+    labs(title = paste("Make Count for Rows", start, "to", end)) +
+    xlab("Make") +
+    ylab("count")
+    
+  print(makePlot)
+  
+  return(dataL1)
+}
+```
+
+
+
+### Exercise 5
+
+```{r, warning=FALSE}
+tow_make_count_1 = slice_function(tow_make_count, 1)
+tow_make_count_2 = slice_function(tow_make_count, 2)
+tow_make_count_3 = slice_function(tow_make_count, 3)
+tow_make_count_4 = slice_function(tow_make_count, 4)
+
+
+# towed_renamed_2 %>% 
+  # mutate(make = recode(make, DODD = "DONG"))
+
+# towed_renamed_2 %>% 
+#   mutate(
+#     make = recode(
+#       make
+#       , MISPELLED1 = "CORRECTED1"
+#       , MISPELLED2 = "CORRECTED2"
+#       , MISPELLED3 = "CORRECTED3"
+#       )
+#     )
+```
+
+
+### Exercise 6
+```{r, warning=FALSE}
+towed_partial_clean = towed_renamed_2 %>% 
+  mutate(
+    make = recode(
+      make
+      , DODD = "DODG"
+      , BUCI = "BUIC"
+      )
+    )
+print(towed_partial_clean)
+```
+
+
+
+### Exercise 7
+- Q) Is it "JAG" or "JAGU"
+- A) JAGU
+
+### Exercise 8
+```{r, warning=FALSE}
+towed_make_clean = towed_partial_clean %>% 
+  mutate(
+    make = recode(
+      make
+      , JAG = "JAGU"
+      , DODD = "DODG"
+      , BUCI = "BUIC"
+      )
+    )
+print(towed_make_clean)
+```
+
+## Additional questions
+### Question 1
+### Question 2
