@@ -1,0 +1,211 @@
+---
+title: "Assignment 2: Visualization by example"
+author: Sangwon Yum
+date: "`r Sys.Date()`"
+documentclass: article
+geometry: margin=1in
+fontsize: 11pt
+output:
+  pdf_document:
+    toc: false
+    df_print: kable
+    fig_caption: false
+    number_sections: false
+    dev: pdf
+    highlight: tango
+  html_document:
+    theme: default
+    self_contained: true
+    toc: false
+    df_print: kable
+    fig_caption: false
+    number_sections: false
+    smart: true
+    dev: svg
+---
+
+```{r setup, include = FALSE}
+# DO NOT ALTER THIS CHUNK
+knitr::opts_chunk$set(
+  echo = TRUE,
+  eval = TRUE,
+  fig.width = 5,
+  fig.asp = 0.618,
+  out.width = "70%",
+  dpi = 120,
+  fig.align = "center",
+  cache = FALSE
+)
+
+# Load required packages
+suppressPackageStartupMessages(library(tidyverse))
+suppressPackageStartupMessages(library(palmerpenguins))
+```
+
+## Exercise 1
+
+    i. How many rows and columns does this dataset have?
+    
+    - 344 rows and 8 columns
+
+    ii. What does a row in this dataset represent?
+    
+    - species, island, bill length, bill depth, flipper length, body mass, sex, year
+    
+    iii. What are three categorical variables in the penguins dataset?
+    
+    - species, island, sex
+    
+    iv. What are four continuous variables in the penguins dataset? 
+    
+    - bill length, bill depth, flipper length, body mass
+    v. Which variable in the penguins dataset could be treated as either continuous or categorical
+    ,depending on the context in which it is used? 
+    
+    - year
+    
+    vi. What are the three species of penguin in the dataset?
+    
+    - Adelie, Gentoo, Chinstrap
+    
+    
+## Exercise 2
+
+```{r, warning=FALSE}
+# qplot(x = flipper_length_mm, data = penguins)
+ggplot(data = penguins) +
+  geom_histogram(mapping = aes(x = flipper_length_mm), binwidth = 5) +
+  xlab("Flipper Length (mm)") +
+  ylab("Count") +
+  ggtitle("Distribution of Flipper Lengths") 
+```
+    
+    i. Which axis of the plot has the flipper variable been plotted on?
+    
+    - x(flipper_length_mm)
+    
+    ii. what do the numbers on the other axis of the graph represent?
+    
+    - penguins
+    
+    iii. What is the modality of the distribution of flipper lengths?
+    
+    - Bimodal
+
+## Exercise 3
+
+```{r, warning=FALSE}
+# qplot(x = flipper_length_mm, bins = 15, data = penguins)
+ggplot(data = penguins) +
+  geom_histogram(mapping = aes(x = flipper_length_mm), bins = 15) +
+  xlab("Flipper Length (mm)") +
+  ylab("Count") +
+  ggtitle("Distribution of Flipper Lengths")  
+```
+
+    i. Does the distribution in the histogram look more or less noisy than in exercise #02?
+    
+    - This histogram is less noisy than in exercies #02, because the one of exercise #02 has much 
+    more bins. So, it is hard to understand at one glance. 
+    
+```{r, warning=FALSE}
+# qplot(x = flipper_length_mm, binwidth=1, data = penguins)
+ggplot(data = penguins) +
+  geom_histogram(mapping = aes(x = flipper_length_mm), binwidth = 1) +
+  xlab("Flipper Length (mm)") +
+  ylab("Count") +
+  ggtitle("Distribution of Flipper Lengths")
+```
+
+    i. Are there more or fewers bins in the new histogram?
+    
+    - There are fewer bins in the histogram
+    
+    ii. Does this increase or decrease the smoothness of the distribution?  
+    
+    - This increases the smoothness of the distribution
+    
+    iii. Does that make the pattern of 2 peaks easier or harder to visualize?
+    
+    - It is easier
+    
+## Exercise 4
+
+```{r, warning=FALSE}
+# qplot(x = flipper_length_mm, y = body_mass_g, data = penguins)
+ggplot(data = penguins) +
+  geom_point(mapping = aes(x = flipper_length_mm, y = body_mass_g)) +
+  xlab("Flipper Length (mm)") +
+  ylab("Body Mass (g)") +
+  ggtitle("Scatterplot of Body Mass against Flipper Length")
+```
+
+    i. What variable is on the y-axis?
+    
+    - body mass
+    
+    ii. Is there a relationship between these variables?
+    
+    - It is linear
+
+## Exercise 5
+
+```{r, warning=FALSE}
+# qplot(x = bill_length_mm, y = body_mass_g, data = penguins)
+ggplot(data = penguins) +
+  geom_point(mapping = aes(x = bill_length_mm, y = body_mass_g)) +
+  xlab("Bill Length (mm)") +
+  ylab("Body Mass (g)") +
+  ggtitle("Scatterplot of Body Mass against Bill Length") 
+```
+
+    i. Does the correlation between bill length and body mass look stronger or weaker than the 
+    relationship between the variables in exercise #04?
+    
+    -Unlike the previous scatter plot, this scatter plot does immediately show a weaker 
+    correlation between the two variables. 
+
+## Exercise 6
+
+```{r, warning=FALSE}
+# qplot(
+#   x = flipper_length_mm,
+#   y = body_mass_g, 
+#   data = penguins, 
+#   geom = c("point", "smooth"), 
+#   method = "lm")
+ggplot(data = penguins) +
+  geom_point(mapping = aes(x = flipper_length_mm, y = body_mass_g)) +
+  geom_smooth(mapping = aes(x = flipper_length_mm, y = body_mass_g), 
+              method = "lm", se = FALSE) +
+  xlab("Flipper Length (mm)") +
+  ylab("Body Mass (g)") +
+  ggtitle("Scatterplot with Linear Regression Line of Body Mass against Flipper Length")
+```
+
+    i. Do you think that the patterns this graph make the information more or less clear by showing 
+    just the trend line? 
+    
+    - I thought that this line makes the information more clear because reader can know the trend in 
+    few seconds with this line
+
+## Exercise 7
+
+```{r, warning=FALSE}
+# qplot(x = bill_length_mm,
+#       y = body_mass_g,
+#       geom = "point",
+#       color = species,
+#       data = penguins
+#       )
+ggplot(data = penguins) +
+  geom_point(mapping = aes(x = bill_length_mm, y = body_mass_g, color = species)) +
+  xlab("Bill Length (mm)") +
+  ylab("Body Mass (g)") +
+  ggtitle("Scatterplot of Body Mass against Bill Length colored by Species") 
+```
+
+    i. How does coloring the data points of penguin make the relationship between bill length and 
+    body mass easier to understand? 
+    
+    - It is easier, because we can easy to find out which groups have which characteristics

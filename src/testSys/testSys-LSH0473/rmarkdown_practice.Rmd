@@ -1,0 +1,87 @@
+---
+title: 'Assignment 1: R Markdown practice'
+author: "Sangwon Yum"
+date: "`r Sys.Date()`"
+output:
+  pdf_document:
+    toc: false
+    df_print: kable
+    fig_caption: false
+    number_sections: false
+    dev: pdf
+    highlight: tango
+  html_document:
+    theme: default
+    self_contained: true
+    toc: false
+    df_print: kable
+    fig_caption: false
+    number_sections: false
+    smart: true
+    dev: svg
+---
+
+```{r setup, include = FALSE}
+# DO NOT ALTER THIS CHUNK
+knitr::opts_chunk$set(
+  echo = TRUE,
+  eval = TRUE,
+  fig.width = 5,
+  fig.asp = 0.618,
+  dpi = 120,
+  fig.align = "center",
+  cache = FALSE
+)
+
+# Load required packages
+suppressPackageStartupMessages(library(tidyverse))
+```
+
+<!-- Write your Markdown below this line -->
+#   How the Course Works
+Hello World!
+```{r, warning=FALSE}
+print("Hello World!")
+```
+# Hello World!
+## Hello World!
+### Hello World!
+#### Hello World!
+##### Hello World!
+###### Hello World!
+
+The weekly interactive tutorials must be completed by the start of each week. Then each weekly assignment will be due at the end of the week. 
+
+#   Course Goals
+
+By the end of the course, students will be able to 
+
+*   Use [GitHub](https://github.com/23F-CDS-1012/assignment-01-SangwonYum) for creating a reproducible research document. 
+
+    +   My GitHub username is: *SangwonYum* 
+  
+*   Obtain, clean, transform, and visualize a dataset using the R programming language.
+
+*   Interpret and predict dataset trends using statistical inference and models. 
+
+*   Critically examine and interpret statistical claims reported in mass media. 
+
+#   Including Code
+
+##    Running R code in a code chunk
+
+```{r, warning=FALSE}
+x <- 2+2
+x + 3
+```
+
+The output of first line of code is not printed out because it is assigned to a variable instead. 
+The second line of output is printed out instead, but this means that the calculated value has not been saved for future use. 
+
+##    Displaying Graphs
+
+```{r, warning=FALSE}
+# ggplot2::qplot(data = iris, x = Sepal.Length, y = Sepal.Width)
+ggplot(data = iris, aes(x = Sepal.Length, y = Sepal.Width)) +
+  geom_point()
+```

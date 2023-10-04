@@ -1,0 +1,232 @@
+---
+title: "Assignment 3: Flights of New York"
+author: Sangwon Yum
+date: "`r Sys.Date()`"
+documentclass: article
+geometry: margin=1in
+fontsize: 11pt
+output:
+  pdf_document:
+    toc: false
+    df_print: tibble
+    fig_caption: false
+    number_sections: false
+    dev: pdf
+    highlight: tango
+  html_document:
+    theme: default
+    self_contained: true
+    toc: false
+    df_print: tibble
+    fig_caption: false
+    number_sections: false
+    smart: true
+    dev: svg
+---
+
+```{r setup, include = FALSE}
+# DO NOT ALTER THIS CHUNK
+knitr::opts_chunk$set(
+  echo = TRUE,
+  eval = TRUE,
+  fig.width = 5,
+  fig.asp = 0.618,
+  out.width = "70%",
+  dpi = 120,
+  fig.align = "center",
+  cache = FALSE
+)
+
+# Load required packages
+suppressPackageStartupMessages(library(tidyverse))
+suppressPackageStartupMessages(library(nycflights13))
+```
+
+## Exercise 1
+
+* How many rows and columns are in the dataset?
+  + There are 336776 rows and 19 columns
+
+* What does a single row represent
+  + year, month, day, dep_time, sched_dep_time, dep_delay, arr_time, sched_arr_time, arr_delay, 
+    carrier, flight, tailnum, origin, dest, air_time, distance, hour, minute, time_hour (show one 
+    flight sample)
+
+* What is the difference between arr_time and sched_arr_time?
+  + arr_time is the actual arrival time of the plane, and sched_arr_time is the original 
+    scheduled arrival time of the plane.
+
+* What variable is the most useful for identifying a specific plane?
+  + Flights number is most variable way for identifying a specific plane
+
+## Exercise 2
+
+```{r, warning=FALSE}
+flights %>% 
+  select(year, month)
+```
+
+* Explain the purpose of the select() function based on the output of the code template provided 
+  + Replace name of dataset with the variable storing your dataset and column
+    
+## Exercise 3
+
+```{r, warning=FALSE}
+flights %>% 
+  select(year:day)
+```
+
+* What does using a colon : do?
+  + The colon is responsible for showing all information, including the dataset year in 
+  parentheses, up to dataset day
+    
+## Exercise 4
+
+```{r, warning=FALSE}
+flights %>%
+  arrange(air_time, distance)
+```
+
+* Does it look like both air_time and distance were sorted?
+  + yes
+    
+* Which column was sorted with higher priority?
+  + year
+    
+* What would happen if you reverse the order of the variables specified in arrange()?
+  + reversed air_time and distance
+
+## Exercise 5
+
+```{r, warning=FALSE}
+flights %>%
+  arrange(desc(dep_delay))
+```
+
+* The longest departure delay flight number is 7073 flight
+    
+## Exercise 6
+
+```{r, warning=FALSE}
+flights %>%
+  mutate(
+   average_speed = distance / (air_time / 60)
+)
+```
+
+* Where is the new column located in the output dataframe?
+  + last part
+
+* What is the name of the new column?
+  + average_speed
+  
+* Which part of the code determines the name of the new column?
+  + average_speed = distance / (air_time / 60)
+
+## Exercise 7
+
+```{r, warning=FALSE}
+flights %>%
+  mutate(
+    dep_time_hour = dep_time %/% 100,
+    dep_time_minute = dep_time %% 100,
+    dep_time_minutes_midnight = dep_time %% 100
+  )
+```
+
+## Exercise 8
+
+```{r, warning=FALSE}
+flights %>%
+  filter(
+    arr_delay < 0
+  )
+```
+
+```{r, warning=FALSE}
+flights %>%
+  filter(
+    carrier == "AA"
+  )
+```
+```{r, warning=FALSE}
+flights %>%
+  mutate(
+    arr_delay < 0,
+    carrier == "AA"
+  )
+```
+
+## Exercise 9
+
+```{r, warning=FALSE}
+flights %>%
+  group_by(carrier) %>%
+  summarize(
+    average_arr_delay = mean(arr_delay, na.rm = TRUE)
+  )
+```
+```{r, warning=FALSE}
+flights %>%
+  group_by(carrier) %>%
+  summarize(
+    average_departure_delay = mean(dep_delay, na.rm = TRUE)
+  )
+```
+* Which airline carrier had the longest arrival delays on average?
+  + F9
+  
+* Which airline carrier had the shortest arrival delays on average?
+  + AS
+
+## Exercise 10
+
+```{r, warning=FALSE}
+late_flights_to_miami <- flights %>%
+  filter(dest == "MIA")
+  select(flights, arr_delay, carrier)
+```
+
+## Exercise 11
+
+```{r, warning=FALSE}
+monthly_delays <- flights %>%
+  group_by(month, carrier) %>%
+  summarize(
+    arrival_delay = mean(arr_delay, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  pivot_wider(names_from = carrier, values_from = arrival_delay) %>%
+  select(-'9E')
+```
+
+```{r, warning=FALSE}
+# qplot(x = month, y = UA, geom="line", data=monthly_delays)
+ggplot(data = monthly_delays, aes(x = month, y = UA)) +
+  geom_line() +
+  xlab("Month") +
+  ylab("UA") +
+  ggtitle("Line Graph of UA by Month")  
+```
+
+```{r, warning=FALSE}
+monthly_delays %>%
+  pivot_longer(cols = !month, names_to = "Airline", values_to = "Delays")
+```
+
+```{r,warning=FALSE}
+prvoted_monthly_delays <- monthly_delays %>%
+  pivot_longer(cols = !month, names_to = "Airline", values_to = "Delays")
+
+# qplot(x = month,
+#       y = Delays,
+#       color = Airline,
+#       geom = "line",
+#       data = prvoted_monthly_delays
+#       )
+ggplot(data = prvoted_monthly_delays, aes(x = month, y = Delays, color = Airline)) +
+  geom_line() +
+  xlab("Month") +
+  ylab("Delays") +
+  ggtitle("Line Graph of Delays by Month colored by Airline")
+```
