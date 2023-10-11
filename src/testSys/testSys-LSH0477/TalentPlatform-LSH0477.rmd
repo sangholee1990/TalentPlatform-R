@@ -1,35 +1,29 @@
 ---
 title: "Lab 5: Data cleaning"
-author: "Sangwon Yum"
+author: Sangwon Yum
 date: "`r Sys.Date()`"
 documentclass: article
 geometry: margin=1in
 fontsize: 11pt
 output:
-  html_document:
+  pdf_document:
+    toc: false
+    df_print: kable
+    fig_caption: false
+    number_sections: false
+    dev: pdf
     highlight: tango
+    latex_engine: xelatex
+  html_document:
     theme: default
+    self_contained: true
     toc: false
     df_print: kable
     fig_caption: false
     number_sections: false
     smart: true
     dev: svg
-    self_contained: true
-  pdf_document:
-    toc: false
-    df_print: kable
-    fig_caption: false
-    number_sections: false
-    highlight: tango
-    dev: pdf
-  github_document:
-    toc: true
-    toc_depth: 4
-    dev: svg
-    df_print: kable
-    html_preview: false
-    pandoc_args: --webtex
+    latex_engine: xelatex
 ---
 
 ```{r setup, include = FALSE}
@@ -181,4 +175,33 @@ print(towed_make_clean)
 
 ## Additional questions
 ### Question 1
+- Q) which make of automobile was impounded the most often in this dataset?
+- A) CHEV
+
+```{r, warning=FALSE}
+most_impounded_make <- towed_make_clean %>%
+  count(make) %>%
+  arrange(-n) %>%
+  head(1)
+
+print(most_impounded_make)
+```
+
+
 ### Question 2
+- Q) which make of automobile was impounded the most often in this dataset?
+- A) 2018-03-04	
+
+- Q) which day had the most cars impounded? which day had the least cars impounded?
+- A) 2018-03-01	
+```{r, warning=FALSE}
+daily_impounds = towed_make_clean %>%
+  count(tow_date) %>%
+  arrange(-n)
+
+most_impounded_day = head(daily_impounds, 1)
+print(most_impounded_day)
+
+least_impounded_day = tail(daily_impounds, 1)
+print(least_impounded_day)
+```
