@@ -1,0 +1,222 @@
+---
+title: "Lab 6: European Soccer"
+author: "Sangwon Yum"
+date: "`r Sys.Date()`"
+documentclass: article
+geometry: margin=1in
+fontsize: 11pt
+output:
+  pdf_document:
+    highlight: tango
+    toc: false
+    df_print: kable
+    fig_caption: no
+    number_sections: no
+    dev: pdf
+    latex_engine: xelatex
+  html_document:
+    highlight: tango
+    self_contained: true
+    theme: paper
+    toc: no
+    df_print: kable
+    fig_caption: no
+    number_sections: no
+    smart: yes
+    dev: svg
+  github_document:
+    html_preview: false
+    pandoc_args: --webtex
+    toc: true
+    toc_depth: 4
+    dev: svg
+    df_print: kable
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE, eval = TRUE, fig.width = 6, warning = FALSE,
+  message = FALSE,
+  fig.asp = 0.618, out.width = "80%", dpi = 120,
+  fig.align = "center", cache = FALSE
+)
+
+suppressPackageStartupMessages(library(tidyverse))
+suppressPackageStartupMessages(library(modelr))
+suppressPackageStartupMessages(library(broom))
+suppressPackageStartupMessages(library(GGally))
+suppressPackageStartupMessages(library(diptest))
+suppressPackageStartupMessages(library(LaplacesDemon))
+suppressPackageStartupMessages(library(moments))
+
+european_soccer <- read.csv("european-soccer.csv")
+```
+
+---
+
+
+### Exercise 1
+- Q) Does the relationship look linear?
+- A) 대부분의 변수는 양의 상관관계를 보이나 일부의 경우 상관관계 없음 (아래 내역 참조)
+  매우 강한 양의 상관관계 (0.9 이상): None
+  강한 양의 상관관계 (0.7 ~ 0.9): reactions, potential
+  중간 양의 상관관계 (0.4 ~ 0.7): curve, long_shots, shot_power, long_passing, ball_control, vision, short_passing
+  낮은 양의 상관관계 (0.2 ~ 0.4): strength, interceptions, jumping, acceleration, heading_accuracy, sprint_speed, agility, penalties, aggression, finishing, free_kick_accuracy, positioning, volleys, stamina, crossing, dribbling
+  약한 양의 상관관계 (0.0 ~ 0.2): weight, balance, marking, sliding_tackle, standing_tackle
+  상관관계 없음: gk_diving, gk_kicking, gk_positioning, gk_reflexes, gk_handling
+  약한 음의 상관관계 (-0.2 ~ 0.0): None
+  낮은 음의 상관관계 (-0.2 ~ -0.4): None
+  중간 음의 상관관계 (-0.4 ~ -0.7): None
+  강한 음의 상관관계 (-0.7 ~ -0.9): None
+  매우 강한 음의 상관관계 (-0.9 이상): None
+
+- Q) Explain what you've noticed in the plot to support your answer
+- A) GGally::ggpairs를 통해 산포도 시각화를 통해 육안으로 파악할 수 있음. 시각화 과정에서 오랜 시간이 소요되기 때문에 상관계수 계산을 통해 간편하게 파악 가능
+
+```{r, warning=FALSE}
+data = european_soccer %>% 
+  dplyr::select(where(is.integer), -player_fifa_api_id) 
+
+corData = cor(data)
+
+corDataL1 = corData %>% 
+  as.data.frame() %>% 
+  dplyr::select(overall_rating) %>% 
+  dplyr::arrange(overall_rating) %>% 
+  print()
+  
+# 시각화 오래 걸림
+# GGally::ggpairs(data, title = "Pairs Plot based on Overall Rating")
+
+# Building a linear model
+overall_rating_model = lm(potential ~ overall_rating, data = european_soccer)
+
+overall_rating_model %>% 
+  generics::tidy()
+  
+overall_rating_model %>% 
+  glance() %>% 
+  select(r.squared)
+``` 
+  
+
+### Exercise 2
+```{r, warning=FALSE}
+# Prediction and prediction errors
+reactions_model = lm(potential ~ reactions, data = european_soccer)
+
+reactions_model %>% 
+  generics::tidy()
+  
+reactions_model %>% 
+  glance() %>% 
+  select(r.squared)
+  
+reactions_df = european_soccer %>%
+  add_predictions(reactions_model)
+
+ggplot(data = reactions_df) +
+  geom_point(mapping = aes(x = reactions, y = potential)) +
+  geom_line(mapping = aes(x = reactions, y = pred), color = "indianred3", size = 1) +
+  labs(title = "Reactions vs Potential", x = "Reactions", y = "Potential")
+  
+# Few predictions
+reactions_more_pred = data_frame(reactions = combine(42, 92)) %>% 
+  add_predictions(reactions_model)
+
+# Many predictions
+reactions_seq_pred= data_frame(reactions = seq_range(x = combine(30, 96), by = 2)) %>% 
+  add_predictions(reactions_model)
+```
+
+### Exercise 3
+```{r, warning=FALSE}
+#	find the pred for 83 reactions
+reactions_point_pred = data_frame(reactions = combine(83)) %>% 
+  add_predictions(reactions_model)
+  
+print(reactions_point_pred)
+```
+
+### Exercise 4
+```{r, warning=FALSE}
+# Residuals
+reactions_df = european_soccer %>% 
+    add_predictions(reactions_model) %>% 
+    add_residuals(reactions_model)
+  
+ggplot(reactions_df) +
+  geom_point(mapping = aes(x = reactions, y = potential)) +
+  geom_line(mapping = aes(x = reactions, y = pred), color = "indianred3", size = 1) +
+  geom_linerange(mapping = aes(x = reactions, ymin = pred, ymax = potential), linetype = "dashed") +
+  labs(title = "Reactions vs Potential")
+
+largest_residual_point = reactions_df %>% 
+  filter(abs(resid) == max(abs(resid), na.rm = TRUE))
+print(largest_residual_point)
+```
+
+### Exercise 5
+```{r, warning=FALSE}
+ggplot(reactions_df, aes(x=resid)) +
+  geom_histogram(binwidth=1, color="white") + 
+  labs(title="Histogram of Residuals", x="Residuals", y="Frequency")
+
+# Conditions for using a linear model
+
+#	center
+meanVal = mean(reactions_df$resid, na.rm = TRUE)
+medianVal = median(reactions_df$resid, na.rm = TRUE)
+sprintf("meanVal : %s", meanVal)
+sprintf("medianVal : %s", medianVal)
+
+#	Modality
+if (LaplacesDemon::is.unimodal(reactions_df$resid)) {
+  sprintf("The distribution is unimodal.")
+}
+
+if (LaplacesDemon::is.bimodal(reactions_df$resid)) {
+  sprintf("The distribution is bimodal.")
+}
+
+if (LaplacesDemon::is.trimodal(reactions_df$resid)) {
+  sprintf("The distribution is trimodal.")
+}
+
+if (LaplacesDemon::is.multimodal(reactions_df$resid)) {
+  sprintf("The distribution is multimodal.")
+}
+
+#	skewness
+skewnessVal = moments::skewness(reactions_df$resid)
+sprintf("skewnessVal : %s", skewnessVal)
+```
+
+### Exercise 6
+- A) 비선형 관계, 그림 4에서 선형 예측 결과 (적색 선)를 기준으로 과소/과대 예측된 수치가 많이 산포되어 있음. 특히 아래 결과와 같이 선형 및 비선형 모형에 대한 결정계수 (r.squared)는 각각 0.44 및 0.46로서 비선형 관계 시 더 좋은 예측 성능을 보임
+```{r, warning=FALSE}
+# 선형 관계
+lm(potential ~ reactions, data = european_soccer) %>% 
+  glance() %>% 
+  print()
+
+# 비선형 관계
+lm(potential ~ reactions + I(reactions^2), data = european_soccer) %>% 
+  glance() %>% 
+  print()
+```
+
+### Exercise 7
+- A) 해당 그림에서는 선형 예측 결과 (적색 선)을 기준으로 과소/과대 예측된 수치가 많기 때문에분산이 일정하지 않음. 즉 이는 이분산성 (heteroscedasticity)으로서 앞선 (Exercise 6)과 같이 비선형성 관계에서 자주 나타남
+```{r, warning=FALSE}
+ggplot(reactions_df, aes(x = pred, y = resid)) +
+  geom_point() +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
+  theme_minimal() +
+  labs(title = "Residual Plot", x = "Predicted Values", y = "Residuals")
+```
+
+### Exercise 8
+- A) 종합적으로 center, Modality, skewness 지표를 통해 정규 분포로 보임. 보다 정확한 검증을 위해 다양한 통계 검정 기술 (샤피로-윌크 테스트, 콜모고로프-스미르노프 테스트 등)이 요구됨
+  center (평균값, 중앙값) : 중앙값 및 평균값은 0에 상당히 근접하기 때문에 서로 간의 분포의 대칭성을 나타냄     Modality : 그림 5에서와 같이 잔파의 분포는 단일 피크를 가지며 이는 정규분포의 특징과 일치함
+  skewness (왜도) : 0.14로서 0에 가까울수록 완벽한 대칭을 보임  
