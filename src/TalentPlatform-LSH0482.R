@@ -158,7 +158,7 @@ k = 2
 
 # dplyr
 
- # %>% : <Ctrl> + <Shift> + <M>
+# %>% : <Ctrl> + <Shift> + <M>
 # 데이터 읽기
 data = pbc %>% 
   dplyr::select(c("age", "bili", "edema", "protime", "albumin")) %>% 
@@ -311,4 +311,3 @@ table(test_data$type, pred_mice)
 # nonspam spam
 # nonspam    2079  139
 # spam        385 1078
-
