@@ -11,7 +11,7 @@
 #================================================
 # 요구사항
 #================================================
-# R을 이용한 
+# R을 이용한 일반음식점 데이터 기반으로 지도 및 막대그래프 시각화
 
 # ================================================
 # 초기 환경변수 설정
@@ -21,7 +21,7 @@ env = "dev"  # 개발 : 원도우 환경, 작업환경 (사용자 환경 시 con
 # env = "oper"  # 운영 : 리눅스 환경, 작업환경 (사용자 환경 시 contextPath) 설정
 
 prjName = "test"
-serviceName = "LSH0463"
+serviceName = "LSH0487"
 
 if (Sys.info()[["sysname"]] == "Windows") {
   contextPath = ifelse(env == "local", ".", "C:/SYSTEMS/PROG/R/TalentPlatform-R")
@@ -53,11 +53,16 @@ library(webr)
 library(openxlsx)
 library(lubridate)
 library(fs)
+library(readxl)
 
 # 파일 읽기
-fileList = Sys.glob(file.path(globalVar$inpPath, serviceName, "*/*/*/*.xlsx"))
+fileList = Sys.glob(file.path(globalVar$inpPath, serviceName, "07_24_04_P.xls"))
 
-# fileInfo = fileList[1]
+fileInfo = fileList[1]
+# data = openxlsx::read.xlsx(fileInfo, sheet = 1, startRow = 1)
+data = readxl::read_excel(fileInfo)
+
+
 for (fileInfo in fileList) {
 
   cat(sprintf("[CHECK] fileInfo : %s", fileInfo), "\n")
