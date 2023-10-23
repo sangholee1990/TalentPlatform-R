@@ -11,10 +11,7 @@
 #================================================
 # 요구사항
 #================================================
-# R을 이용한 모집단 샘플로부터 모집단 평균 추정치 계산
-
-# 여기에 있는 데이터는 사람의 키를 (cm) 단위로 측정한 모집단의 샘플입니다.
-# 알파 =2%, 평균 174에서 신뢰 구간을 사용하여 모집단 평균 추정치를 고려합니다.
+# R을 이용한 지점별 평균-누적 강수량 내삽 및 등우선도 시각화
 
 # ================================================
 # 초기 환경변수 설정
@@ -53,7 +50,7 @@ if (env == "local") {
 library(tidyverse)
 library(ggplot2)
 
-# 입력 데이터 
+# 입력 데이터
 data = data.frame(
   X1 = c(173, 181, 192, 173, 169, 160, 170, 167, 173, 170, 173, 166, 162, 154, 154, 175, 164, 152, 151, 181)
   , X2 = c(171, 190, 195, 157, 160, 167, 167, 174, 173, 173, 198, 177, 171, 177, 179, 185, 199, 153, 198, 193)
@@ -96,29 +93,29 @@ nameList = dataL1$name %>% unique()
 
 # nameInfo = nameList[1]
 for (nameInfo in nameList) {
-  
-  dataL2 = dataL1 %>% 
+
+  dataL2 = dataL1 %>%
     dplyr::filter(name == nameInfo)
-  
+
   cat(sprintf("[CHECK] nameInfo : %s", nameInfo), "\n")
   cat(sprintf("주어진 평균 174cm에 대한 98%% 신뢰 구간: %0.2f - %0.2f cm", dataL2$ciLower, dataL2$ciUpper), "\n")
-  
+
   xran = seq(dataL2$mean - 4*dataL2$std, dataL2$mean + 4*dataL2$std, length.out = 1000)
-  
+
   dataL3 = data.frame(
     x = xran
     , y = dnorm(xran, mean = dataL2$mean, sd = dataL2$std)
   )
-  
-  makePlot = ggplot() + 
-    geom_line(data = dataL3, aes(x=x, y=y), color = "black") + 
+
+  makePlot = ggplot() +
+    geom_line(data = dataL3, aes(x=x, y=y), color = "black") +
     geom_vline(data = dataL2, aes(xintercept = mean), color = "blue", size = 1) +
-    geom_vline(data = dataL2, aes(xintercept = ciLower), color = "green", size = 0.5) + 
+    geom_vline(data = dataL2, aes(xintercept = ciLower), color = "green", size = 0.5) +
     geom_vline(data = dataL2, aes(xintercept = ciUpper), color = "green", size = 0.5) +
     geom_ribbon(data = dataL3, aes(x = x, ymin = 0, ymax = ifelse(x > dataL2$ciLower & x < dataL2$ciUpper, y, 0)), fill = "lightblue", alpha = 0.3) +
     geom_ribbon(data = dataL3, aes(x = x, ymin = 0, ymax = ifelse(x < dataL2$ciLower | x > dataL2$ciUpper, y, 0)), fill = "lightgreen", alpha = 0.3) +
     theme_minimal() +
     labs(title = sprintf("Normal Distribution (name = %s)", dataL2$name), x = "", y = "Density")
-  
+
   print(makePlot)
 }
