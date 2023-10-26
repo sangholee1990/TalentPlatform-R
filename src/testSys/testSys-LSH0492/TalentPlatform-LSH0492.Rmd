@@ -1,0 +1,70 @@
+---
+title: "psych 데이터 기반으로 요인 분석 (탐색적 요인 분석 EFA, 확인적 요인 분석 CFA"
+author: "성명"
+date: "`r Sys.Date()`"
+documentclass: article
+geometry: margin=1in
+fontsize: 11pt
+output:
+  pdf_document:
+    latex_engine: xelatex
+    keep_tex: yes
+    dev: cairo_pdf
+    fig_caption: yes
+    number_sections: yes
+    toc: no
+    df_print: kable
+mainfont: "Malgun Gothic"
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE, eval = TRUE, fig.width = 6, warning = FALSE,
+  message = FALSE, fig.asp = 0.618, out.width = "80%", dpi = 120,
+  fig.align = "center", cache = FALSE
+)
+```
+
+# 자료 읽기
+```{r, warning=FALSE}
+# data read
+data(bfi, package = "psych")
+
+# select columns
+dataL1 = bfi[, c("A1", "A2", "A3", "A4", "A5",
+                 "C1", "C2", "C3", "C4", "C5",
+                 "E1", "E2", "E3", "E4", "E5",
+                 "N1", "N2", "N3", "N4", "N5",
+                 "O1", "O2", "O3", "O4", "O5")]
+
+# library read
+suppressPackageStartupMessages(library(psych))
+suppressPackageStartupMessages(library(lavaan))
+```
+
+# Exploratory Factor Analysis, EFA
+```{r, warning=FALSE}
+# run EFA Model
+efaModel = psych::fa(dataL1, nfactors=5)
+
+# result
+print(efaModel)
+``` 
+  
+# Confirmatory Factor Analysis, CFA
+```{r, warning=FALSE, echo=FALSE}
+#  set CFA Model
+model = '
+  A =~ A1 + A2 + A3 + A4 + A5
+  C =~ C1 + C2 + C3 + C4 + C5
+  E =~ E1 + E2 + E3 + E4 + E5
+  N =~ N1 + N2 + N3 + N4 + N5
+  O =~ O1 + O2 + O3 + O4 + O5
+'
+
+# run CFA Model
+cfaModel = lavaan::cfa(model, data=dataL1)
+
+# result
+summary(cfaModel, fit.measures=TRUE)
+```

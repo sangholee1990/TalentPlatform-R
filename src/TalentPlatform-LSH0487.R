@@ -13,6 +13,9 @@
 #================================================
 # R을 이용한 일반음식점 데이터 기반으로 지도 및 막대그래프 시각화
 
+# https://www.localdata.go.kr/devcenter/dataDown.do?menuNo=20001
+# 기존 좌표계와 동일한 중부원점TM(EPSG:2097)
+
 # ================================================
 # 초기 환경변수 설정
 # ================================================
@@ -48,77 +51,136 @@ if (env == "local") {
 # 라이브러리 읽기
 library(tidyverse)
 library(ggplot2)
-library(ggpubr)
-library(webr)
 library(openxlsx)
 library(lubridate)
 library(fs)
-library(readxl)
+library(sf)
+library(forcats)
+library(showtext)
+library(ggplot2)
+library(sf)
+
+showtext::showtext_opts(dpi = 600)
+showtext::showtext.auto()
 
 # 파일 읽기
-fileList = Sys.glob(file.path(globalVar$inpPath, serviceName, "07_24_04_P.xls"))
+# fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "07_24_04_P_일부.csv"))
+fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "07_24_04_P.csv"))
 
-fileInfo = fileList[1]
-# data = openxlsx::read.xlsx(fileInfo, sheet = 1, startRow = 1)
-data = readxl::read_excel(fileInfo)
+# data = readr::read_csv(fileInfo, locale = readr::locale(encoding = "EUC-KR"))
+data = readr::read_csv(fileInfo, locale = readr::locale(encoding = "UTF-8"))
+
+# 업종별 개폐업현황
+dataL1 = data %>% 
+  dplyr::rename(
+    geoX = "좌표정보(X)"
+    , geoY = "좌표정보(Y)"
+  ) %>% 
+  dplyr::select(영업상태명, 업태구분명, 인허가일자, geoX, geoY) %>% 
+  na.omit()
+
+# 좌표 변환
+sfData = st_as_sf(dataL1, coords = c("geoX", "geoY"), crs = 2097)
+sfDataL1 = st_transform(sfData, 4326)
+
+dataL2 = sfDataL1 %>%
+  dplyr::mutate(
+    lon = st_coordinates(.)[,1]
+    , lat = st_coordinates(.)[,2]
+  ) %>%
+  st_set_geometry(NULL) 
+
+# summary(dataL2)
+
+# 연도별 일반음식점 (전체) 개폐업 현황
+dataL3 = dataL2 %>% 
+  dplyr::mutate(
+    dtYear = format(인허가일자, "%Y") %>% as.numeric()
+  ) %>% 
+  dplyr::group_by(dtYear, 영업상태명) %>%
+  dplyr::summarise(
+    cnt = n()
+  )
+
+mainTitle = sprintf("연도별 일반음식점 (%s) 개폐업 현황", "전체")
+saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
+dir.create(fs::path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
+
+ggplot(dataL3, aes(x = dtYear, y = cnt, fill = 영업상태명)) +
+  geom_bar(stat = "identity", width = 1.0, position = position_dodge(width = 1.0)) +
+  labs(x = "연도 ", y = "개수", fill = NULL, title = NULL, subtitle = mainTitle) +
+  theme(
+    text = element_text(size = 16)
+    , legend.position = "top"
+  ) +
+  ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
+
+cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 
 
-for (fileInfo in fileList) {
+# 연도별 일반음식점 (업태구분명) 개폐업 현황
+typeList = dataL2$업태구분명 %>% unique() %>% sort()
+for (typeInfo in typeList) {
 
-  cat(sprintf("[CHECK] fileInfo : %s", fileInfo), "\n")
-    
-  orgData = openxlsx::read.xlsx(fileInfo, sheet = 1, startRow = 1)
-  
-  data = orgData %>% 
-    tibble::as.tibble() %>% 
-    dplyr::rename(
-      sDate = "관측일자"
-      , sTime = "관측시간"
-      , alt = "유의파고(m)"
-      , inv = "유의파주기(sec)"
-    ) %>% 
-    readr::type_convert() %>% 
+  dataL4 = dataL2 %>% 
     dplyr::filter(
-      ! is.na(alt)
-      , ! is.na(inv)
-    ) %>% 
-    dplyr::mutate(across(where(is.character), as.numeric)) %>% 
-    dplyr::mutate(
-      sDateTime = paste(sDate, sTime, sep = " ")
+      업태구분명 == typeInfo
     ) %>% 
     dplyr::mutate(
-      dtDateTime = readr::parse_datetime(sDateTime, format = "%Y-%m-%d %H:%M:%S")
+      dtYear = format(인허가일자, "%Y") %>% as.numeric()
     ) %>% 
-    dplyr::filter(
-      dplyr::between(alt, 3, 16)
-      , inv >= 9
+    dplyr::group_by(dtYear, 영업상태명) %>%
+    dplyr::summarise(
+      cnt = n()
     )
-
-  if (nrow(data) < 1) { next }
   
-  coeff = 0.35
-  
-  fileNameNotExt = tools::file_path_sans_ext(fs::path_file(fileInfo))
-  saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, fileNameNotExt)
+  mainTitle = sprintf("연도별 일반음식점 (%s) 개폐업 현황", typeInfo)
+  saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
   dir.create(fs::path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
   
-  makePlot = ggplot(data, aes(x=dtDateTime)) +
-    geom_point(aes(y=alt, color = "alt")) +
-    geom_point(aes(y=inv*coeff, color= "inv")) +
-    scale_y_continuous(
-      limits = c(0, 10)
-      , name = "alt"
-      , sec.axis = sec_axis(~./coeff, name="inv")
-    ) +
-    labs(x = "Date Time", y = NULL, color = NULL, subtitle = fileNameNotExt) +
-    scale_color_manual(values = c("orange2", "gray30")) +
-    scale_x_datetime(date_labels = "%Y-%m", date_breaks = "6 month") +
+  makePlot = ggplot(dataL4, aes(x = dtYear, y = cnt, fill = 영업상태명)) +
+    # geom_bar(stat = "identity", width = 0.5, position=position_dodge(width = 0.5)) +
+    # geom_bar(stat = "identity", position=position_dodge(width = 0.5)) +
+    geom_bar(stat = "identity", width = 1.0, position = position_dodge(width = 1.0)) +
+    labs(x = "연도 ", y = "개수", fill = NULL, title = NULL, subtitle = mainTitle) +
     theme(
-          text = element_text(size = 16)
-          , legend.position = "top"
-          , axis.text.x = element_text(angle = 45, hjust = 1)
-        )
+      text = element_text(size = 16)
+      , legend.position = "top"
+    )
   
   ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
+  
+  cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+}
+
+# 지도 시각화
+# 대한민국 지리 데이터
+mapKor = sf::st_read(file.path(globalVar$mapPath, "gadm36_KOR_shp/gadm36_KOR_1.shp"))
+mapKor2 = sf::st_read(file.path(globalVar$mapPath, "gadm36_KOR_shp/gadm36_KOR_2.shp"))
+
+typeList = dataL2$영업상태명 %>% unique() %>% sort()
+for (typeInfo in typeList) {
+  
+  dataL5 = dataL2 %>%
+    dplyr::filter(영업상태명 == typeInfo) %>%
+    dplyr::select(lon, lat)
+
+  mainTitle = sprintf("일반음식점 %s 지도", typeInfo)
+  saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
+  dir.create(fs::path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
+
+  makePlot = ggplot() +
+    geom_sf(data = mapKor2, aes(x = NULL, y = NULL, fill = NULL, z = NULL), color = "black", fill = "white") +
+    geom_sf(data = mapKor, aes(x = NULL, y = NULL, fill = NULL, z = NULL), lwd = 0.5, color = "black", fill = NA) +
+    # geom_point(data = dataL5, aes(x = lon, y = lat), alpha = 0.1) +
+    stat_density_2d(data = dataL5, aes(x = lon, y = lat, fill = ..level.., alpha = ..level..), geom = "polygon") +
+    scale_fill_gradient(low = "green", high = "red") +
+    scale_alpha(range = c(0, 1.0), guide = FALSE) +
+    metR::scale_x_longitude(breaks = seq(125, 131, 1), limits = c(125, 131), expand = c(0, 0)) +
+    metR::scale_y_latitude(breaks = seq(33, 39, 1), limits = c(33, 39), expand = c(0, 0)) +
+    labs(subtitle = mainTitle, x = NULL, y = NULL, fill = NULL, colour = NULL, title = NULL)
+  
+  ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
+
   cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 }

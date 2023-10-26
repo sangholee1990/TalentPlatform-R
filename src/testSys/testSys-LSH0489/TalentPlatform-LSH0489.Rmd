@@ -1,0 +1,201 @@
+---
+title: "Lab 8 - Basketball and Hot Hands"
+author: "Sangwon Yum"
+date: "`r Sys.Date()`"
+documentclass: article
+geometry: margin=1in
+fontsize: 11pt
+output:
+  pdf_document:
+    highlight: tango
+    toc: false
+    df_print: kable
+    fig_caption: no
+    number_sections: no
+    dev: pdf
+    latex_engine: xelatex
+  html_document:
+    highlight: tango
+    self_contained: true
+    theme: paper
+    toc: no
+    df_print: kable
+    fig_caption: no
+    number_sections: no
+    smart: yes
+    dev: svg
+  github_document:
+    html_preview: false
+    pandoc_args: --webtex
+    toc: true
+    toc_depth: 4
+    dev: svg
+    df_print: kable
+---
+
+```{r setup, include = FALSE}
+# Set knitr options
+knitr::opts_chunk$set(
+  echo = TRUE, eval = TRUE, fig.width = 6, warning = FALSE,
+  message = FALSE,
+  fig.asp = 0.618, out.width = "80%", dpi = 120,
+  fig.align = "center", cache = FALSE
+)
+
+# Load required packages
+suppressPackageStartupMessages(library(tidyverse, quietly = TRUE))
+
+# Load the dataset and source function
+kobe_basket = read_rds("kobe_basket.rds")
+
+source("calc_streak.R")
+```
+
+## Lab report
+## Exercises
+#### Exercise 1
+- Q) How many hits? 
+- A) 24
+
+- Q) How many misses?
+- A) 52
+
+- Q) Define streak length of zero
+- A) 39
+```{r, warning=FALSE}
+kobe_streack = calc_streak(kobe_basket$shot)
+print(kobe_streack)
+
+# 연속 득점 길이가 1인 경우를 필터링
+statData = kobe_streack %>% 
+  dplyr::group_by(length) %>% 
+  dplyr::summarise(
+    cnt = n()
+  )
+print(statData)
+
+# 히트와 미스의 수를 카운트
+hitCnt = statData %>% dplyr::filter(length == 1)
+print(hitCnt)
+
+misCnt = nrow(kobe_streack) - hitCnt$cnt
+print(misCnt)
+
+zeroCnt = statData %>% dplyr::filter(length == 0)
+print(zeroCnt)
+``` 
+
+#### Exercise 2
+- Q) What is the most common streak length?
+- A) 0
+
+- Q) What is the longest streak length?
+- A) 4
+```{r, warning=FALSE}
+ggplot(data = kobe_streack) +
+  geom_bar(aes(x = length)) +
+  labs(title = "Streak Lengths", x = "Length", y = "Frequency")
+
+meanVal = mean(kobe_streack$length, na.rm = TRUE)
+cat(sprintf("[CHECK] meanVal : %s", meanVal), "\n")
+ 
+medianVal = median(kobe_streack$length, na.rm = TRUE)
+cat(sprintf("[CHECK] medianVal : %s", medianVal), "\n")
+
+# Most common streak length
+mostLen = kobe_streack %>%
+  group_by(length) %>%
+  summarise(cnt = n()) %>%
+  arrange(desc(cnt)) %>%
+  top_n(1)
+cat(sprintf("[CHECK] mostLen : %s", mostLen$length), "\n")
+
+# Longest streak length
+maxLen = kobe_streack %>%
+  summarise(maxVal = max(length, na.rm = TRUE))
+cat(sprintf("[CHECK] maxLen : %s", maxLen), "\n")
+```
+
+#### Exercise 3
+- Q) Answer how many came up heads
+- A) sim_fair_coin: 56, sim_unfair_coin: 17
+```{r, warning=FALSE}
+set.seed(35797)
+
+coin_outcomes = c("heads", "tails")
+# sample(coin_outcomes, size = 1, replace = TRUE)
+
+sim_fair_coin = sample(coin_outcomes, size = 100, replace = TRUE)
+print(table(sim_fair_coin))
+
+sim_unfair_coin = sample(coin_outcomes, size = 100, replace = TRUE, prob = c(0.2, 0.8))
+print(table(sim_unfair_coin))
+```
+
+#### Exericse 4
+- Q) sim_basket and kobe_basket both represent the results of 133 shot attempts with the same shooting percentage of 45%
+- A) sim_shots: 63, kobe_basket: 58
+```{r, warning=FALSE}
+set.seed(35797)
+
+shot_outcomes = c("H", "M")
+
+# sim_basket = sample(shot_outcomes, size = 1, replace = TRUE)
+
+shotProb = 0.45
+sim_basket = sample(shot_outcomes, size = 133, replace = TRUE, prob = c(shotProb, 1 - shotProb))
+
+sim_basket_shots = sum(sim_basket == "H", na.rm = TRUE)
+cat(sprintf("[CHECK] sim_basket_shots : %s", sim_basket_shots), "\n")
+
+kobe_made_shots = sum(kobe_basket$shot == "H", na.rm = TRUE)
+cat(sprintf("[CHECK] kobe_made_shots : %s", kobe_made_shots), "\n")
+```
+
+## Additional questions
+#### Question 1
+```{r, warning=FALSE}
+sim_streak = calc_streak(sim_basket)
+print(sim_streak)
+```
+
+#### Question 2
+- Q) What is the typical streak length?
+- A) 0
+
+- Q) What is the longest streak?
+- A) 6
+```{r, warning=FALSE}
+ggplot(sim_streak, aes(x=length)) +
+  geom_bar() +
+  labs(title="Streak Lengths of sim_streak", x="Streak Length", y="Frequency")
+
+# Most common streak length
+mostLen = sim_streak %>%
+  group_by(length) %>%
+  summarise(cnt = n()) %>%
+  arrange(desc(cnt)) %>%
+  top_n(1)
+cat(sprintf("[CHECK] mostLen : %s", mostLen$length), "\n")
+
+# Longest streak length
+maxLen = sim_streak %>%
+  summarise(maxVal = max(length, na.rm = TRUE))
+cat(sprintf("[CHECK] maxLen : %s", maxLen), "\n")
+```
+
+#### Question 3
+- A) 일반적으로 독립적인 슈터 시뮬레이션은 일정한 확률 (성공률 45%, 실패율 55%)로 실행되나 무작위 샘플링의 특성으로 인해 매번 다른 결과를 제공함
+
+#### Question 4
+```{r, warning=FALSE}
+dataL1 = dplyr::bind_rows(
+  dplyr::bind_cols(kobe_streack, name = "kobe")
+  , dplyr::bind_cols(sim_streak, name = "sim")
+)
+print(dataL1)
+
+ggplot(dataL1, aes(x = length, fill = name)) +
+  geom_bar(position = "dodge", stat = "count", width = 0.7) +
+  labs(title = "Streak Length Distribution of sim_basket vs. kobe_basket", x = "Streak Length", y = "Frequency")
+```
