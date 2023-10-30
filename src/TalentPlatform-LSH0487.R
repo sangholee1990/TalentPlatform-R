@@ -74,8 +74,8 @@ mapKor = sf::st_read(file.path(globalVar$mapPath, "gadm36_KOR_shp/gadm36_KOR_1.s
 fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "07_24_04_P.csv"))
 data = readr::read_csv(fileInfo, locale = readr::locale(encoding = "UTF-8"))
 
-dataL1 = data %>% 
-  tidyr::separate(col = "도로명전체주소", into = c("sido"), sep = " ") %>% 
+dataL1 = data %>%
+  tidyr::separate(col = "도로명전체주소", into = c("sido"), sep = " ") %>%
   dplyr::mutate(
     dtYear = format(인허가일자, "%Y")
     , sidoAddr = dplyr::case_when(
@@ -103,16 +103,16 @@ dataL1 = data %>%
 # 1. 전국 업종별 일반음식점 사업체 수(2023년 기준)
 # =================================================================
 # 비중이 높은 순으로 10개 업종만 막대그래프로 시각화
-dataL2 = dataL1 %>% 
+dataL2 = dataL1 %>%
   dplyr::filter(
     인허가일자 >= as.Date("2023-01-01")
   ) %>%
-  dplyr::group_by(업태구분명) %>% 
+  dplyr::group_by(업태구분명) %>%
   dplyr::summarise(
     cnt = n()
-  ) %>% 
-  na.omit() %>% 
-  dplyr::arrange(desc(cnt)) %>% 
+  ) %>%
+  na.omit() %>%
+  dplyr::arrange(desc(cnt)) %>%
   dplyr::slice(1:10)
 
 # 정렬
@@ -123,9 +123,9 @@ saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
 dir.create(fs::path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
 
 ggplot(dataL2, aes(x = 업태구분명, y = cnt, fill = 업태구분명)) +
-  geom_bar(stat = "identity", width = 1.0, position = position_dodge(width = 1.0)) +
+  geom_bar(stat = "identity", width = 1.0, position = position_dodge(width = 1.0), alpha = 0.6) +
   labs(x = "10개 업종", y = "사업체 수", fill = NULL, title = NULL, subtitle = mainTitle) +
-  ggrepel::geom_text_repel(aes(label = scales::comma(cnt)), position = position_dodge(width = 1.0), color="white", vjust = -0.5, size = 4) +
+  ggrepel::geom_text_repel(aes(label = scales::comma(cnt)), position = position_dodge(width = 1.0), color = "white", vjust = -0.5, size = 4) +
   theme(
     text = element_text(size = 16)
     , axis.text.x = element_text(angle = 45, hjust = 1)
@@ -136,18 +136,18 @@ ggplot(dataL2, aes(x = 업태구분명, y = cnt, fill = 업태구분명)) +
 cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 
 # 전국업종별 분포를 원형그래프로 시각화
-dataL3 = dataL2 %>% 
-  dplyr::mutate(per = (cnt / sum(dataL2$cnt, na.rm = TRUE)) * 100) %>% 
+dataL3 = dataL2 %>%
+  dplyr::mutate(per = (cnt / sum(dataL2$cnt, na.rm = TRUE)) * 100) %>%
   dplyr::mutate(name = sprintf("%s\n(%s %%)", 업태구분명, round(per, 1)))
 
 mainTitle = sprintf("2023년 전국 업종별 일반음식점 사업체 %s", "원형그래프")
 saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
 dir.create(fs::path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
 
-ggplot(dataL3, aes(x = '', y=per, fill=업태구분명)) +
-  geom_bar(stat='identity',) +
+ggplot(dataL3, aes(x = '', y = per, fill = 업태구분명)) +
+  geom_bar(stat = 'identity', alpha = 0.6) +
   coord_polar('y', start = 0) +
-  ggrepel::geom_label_repel(aes(label=name), position=position_stack(vjust=0.5), color = "white", size=4) +
+  ggrepel::geom_label_repel(aes(label = name), position = position_stack(vjust = 0.5), color = "white", size = 4, alpha = 0.8) +
   labs(x = NULL, y = NULL, fill = NULL, title = NULL, subtitle = mainTitle) +
   theme_minimal() +
   theme_classic() +
@@ -164,18 +164,18 @@ cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 
 
 # 총 사업체 수 기준으로 지도 시각화
-dataL4 = dataL1 %>% 
-  dplyr::group_by(sido, sidoAddr) %>% 
+dataL4 = dataL1 %>%
+  dplyr::group_by(sido, sidoAddr) %>%
   dplyr::summarise(
     cnt = n()
-  ) %>% 
-  na.omit() %>% 
+  ) %>%
+  na.omit() %>%
   dplyr::arrange(desc(cnt))
 
-dataL5 = dataL4 %>% 
+dataL5 = dataL4 %>%
   dplyr::mutate(
     per = (cnt / sum(dataL4$cnt, na.rm = TRUE)) * 100
-  ) %>% 
+  ) %>%
   dplyr::mutate(
     GID_1 = dplyr::case_when(
       stringr::str_detect(sido, regex("부산광역시")) ~ "KOR.1_1"
@@ -200,7 +200,7 @@ dataL5 = dataL4 %>%
     , name = sprintf("%s\n%s\n%s%%", sidoAddr, scales::comma(cnt), round(per, 1))
   )
 
-dataL6 = mapKor %>% 
+dataL6 = mapKor %>%
   dplyr::left_join(dataL5, by = c("GID_1" = "GID_1")) %>%
   dplyr::mutate(
     centroids = sf::st_centroid(geometry)
@@ -208,15 +208,15 @@ dataL6 = mapKor %>%
   dplyr::mutate(
     lon = sf::st_coordinates(centroids)[, 1],
     lat = sf::st_coordinates(centroids)[, 2]
-  ) 
+  )
 
 # 지도 시각화
 mainTitle = sprintf("2023년 전국 업종별 일반음식점 사업체 %s", "지도")
 saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
 dir.create(fs::path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
 
-ggplot(data = dataL6) + 
-  geom_sf(aes(geometry = geometry, fill = cnt, group = sido)) +
+ggplot(data = dataL6) +
+  geom_sf(aes(geometry = geometry, fill = cnt, group = sido), alpha = 0.6) +
   ggrepel::geom_label_repel(aes(x = lon, y = lat, label = name), size = 3.5, box.padding = 0.0, label.padding = 0.2, fill = scales::alpha("white", 0.7), arrow = grid::arrow(length = unit(0.0, "inches"))) +
   scale_fill_continuous(trans = "reverse") +
   metR::scale_x_longitude(breaks = seq(125, 131, 1), limits = c(125, 131), expand = c(0, 0)) +
@@ -235,47 +235,47 @@ cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 sidoAddrList = dataL1$sidoAddr %>% unique() %>% sort()
 for (sidoAddrInfo in sidoAddrList) {
 
-    dataL2 = dataL1 %>% 
-      dplyr::filter(
-        인허가일자 >= as.Date("2023-01-01")
-      ) %>%
-      dplyr::filter(sidoAddr == sidoAddrInfo) %>% 
-      dplyr::group_by(업태구분명) %>% 
-      dplyr::summarise(
-        cnt = n()
-      ) %>% 
-      na.omit() %>% 
-      dplyr::arrange(desc(cnt)) %>% 
-      dplyr::slice(1:10)
-    
-    # 정렬
-    dataL2$업태구분명 = forcats::fct_relevel(dataL2$업태구분명, dataL2$업태구분명)
-    
-    dataL3 = dataL2 %>% 
-      dplyr::mutate(per = (cnt / sum(dataL2$cnt, na.rm = TRUE)) * 100) %>% 
-      dplyr::mutate(name = sprintf("%s\n(%s %%)", 업태구분명, round(per, 1)))
-    
-    mainTitle = sprintf("2023년 %s 업종별 일반음식점 사업체 %s", sidoAddrInfo, "원형그래프")
-    saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
-    dir.create(fs::path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
-    
-    makePlot = ggplot(dataL3, aes(x = '', y=per, fill=업태구분명)) +
-      geom_bar(stat='identity',) +
-      coord_polar('y', start = 0) +
-      ggrepel::geom_label_repel(aes(label=name), max.iter = 1000000, position=position_stack(vjust=0.5), color = "white", size=4) +
-      labs(x = NULL, y = NULL, fill = NULL, title = NULL, subtitle = mainTitle) +
-      theme_minimal() +
-      theme_classic() +
-      theme(
-        text = element_text(size = 16)
-        , axis.line = element_blank()
-        , axis.text = element_blank()
-        , axis.ticks = element_blank()
-        , legend.position = "none"
-      )
-    
-    ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
-    cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+  dataL2 = dataL1 %>%
+    dplyr::filter(
+      인허가일자 >= as.Date("2023-01-01")
+    ) %>%
+    dplyr::filter(sidoAddr == sidoAddrInfo) %>%
+    dplyr::group_by(업태구분명) %>%
+    dplyr::summarise(
+      cnt = n()
+    ) %>%
+    na.omit() %>%
+    dplyr::arrange(desc(cnt)) %>%
+    dplyr::slice(1:10)
+
+  # 정렬
+  dataL2$업태구분명 = forcats::fct_relevel(dataL2$업태구분명, dataL2$업태구분명)
+
+  dataL3 = dataL2 %>%
+    dplyr::mutate(per = (cnt / sum(dataL2$cnt, na.rm = TRUE)) * 100) %>%
+    dplyr::mutate(name = sprintf("%s\n(%s %%)", 업태구분명, round(per, 1)))
+
+  mainTitle = sprintf("2023년 %s 업종별 일반음식점 사업체 %s", sidoAddrInfo, "원형그래프")
+  saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
+  dir.create(fs::path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
+
+  makePlot = ggplot(dataL3, aes(x = '', y = per, fill = 업태구분명)) +
+    geom_bar(stat = 'identity', alpha = 0.6) +
+    coord_polar('y', start = 0) +
+    ggrepel::geom_label_repel(aes(label = name), max.iter = 1000000, position = position_stack(vjust = 0.5), color = "white", size = 4, alpha = 0.8) +
+    labs(x = NULL, y = NULL, fill = NULL, title = NULL, subtitle = mainTitle) +
+    theme_minimal() +
+    theme_classic() +
+    theme(
+      text = element_text(size = 16)
+      , axis.line = element_blank()
+      , axis.text = element_blank()
+      , axis.ticks = element_blank()
+      , legend.position = "none"
+    )
+
+  ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
+  cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 }
 
 
@@ -293,37 +293,37 @@ sidoList = c("서울", "대전", "세종")
 # sidoInfo = sidoList[1]
 for (typeInfo in typeList) {
   for (sidoInfo in sidoList) {
-  
-    dataL2 = dataL1 %>% 
+
+    dataL2 = dataL1 %>%
       dplyr::filter(
         업태구분명 == typeInfo
         , sidoAddr == sidoInfo
         , dplyr::between(인허가일자, as.Date("2013-01-01"), as.Date("2023-12-31"))
-      ) %>% 
+      ) %>%
       dplyr::mutate(
         dtYear = format(인허가일자, "%Y") %>% as.numeric()
       ) %>%
-      dplyr::group_by(dtYear, 영업상태명, 업태구분명) %>% 
+      dplyr::group_by(dtYear, 영업상태명, 업태구분명) %>%
       dplyr::summarise(
         cnt = n()
-      ) %>% 
-      na.omit() %>% 
+      ) %>%
+      na.omit() %>%
       dplyr::arrange(dtYear)
-    
+
     mainTitle = sprintf("2013~2023년 %s (%s) 개폐업 현황", typeInfo, sidoInfo)
     saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
     dir.create(fs::path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
-    
+
     makePlot = ggplot(dataL2, aes(x = dtYear, y = cnt, fill = 영업상태명)) +
-      geom_bar(stat = "identity", width = 1.0, position = position_dodge(width = 1.0), , na.rm = TRUE) +
-      ggrepel::geom_text_repel(aes(label = scales::comma(cnt)), position = position_dodge(width = 1.0), color="white", vjust = -0.5, size = 4) +
-      scale_x_continuous(minor_breaks = 2013:2023, breaks=2013:2023) +
+      geom_bar(stat = "identity", width = 1.0, position = position_dodge(width = 1.0), alpha = 0.6) +
+      ggrepel::geom_text_repel(aes(label = scales::comma(cnt)), position = position_dodge(width = 1.0), color = "white", vjust = -0.5, size = 4, alpha = 0.8) +
+      scale_x_continuous(minor_breaks = 2013:2023, breaks = 2013:2023) +
       labs(x = "연도 ", y = "개폐업 수", fill = NULL, title = NULL, subtitle = mainTitle) +
       theme(
         text = element_text(size = 16)
         , legend.position = "top"
       )
-    
+
     ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
     cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
   }
@@ -331,88 +331,88 @@ for (typeInfo in typeList) {
 
 
 for (typeInfo in typeList) {
-    dataL2 = dataL1 %>% 
-      dplyr::filter(
-        업태구분명 == typeInfo
-        , dplyr::between(인허가일자, as.Date("2013-01-01"), as.Date("2023-12-31"))
-      ) %>% 
-      dplyr::mutate(
-        dtYear = format(인허가일자, "%Y") %>% as.numeric()
-      ) %>%
-      dplyr::group_by(dtYear, 영업상태명, 업태구분명) %>% 
-      dplyr::summarise(
-        cnt = n()
-      ) %>% 
-      na.omit() %>% 
-      dplyr::arrange(dtYear)
-    
-    mainTitle = sprintf("2013~2023년 %s (%s) 개폐업 현황", typeInfo, "전국")
-    saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
-    dir.create(fs::path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
-    
-    makePlot = ggplot(dataL2, aes(x = dtYear, y = cnt, fill = 영업상태명)) +
-      geom_bar(stat = "identity", width = 1.0, position = position_dodge(width = 1.0), , na.rm = TRUE) +
-      ggrepel::geom_text_repel(aes(label = scales::comma(cnt)), position = position_dodge(width = 1.0), color="white", vjust = -0.5, size = 4) +
-      scale_x_continuous(minor_breaks = 2013:2023, breaks=2013:2023) +
-      labs(x = "연도 ", y = "개폐업 수", fill = NULL, title = NULL, subtitle = mainTitle) +
-      theme(
-        text = element_text(size = 16)
-        , legend.position = "top"
-      )
-    
-    ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
-    cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+  dataL2 = dataL1 %>%
+    dplyr::filter(
+      업태구분명 == typeInfo
+      , dplyr::between(인허가일자, as.Date("2013-01-01"), as.Date("2023-12-31"))
+    ) %>%
+    dplyr::mutate(
+      dtYear = format(인허가일자, "%Y") %>% as.numeric()
+    ) %>%
+    dplyr::group_by(dtYear, 영업상태명, 업태구분명) %>%
+    dplyr::summarise(
+      cnt = n()
+    ) %>%
+    na.omit() %>%
+    dplyr::arrange(dtYear)
+
+  mainTitle = sprintf("2013~2023년 %s (%s) 개폐업 현황", typeInfo, "전국")
+  saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
+  dir.create(fs::path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
+
+  makePlot = ggplot(dataL2, aes(x = dtYear, y = cnt, fill = 영업상태명)) +
+    geom_bar(stat = "identity", width = 1.0, position = position_dodge(width = 1.0)) +
+    ggrepel::geom_text_repel(aes(label = scales::comma(cnt)), position = position_dodge(width = 1.0), color = "white", vjust = -0.5, size = 4) +
+    scale_x_continuous(minor_breaks = 2013:2023, breaks = 2013:2023) +
+    labs(x = "연도 ", y = "개폐업 수", fill = NULL, title = NULL, subtitle = mainTitle) +
+    theme(
+      text = element_text(size = 16)
+      , legend.position = "top"
+    )
+
+  ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
+  cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 }
 
 
 # 혹시 세부업종+특정 지역 결합해서 그 지역의 폐업업종 중 영업기간으로 분류하여 시각화할 수 있을지도 검토 부탁드립니다
 for (typeInfo in typeList) {
   for (sidoInfo in sidoList) {
-        
-    dataL2 = dataL1 %>% 
+
+    dataL2 = dataL1 %>%
       dplyr::filter(
         업태구분명 == typeInfo
         # , sidoAddr == sidoInfo
         , 영업상태명 == "폐업"
         , dplyr::between(인허가일자, as.Date("2013-01-01"), as.Date("2023-12-31"))
-      ) %>% 
+      ) %>%
       dplyr::mutate(
         dtYear = format(인허가일자, "%Y") %>% as.numeric()
         , diffYear = lubridate::interval(인허가일자, 폐업일자) / lubridate::dyears(1)
         , name = dplyr::case_when(
-          diffYear < 1                 ~ "1년 미만"
+          diffYear < 1 ~ "1년 미만"
           , diffYear >= 1 & diffYear < 3 ~ "1-3년"
           , diffYear >= 3 & diffYear < 5 ~ "3-5년"
           , diffYear >= 5 & diffYear < 7 ~ "5-7년"
           , diffYear >= 7 & diffYear < 9 ~ "7-9년"
           , TRUE ~ "9년 이상"
         )
-      ) %>% 
-      dplyr::group_by(dtYear, 영업상태명, name) %>% 
+      ) %>%
+      dplyr::group_by(dtYear, 영업상태명, name) %>%
       dplyr::summarise(
         cnt = n()
-      ) %>% 
-      na.omit() %>% 
+      ) %>%
+      na.omit() %>%
       dplyr::arrange(dtYear)
-    
+
     mainTitle = sprintf("2013~2023년 %s (%s) 폐업기간 분류", typeInfo, sidoInfo)
     saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
     dir.create(fs::path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
-    
+
     # 정렬
     dataL2$name = forcats::fct_relevel(dataL2$name, c("1년 미만", "1-3년", "3-5년", "5-7년", "7-9년", "9년 이상"))
-    
+
     makePlot = ggplot(dataL2, aes(x = dtYear, y = cnt, color = name)) +
       geom_line() +
       geom_point() +
-      scale_x_continuous(minor_breaks = 2013:2023, breaks=2013:2023) +
+      scale_x_continuous(minor_breaks = 2013:2023, breaks = 2013:2023) +
       labs(x = "연도 ", y = "개폐업 수", fill = NULL, color = NULL, title = NULL, subtitle = mainTitle) +
       theme(
         text = element_text(size = 16)
         , legend.position = "top"
       ) +
       guides(color = guide_legend(nrow = 1))
-    
+
     ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
     cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
   }
