@@ -47,48 +47,204 @@ if (env == "local") {
 # ================================================
 # 라이브러리 읽기
 library(tidyverse)
-
 library(devtools)
-# BiocManager::install("biocViews")
-# devtools::install_github("cgplab/RadAR")
-# devtools::install_github("cgplab/RadAR", build_vignettes = TRUE)
-library(RadAR)
-
-
-
-# library(bioRad)
-# library(rhdf5)
-
+library(sp)
 library(remotes)
-library(RCurl)
-library(rdwd)
-rdwd::updateRdwd()
 
-library(dwdradar)
+library(BiocManager)
+# BiocManager::install("rhdf5")
+# browseVignettes("rhdf5")
+library(rhdf5)
+# devtools::install_github("adokter/bioRad")
+library(bioRad)
 
 
 # 파일 읽기
 fileList = Sys.glob(file.path(globalVar$inpPath, serviceName, "GDK_230209-10/RDR_GDK_FQC_*.uf"))
 fileInfo = fileList[1]
 
-# 에러 발생
-# data = dwdradar::readRadarFile(fileInfo)
-
-library(remotes)
-rdwd::updateRdwd()
-
-rdwd::dataDWD()
-data = rdwd::readDWD(fileInfo)
-rad <- readDWD(fileInfo)
-
-
-library(BiocManager)
-# BiocManager::install("rhdf5")
-# browseVignettes("rhdf5")
-library(rhdf5)
-library(bioRad)
 
 data = bioRad::read_pvolfile(fileInfo)
+
+
+# my_scan <- get_scan(data, 0.5)
+my_scan <- get_scan(data, 2)
+my_scan
+plot(my_scan, param = "DBZH")
+# plot(my_scan, param = "ZDR")
+
+# 레이더 스캔을 PPI 형식으로 변환
+my_ppi <- bioRad::project_as_ppi(my_scan)
+
+plot(my_ppi, param = "DBZH")
+# plot(my_ppi, param = "DBZH")
+
+ppiData = my_ppi$data
+
+df <- ppiData %>% 
+  as.data.frame() %>% 
+  as.tibble()
+
+
+
+data_lonlat <- sp::spTransform(ppiData, sp::CRS("+proj=longlat +datum=WGS84 +no_defs"))
+df2 = data_lonlat %>% 
+  as.data.frame() %>% 
+  as.tibble()
+
+library(sf)
+sf_object <- sf::st_as_sf(data_lonlat)
+
+
+basemap = "osm"
+map(my_ppi, map = basemap, param = "DBZH", zlim = c(-20, 40))
+# map(data_lonlat, map = basemap, param = "DBZH", zlim = c(-20, 40))
+# map(sf_object, map = basemap, param = "DBZH", zlim = c(-20, 40))
+
+
+
+# Screen out the reflectivity areas with RHOHV < 0.95
+my_ppi_clean <- calculate_param(my_ppi, DBZH = ifelse(RHOHV > 0.95, NA, DBZH))
+# plot the original and cleaned up reflectivity:
+map(my_ppi, map = basemap, param = "DBZH", zlim = c(-20, 40))
+map(my_ppi_clean, map = basemap, param = "DBZH", zlim = c(-20, 40))
+
+
+# 도플라 비율
+my_ppi <- calculate_param(my_ppi, DR = 10 * log10((1+ ZDR - 2 * (ZDR^0.5) * RHOHV) /
+                                                    (1 + ZDR+ 2 * (ZDR^0.5) * RHOHV)))
+
+map(my_ppi, map = basemap, param = "DR", zlim=c(-25,-5), palette = viridis::viridis(100))
+
+
+
+
+# my_ppi <- project_as_ppi(my_scan)
+# plot(my_ppi)
+
+
+
+bioRad::beam_profile_overlap(data, elev = 2)
+bioRad::calculate_param(data) %>% 
+  get_scan(7) %>%
+  # project_as_ppi() %>%
+  plot()
+
+# 연직 분포
+vpObj = calculate_vp(data)
+plot(vpObj)
+vpData = vpObj$data
+
+
+my_vpts <- bind_into_vpts(vpObj)
+plot(my_vpts)
+
+
+
+my_vpi <- integrate_profile(my_vpts)
+
+
+
+
+my_vpi <- integrate_profile(vpObj)
+plot(my_vpi, quantity = "mtr")
+
+vpObj %>%
+  regularize_vpts() %>%
+  plot()
+
+
+data %>% 
+  read_pvolfile() %>%
+  get_scan(3) %>%
+  project_as_ppi() %>%
+  plot(param = "VRADH")
+
+
+
+scan <- get_scan(data, elev = 1)
+scan <- get_scan(data, elev = 2)
+plot(scan)
+
+data %>%
+  get_scan(2) %>%
+  # project_as_ppi() %>%
+  plot()
+
+
+
+vp <- integrate_to_vp(data)
+# print(vp)
+
+# plot(vp)
+
+data$geo$lat
+data$geo$lon
+data$geo$height
+
+a = data$scans
+a
+
+data$scans
+
+
+
+scanList = data$scans
+
+# i = 1
+for (i in 1:length(scanList)) {
+ 
+   scanInfo = scanList[[i]]
+  
+  
+  # scanInfo$radar
+  # scanInfo$datetime
+  # scanInfo$params
+  # scanInfo$attributes
+  # scanInfo$geo
+  
+  scanInfo$params
+  length(scanInfo$params)
+  
+  scanInfo$params$RHOHV
+  
+  scanInfo
+  
+  
+  
+}
+
+add_expected_eta_to_scan(scanInfo)
+
+a = data$scans[[2]]$params$DBZH
+
+vp_df <- as.data.frame(a)
+vp_df
+
+summary(vp_df)
+
+dataL1 = as.data.frame(data)
+as.data.frame(data)
+
+as.data.frame(scanInfo)
+
+# bioRad::add_expected_eta_to_scan(scanInfo)
+# a = scanInfo$params$RHOHV
+a = scanInfo
+summary(a)
+plot(a)
+ppi <- project_as_ppi(a)
+plot(ppi)
+plot(ppi, param = "DBZH")
+
+
+
+bpo <- beam_profile_overlap(
+  data,
+  get_elevation_angles(data), seq(0, 100000, 1000)
+)
+
+bioRad::beam_profile_overlap(data)
 
 # ppis = lapply(data$scans, project_as_ppi,grid_size=1000)
 # composite = composite_ppi(ppis,method="max",res=1000)
