@@ -50,289 +50,93 @@ library(tidyverse)
 library(devtools)
 library(sp)
 library(remotes)
-
 library(BiocManager)
-# BiocManager::install("rhdf5")
-# browseVignettes("rhdf5")
 library(rhdf5)
+library(sf)
+# library(rgdal)
 # devtools::install_github("adokter/bioRad")
 library(bioRad)
 
+# 최신 r 4.3.2, rstudio 2023.09.1, rtools43 필요
+# Sys.setenv(PATH = paste("c:/rtools43/usr/bin", Sys.getenv("PATH"), sep=";"))
+# install.packages('https://cran.r-project.org/src/contrib/Archive/rgdal/rgdal_1.6-7.tar.gz',repos=NULL,type="source")
+library(rgdal)
+library(terra)
 
-# 파일 읽기
+# 파일 검색
 fileList = Sys.glob(file.path(globalVar$inpPath, serviceName, "GDK_230209-10/RDR_GDK_FQC_*.uf"))
-fileInfo = fileList[1]
 
-
-data = bioRad::read_pvolfile(fileInfo)
-
-
-# my_scan <- get_scan(data, 0.5)
-my_scan <- get_scan(data, 2)
-my_scan
-plot(my_scan, param = "DBZH")
-# plot(my_scan, param = "ZDR")
-
-# 레이더 스캔을 PPI 형식으로 변환
-my_ppi <- bioRad::project_as_ppi(my_scan)
-
-plot(my_ppi, param = "DBZH")
-# plot(my_ppi, param = "DBZH")
-
-ppiData = my_ppi$data
-
-df <- ppiData %>% 
-  as.data.frame() %>% 
-  as.tibble()
-
-
-
-data_lonlat <- sp::spTransform(ppiData, sp::CRS("+proj=longlat +datum=WGS84 +no_defs"))
-df2 = data_lonlat %>% 
-  as.data.frame() %>% 
-  as.tibble()
-
-library(sf)
-sf_object <- sf::st_as_sf(data_lonlat)
-
-
-basemap = "osm"
-map(my_ppi, map = basemap, param = "DBZH", zlim = c(-20, 40))
-# map(data_lonlat, map = basemap, param = "DBZH", zlim = c(-20, 40))
-# map(sf_object, map = basemap, param = "DBZH", zlim = c(-20, 40))
-
-
-
-# Screen out the reflectivity areas with RHOHV < 0.95
-my_ppi_clean <- calculate_param(my_ppi, DBZH = ifelse(RHOHV > 0.95, NA, DBZH))
-# plot the original and cleaned up reflectivity:
-map(my_ppi, map = basemap, param = "DBZH", zlim = c(-20, 40))
-map(my_ppi_clean, map = basemap, param = "DBZH", zlim = c(-20, 40))
-
-
-# 도플라 비율
-my_ppi <- calculate_param(my_ppi, DR = 10 * log10((1+ ZDR - 2 * (ZDR^0.5) * RHOHV) /
-                                                    (1 + ZDR+ 2 * (ZDR^0.5) * RHOHV)))
-
-map(my_ppi, map = basemap, param = "DR", zlim=c(-25,-5), palette = viridis::viridis(100))
-
-
-
-
-# my_ppi <- project_as_ppi(my_scan)
-# plot(my_ppi)
-
-
-
-bioRad::beam_profile_overlap(data, elev = 2)
-bioRad::calculate_param(data) %>% 
-  get_scan(7) %>%
-  # project_as_ppi() %>%
-  plot()
-
-# 연직 분포
-vpObj = calculate_vp(data)
-plot(vpObj)
-vpData = vpObj$data
-
-
-my_vpts <- bind_into_vpts(vpObj)
-plot(my_vpts)
-
-
-
-my_vpi <- integrate_profile(my_vpts)
-
-
-
-
-my_vpi <- integrate_profile(vpObj)
-plot(my_vpi, quantity = "mtr")
-
-vpObj %>%
-  regularize_vpts() %>%
-  plot()
-
-
-data %>% 
-  read_pvolfile() %>%
-  get_scan(3) %>%
-  project_as_ppi() %>%
-  plot(param = "VRADH")
-
-
-
-scan <- get_scan(data, elev = 1)
-scan <- get_scan(data, elev = 2)
-plot(scan)
-
-data %>%
-  get_scan(2) %>%
-  # project_as_ppi() %>%
-  plot()
-
-
-
-vp <- integrate_to_vp(data)
-# print(vp)
-
-# plot(vp)
-
-data$geo$lat
-data$geo$lon
-data$geo$height
-
-a = data$scans
-a
-
-data$scans
-
-
-
-scanList = data$scans
-
-# i = 1
-for (i in 1:length(scanList)) {
- 
-   scanInfo = scanList[[i]]
+# fileInfo = fileList[1]
+for (fileInfo in fileList) {
+  cat(sprintf("[CHECK] fileInfo : %s", fileInfo), "\n")
   
+  # 파일 읽기
+  data = bioRad::read_pvolfile(fileInfo)
   
-  # scanInfo$radar
-  # scanInfo$datetime
-  # scanInfo$params
-  # scanInfo$attributes
-  # scanInfo$geo
+  # 관측 시간
+  dtYmdHm = data$datetime %>% format("%Y%m%d%H%M")
   
-  scanInfo$params
-  length(scanInfo$params)
+  # i = 2
+  scanList = data$scans
+  for (i in 1:length(scanList)) {
+    
+    scanInfo = bioRad::get_scan(data, as.numeric(i))
+    
+    paramsList = scanInfo$params %>% names()
+    for (params in paramsList) {
+
+      mainTitle = sprintf("%s_%s_%s", "RDR_GDK_FQC", params, dtYmdHm)
+      saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
+      dir.create(fs::path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
+      
+      makePlot = plot(scanInfo, param = params) +
+        labs(subtitle = mainTitle) +
+        theme(text = element_text(size = 16))
+      
+      ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
+      cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+    }
+    
+    # 레이더 스캔을 PPI 형식으로 변환
+    ppiInfo = bioRad::project_as_ppi(scanInfo)
+    
+    # PPI 데이터 가져오기
+    ppiData = ppiInfo$data %>% 
+      as.data.frame() %>% 
+      as.tibble()
+    
+    mainTitle = sprintf("%s_%s-%s_%s", "RDR_GDK_FQC", "MAP", "DBZH", dtYmdHm)
+    saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
+    dir.create(fs::path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
+    
+    map(ppiInfo, map = "osm", param = "DBZH") +
+      labs(subtitle = mainTitle) +
+      theme(text = element_text(size = 16))
+    
+    ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
+    cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+    
+    # 도플라 비율
+    drInfo = calculate_param(ppiInfo, DR = 10 * log10((1+ ZDR - 2 * (ZDR^0.5) * RHOHV) / (1 + ZDR+ 2 * (ZDR^0.5) * RHOHV)))
+    
+    mainTitle = sprintf("%s_%s-%s_%s", "RDR_GDK_FQC", "MAP", "DR", dtYmdHm)
+    saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
+    dir.create(fs::path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
+    
+    map(drInfo, map = "osm", param = "DR", zlim=c(-25,-5), palette = viridis::viridis(100)) +
+      labs(subtitle = mainTitle) +
+      theme(text = element_text(size = 16))
+    
+    ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
+    cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+  }
   
-  scanInfo$params$RHOHV
-  
-  scanInfo
-  
-  
-  
+  # 연직 분포
+  # vpObj = bioRad::calculate_vp(data)
+  # plot(vpObj)
+  # vpData = vpObj$data
+  # 
+  # 
+  # bindVpts = bioRad::bind_into_vpts(vpObj)
+  # plot(bindVpts)
 }
-
-add_expected_eta_to_scan(scanInfo)
-
-a = data$scans[[2]]$params$DBZH
-
-vp_df <- as.data.frame(a)
-vp_df
-
-summary(vp_df)
-
-dataL1 = as.data.frame(data)
-as.data.frame(data)
-
-as.data.frame(scanInfo)
-
-# bioRad::add_expected_eta_to_scan(scanInfo)
-# a = scanInfo$params$RHOHV
-a = scanInfo
-summary(a)
-plot(a)
-ppi <- project_as_ppi(a)
-plot(ppi)
-plot(ppi, param = "DBZH")
-
-
-
-bpo <- beam_profile_overlap(
-  data,
-  get_elevation_angles(data), seq(0, 100000, 1000)
-)
-
-bioRad::beam_profile_overlap(data)
-
-# ppis = lapply(data$scans, project_as_ppi,grid_size=1000)
-# composite = composite_ppi(ppis,method="max",res=1000)
-# map(composite)
-
-data$radar
-data$datetime
-data$geo
-data$attributes
-data$scans
-length(data)
-
-a = data$scans[[1]]
-
-name(data)
-a$radar
-a$datetime
-a$params
-a$attributes
-a$geo
-
-
-plot(data)
-
-
-# RadAR::
-radar_data <- RadAR(fileInfo)
-
-# data = openxlsx::read.xlsx(fileInfo, sheet = 1, startRow = 1)
-# data = readxl::read_excel(fileInfo)
-
-
-# for (fileInfo in fileList) {
-# 
-#   cat(sprintf("[CHECK] fileInfo : %s", fileInfo), "\n")
-#     
-#   orgData = openxlsx::read.xlsx(fileInfo, sheet = 1, startRow = 1)
-#   
-#   data = orgData %>% 
-#     tibble::as.tibble() %>% 
-#     dplyr::rename(
-#       sDate = "관측일자"
-#       , sTime = "관측시간"
-#       , alt = "유의파고(m)"
-#       , inv = "유의파주기(sec)"
-#     ) %>% 
-#     readr::type_convert() %>% 
-#     dplyr::filter(
-#       ! is.na(alt)
-#       , ! is.na(inv)
-#     ) %>% 
-#     dplyr::mutate(across(where(is.character), as.numeric)) %>% 
-#     dplyr::mutate(
-#       sDateTime = paste(sDate, sTime, sep = " ")
-#     ) %>% 
-#     dplyr::mutate(
-#       dtDateTime = readr::parse_datetime(sDateTime, format = "%Y-%m-%d %H:%M:%S")
-#     ) %>% 
-#     dplyr::filter(
-#       dplyr::between(alt, 3, 16)
-#       , inv >= 9
-#     )
-# 
-#   if (nrow(data) < 1) { next }
-#   
-#   coeff = 0.35
-#   
-#   fileNameNotExt = tools::file_path_sans_ext(fs::path_file(fileInfo))
-#   saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, fileNameNotExt)
-#   dir.create(fs::path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
-#   
-#   makePlot = ggplot(data, aes(x=dtDateTime)) +
-#     geom_point(aes(y=alt, color = "alt")) +
-#     geom_point(aes(y=inv*coeff, color= "inv")) +
-#     scale_y_continuous(
-#       limits = c(0, 10)
-#       , name = "alt"
-#       , sec.axis = sec_axis(~./coeff, name="inv")
-#     ) +
-#     labs(x = "Date Time", y = NULL, color = NULL, subtitle = fileNameNotExt) +
-#     scale_color_manual(values = c("orange2", "gray30")) +
-#     scale_x_datetime(date_labels = "%Y-%m", date_breaks = "6 month") +
-#     theme(
-#           text = element_text(size = 16)
-#           , legend.position = "top"
-#           , axis.text.x = element_text(angle = 45, hjust = 1)
-#         )
-#   
-#   ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
-#   cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
-# }

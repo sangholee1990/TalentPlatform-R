@@ -45,7 +45,6 @@
 # 시스템 환경변수 설정
 # (내컴퓨터 > 속성 > 고급 시스템 설정 > 환경 변수 > 계정에 대한 사용자 변수 선택)
 # ******************************************************************************
-
 # MSYSTEM : MINGW64
 # PKG_CONFIG_PATH : /mingw64/lib/pkgconfig:/mingw64/share/pkgconfig
 # Path :
@@ -53,6 +52,9 @@
   # C:\rtools40\usr\local\bin
   # C:\rtools40\usr\bin
   # C:\rtools40\bin
+
+Sys.setenv(PATH = paste("c:/rtools43/usr/bin", Sys.getenv("PATH"), sep=";"))
+# system("gcc -v")
 
 # ******************************************************************************
 # cmd 창에서 경로 확인
@@ -63,7 +65,6 @@
 # where g++
 # where gfortran
 # where make
-
 
 #=====================================
 # Init Library
