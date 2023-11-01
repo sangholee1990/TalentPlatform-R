@@ -66,7 +66,7 @@ library(terra)
 # 파일 검색
 fileList = Sys.glob(file.path(globalVar$inpPath, serviceName, "GDK_230209-10/RDR_GDK_FQC_*.uf"))
 
-# fileInfo = fileList[1]
+fileInfo = fileList[1]
 for (fileInfo in fileList) {
   cat(sprintf("[CHECK] fileInfo : %s", fileInfo), "\n")
   
