@@ -1,0 +1,277 @@
+---
+title: "Assignment 8: How much for that car?"
+author: "Sangwon Yum"
+date: "`r Sys.Date()`"
+documentclass: article
+geometry: margin=1in
+fontsize: 11pt
+output:
+  pdf_document:
+    highlight: tango
+    toc: false
+    df_print: kable
+    fig_caption: no
+    number_sections: no
+    dev: pdf
+    latex_engine: xelatex
+mainfont: "Malgun Gothic"
+---
+
+```{r setup, include = FALSE}
+# Set knitr options
+knitr::opts_chunk$set(
+  echo = TRUE, eval = TRUE, fig.width = 6, warning = FALSE,
+  message = FALSE, fig.asp = 0.618, out.width = "80%", dpi = 120,
+  fig.align = "center", cache = FALSE
+)
+
+# is_pdf <- try (("pdf_document" %in% rmarkdown::all_output_formats(knitr::current_input())), silent=TRUE)
+# is_pdf <- (is_pdf == TRUE)
+
+# Load required packages
+suppressPackageStartupMessages(library(tidyverse))
+suppressPackageStartupMessages(library(broom))
+suppressPackageStartupMessages(library(modelr))
+suppressPackageStartupMessages(library(plotly))
+
+# Load dataset
+car_prices <- read_rds("car_price_data.rds")
+```
+
+## Exercise 1
+```{r, warning=FALSE}
+car_prices %>%
+  pivot_longer(cols = c(Liter, Mileage), names_to = "key", values_to = "value") %>%
+  ggplot(aes(x = value, y = Price)) +
+  geom_point() +
+  facet_wrap(~key, scales = "free_x") +
+  labs(title = "Price vs. Continuous Variables", x = "Value", y = "Price")
+```
+
+
+## Exercise 2
+- Q) What does R2 tell us about how good this model is at explaining variation in price?
+- A) 32.91% 설명력을 지님
+```{r, warning=FALSE}
+continuous_model = lm(Price ~ Mileage + Liter, data = car_prices)
+
+continuous_model %>% 
+  glance()
+```
+
+## Exercise 3
+- Q) How well does the model seem to fit the data?
+- A) 결정계수를 통해 모형 설명력 확인
+
+- Q) Is the model meeting the 3 assumptions of the linear plot?
+- A) 3가지 가정에 대한 시각화를 통해 파악
+
+- Q) Is it easier to understand a 2D or 3D model?
+- A) 특히 3D 시각화의 경우 3개의 변수의 관계성을 잘 보여줌
+```{r, echo=FALSE, results='asis'}
+lit = unique(car_prices$Liter)
+mil = unique(car_prices$Mileage)
+grid = with(car_prices, expand.grid(lit, mil))
+d = setNames(data.frame(grid), c("Liter", "Mileage"))
+vals = predict(continuous_model, newdata = d)
+
+m = matrix(vals, nrow = length(unique(d$Liter)), ncol = length(unique(d$Mileage)))
+
+if (knitr::is_html_output()) {
+  plot_ly() %>% 
+    add_markers(
+      x = ~car_prices$Mileage, 
+      y = ~car_prices$Liter,
+      z = ~car_prices$Price,
+      marker = list(color = 'blue', size = 1)
+    ) %>% 
+    add_trace(
+      x = ~mil, y = ~lit, z = ~m, type = "surface",
+      colorscale = list(c(0.1), c("yellow", "yellow")),
+      showscale = FALSE
+    ) %>% 
+    layout(
+      scene = list(
+        xaxis = list(title = "mileage"),
+        yaxis = list(title = "liters"),
+        zaxis = list(title = "price")
+      )
+    )
+}
+```
+
+
+## Exercise 4
+```{r, warning=FALSE}
+continuous_df <- car_prices %>%
+  add_predictions(continuous_model, var = "pred") %>%
+  add_residuals(continuous_model, var = "resid")
+
+head(continuous_df)
+```
+
+
+
+## Exercise 5
+- Q) What does this graph tell us about the linear model's assumption of linearity?
+- A)참조선 (적색)을 기준으로 다소 오차를 보이나 선형적인 관계를 있기 때문에 선형성을 지님
+```{r, warning=FALSE}
+continuous_df %>% 
+  ggplot(aes(x = pred, y = Price)) +
+    geom_point() +
+    geom_abline(slope = 1, intercept = 0, color = "red") +
+    labs(
+      title = "Observed vs Predicted Scatterplot",
+      x = "Predicted Values",
+      y = "Observed Values"
+    )
+```
+
+
+
+## Exercise 6
+- Q) What does this graph say about the linear model's assumption of residual constant variability?
+- A) 잔차의 경우 0선에서 무작위로 흩어져 있고 일정한 오차를 보이기 때문에 등분산성으로 판단됨
+```{r, warning=FALSE}
+continuous_df %>% 
+  ggplot(aes(x = pred, y = resid)) +
+    geom_point() +
+    geom_hline(yintercept = 0, linetype = "dashed", color = "blue") +
+    labs(
+      title = "Residual vs. Predicted Values Scatterplot",
+      x = "Predicted Values",
+      y = "Residuals"
+    )
+```
+
+## Exercise 7
+- Q) What does this graph tell you about the linear model's assumption that the residuals are nearly normally distributed?
+- A) 특히 대각선 양 끝에서 오차가 발생되기 떄문에 잔차의 분포가 정규분포를 따르지 않음
+```{r, warning=FALSE}
+continuous_df %>%
+  ggplot(aes(sample = resid)) +
+  stat_qq() +
+  stat_qq_line() +
+  labs(title = "Q-Q Plot of Residuals",
+       x = "Theoretical Quantiles",
+       y = "Sample Quantiles")
+```
+
+## Exercise 8
+- Q) Which make of car has the lowest median price?
+- A) 13818.15	
+
+- Q) Which make of car has the greatest interquartile range of prices?
+- A) 9038.38
+
+- Q) Which makes of cars have outliers?
+- A) Chevrolet
+```{r, warning=FALSE}
+car_prices = car_prices %>%
+  group_by(Make) %>%
+  dplyr::mutate(medianVal = median(Price, na.rm = TRUE)) %>% 
+  ungroup() %>%
+  mutate(Make = reorder(Make, medianVal))
+
+car_prices %>%
+  ggplot(aes(x = Make, y = Price)) +
+  geom_boxplot() +
+  labs(title = "Boxplot of Car Prices by Make",
+       x = "Make of Car",
+       y = "Price") 
+
+car_prices %>% 
+  dplyr::group_by(Make) %>% 
+  dplyr::summarise(medianVal = median(Price, na.rm = TRUE)) %>% 
+  dplyr::slice_min(order_by = medianVal, n = 1)
+
+car_prices %>% 
+  dplyr::group_by(Make) %>% 
+  dplyr::summarise(iqr = IQR(Price, na.rm = TRUE)) %>% 
+  dplyr::slice_max(order_by = iqr, n = 1)
+
+car_prices %>% 
+  dplyr::group_by(Make) %>% 
+  dplyr::summarise(outCnt = length(boxplot.stats(Price)$out)) %>% 
+  dplyr::slice_max(order_by = outCnt, n = 1)
+```
+
+## Exercise 9
+```{r, warning=FALSE}
+car_prices %>% 
+  pivot_longer(cols = Make:Cylinder | Doors:Leather, names_to = "category", values_to = "value", values_transform = list(value = "factor")) %>% 
+  ggplot(aes(x = value, y = Price)) +
+    geom_boxplot() +
+    facet_wrap(~category, scales = "free_x") +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+    labs(title = "Boxplots of Price by Categorical Variables",
+         x = "Category Levels",
+         y = "Price")
+```
+
+## Exercise 10
+```{r, warning=FALSE}
+cars_factor_df = car_prices %>%
+  mutate(Cylinder = as.factor(Cylinder))
+
+mixed_model = lm(Price ~ Mileage + Liter + Cylinder + Make + Type, data = cars_factor_df)
+
+mixed_df = cars_factor_df %>%
+  add_predictions(mixed_model, var = "pred") %>%
+  add_residuals(mixed_model, var = "resid")
+
+head(mixed_df)
+
+mixed_model %>% 
+  tidy()
+
+mixed_model %>% 
+  glance()
+```
+
+
+
+## Exercise 11
+```{r, warning=FALSE}
+mixed_df %>%
+  ggplot(aes(x = pred, y = Price)) +
+  geom_point() +
+  geom_abline(slope = 1, intercept = 0, color = "red") +
+  labs(
+    title = "Observed vs Predicted Scatterplot",
+    x = "Predicted Values",
+    y = "Observed Values"
+  )
+
+continuous_df %>% 
+  ggplot(aes(x = pred, y = resid)) +
+    geom_point() +
+    geom_hline(yintercept = 0, linetype = "dashed", color = "blue") +
+    labs(
+      title = "Residual vs. Predicted Values Scatterplot",
+      x = "Predicted Values",
+      y = "Residuals"
+    )
+
+continuous_df %>%
+  ggplot(aes(sample = resid)) +
+  stat_qq() +
+  stat_qq_line() +
+  labs(title = "Q-Q Plot of resid",
+       x = "Theoretical Quantiles",
+       y = "Sample Quantiles")
+```
+
+## Exercise 12
+- Q) How does this model compare to the 2 variable models?
+- A) mixed_model 모형의 설명력은 약 94%로서 continuous_model 모형 (32%)보다 좋음
+
+- Q) Do these models violate the 3 assumptions necessary for linear models?
+- A) 선형성, 등분산성, 정규분포를 따름
+
+- Q) Discuss the differences in R2
+- A) mixed_model 모형의 결정계수는 0.94로서 continuous_model 모형 (0.33)보다 좋음
+
+- Q) Which model would you choose between the two? Justify your answer.
+- A) Price를 예측하기 위해서 다양한 변수를 통해 적용/결과 확인해야 함
+     추가로 변수 선택법을 통해 다양한 통계 방안 고민 필요
