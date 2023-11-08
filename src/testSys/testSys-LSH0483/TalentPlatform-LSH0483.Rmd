@@ -1,0 +1,189 @@
+---
+title: "Assignment 6: Who busts the Mythbusters?"
+author: "Sangwon Yum"
+date: "`r Sys.Date()`"
+documentclass: article
+geometry: margin=1in
+fontsize: 11pt
+output:
+  pdf_document:
+    highlight: tango
+    toc: false
+    df_print: kable
+    fig_caption: no
+    number_sections: no
+    dev: pdf
+    latex_engine: xelatex
+  html_document:
+    highlight: tango
+    self_contained: true
+    theme: paper
+    toc: no
+    df_print: kable
+    fig_caption: no
+    number_sections: no
+    smart: yes
+    dev: svg
+  github_document:
+    html_preview: false
+    pandoc_args: --webtex
+    toc: true
+    toc_depth: 4
+    dev: svg
+    df_print: kable
+---
+
+```{r setup, include = FALSE}
+# DO NOT ALTER THIS CHUNK
+knitr::opts_chunk$set(
+  echo = TRUE,
+  eval = TRUE,
+  fig.width = 5,
+  fig.asp = 0.618,
+  out.width = "70%",
+  dpi = 120,
+  fig.align = "center",
+  cache = FALSE
+)
+
+# Load required packages
+suppressPackageStartupMessages(library(tidyverse))
+suppressPackageStartupMessages(library(infer))
+set.seed(42)
+
+# Load dataset
+experimental_data <- read_csv("yawn.csv")
+```
+
+---
+
+
+### Exercise 1
+- Q) Which variable is the response variable and which is the explanatory variable?
+- A) 반응 변수 (yawn), 설명변수 (group)
+
+- Q) What value in the response variable is classified as a success?
+- A) 반응 변수 (yawn)에서 success (yes)
+```{r, warning=FALSE}
+summary(experimental_data)
+```  
+
+
+## Exercise 2
+- Q) Choose one of the four answer options for should be used to build the null distribution
+- A) 4번
+
+
+## Exercise 3
+```r
+specify(response = yawn, explanatory = group, success = "yes")
+```
+
+## Exercise 4
+
+```r
+hypothesize(null = "independence")
+```
+
+## Exercise 5
+
+```r
+generate(reps = 10000, type = "permute")
+```
+
+## Exercise 6
+
+```r
+calculate(stat = "diff in props", order = c("Treatment", "Control"))
+```
+
+## Exercise 7
+```{r, warning=FALSE}
+set.seed(50)
+
+yawn_null = experimental_data %>% 
+  specify(response = yawn, explanatory = group, success = "yes") %>%
+  hypothesize(null = "independence") %>%
+  generate(reps = 10000, type = "permute") %>%
+  calculate(stat = "diff in props", order = c("Treatment", "Control"))
+
+print(yawn_null)
+```
+
+
+
+## Exercise 8
+```{r, warning=FALSE}
+# The histogram
+ggplot(yawn_null, aes(x = stat)) +
+  geom_histogram(binwidth = 0.1) +
+  labs(title = "Null Distribution of Difference in Proportions",
+       x = "Difference in Proportions",
+       y = "Count")
+
+# The first density plot
+ggplot(yawn_null, aes(x = stat)) +
+  geom_density(fill = "grey", alpha = 0.5) +
+  labs(title = "Density Plot of Difference in Proportions",
+       x = "Difference in Proportions",
+       y = "Density")
+
+# The second density plot
+ggplot(yawn_null, aes(x = stat)) +
+  geom_density(adjust = 5, fill = "grey", alpha = 0.5) +
+  labs(title = "Adjusted Density Plot of Difference in Proportions",
+       x = "Difference in Proportions",
+       y = "Density")
+```
+
+
+
+
+## Exercise 9
+```{r, warning=FALSE}
+ggplot(yawn_null, aes(x = stat)) +
+  geom_histogram(aes(y = ..density..), binwidth = 0.1, fill = "blue",  alpha = 0.4) +
+  geom_density(alpha = 0.2, fill = "#FF6666") +
+  labs(title = "Null Distribution with Histogram and Density Plot",
+       x = "Difference in Proportions",
+       y = "Density") 
+```
+
+## Exercise 10
+```{r, warning=FALSE}
+yawn_null_pmf = yawn_null %>%
+  group_by(stat) %>%
+  summarise(prob = n() / sum(n()))
+print(yawn_null_pmf)
+
+ggplot() +
+  geom_col(data = yawn_null_pmf, aes(x = stat, y = prob), binwidth = 0.1, alpha = 0.5) +
+  geom_density(data = yawn_null, aes(x = stat, y = ..scaled..), color = "red") +
+  labs(x = "Difference in Proportions", y = "Probability") +
+  theme_minimal()
+```
+
+## Exercise 11
+-	Q) Is there sufficient evidence to reject the null hypothesis?
+- A) p-value가 0.5094로서 0.05 이상이기 때문에 통계적으로 유의하지 않음 (우연에 의해 발생할 가능성 높음). 즉 null 가설을 기각할 수 없기에 하품의 빈도는 treatment의 영향을 받지 않음
+
+-	Q) Explain why using examples from the previous exercises
+- A) 연습 8~10의 경우 히스토그램 및 밀도그램을 통해 두 그룹에서의 하품 비율 차이의 분포를 정성적으로 비교 분석함. 반면에 연습 11에서는 정량적으로 유의수준 (p-value)를 통해 비교 분석함.
+```{r, warning=FALSE}
+yawn_obs_stat = experimental_data %>%
+  specify(response = yawn, explanatory = group, success = "yes") %>%
+  calculate(stat = "diff in props", order = c("Treatment", "Control"))
+print(yawn_obs_stat)
+
+p_value = yawn_null %>%
+  get_p_value(obs_stat = yawn_obs_stat, direction = "greater")
+print(p_value)
+
+yawn_null %>%
+  visualize() +
+  shade_p_value(obs_stat = yawn_obs_stat, direction = "greater") +
+  labs(title = "Distribution of Null Hypothesis with Observed Statistic",
+       x = "Difference in Proportions",
+       y = "Density")
+
+```
