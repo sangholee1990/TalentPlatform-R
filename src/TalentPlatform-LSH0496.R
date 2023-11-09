@@ -11,7 +11,7 @@
 #================================================
 # 요구사항
 #================================================
-# R을 이용한 일반음식점 데이터 기반으로 지도 및 막대그래프 시각화
+# R을 이용한 
 
 # ================================================
 # 초기 환경변수 설정
@@ -67,6 +67,25 @@ library(multcomp)
 # showtext::showtext_opts(dpi = 600)
 # showtext::showtext.auto()
 
+
+matrix_data <- matrix(rnorm(100), nrow = 10)
+image(matrix_data)
+
+matrix_data[2,3]
+
+matrix_data[1:2, 1:2]
+image(matrix_data[1:2, 1:2])
+pheatmap(matrix_data[1:2, 1:2])
+heatmap.2(matrix_data[1:2, 1:2])
+
+# install.packages("pheatmap")
+library(pheatmap)
+pheatmap(matrix_data)
+
+# install.packages("gplots")
+library(gplots)
+heatmap.2(matrix_data)
+
 # ==============================================================
 # 
 # ==============================================================
@@ -81,7 +100,7 @@ data = readr::read_csv(fileInfo, locale = readr::locale(encoding = "UTF-8"))
 
 
 #데이터 점수 합산 및 변경
-dataL1 = data %>%
+data_1 = data %>%
   dplyr::mutate(
     fam_total = fam_1 + fam_2 + fam_3 + 5 - fam_4 + fam_5,
     carebur_total = carebur_1 + carebur_2 + carebur_3 + carebur_4,
@@ -176,6 +195,7 @@ m2 <- dataL1 %>%
     chronic = factor(chronic, levels = c(1, 2), labels = c('1개', '2개이상')),
     classification = factor(classification, levels = c(1, 2, 3, 4, 5), labels = c('의료최고도', '의료고도', '의료중도', '의료경도', '선택입원군'))
   )
+
 # m2<-select(data_1,patient,inten_1,gender,residen_home,live_alone,marriage, ltc_insurance,med_aid,adm_way,chronic,classification,duration, age)
 # 
 # m2$age_g<-ifelse(m2$age<75,1,2) #75세 미만 1, 이상 2
@@ -226,6 +246,7 @@ a10<-table(m2$inten_1,m2$adm_way) ;addmargins(a10);prop.table(a10,2)*100#입원�
 a11<-table(m2$inten_1,m2$duration_l) ;addmargins(a11);prop.table(a11,2)*100#입원기간
 a12<-table(m2$inten_1,m2$chronic) ;addmargins(a12);prop.table(a12,2)*100#만성질환수(na 3개)
 
+
 #범주형 변수간 시각화
 par(mfrow=c(2,2))
 par(family="AppleGothic")
@@ -250,7 +271,7 @@ mosaicplot(inten_1~duration_l, data=m2,
 a1
 prop.test(a1, alternative = "two.sided", conf.level = 0.95)
 prop.test(a2, alternative = "two.sided", conf.level = 0.95)
-prop.test(a, alternative = "two.sided", conf.level = 0.95)
+# prop.test(a, alternative = "two.sided", conf.level = 0.95)
 
 
 # LPA analysis in R 
@@ -290,7 +311,6 @@ m3<-data_1[1:100,]%>%
 get_data(m3) %>% group_by(Class) %>% count() #class count
 
 #주요 변수 combine
-
 c3<-get_data(c2) %>%data.frame() #prints the data out if you wanted to use it for subsequent research
 c4<-c3 %>% select(Class)
 
@@ -341,6 +361,16 @@ class_4<-subset.data.frame(data_3, Class==4)
 class_5<-subset.data.frame(data_3, Class==5)
 
 #환자유형별 일반적 특성 분석, 관련 요인 파악
+
+
+
+
+
+
+
+
+
+
 
 
 
