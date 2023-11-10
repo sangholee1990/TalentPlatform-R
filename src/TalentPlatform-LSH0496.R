@@ -57,7 +57,9 @@ library(tidyLPA)
 library(dplyr)
 library(mclust)
 library(multcomp)
+library(psych)
 
+# devtools::install_github("jrosen48/tidyLPA", force = TRUE)
 # devtools::install_github("data-edu/tidyLPA")
 # installed.packages("devtools")
 # install.packages("tidyverse")
@@ -67,27 +69,8 @@ library(multcomp)
 # showtext::showtext_opts(dpi = 600)
 # showtext::showtext.auto()
 
-
-matrix_data <- matrix(rnorm(100), nrow = 10)
-image(matrix_data)
-
-matrix_data[2,3]
-
-matrix_data[1:2, 1:2]
-image(matrix_data[1:2, 1:2])
-pheatmap(matrix_data[1:2, 1:2])
-heatmap.2(matrix_data[1:2, 1:2])
-
-# install.packages("pheatmap")
-library(pheatmap)
-pheatmap(matrix_data)
-
-# install.packages("gplots")
-library(gplots)
-heatmap.2(matrix_data)
-
 # ==============================================================
-# 
+# 파일 읽기 및 전처리
 # ==============================================================
 # fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "dataset_practice_3_1106.csv"))
 fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "dataset_practice_3_1107.csv"))
@@ -98,26 +81,67 @@ data = readr::read_csv(fileInfo, locale = readr::locale(encoding = "UTF-8"))
 #data import_ older_LTC_will (practice 100 samples)
 # data_1<-read.csv(file="dataset_practice_coding_1106.csv", header= TRUE,stringsAsFactors = F)
 
-
 #데이터 점수 합산 및 변경
 data_1 = data %>%
   dplyr::mutate(
     fam_total = fam_1 + fam_2 + fam_3 + 5 - fam_4 + fam_5,
     carebur_total = carebur_1 + carebur_2 + carebur_3 + carebur_4,
-    illper_total = illper_1 + illper_2 + 5 - illper_3 + 5 - illper_4 + illper_5 + 5 - illper_6 + illper_7 + illper_8,
-    satisf_total = satisf_1 + satisf_2 + satisf_3 + satisf_4 + satisf_5 + satisf_6,
-    continu_total = continu_1 + continu_2 + continu_3 + continu_4 + continu_5 + continu_6 + continu_7 + continu_8 + continu_9 + continu_10 + continu_11 + continu_12,
-    service_total = service_1 + service_2 + service_3 + service_4 + service_5 + service_6 + service_7,
-    function_total = function_1_1 + function_1_2 + function_1_3 + function_1_4 + function_1_5 + function_1_6 + function_1_7 + function_1_8 + function_1_9 + function_1_10
+    illper_total = illper_1 + illper_2 + 5 - illper_3 + 5 - illper_4 +
+      illper_5 +
+      5 - illper_6 +
+      illper_7 +
+      illper_8,
+    satisf_total = satisf_1 +
+      satisf_2 +
+      satisf_3 +
+      satisf_4 +
+      satisf_5 +
+      satisf_6,
+    continu_total = continu_1 +
+      continu_2 +
+      continu_3 +
+      continu_4 +
+      continu_5 +
+      continu_6 +
+      continu_7 +
+      continu_8 +
+      continu_9 +
+      continu_10 +
+      continu_11 +
+      continu_12,
+    service_total = service_1 +
+      service_2 +
+      service_3 +
+      service_4 +
+      service_5 +
+      service_6 +
+      service_7,
+    function_total = function_1_1 +
+      function_1_2 +
+      function_1_3 +
+      function_1_4 +
+      function_1_5 +
+      function_1_6 +
+      function_1_7 +
+      function_1_8 +
+      function_1_9 +
+      function_1_10
   ) %>%
-  # Convert multiple columns to factors at once
   dplyr::mutate(across(c(gender, residen_home, live_alone, live_alone_t, marriage, ltc_insurance, ltc_insurance_t, med_aid, adm_way, chronic, classification), as.factor)) %>%
-  # Convert columns to numeric
-  # dplyr::mutate(across(c(age, function_total, paybur_1), as.numeric))
   dplyr::mutate(across(c(function_total, paybur_1), as.numeric))
 
+# Cronbach's alpha 계산
+cronAlpha = data_1 %>% 
+  dplyr::select(inten_1, gender, residen_home, live_alone, marriage, ltc_insurance, med_aid, adm_way, chronic, classification) %>%
+  dplyr::mutate(across(everything(), as.numeric)) %>% 
+  psych::alpha(check.keys=TRUE)
 
-# data_1 <- data_1 %>% mutate(fam_total=fam_1+fam_2+fam_3+5-fam_4+fam_5) %>% #역환산 4번 문항
+
+cronAlpha$alpha.drop
+
+
+
+# %# data_1 <- data_1 %>% mutate(fam_total=fam_1+fam_2+fam_3+5-fam_4+fam_5) %>% #역환산 4번 문항
 #   mutate(carebur_total=carebur_1+carebur_2+carebur_3+carebur_4) %>% 
 #   mutate(illper_total=illper_1+illper_2+5-illper_3+5-illper_4+illper_5+5-illper_6+illper_7+illper_8) %>% #역환산 3,4,6번
 #   mutate(satisf_total=satisf_1+satisf_2+satisf_3+satisf_4+satisf_5+satisf_6) %>% 
@@ -140,17 +164,18 @@ data_1 = data %>%
 # data_1$function_total<-as.numeric(data_1$function_total)
 # data_1$paybur_1<-as.numeric(data_1$paybur_1)
 
-#빈도표준편차
-#장기입원 노인환자 유형(fam_total, carebur_total, illper_totle,continu_total, service_total, function_total)
-
-data_1_summary <- dataL1 %>%
+# 빈도표준편차
+# 장기입원 노인환자 유형(fam_total, carebur_total, illper_totle,continu_total, service_total, function_total)
+data_1_summary = data_1 %>%
   summarise(
     across(
-      c(illper_total, function_total, fam_total, carebur_total, satisf_total, 
-        continu_total, service_total, paybur_1, inten_1),
+      c(illper_total, function_total, fam_total, carebur_total, satisf_total, continu_total, service_total, paybur_1, inten_1),
       list(mean = ~mean(.x, na.rm = TRUE), sd = ~sd(.x, na.rm = TRUE))
     )
-  )
+  ) %>%
+  t()
+
+data_1_summary
 
 # data_1$illper_total %>% mean()
 # data_1$illper_total %>% sd()
@@ -179,10 +204,10 @@ data_1_summary <- dataL1 %>%
 # colnames(dataL1)
 
 # duration, age 컬럼 부재
-m2 <- dataL1 %>%
+m2 = data_1 %>%
   # dplyr::select(patient, inten_1, gender, residen_home, live_alone, marriage, ltc_insurance, med_aid, adm_way, chronic, classification, duration, age) %>%
   dplyr::select(patient, inten_1, gender, residen_home, live_alone, marriage, ltc_insurance, med_aid, adm_way, chronic, classification) %>%
-  mutate(
+  dplyr::mutate(
     # age_g = factor(ifelse(age < 75, '75세미만', '75세이상')),
     # duration_l = factor(ifelse(duration < 6, '120일미만', '120일이상'), levels = c('120일미만', '120일이상')),
     gender = factor(gender, levels = c(1, 2), labels = c('남성', '여성')),
@@ -193,8 +218,12 @@ m2 <- dataL1 %>%
     med_aid = factor(med_aid, levels = c(1, 2, 3), labels = c('1종', '2종', '미해당')),
     adm_way = factor(adm_way, levels = c(1, 2), labels = c('응급', '외래')),
     chronic = factor(chronic, levels = c(1, 2), labels = c('1개', '2개이상')),
+    inten_1 = factor(ifelse(inten_1 <= 1, 1, 2), levels = c(1, 2), labels = c('의향없음', '의향있음')),
     classification = factor(classification, levels = c(1, 2, 3, 4, 5), labels = c('의료최고도', '의료고도', '의료중도', '의료경도', '선택입원군'))
   )
+
+
+# str(m2)
 
 # m2<-select(data_1,patient,inten_1,gender,residen_home,live_alone,marriage, ltc_insurance,med_aid,adm_way,chronic,classification,duration, age)
 # 
@@ -234,133 +263,180 @@ m2 <- dataL1 %>%
 #                    labels=c('1종','2종','미해당'))
 
 #기초통계량(인구특성)
-a1<-table(m2$inten_1,m2$gender);addmargins(a1);prop.table(a1,2)*100 #성별
-a2<-table(m2$inten_1,m2$age_g);addmargins(a2); prop.table(a2,2)*100 #연령
-a4<-table(m2$inten_1,m2$residen_home);addmargins(a4);prop.table(a4,2)*100 #거주지
-a5<-table(m2$inten_1,m2$live_alone) ;addmargins(a5);prop.table(a5,2)*100#동반거주유형
-a6<-table(m2$inten_1,m2$marriage);addmargins(a6);prop.table(a6,2)*100 #배우자 유무
-a7<-table(m2$inten_1,m2$classification);addmargins(a7) ;prop.table(a7,2)*100 #환자분류군
-a8<-table(m2$inten_1,m2$ltc_insurance) ;addmargins(a8);prop.table(a8,2)*100#장기요양등급
-a9<-table(m2$inten_1,m2$med_aid) ;addmargins(a9);prop.table(a9,2)*100 #의료급여여부
-a10<-table(m2$inten_1,m2$adm_way) ;addmargins(a10);prop.table(a10,2)*100#입원경로
-a11<-table(m2$inten_1,m2$duration_l) ;addmargins(a11);prop.table(a11,2)*100#입원기간
-a12<-table(m2$inten_1,m2$chronic) ;addmargins(a12);prop.table(a12,2)*100#만성질환수(na 3개)
+a1 <- table(m2$inten_1, m2$gender); addmargins(a1); prop.table(a1, 2) * 100 #성별
+# a2 <- table(m2$inten_1, m2$age_g); addmargins(a2); prop.table(a2, 2) * 100 #연령
+a4 <- table(m2$inten_1, m2$residen_home); addmargins(a4); prop.table(a4, 2) * 100 #거주지
+a5 <- table(m2$inten_1, m2$live_alone); addmargins(a5); prop.table(a5, 2) * 100 #동반거주유형
+a6 <- table(m2$inten_1, m2$marriage); addmargins(a6); prop.table(a6, 2) * 100 #배우자 유무
+a7 <- table(m2$inten_1, m2$classification); addmargins(a7); prop.table(a7, 2) * 100 #환자분류군
+a8 <- table(m2$inten_1, m2$ltc_insurance); addmargins(a8); prop.table(a8, 2) * 100 #장기요양등급
+a9 <- table(m2$inten_1, m2$med_aid); addmargins(a9); prop.table(a9, 2) * 100 #의료급여여부
+a10 <- table(m2$inten_1, m2$adm_way); addmargins(a10); prop.table(a10, 2) * 100 #입원경로
+# a11 <- table(m2$inten_1, m2$duration_l); addmargins(a11); prop.table(a11, 2) * 100 #입원기간
+a12 <- table(m2$inten_1, m2$chronic); addmargins(a12); prop.table(a12, 2) * 100 #만성질환수(na 3개)
 
 
 #범주형 변수간 시각화
-par(mfrow=c(2,2))
-par(family="AppleGothic")
-barplot(a4,main="입원 전 거주지에 따른 퇴원의향", xlab="입원전 거주지(residence)", ylab="퇴원의향(discharge will)",
-        col=c("lightgrey","lightblue"),legend=rownames(a4),beside=TRUE)
+# par(mfrow = c(2, 2))
+par(mfrow = c(1, 1))
+# par(family = "AppleGothic")
+barplot(a4, main = "입원 전 거주지에 따른 퇴원의향", xlab = "입원전 거주지(residence)", ylab = "퇴원의향(discharge will)",
+        col = c("lightgrey", "lightblue"), legend = rownames(a4), beside = TRUE)
 
-barplot(a1,main="성별에 따른 퇴원의향", xlab="입원기간(Adm.duration)", ylab="퇴원의향(discharge will)",
-        col=c("lightgrey","lightblue"),legend=rownames(a1),beside=TRUE)
+barplot(a1, main = "성별에 따른 퇴원의향", xlab = "입원기간(Adm.duration)", ylab = "퇴원의향(discharge will)",
+        col = c("lightgrey", "lightblue"), legend = rownames(a1), beside = TRUE)
 
 
-mosaicplot(inten_1~age_g, data=m2,
-           main="연령에 따른 퇴원의향 분포 비교",
-           xlab="연령대(age)",ylab="퇴원의향(will)",
-           col=rainbow(length(unique(m2$inten_1))))
+mosaicplot(inten_1 ~ age_g, data = m2,
+           main = "연령에 따른 퇴원의향 분포 비교",
+           xlab = "연령대(age)", ylab = "퇴원의향(will)",
+           col = rainbow(length(unique(m2$inten_1))))
 
-mosaicplot(inten_1~duration_l, data=m2,
-           main="입원기간에 따른 퇴원의향 분포 비교",
-           xlab="입원기간(duration)",ylab="퇴원의향(will)",
-           col=rainbow(length(unique(m2$inten_1))))
+mosaicplot(inten_1 ~ duration_l, data = m2,
+           main = "입원기간에 따른 퇴원의향 분포 비교",
+           xlab = "입원기간(duration)", ylab = "퇴원의향(will)",
+           col = rainbow(length(unique(m2$inten_1))))
 
 #집단간 차이 분석
-a1
 prop.test(a1, alternative = "two.sided", conf.level = 0.95)
 prop.test(a2, alternative = "two.sided", conf.level = 0.95)
 # prop.test(a, alternative = "two.sided", conf.level = 0.95)
 
 
-# LPA analysis in R 
+library(mclust)
 
-c1<-data_1[1:100,]%>%
-  select(fam_total:function_total, paybur_1) %>%
+interests_clustering <- data_1 %>%
+  dplyr::select(fam_total:function_total, paybur_1) %>%
+  na.omit() %>%
+  mutate_all(list(scale))
+
+BIC <- mclustBIC(interests_clustering)
+summary(BIC)
+plot(BIC)
+
+# LPA analysis in R 
+# c1 = data_1[1:100,] %>%
+# c1 = m2 %>%
+c1 = data_1 %>%
+  dplyr::select(fam_total:function_total, paybur_1) %>%
   single_imputation() %>%
   scale() %>%
-  estimate_profiles(1:7,variances = "equal", covariances = "zero") #AIC, BIC the lowest penalty = 3 %
-#paybur_1 violates the assumption...
+  estimate_profiles_mclust(n_profiles = 7)
+  # estimate_profiles(7) 
+  # estimate_profiles(1:7, variances = "equal", covariances = "zero") 
+
+# AIC, BIC the lowest penalty = 3 %
+# paybur_1 violates the assumption...
 
 plot_profiles(c1)
-compare_solutions(c1,statistics=c("AIC","BIC"))
+
+compare_solutions(c1, statistics = c("AIC", "BIC"))
 get_fit(c1)
 
-c2<-data_1[1:100,]%>%
-  select(fam_total:function_total,paybur_1) %>%
+# c2 <- data_1[1:100,] %>%
+c2 <- data_1 %>%
+  dplyr::select(fam_total:function_total, paybur_1) %>%
   single_imputation() %>%
   scale() %>%
-  estimate_profiles(5, variances = "equal", covariances = "zero") #AIC, BIC the lowest penalty = 3 %
+  estimate_profiles(5, variances = "equal", covariances = "zero") 
+  # AIC, BIC the lowest penalty = 3 %
 
 #plot of the profiles
-plot_profiles(c1[[5]],rawdata = FALSE, add_line = T)
+plot_profiles(c1[[5]], rawdata = FALSE, add_line = T)
 
 #Distribution plot for a specific(density) e.g. 3 class solution
 plot_density(c1[[5]]) %>%
-  plot_bivariate(c1[[5]],rawdata = FALSE)
+  plot_bivariate(c1[[5]], rawdata = FALSE)
 #Estimates for the variables
 get_fit(m3) #extra fit indextes
 get_estimates(c1[[5]]) #means and standard error of data
 
-m3<-data_1[1:100,]%>%
+# m3 <- data_1[1:100,] %>%
+m3 <- data_1 %>%
   select(fam_total:function_total) %>%
   single_imputation() %>%
   scale() %>%
-  estimate_profiles(5, variances = "equal", covariances = "zero") #model1
-get_data(m3) %>% group_by(Class) %>% count() #class count
+  estimate_profiles(5, variances = "equal", covariances = "zero")
+
+get_data(m3) %>% 
+  dplyr::group_by(Class) %>% 
+  count() #class count
 
 #주요 변수 combine
-c3<-get_data(c2) %>%data.frame() #prints the data out if you wanted to use it for subsequent research
-c4<-c3 %>% select(Class)
+c3 <- get_data(c2) %>% data.frame()
+c4 <- c3 %>% select(Class)
 
-data_2<-data_1 %>%select(fam_total:function_total,paybur_1)
-data_3<-cbind(m2,data_2,c4) 
-data_3$Class<-as.factor(data_3$Class)
+data_2 = data_1 %>% 
+  dplyr::select(fam_total:function_total, paybur_1)
+
+data_3 = cbind(m2, data_2, c4)
+
+data_3$Class = as.factor(data_3$Class)
 
 #유형별 퇴원의향 평균 /표준편차
-data_3$inten_1<-as.numeric(data_3$inten_1)
-data_3 %>% aggregate(inten_1~Class,mean) 
-data_3 %>% aggregate(inten_1~Class,sd)
+data_3$inten_1 = as.numeric(data_3$inten_1)
 
-#유형에 따른 퇴원의향에 차이가 있는지
+data_3 %>% 
+  aggregate(inten_1 ~ Class, mean)
 
+data_3 %>% 
+  aggregate(inten_1 ~ Class, sd)
+
+# ******************************************************************************
+# 유형에 따른 퇴원의향에 차이가 있는지
+# ******************************************************************************
 #환자 유형에 따른 퇴원의향 평균, 표준편차 차이
-tapply(inten_1,Class,summary) #평균, 최대값 최소값
-tapply(inten_1,Class,sd) #표준편차
+tapply(inten_1, Class, summary) #평균, 최대값 최소값
+tapply(inten_1, Class, sd) #표준편차
 
-#ANOVA
-class_aov<-aov(inten_1~Class,data=data_3)
+# ANOVA
+class_aov = aov(inten_1 ~ Class, data = data_3)
 summary(class_aov)
-plot(class_aov,1) #class 5 개 간에 퇴원의향 평균차이 있음. p-value=.004**
-bartlett.test(inten_1~Class, data=data_3)
-TukeyHSD(class_aov, which="Class") #class 5 vs class 3 or class 4 에서 평균의 차이가 있음.
 
-#boxplot으로 비교하기
+# class 5 개 간에 퇴원의향 평균차이 있음. p-value=.004**
+plot(class_aov, 1) 
+bartlett.test(inten_1 ~ Class, data = data_3)
+
+# class 5 vs class 3 or class 4 에서 평균의 차이가 있음.
+TukeyHSD(class_aov, which = "Class")
+
+# boxplot으로 비교하기
 attach(data_3)
-boxplot(inten_1~Class,
-        main="환자유형에 따른 퇴원의향 비교",
-        xlab="환자유형",
-        ylab="퇴원의향",
-        col=c("lightgreen"))
+boxplot(inten_1 ~ Class, main = "환자유형에 따른 퇴원의향 비교", xlab = "환자유형", ylab = "퇴원의향", col = c("lightgreen"))
 
-
-#일반적 특성에 따른 퇴원의향 차이
-demog_aov<-aov(inten_1~gender+residen_home+live_alone+marriage+ltc_insurance+med_aid+chronic+adm_way+classification+age_g+duration_l, data=data_3)
+# 일반적 특성에 따른 퇴원의향 차이
+demog_aov = aov(inten_1 ~ gender + residen_home + live_alone + marriage + ltc_insurance + med_aid + chronic + adm_way + classification + age_g + duration_l, data = data_3)
 summary(demog_aov) #residen_home=.004**, adm_way=.019*, duration_1=.047* (adm_way는 n수 부족)
 
-summary(glht(demog_aov,linfct=mcp(residen_home="Tukey"))) #거주지 차이: 중소도시와 대도시간의 퇴원의향의 평균에 차이가 있다. p=.003**
-summary(glht(demog_aov,linfct=mcp(adm_way="Tukey"))) #외래/응급 p=.099
-summary(glht(demog_aov,linfct=mcp(duration_l="Tukey"))) #120일 이상/이하 p=.476*
+summary(glht(demog_aov, linfct = mcp(residen_home = "Tukey"))) #거주지 차이: 중소도시와 대도시간의 퇴원의향의 평균에 차이가 있다. p=.003**
+summary(glht(demog_aov, linfct = mcp(adm_way = "Tukey"))) #외래/응급 p=.099
+summary(glht(demog_aov, linfct = mcp(duration_l = "Tukey"))) #120일 이상/이하 p=.476*
 
 #그룹별데이터 추출 ->필요한가?
-class_1<-subset.data.frame(data_3, Class==1)
-class_2<-subset.data.frame(data_3, Class==2)
-class_3<-subset.data.frame(data_3, Class==3)
-class_4<-subset.data.frame(data_3, Class==4)
-class_5<-subset.data.frame(data_3, Class==5)
+class_1 = subset.data.frame(data_3, Class == 1)
+class_2 = subset.data.frame(data_3, Class == 2)
+class_3 = subset.data.frame(data_3, Class == 3)
+class_4 = subset.data.frame(data_3, Class == 4)
+class_5 = subset.data.frame(data_3, Class == 5)
+
 
 #환자유형별 일반적 특성 분석, 관련 요인 파악
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
