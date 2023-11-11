@@ -58,9 +58,10 @@ library(dplyr)
 library(mclust)
 library(multcomp)
 library(psych)
+library(mclust)
 
 # devtools::install_github("jrosen48/tidyLPA", force = TRUE)
-# devtools::install_github("data-edu/tidyLPA")
+# devtools::install_github("data-edu/tidyLPA", force = TRUE)
 # installed.packages("devtools")
 # install.packages("tidyverse")
 # install.packages("multcomp")
@@ -134,11 +135,9 @@ data_1 = data %>%
 cronAlpha = data_1 %>% 
   dplyr::select(inten_1, gender, residen_home, live_alone, marriage, ltc_insurance, med_aid, adm_way, chronic, classification) %>%
   dplyr::mutate(across(everything(), as.numeric)) %>% 
-  psych::alpha(check.keys=TRUE)
-
+  psych::alpha(check.keys = TRUE)
 
 cronAlpha$alpha.drop
-
 
 
 # %# data_1 <- data_1 %>% mutate(fam_total=fam_1+fam_2+fam_3+5-fam_4+fam_5) %>% #역환산 4번 문항
@@ -298,12 +297,18 @@ mosaicplot(inten_1 ~ duration_l, data = m2,
            col = rainbow(length(unique(m2$inten_1))))
 
 #집단간 차이 분석
+# 남성 여성 Sum
+# 의향없음   20   58  78
+# 의향있음   30   46  76
+# Sum        50  104 154
+# 
+# 남성        여성
+# 의향없음 40.00000000 55.76923077
+# 의향있음 60.00000000 44.23076923
 prop.test(a1, alternative = "two.sided", conf.level = 0.95)
-prop.test(a2, alternative = "two.sided", conf.level = 0.95)
+# prop.test(a2, alternative = "two.sided", conf.level = 0.95)
 # prop.test(a, alternative = "two.sided", conf.level = 0.95)
 
-
-library(mclust)
 
 interests_clustering <- data_1 %>%
   dplyr::select(fam_total:function_total, paybur_1) %>%
