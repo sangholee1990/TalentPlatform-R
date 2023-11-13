@@ -121,7 +121,6 @@ data_1_summary = data_1 %>%
 data_1_summary
 
 # duration, age 컬럼 부재
-00 #
 
 # gender: 성별, 남성(1), 여성(2)
 # residen_home: 거주지, 대도시(1), 중소도시(2), 농어촌(3)
