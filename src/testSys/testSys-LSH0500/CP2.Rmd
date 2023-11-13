@@ -1,0 +1,361 @@
+---
+title: "Group project: CP2"
+author: "Group 3"
+date: "`r Sys.Date()`"
+documentclass: article
+geometry: margin=1in
+fontsize: 11pt
+output:
+  pdf_document:
+    highlight: tango
+    toc: false
+    df_print: kable
+    fig_caption: no
+    number_sections: no
+    dev: pdf
+    latex_engine: xelatex
+# mainfont: "Malgun Gothic"
+---
+
+```{r setup, include = FALSE}
+# Set knitr options
+knitr::opts_chunk$set(
+  echo = TRUE, eval = TRUE, fig.width = 6, warning = FALSE,
+  message = FALSE, fig.asp = 0.618, out.width = "80%", dpi = 120,
+  fig.align = "center", cache = FALSE
+)
+
+# Load required packages
+suppressPackageStartupMessages(library(tidyverse))
+suppressPackageStartupMessages(library(broom))
+suppressPackageStartupMessages(library(modelr))
+suppressPackageStartupMessages(library(plotly))
+suppressPackageStartupMessages(library(ggcorrplot))
+suppressPackageStartupMessages(library(rstatix))
+
+# Load dataset
+data = readr::read_csv("smmh.csv")
+colnames(data)
+```
+
+```{r}
+data_r <- data %>%
+  select(-1, -4, -5, -6, -7, -8, -17)
+```
+
+```{r}
+data_r <- data_r %>%
+  mutate(dependence = rowMeans(select(., c(4, 5, 6, 11)), na.rm = TRUE)) # %>%
+  # select(-c(4, 5, 6, 11))
+```
+
+```{r}
+data_r <- data_r %>%
+  mutate(distraction = rowMeans(select(., c(4,6)), na.rm = TRUE)) #%>%
+  # select(-c(4,6))
+```
+
+
+```{r}
+data_r <- data_r %>%
+  mutate(mental_health = rowMeans(select(., c(4,6,7,8)), na.rm = TRUE))# %>%
+  # select(-c(4,6,7,8))
+```
+
+```{r}
+data_r <- data_r %>%
+  rename(age = `1. What is your age?`,
+         gender = `2. Gender`,
+         avgtime = `8. What is the average time you spend on social media every day?`,
+         comparison = '15. On a scale of 1-5, how often do you compare yourself to other successful people through the use of social media?'
+         )
+```
+
+```{r}
+data_r <- data_r %>%
+  mutate(avgtime_numeric = case_when(
+    avgtime == "Less than an Hour" ~ 0.5,
+    avgtime == "Between 1 and 2 hours" ~ 1.5,
+    avgtime == "Between 2 and 3 hours" ~ 2.5,
+    avgtime == "Between 3 and 4 hours" ~ 3.5,
+    avgtime == "Between 4 and 5 hours" ~ 4.5,
+    avgtime == "More than 5 hours" ~ 5.5,
+    TRUE ~ NA_real_ 
+  ))
+```
+
+```{r}
+data_r <- data_r %>%
+  filter(gender %in% c("Male", "Female"))
+```
+
+
+```{r}
+data_r %>%
+  ggplot() +
+  geom_histogram(mapping = aes(x=age), binwidth=3, color="darkgreen",fill="lightgreen")+
+  labs(x="Age", y ="count", title="Histogram for Age") + 
+   xlim(15, 70)
+```
+
+```{r}
+data_r %>%
+  ggplot() +
+  geom_bar(mapping = aes(x=gender), fill='yellow', color='black') +
+  labs(x='Gender', y='Count', title='Bar Graph for Gender')
+```
+
+```{r}
+data_r %>%
+  ggplot() +
+  geom_histogram(mapping = aes(x=avgtime_numeric), binwidth=0.87, color="darkblue",fill="lightblue")+
+  labs(x="The average time", y ="count", title="Histogram for time on social media")
+```
+
+
+```{r}
+data_r %>%
+  ggplot() +
+  geom_point(mapping = aes(x=avgtime_numeric, y=mental_health))+
+  labs(x="The average time", y ="Mental health", title="Scatter Plot of time spent on social media vs mental health")
+```
+
+
+```{r}
+data_r %>%
+  ggplot() +
+  geom_boxplot(mapping = aes(x=distraction, y=avgtime))+
+  labs(x="Distraction of social media", y ="The average time", title="Boxplot social media usage time according to social media distraction level")
+```
+
+```{r}
+data_r %>%
+  ggplot() +
+  geom_violin(mapping = aes(x=dependence, y=avgtime))+
+  labs(x="Dependence on social media", y ="The average time", title="Violin plot of social media usage time according to dependence on social media")
+```
+
+
+```{r}
+data_r %>%
+  ggplot() +
+  geom_histogram(mapping = aes(x = mental_health, fill = avgtime), bins = 30) +
+  labs(x = "Mental Health", y = "Count", fill = "The average time", title= "Histogram of Mental Health by Average Time")
+```
+
+
+```{r}
+data_r %>%
+  ggplot() +
+  geom_smooth(mapping = aes(x = comparison, y = mental_health)) +
+  labs(x = "Comparison with others through social media", y = "Mental health", title= "Trend line comparison vs mental health")
+```
+
+
+
+```{r}
+data_r %>%
+  ggplot() +
+  geom_bin2d(mapping = aes(x = mental_health, y = avgtime_numeric)) +
+  labs(x = "Mental Health", y = "The average time", fill = "Frequency", title = "2D Histogram of Mental Health and Average Time by Comparison") +
+  scale_fill_viridis_c(trans="log")+
+  facet_wrap( ~ comparison)
+```
+
+
+### Sangwon Module 5,8
+```{r}
+data_r <- data_r %>%
+  filter(gender %in% c("Male", "Female"))
+```
+
+```{r}
+data_r %>%
+  ggplot() +
+  geom_histogram(mapping = aes(x=age), binwidth=3, color="darkgreen",fill="lightgreen")+
+  labs(x="age", y ="count", title="Histogram for Age") + 
+   xlim(15, 70)
+```
+
+```{r}
+data_r %>%
+  ggplot() +
+  geom_bar(mapping = aes(x=gender), fill='yellow', color='black') +
+  labs(x='Gender', y='Count', title='Bar Graph for Gender')
+```
+
+```{r}
+data_r %>%
+  ggplot() +
+  geom_histogram(mapping = aes(x=avgtime_numeric), binwidth=0.87, color="darkblue",fill="lightblue")+
+  labs(x="the average time spent on social media", y ="count", title="Histogram for time on social media")
+```
+
+```{r}
+data_r %>%
+  ggplot() +
+  geom_point(mapping = aes(x=avgtime_numeric, y=mental_health))+
+  labs(x="time", y ="mental health", title="Plot of time spent on social media vs mental health")
+```
+
+```{r}
+data_r %>%
+  ggplot() +
+  # geom_boxplot(mapping = aes(x=distraction, y=avgtime))+
+    geom_boxplot(mapping = aes(x=distraction, y=avgtime))+
+  labs(x="distraction", y ="average time", title="Boxplot social media usage time according to social media distraction level")
+```
+
+```{r}
+data_r %>%
+  ggplot() +
+  geom_violin(mapping = aes(x=dependence, y=avgtime))+
+  labs(x="dependence", y ="average time", title="Violinplot of social media usage time according to social media distraction level")
+```
+
+```{r}
+data_r %>%
+  ggplot() +
+  geom_histogram(mapping = aes(x = mental_health, fill = avgtime), bins = 30) +
+  labs(x = "Mental Health", y = "Count", fill = "Average Time", title="Histogram of Mental Health by Average Time")
+```
+
+```{r}
+data_r %>%
+  ggplot() +
+  geom_smooth(mapping = aes(x = comparison, y = mental_health)) +
+  labs(x = "Comparison with others through social media", y = "Mental health", title="Trend line comparison vs mental health")
+```
+
+
+```{r}
+data_r %>%
+  ggplot() +
+  geom_bin2d(mapping = aes(x = mental_health, y = avgtime_numeric)) +
+  labs(x = "mental Health", y = "average time", fill = "Frequency", title = "2D Histogram of Mental Health and Average Time by Comparison") +
+  scale_fill_viridis_c(trans="log")+
+  facet_wrap( ~ comparison)
+```
+
+# Correlation coefficient/significance test
+- To predict avgtime, correlation coefficient and significance test between 
+independent and dependent variables are performed.
+- As a result, there was a high positive relationship (0.20 ~ 0.44) in the order 
+of comparison, distraction, mental_health, and dependence, while age showed a 
+negative relationship (-0.38).
+- To test the significance of these correlation coefficients, all variables are 
+statistically significant at a significance level of 0.05 or less through 
+the rstatix::cor_pmat function, similar to cor.test.
+- Based on the previous numerical analysis results, it is visualized and 
+confirmed through the correlation coefficient matrix and dispersion matrix.
+```{r, warning=FALSE}
+modelData = data_r %>% 
+  dplyr::select(age, comparison, dependence, distraction, mental_health, avgtime_numeric) %>% 
+  as.tibble()
+
+str(modelData)
+
+corMat = rstatix::cor_mat(modelData)
+corPmat = rstatix::cor_pmat(modelData)
+
+# Correlation coefficient
+corMat %>% 
+  dplyr::select(rowname, avgtime_numeric) %>% 
+  dplyr::arrange(avgtime_numeric)
+
+# Correlation coefficient significance test
+corPmat %>% 
+  dplyr::select(rowname, avgtime_numeric) %>% 
+  dplyr::arrange(avgtime_numeric)
+
+# Correlation coefficient matrix
+ggcorrplot::ggcorrplot(corMat, hc.order = TRUE, type = "lower", lab_col = "black", outline.color = "white", lab = TRUE, p.mat = corPmat) + 
+  labs(title = 'Correlation Matrix')
+
+# Scatter plot matrix
+GGally::ggpairs(modelData) +
+  labs(title = 'Pairwise Relationships')
+```
+
+# Training and data splitting
+```{r, warning=FALSE}
+set.seed(1)
+
+# Set index to divide training/test data 70:30
+idx = sample(1:nrow(modelData), nrow(modelData) * 0.7)
+
+# Split data according to the index
+trainData = modelData[idx, ]
+testData = modelData[-idx, ]
+```
+
+# Select variables in linear regression model
+- Perform a linear regression model by selecting independent variables 
+(age, comparison, dependence, distraction, mental_health) and dependent variables 
+(avgtime) from the training data.
+- Select the statAIC variable to derive a meaningful regression model and select 
+the model with the minimum validation index (AIC) (optimal meaningful model: 
+avgtime_numeric ~ age + dependence + mental_health)
+```{r, warning=FALSE}
+# Perform linear regression model for all variables
+# Independent variables: All variables except avgtime_numeric
+# Dependent variable: avgtime_numeric
+lmFitVarAll = lm(avgtime_numeric ~ ., data = trainData, x = TRUE, y = TRUE)
+
+# Select variables based on AIC
+rsStepAic = MASS::stepAIC(lmFitVarAll, direction = "both")
+
+# Summary of results
+summary(rsStepAic)
+
+# Check analysis results at a glance
+rsStepAic$anova
+```
+
+# Selection of optimal model and cross-validation in linear regression model
+- The modified coefficient of determination in the optimal model is 0.33 
+(33% explanatory power compared to the total variance), showing statistically 
+significant results at the significance level of 0.05 or less.
+- Also, in the case of each regression coefficient, the negative relationship 
+(age) in the correlation analysis indicated -0.04, while dependence and 
+mental_health are positive relationships and are statistically significant.
+- Previously, cross-validation was performed on the significant optimal model, 
+and as a result, the root mean square error (RMSE) was 1.27, showing a slight error.
+```{r, warning=FALSE}
+# Select the optimal model
+lmBestModel = rsStepAic
+summary(lmBestModel)
+
+# Cross-validation
+lmBestModelCv = lmvar::cv.lm(lmBestModel, k = 10)
+rmseVal = lmBestModelCv$MSE_sqrt$mean %>% round(2)
+print(rmseVal)
+```
+
+# Prediction and visualization using test data
+- Make predictions using test data and visualize predictions and actual 
+measurements through scatter plots
+- As a result, the correlation coefficient between the two data is 0.43, 
+which is statistically significant at the significance level of 0.05 or less.
+- Also, the root mean square error (RMSE) verification result between predictions 
+and actual measurements is 1.27, and some errors occur.
+- This is judged to be the absence of learning materials for various conditions 
+because the number of training data is small at 331.
+# Therefore, it is believed that avgtime's prediction performance will improve if it not only collects a variety of learning data but also includes analysis variables.
+```{r, warning=FALSE}
+# Best model and cross-validation using test data
+prdData = testData %>% 
+  add_predictions(rsStepAic, var = "pred") %>%
+  add_residuals(rsStepAic, var = "resid")
+head(prdData)
+
+# Visualization
+ggpubr::ggscatter(prdData, x = "pred", y = "avgtime_numeric") +
+  ggpubr::stat_regline_equation(label.x.npc = 0.0, label.y.npc = 0.95, color = "blue", size = 4.5) +
+  ggpubr::stat_cor(label.x.npc = 0.0, label.y.npc = 0.85, color = "blue", size = 4.5) +
+  annotate("text", x = 0, y = 4.2, size = 4.5, label = sprintf("RMSE = %s", rmseVal), color = "blue", hjust = 0, fontface = "italic") +
+  geom_abline(intercept = 0, slope = 1, linetype = 1, color = "red", size = 1.0) +
+  theme_bw() +
+  labs(title = "Prediction Results", x = "Predicted", y = "Observed") +
+  theme(text = element_text(size = 16))
+```
