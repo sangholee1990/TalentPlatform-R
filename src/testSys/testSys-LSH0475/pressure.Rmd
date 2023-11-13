@@ -1,0 +1,132 @@
+---
+title: "Assignment 5: Under (blood) pressure"
+author: Sangwon Yum
+date: "`r Sys.Date()`"
+documentclass: article
+geometry: margin=1in
+fontsize: 11pt
+output:
+  pdf_document:
+    toc: false
+    df_print: kable
+    fig_caption: false
+    number_sections: false
+    dev: pdf
+    highlight: tango
+  html_document:
+    theme: default
+    self_contained: true
+    toc: false
+    df_print: kable
+    fig_caption: false
+    number_sections: false
+    smart: true
+    dev: svg
+---
+
+```{r setup, include = FALSE}
+# DO NOT ALTER THIS CHUNK
+knitr::opts_chunk$set(
+  echo = TRUE,
+  eval = TRUE,
+  fig.width = 5,
+  fig.asp = 0.618,
+  out.width = "70%",
+  dpi = 120,
+  fig.align = "center",
+  cache = FALSE
+)
+# Load required packages
+suppressPackageStartupMessages(library(tidyverse))
+suppressPackageStartupMessages(library(broom))
+suppressPackageStartupMessages(library(modelr))
+# Load dataset
+blood_pressure <- read_rds("blood_pressure.rds")
+```
+
+## Exercise 1
+
+```{r, fig.asp= 1, fig.width = 8, out.width = "100%"}
+blood_pressure %>%
+  pivot_longer(cols = Age:Pulse, names_to = "measurement", values_to = "value") %>%
+  ggplot() +
+    geom_point(mapping = aes(x = value, y = Systol)) +
+    facet_wrap(~ measurement, scales = "free_x") +
+    geom_smooth(mapping = aes(x = value, y = Systol), method = "lm")
+```
+
+## Exercise 2
+
+```{r, fig.asp= 1, fig.width = 8, out.width = "100%"}
+blood_pressure %>%
+  pivot_longer(cols = Age:Pulse, names_to = "measurement", values_to = "value") %>%
+  ggplot() +
+    geom_point(mapping = aes(x = value, y = Systol)) +
+    facet_wrap(~ measurement, scales = "free_x") +
+    geom_smooth(mapping = aes(x = value, y = Systol), method = "lm")
+```
+
+i. What type of correlation does the "Years" variable demonstrate with "Systol"?
++ Negative
+
+ii. Which variable shows a moderate-to-strong positive correlatio with "Systol"?
++
+
+## Exercise 3
+
+```{r}
+blood_pressure %>%
+  mutate(
+    urban_frac_life = Years / Age
+    )
+```
+
+## Exercise 4
+
+```{r}
+blood_pressure %>%
+  systol_urban_frac_model <- lm( y ~ x, data  = blood_pressure_updated)
+```
+
+
+
+## Exercise 5
+
+
+
+
+## Exercise 6
+
+
+
+
+## Exercise 7
+
+
+
+
+## Exercise 8
+
+
+
+
+## Exercise 9
+
+
+
+
+## Exercise 10
+
+
+
+
+## Exercise 11
+
+
+
+
+## Exercise 12
+
+
+
+
