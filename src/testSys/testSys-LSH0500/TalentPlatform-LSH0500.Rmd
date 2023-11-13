@@ -1,0 +1,262 @@
+---
+title: "Assignment 8: CP2"
+author: "Sangwon Yum"
+date: "`r Sys.Date()`"
+documentclass: article
+geometry: margin=1in
+fontsize: 11pt
+output:
+  pdf_document:
+    highlight: tango
+    toc: false
+    df_print: kable
+    fig_caption: no
+    number_sections: no
+    dev: pdf
+    latex_engine: xelatex
+mainfont: "Malgun Gothic"
+---
+
+```{r setup, include = FALSE}
+# Set knitr options
+knitr::opts_chunk$set(
+  echo = TRUE, eval = TRUE, fig.width = 6, warning = FALSE,
+  message = FALSE, fig.asp = 0.618, out.width = "80%", dpi = 120,
+  fig.align = "center", cache = FALSE
+)
+
+# Load required packages
+suppressPackageStartupMessages(library(tidyverse))
+suppressPackageStartupMessages(library(broom))
+suppressPackageStartupMessages(library(modelr))
+suppressPackageStartupMessages(library(plotly))
+suppressPackageStartupMessages(library(ggcorrplot))
+suppressPackageStartupMessages(library(rstatix))
+
+# Load dataset
+data = readr::read_csv("smmh.csv")
+colnames(data)
+```
+
+
+```{r}
+data_r <- data %>%
+  select(-1, -4, -5, -6, -7, -8, -17)
+```
+
+```{r}
+data_r <- data_r %>%
+  mutate(dependence = rowMeans(select(., c(4, 5, 6, 11)), na.rm = TRUE)) %>%
+  select(-c(4, 5, 6, 11))
+```
+
+```{r}
+data_r <- data_r %>%
+  mutate(interference = rowMeans(select(., c(4,6)), na.rm = TRUE))%>%
+  select(-c(4,6))
+```
+
+```{r}
+data_r <- data_r %>%
+  mutate(mental_health = rowMeans(select(., c(4,6,7,8)), na.rm = TRUE))%>%
+  select(-c(4,6,7,8))
+```
+
+```{r}
+data_r <- data_r %>%
+  rename(age = `1. What is your age?`,
+         gender = `2. Gender`,
+         avgtime = `8. What is the average time you spend on social media every day?`,
+         comparison = '15. On a scale of 1-5, how often do you compare yourself to other successful people through the use of social media?'
+         )
+```
+
+```{r}
+data_r <- data_r %>%
+  mutate(avgtime_numeric = case_when(
+    avgtime == "Less than an Hour" ~ 0.5,
+    avgtime == "Between 1 and 2 hours" ~ 1.5,
+    avgtime == "Between 2 and 3 hours" ~ 2.5,
+    avgtime == "Between 3 and 4 hours" ~ 3.5,
+    avgtime == "Between 4 and 5 hours" ~ 4.5,
+    avgtime == "More than 5 hours" ~ 5.5,
+    TRUE ~ NA_real_ 
+  ))
+```
+
+```{r}
+data_r <- data_r %>%
+  filter(gender %in% c("Male", "Female"))
+```
+
+
+```{r}
+data_r %>%
+  ggplot() +
+  geom_histogram(mapping = aes(x=age), binwidth=3, color="darkgreen",fill="lightgreen")+
+  labs(x="age", y ="count", title="Histogram for Age") + 
+   xlim(15, 70)
+```
+
+```{r}
+data_r %>%
+  ggplot() +
+  geom_bar(mapping = aes(x=gender), fill='yellow', color='black') +
+  labs(x='Gender', y='Count', title='Bar Graph for Gender')
+```
+
+```{r}
+data_r %>%
+  ggplot() +
+  geom_histogram(mapping = aes(x=avgtime_numeric), binwidth=0.87, color="darkblue",fill="lightblue")+
+  labs(x="the average time spent on social media", y ="count", title="Histogram for time on social media")
+```
+
+```{r}
+data_r %>%
+  ggplot() +
+  geom_point(mapping = aes(x=avgtime_numeric, y=mental_health))+
+  labs(x="time", y ="mental health", title="Plot of time spent on social media vs mental health")
+```
+
+```{r}
+data_r %>%
+  ggplot() +
+  geom_boxplot(mapping = aes(x=interference, y=avgtime))+
+  labs(x="interference", y ="average time", title="Boxplot social media usage time according to social media interference level")
+```
+
+```{r}
+data_r %>%
+  ggplot() +
+  geom_violin(mapping = aes(x=dependence, y=avgtime))+
+  labs(x="dependence", y ="average time", title="Violinplot of social media usage time according to social media interference level")
+```
+
+```{r}
+data_r %>%
+  ggplot() +
+  geom_histogram(mapping = aes(x = mental_health, fill = avgtime), bins = 30) +
+  labs(x = "Mental Health", y = "Count", fill = "Average Time", title="Histogram of Mental Health by Average Time")
+```
+
+```{r}
+data_r %>%
+  ggplot() +
+  geom_smooth(mapping = aes(x = comparison, y = mental_health)) +
+  labs(x = "Comparison with others through social media", y = "Mental health", title="Trend line comparison vs mental health")
+```
+
+
+```{r}
+data_r %>%
+  ggplot() +
+  geom_bin2d(mapping = aes(x = mental_health, y = avgtime_numeric)) +
+  labs(x = "mental Health", y = "average time", fill = "Frequency", title = "2D Histogram of Mental Health and Average Time by Comparison") +
+  scale_fill_viridis_c(trans="log")+
+  facet_wrap( ~ comparison)
+```
+
+# 상관계수/유의성 검정
+- avgtime 예측을 위해서 독립변수 및 종속변수 간의 상관계수 및 유의성검정을 수행함
+- 그 결과 comparison, interference, mental_health, dependence 순으로 높은 양의 관계 (0.20 ~ 0.44)를 띠는 반면 age에서는 음의 관계성 (-0.38)을 보임
+- 이러한 상관계수의 유의성을 검정하기 위해서 cor.test 유사한 rstatix::cor_pmat 함수를 통해 모든 변수에서 유의수준 0.05 이하에서 통계적으로 유의함 
+- 앞선 수치적인 분석 결과를 토대로 상관계수 행렬 및 산포도 행렬를 통해 시각화하여 확인함
+```{r, warning=FALSE}
+modelData = data_r %>% 
+  dplyr::select(age, comparison, dependence, interference, mental_health, avgtime_numeric) %>% 
+  as.tibble()
+
+str(modelData)
+
+corMat = rstatix::cor_mat(modelData)
+corPmat = rstatix::cor_pmat(modelData)
+
+# 상관계수
+corMat %>% 
+  dplyr::select(rowname, avgtime_numeric) %>% 
+  dplyr::arrange(avgtime_numeric)
+
+# 상관계수 유의성검정
+corPmat %>% 
+  dplyr::select(rowname, avgtime_numeric) %>% 
+  dplyr::arrange(avgtime_numeric)
+
+# 상관계수 행렬
+ggcorrplot::ggcorrplot(corMat, hc.order = TRUE, type = "lower", lab_col = "black", outline.color = "white", lab = TRUE, p.mat = corPmat) + 
+  labs(title = 'Correlation Matrix')
+
+# 산포도 행렬
+GGally::ggpairs(modelData) +
+  labs(title = 'Pairwise Relationships')
+```
+
+# 훈련 및 데이터 분할
+```{r, warning=FALSE}
+set.seed(1)
+
+# 훈련/테스트 데이터를 70:30으로 나누기 위한 인덱스 설정
+idx = sample(1:nrow(modelData), nrow(modelData) * 0.7)
+
+# 해당 인덱스에 따라 자료 분할
+trainData = modelData[idx, ]
+testData = modelData[-idx, ]
+```
+
+# 선형회귀모형에서 변수선택
+- 훈련 데이터에서 독립변수 (age, comparison, dependence, interference, mental_health) 및 종속변수 (avgtime)를 선정하여 선형회귀모형을 수행함
+- 유의미한 회귀모형 도출을 statAIC 변수 선택하고 검증 지표 (AIC)가 최소인 모형을 선정함 (유의미한 최적의 모형: avgtime_numeric ~ age + dependence + mental_health)
+```{r, warning=FALSE}
+# 전체 변수에 대한 선형회귀모형 수행
+# 독립변수 : avgtime_numeric 제외한 전체 변수
+# 종속변수 : avgtime_numeric
+lmFitVarAll = lm(avgtime_numeric ~ ., data = trainData, x = TRUE, y = TRUE)
+
+# AIC 기준으로 변수 선택
+rsStepAic = MASS::stepAIC(lmFitVarAll, direction = "both")
+
+# 결과에 대한 요약
+summary(rsStepAic)
+
+# 한 눈에 분석 결과 확인 가능
+rsStepAic$anova
+```
+
+# 선형회귀모형에서 최적의 모형 선택 및 교차검증
+- 최적 모형에서 수정된 결정계수는 0.33 (전체 분산 대비 33% 설명력)으로서 유의수준 0.05 이하에서 통계적으로 유의미한 결과를 보임
+- 또한 각 회귀계수의 경우 앞서 상관분석에서 음의 관계 (age)는 -0.04를 나타내는 반면 dependence, mental_health는 양의 관계이고 통계적으로 유의미함
+- 앞서 유의미한 최적의 모형을 교차검증을 수행하였고 그 결과 평균제곱근오차 (RMSE)은 1.27로 다소 오차를 보임
+```{r, warning=FALSE}
+# 최적의 모형 선택
+lmBestModel = rsStepAic
+summary(lmBestModel)
+
+# 교차검증
+lmBestModelCv = lmvar::cv.lm(lmBestModel, k = 10)
+rmseVal = lmBestModelCv$MSE_sqrt$mean %>% round(2)
+print(rmseVal)
+```
+
+# 테스트 데이터를 이용한 예측 및 시각화
+- 테스트 데이터를 이용하여 예측하고 산포도를 통해 예측 및 실측을 시각화
+- 그 결과 두 자료의 상관계수는 0.43으로서 유의수준 0.05 이하에서 통계적으로 유의미함
+- 또한 예측과 실측 간의 평균제곱근오차 (RMSE) 검증 결과은 1.27이고 다소 오차가 발생함.
+- 이는 훈련 데이터 개수가 331개로 적기 때문에 다양한 조건에 대해 학습자료의 부재로 판단됨
+# 따라서 다종다양한 학습 데이터를 수집할 뿐만 아니라 분석 변수를 포함한다면 avgtime의 예측 성능이 향상될 것으로 사료됨
+```{r, warning=FALSE}
+# 테스트 데이터를 이용한 Best 모형 및 교차검증 
+prdData = testData %>% 
+  add_predictions(rsStepAic, var = "pred") %>%
+  add_residuals(rsStepAic, var = "resid")
+head(prdData)
+
+# 시각화
+ggpubr::ggscatter(prdData, x = "pred", y = "avgtime_numeric") +
+  ggpubr::stat_regline_equation(label.x.npc = 0.0, label.y.npc = 0.95, color = "blue", size = 4.5) +
+  ggpubr::stat_cor(label.x.npc = 0.0, label.y.npc = 0.85, color = "blue", size = 4.5) +
+  annotate("text", x = 0, y = 4.2, size = 4.5, label = sprintf("RMSE = %s", rmseVal), color = "blue", hjust = 0, fontface = "italic") +
+  geom_abline(intercept = 0, slope = 1, linetype = 1, color = "red", size = 1.0) +
+  theme_bw() +
+  labs(title = "Prediction Results", x = "Predicted", y = "Observed") +
+  theme(text = element_text(size = 16))
+```
