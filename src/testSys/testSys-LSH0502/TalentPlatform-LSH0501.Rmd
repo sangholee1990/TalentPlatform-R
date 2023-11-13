@@ -1,0 +1,92 @@
+---
+title: "성별에 따른 혈압 유병률 가설검정 및 비율검정"
+author: "Sangwon Yum"
+date: "`r Sys.Date()`"
+documentclass: article
+geometry: margin=1in
+fontsize: 11pt
+output:
+  pdf_document:
+    highlight: tango
+    toc: false
+    df_print: kable
+    fig_caption: no
+    number_sections: no
+    dev: pdf
+    latex_engine: xelatex
+mainfont: "Malgun Gothic"
+---
+
+```{r setup, include = FALSE}
+# Set knitr options
+knitr::opts_chunk$set(
+  echo = TRUE, eval = TRUE, fig.width = 6, warning = FALSE,
+  message = FALSE, fig.asp = 0.618, out.width = "80%", dpi = 120,
+  fig.align = "center", cache = FALSE
+)
+
+# Load required packages
+suppressPackageStartupMessages(library(tidyverse))
+suppressPackageStartupMessages(library(modelr))
+suppressPackageStartupMessages(library(broom))
+suppressPackageStartupMessages(library(HistData))
+suppressPackageStartupMessages(library(infer))
+
+# Load dataset
+data = readr::read_csv("666NCD_RisC_Lancet_2016_BP_age_standardised_world.csv")
+head(data)
+```
+
+- Q) the Mean diastolic blood pressure (mmHg) measure is greater for men
+- A) Yes
+     Men (78.68857) > Women (76.85585)
+```{r, warning=FALSE}
+# 남성/여성의 평균 이완기 혈압 계산
+meanData = data %>%
+  dplyr::group_by(Sex) %>% 
+  summarise(meanVal = mean(`Mean diastolic blood pressure (mmHg)`))
+```
+
+- Q) The Prevalence of raised blood pressure lower 95% uncertainty interval is the same for both sexes
+- A) No
+     즉 두 그룹 (남성, 여성) 간의 평균/95% 불확실성 구간이 차이를 보이고 통계적으로 유의미함 (p.value < 0.05 이하)
+     특히 남성의 평균은 여성보다 높음
+```{r, warning=FALSE}
+menData = data %>%
+  filter(Sex == "Men") 
+
+womenData = data %>%
+  filter(Sex == "Women")
+
+# 가설 검정
+t.test(menData$`Prevalence of raised blood pressure lower 95% uncertainty interval`
+       , womenData$`Prevalence of raised blood pressure lower 95% uncertainty interval`)
+```
+
+- Q) The Mean systolic blood pressure lower 95% uncertainty interval (mmHg) is greater for women
+- A) No
+     즉 여성의 경우 남성보다 평균/95% 불확실성 구간 차이가 통계적으로 유의미하지 않음 (p.value > 0.05 이상)
+     특히 남성의 평균은 여성보다 높음
+```{r, warning=FALSE}
+# 가설 검정
+t.test(womenData$`Mean systolic blood pressure lower 95% uncertainty interval (mmHg)`,
+       menData$`Mean systolic blood pressure lower 95% uncertainty interval (mmHg)`, 
+       alternative = "greater")
+```
+
+- Q) The proportion of the Prevalence of raised blood pressure is not up to 0.35 (do only this at a 5% alpha)
+- A) Yes
+     고혈압 유병률의 비율은 0.35보다 낮고 통계적으로 유의미함 (p.value < 0.05 이하)
+```{r, warning=FALSE}
+# 평균 고혈압 유병률
+prevVal = mean(data$`Prevalence of raised blood pressure`, na.rm = TRUE)
+
+# 전체 인구
+cnt = nrow(data)
+
+# 인구수 추정
+prevNum = prevVal * cnt
+
+# 비율 검정
+prop.test(prevNum, cnt, p = 0.35, alternative = "less")
+```
