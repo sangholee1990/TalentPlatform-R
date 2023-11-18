@@ -1,6 +1,6 @@
 ---
-title: "Group project: CP2"
-author: "Group 3"
+title: "Assignment 8: CP2"
+author: "Sangwon Yum"
 date: "`r Sys.Date()`"
 documentclass: article
 geometry: margin=1in
@@ -30,38 +30,69 @@ suppressPackageStartupMessages(library(tidyverse))
 suppressPackageStartupMessages(library(broom))
 suppressPackageStartupMessages(library(modelr))
 suppressPackageStartupMessages(library(plotly))
-suppressPackageStartupMessages(library(ggcorrplot))
-suppressPackageStartupMessages(library(rstatix))
+suppressPackageStartupMessages(library(infer))
+
+# Load Cohen's d bootstrap helper functions
+load("bootstrap_cohens_d.RData")
 
 # Load dataset
 data = readr::read_csv("smmh.csv")
 colnames(data)
+
+# Set seed
+set.seed(203904)
 ```
 
+## Yoonjoo Lee
+# Remove unwanted columns
+* Unwanted columns
+  * Timestamp
+  * Relationship Status
+  * Occupation Status
+  * What type of organizations are you affiliated with?
+  * Do you use social media?
+  * What social media platforms do you commonly use?
+  * Following the previous question, how do you feel about these comparisons, generally speaking?
+ 
+* Generate a new dataset called "data_r" excluding Unwanted columns in the original dataset called 'data".
 ```{r}
 data_r <- data %>%
   select(-1, -4, -5, -6, -7, -8, -17)
 ```
-
+# Calculate the average dependence on social media
+* Selected columns
+  * How often do you find yourself using Social media without a specific purpose?
+  * How often do you get distracted by Social media when you are busy doing something?
+  * Do you feel restless if you haven't used Social media in a while?
+  * How often do you look to seek validation from features of social media?
+* Create a new column called "dependence" that is the average of the selected columns.
 ```{r}
 data_r <- data_r %>%
-  mutate(dependence = rowMeans(select(., c(4, 5, 6, 11)), na.rm = TRUE)) # %>%
-  # select(-c(4, 5, 6, 11))
+  mutate(dependence = rowMeans(select(., c(4, 5, 6, 11)), na.rm = TRUE))
 ```
-
+# Calculate the average social media distraction
+* Selected columns
+  * On a scale of 1 to 5, how easily distracted are you?
+  * Do you find it difficult to concentrate on things?
+* Create a new column called "distraction" that is the average of the selected columns.
 ```{r}
 data_r <- data_r %>%
-  mutate(distraction = rowMeans(select(., c(4,6)), na.rm = TRUE)) #%>%
-  # select(-c(4,6))
+  mutate(distraction = rowMeans(select(., c(4,6)), na.rm = TRUE))
 ```
-
-
+# Calculate the average mental health
+* Selected columns
+  * On a scale of 1 to 5, how much are you bothered by worries?
+  * How often do you feel depressed or down?
+  * How frequently does your interest in daily activities fluctuate?
+  * On a scale of 1 to 5, how often do you face issues regarding sleep?
+* Create a new column called "mental_health" that is the average of the selected columns.
 ```{r}
 data_r <- data_r %>%
-  mutate(mental_health = rowMeans(select(., c(4,6,7,8)), na.rm = TRUE))# %>%
-  # select(-c(4,6,7,8))
+  mutate(mental_health = rowMeans(select(., c(4,6,7,8)), na.rm = TRUE))
 ```
-
+* The higher the "mental_health" value, the more negative mental health is.
+# Rename function to change the name of columns
+* This code aims to simplify and make the column names more straightforward and easily understandable.
 ```{r}
 data_r <- data_r %>%
   rename(age = `1. What is your age?`,
@@ -70,7 +101,8 @@ data_r <- data_r %>%
          comparison = '15. On a scale of 1-5, how often do you compare yourself to other successful people through the use of social media?'
          )
 ```
-
+# Convert numerical data to continuous data
+* This codes aims to change categorical data to numerical data for some plots that require numerical data. Plus, the new column "avgtime_numeric" can simplify the representation of the average time spent on social media, making it easier to work with in data analysis.
 ```{r}
 data_r <- data_r %>%
   mutate(avgtime_numeric = case_when(
@@ -79,163 +111,187 @@ data_r <- data_r %>%
     avgtime == "Between 2 and 3 hours" ~ 2.5,
     avgtime == "Between 3 and 4 hours" ~ 3.5,
     avgtime == "Between 4 and 5 hours" ~ 4.5,
-    avgtime == "More than 5 hours" ~ 5.5,
-    TRUE ~ NA_real_ 
+    avgtime == "More than 5 hours" ~ 5.5
   ))
 ```
 
+# Remove unwanted rows
+* Remove some rows like non-binary from a 'gender' column except for men and women to make tidy data.
 ```{r}
 data_r <- data_r %>%
   filter(gender %in% c("Male", "Female"))
 ```
 
-
+## Hazel Park
+# Visualize the age distribution
 ```{r}
 data_r %>%
   ggplot() +
   geom_histogram(mapping = aes(x=age), binwidth=3, color="darkgreen",fill="lightgreen")+
-  labs(x="Age", y ="count", title="Histogram for Age") + 
-   xlim(15, 70)
+ 
+  labs(x="age", y ="count", title="Histogram for age") +
+   xlim(15, 60)
 ```
-
+* The histogram has a single prominent peak, which is unimodal modality.
+* The histogram displays a "right-skewed" skewness.
+* The highest peak is located in the "early 20s."
+**Therefore, this dataset has a high frequency mainly in the early 20s age group.**
+# Visualize the gender distribution
 ```{r}
 data_r %>%
   ggplot() +
   geom_bar(mapping = aes(x=gender), fill='yellow', color='black') +
-  labs(x='Gender', y='Count', title='Bar Graph for Gender')
+  labs(x='gender', y='count', title='Bar graph for gender')
 ```
-
+**We can see from this bar graph that the people we explore have more female genders.**
+# Visualize the average time distribution
 ```{r}
 data_r %>%
   ggplot() +
-  geom_histogram(mapping = aes(x=avgtime_numeric), binwidth=0.87, color="darkblue",fill="lightblue")+
-  labs(x="The average time", y ="count", title="Histogram for time on social media")
+  geom_histogram(mapping = aes(x=avgtime_numeric), binwidth=1.3, color="darkblue",fill="lightblue")+
+  labs(x="the average time", y ="count", title="Histogram for average time spent on social media")
 ```
-
-
-```{r}
-data_r %>%
-  ggplot() +
-  geom_point(mapping = aes(x=avgtime_numeric, y=mental_health))+
-  labs(x="The average time", y ="Mental health", title="Scatter Plot of time spent on social media vs mental health")
-```
-
-
-```{r}
+* The histogram has a single prominent peak, which is unimodal modality.
+* The histogram displays a "left-skewed" skewness.
+* The highest peak is almost at almost 4 hours.
+**This histogram indicates that the average time spent most on social media is approximately 4 hours.**
+# Visualize the relationship between distraction and average time
+```{r, echo=FALSE, fig.height=7, fig.width=8}
 data_r %>%
   ggplot() +
   geom_boxplot(mapping = aes(x=distraction, y=avgtime))+
-  labs(x="Distraction of social media", y ="The average time", title="Boxplot social media usage time according to social media distraction level")
+  labs(x="social media distraction", y ="average time spent on social media", title="Boxplot social media usage time according to social media distraction level")
 ```
-
-```{r}
+**Visually, as the average time increases, we can observe a corresponding rise in the level of social media distraction.**
+# Visualize the relationship between dependence and average time
+```{r, echo=FALSE, fig.height=7, fig.width=8}
 data_r %>%
   ggplot() +
   geom_violin(mapping = aes(x=dependence, y=avgtime))+
-  labs(x="Dependence on social media", y ="The average time", title="Violin plot of social media usage time according to dependence on social media")
+  labs(x="dependence on social media", y ="the average time spent on social media", title="Violin plot of social media usage time according to dependence on social media")
 ```
-
-
+* The groups that spend more time on social media have longer tails.
+* This violin has a long right tail.
+* A stark difference between 'More than 5 hours' and  'Less than an hour'
+# Relationship between time spent on social media and comparison with others
 ```{r}
 data_r %>%
   ggplot() +
-  geom_histogram(mapping = aes(x = mental_health, fill = avgtime), bins = 30) +
-  labs(x = "Mental Health", y = "Count", fill = "The average time", title= "Histogram of Mental Health by Average Time")
+  geom_smooth(mapping = aes(x = avgtime_numeric, y = comparison)) +
+  labs(x = "average time spent on social media", y = "comparison with others", title = "Trend line of social media usage time and comparison with others")
 ```
-
-
+**As this line is on an increasing trend, we can see that as the average time spent on social media increases, the index of comparison to others through social media increases.**
+# Relationship between time spent on social media and mental health
 ```{r}
 data_r %>%
   ggplot() +
-  geom_smooth(mapping = aes(x = comparison, y = mental_health)) +
-  labs(x = "Comparison with others through social media", y = "Mental health", title= "Trend line comparison vs mental health")
+  geom_histogram(mapping = aes(x = mental_health, fill = avgtime), bins =10) +
+  labs(x = "mental health", y = "count", fill = "time spent on social media", title= "Histogram of mental health by social media usage time")
 ```
-
-
-
-```{r}
-data_r %>%
-  ggplot() +
-  geom_bin2d(mapping = aes(x = mental_health, y = avgtime_numeric)) +
-  labs(x = "Mental Health", y = "The average time", fill = "Frequency", title = "2D Histogram of Mental Health and Average Time by Comparison") +
-  scale_fill_viridis_c(trans="log")+
-  facet_wrap( ~ comparison)
-```
-
-
-### Sangwon Module 5,8
-```{r}
-data_r <- data_r %>%
-  filter(gender %in% c("Male", "Female"))
-```
-
-```{r}
-data_r %>%
-  ggplot() +
-  geom_histogram(mapping = aes(x=age), binwidth=3, color="darkgreen",fill="lightgreen")+
-  labs(x="age", y ="count", title="Histogram for Age") + 
-   xlim(15, 70)
-```
-
-```{r}
-data_r %>%
-  ggplot() +
-  geom_bar(mapping = aes(x=gender), fill='yellow', color='black') +
-  labs(x='Gender', y='Count', title='Bar Graph for Gender')
-```
-
-```{r}
-data_r %>%
-  ggplot() +
-  geom_histogram(mapping = aes(x=avgtime_numeric), binwidth=0.87, color="darkblue",fill="lightblue")+
-  labs(x="the average time spent on social media", y ="count", title="Histogram for time on social media")
-```
-
+**As the "More than 5 hours" is prominently visible at the bottom, it means**
+# Relationship between time spent on social media and mental health
 ```{r}
 data_r %>%
   ggplot() +
   geom_point(mapping = aes(x=avgtime_numeric, y=mental_health))+
-  labs(x="time", y ="mental health", title="Plot of time spent on social media vs mental health")
+  geom_smooth(mapping = aes(x = avgtime_numeric, y = mental_health)) +
+  labs(x="average time spent on social media", y ="mental health", title="Scatter Plot of time spent on social media vs mental health")
+```
+* The trend line slopes gradually upward.
+* There is a lot of volatility (outliers) but the trend direction of the line is significant.'
+**we can know as the average time spent on social media increases, mental health tends to deteriorate.**
+## Jaewon Han Module 6,7
+## Hypothesis Testing
+```{r}
+data_r <- data_r %>%
+  mutate(Average_Usage = case_when(avgtime_numeric < 3.5 ~ 'LOW', avgtime_numeric >= 3.5 ~ 'HIGH'))
+```
+```{r}
+data_clean <- data_r %>%
+  filter(Average_Usage == "HIGH" | Average_Usage == "LOW")
+data_clean %>%
+  group_by(Average_Usage) %>%
+  summarise(mean = mean(mental_health),
+            median = median(mental_health),
+            sd = sd(mental_health),
+            iqr = IQR(mental_health),
+            min = min(mental_health),
+            max = max(mental_health))
 ```
 
 ```{r}
-data_r %>%
-  ggplot() +
-  # geom_boxplot(mapping = aes(x=distraction, y=avgtime))+
-    geom_boxplot(mapping = aes(x=distraction, y=avgtime))+
-  labs(x="distraction", y ="average time", title="Boxplot social media usage time according to social media distraction level")
+data_null <- data_clean %>%
+  specify(mental_health ~ Average_Usage) %>%
+  hypothesise(null = "independence") %>%
+  generate(reps = 10000, type = "permute") %>%
+  calculate(stat = "diff in means", order = c("HIGH", "LOW"))
 ```
-
 ```{r}
-data_r %>%
-  ggplot() +
-  geom_violin(mapping = aes(x=dependence, y=avgtime))+
-  labs(x="dependence", y ="average time", title="Violinplot of social media usage time according to social media distraction level")
+data_obs <- data_clean %>%
+  specify(formula = mental_health ~ Average_Usage) %>%
+  calculate (stat = "diff in means", order = c("HIGH", "LOW"))
 ```
-
 ```{r}
-data_r %>%
-  ggplot() +
-  geom_histogram(mapping = aes(x = mental_health, fill = avgtime), bins = 30) +
-  labs(x = "Mental Health", y = "Count", fill = "Average Time", title="Histogram of Mental Health by Average Time")
+data_clean %>%
+  get_p_value(obs_stat = data_obs, direction = "less")
 ```
-
 ```{r}
-data_r %>%
-  ggplot() +
-  geom_smooth(mapping = aes(x = comparison, y = mental_health)) +
-  labs(x = "Comparison with others through social media", y = "Mental health", title="Trend line comparison vs mental health")
+data_null %>%
+  visualise() +
+  shade_p_value(obs_stat = data_obs, direction = "less") +
+  labs(
+    title = "Hypothesis test with Average Usage and Mental Health",
+    x= "Mean gap",
+    y= "Count")
 ```
-
-
+i. As the P-value is smaller than Alpha, we reject the null hypothesis in favor of the alternative hypothesis. There is a relationship between time spent on social media and mental health.
 ```{r}
-data_r %>%
-  ggplot() +
-  geom_bin2d(mapping = aes(x = mental_health, y = avgtime_numeric)) +
-  labs(x = "mental Health", y = "average time", fill = "Frequency", title = "2D Histogram of Mental Health and Average Time by Comparison") +
-  scale_fill_viridis_c(trans="log")+
-  facet_wrap( ~ comparison)
+data_bootstraps <- data_clean %>%
+  specify(mental_health ~ Average_Usage) %>%
+  generate(reps = 10000, type = "bootstrap") %>%
+  calculate(stat = "diff in means", order = c("HIGH", "LOW"))
 ```
+```{r}
+bootstrap_ci <- data_bootstraps %>%
+  get_confidence_interval()
+```
+```{r}
+bootstrap_ci
+```
+```{r}
+data_bootstraps %>%
+  visualize() + shade_confidence_interval(bootstrap_ci) + labs(
+    title = "Bootstrap with Confidence Interval",
+    x = "Mean Gap",
+    y = "Count")
+```
+```{r}
+bootstrap_results <- cohens_d_bootstrap(
+  data = data_r,
+  model = mental_health ~ Average_Usage)
+```
+```{r}
+bootstrap_report(bootstrap_results)
+```
+```{r}
+plot_ci(bootstrap_results)
+```
+
+# 질문사항
+- Q) 데이터를 가져오고 변환하는 데 어떤 기능을 사용합니까? 어떤 변환 작업을 수행할 예정인가요?
+- A) 데이터 읽기의 경우 readr 패키지 내 read_csv 함수를 활용. 데이터 변환 시 dplyr 패키지 내 mutate (컬럼 추가), rename (컬럼명 변경)를 사용하고 특히 case_when를 통해 avgtime를 단순 문자열에서 수치화 변환함 (avgtime 문자열 -> avgtime_numeric 수치화)
+
+- Q) 선형 회귀에서 무엇을 모델링할 예정인가요?
+- A) 종속변수 (avgtime_numeric)를 예측하기 위해서 독립변수 (age, comparison, dependence, distraction, mental_health)를 선정하여 선형회귀모형을 수행함
+
+- Q) Facet wrapping은 한 변수가 다른 변수의 영향을 받는지 알려주지 않습니다.
+- A) 독립변수 및 종속변수 간의 관계성을 파악하기 위해서 GGally 패키지 내 ggpairs 함수를 통해 산포도 행렬을 시각화 수행. 특히 좌측 하단의 경우 각 변수간의 산점도를 표출하고 대각선에서는 빈도분포, 우측 상단의 경우 상관계수 및 유의성검정 결과를 제시함
+
+- Q) 선형 회귀는 통계적 중요성에 대해 알려주지 않습니다.
+- A) 최적 모형에서 수정된 결정계수는 0.33 (전체 분산 대비 33% 설명력)으로서 유의수준 0.05 이하에서 통계적으로 유의미한 결과를 보임. 또한 각 회귀계수의 경우 앞서 상관분석에서 음의 관계 (age)는 -0.04를 나타내는 반면 dependence, mental_health는 양의 관계이고 통계적으로 유의미함. 앞서 유의미한 최적의 모형을 교차검증을 수행하였고 그 결과 평균제곱근오차 (RMSE)은 1.27로 다소 오차를 보임
+
+- Q) 가설 테스트는 연구 질문이 사실인지 아닌지를 증명하지 않습니다 (가설 그래프 같은 건 없어).
+- A) 테스트 데이터를 이용한 예측 및 잔차 결과로부터 선형성/등분산성/정규성 가설검정 및 시각화를 수행함. 선형성 검정 결과 P값은 0.5604로서 0.05 이하 유의수준보다 높기 때문에 귀무가설을 기각하지 못하여 상관계수 0임 (선형성 없음). 등분산성 검정 결과 P값은 0.5796로서 0.05 이하 유의수준보다 높기 때문에 귀무가설을 기각하지 못하여 둥분산성 O. 정규성 검정 결과 P값은 0.0005575로서 0.05 이하 유의수준보다 작기 때문에 귀무가설을 기각하여 정규분포 X
 
 # Correlation coefficient/significance test
 - To predict avgtime, correlation coefficient and significance test between 
@@ -313,14 +369,14 @@ rsStepAic$anova
 ```
 
 # Selection of optimal model and cross-validation in linear regression model
-- The modified coefficient of determination in the optimal model is 0.33 
-(33% explanatory power compared to the total variance), showing statistically 
+- The modified coefficient of determination in the optimal model is 0.28 
+(28% explanatory power compared to the total variance), showing statistically 
 significant results at the significance level of 0.05 or less.
 - Also, in the case of each regression coefficient, the negative relationship 
-(age) in the correlation analysis indicated -0.04, while dependence and 
+(age) in the correlation analysis indicated -0.05, while dependence and 
 mental_health are positive relationships and are statistically significant.
 - Previously, cross-validation was performed on the significant optimal model, 
-and as a result, the root mean square error (RMSE) was 1.27, showing a slight error.
+and as a result, the root mean square error (RMSE) was 1.35, showing a slight error.
 ```{r, warning=FALSE}
 # Select the optimal model
 lmBestModel = rsStepAic
@@ -331,10 +387,65 @@ lmBestModelCv = lmvar::cv.lm(lmBestModel, k = 10)
 rmseVal = lmBestModelCv$MSE_sqrt$mean %>% round(2)
 print(rmseVal)
 ```
-
-# Prediction and visualization using test data
+# Prediction using test data
 - Make predictions using test data and visualize predictions and actual 
 measurements through scatter plots
+```{r, warning=FALSE}
+# Best model and cross-validation using test data
+prdData = testData %>% 
+  add_predictions(rsStepAic, var = "pred") %>%
+  add_residuals(rsStepAic, var = "resid")
+head(prdData)
+```
+
+# 선형성/등분산성/정규성 가설검정 및 시각화
+- 선형성 검정 결과 P값은 0.7093로서 0.05 이하 유의수준보다 높기 때문에 귀무가설을 기각하지 못하여 상관계수 0임 (선형성 없음)
+- 등분산성 검정 결과 P값은 0.02222로서 0.05 이하 유의수준보다 낮기 때문에 귀무가설을 기각하여 둥분산성 X 
+- 정규성 검정 결과 P값은 0.02955로서 0.05 이하 유의수준보다 작기 때문에 귀무가설을 기각하여 정규분포 X
+```{r, warning=FALSE}
+# 선형성 검정
+prdData %>%
+  ggplot(aes(x = pred, y = avgtime_numeric)) +
+  geom_point() +
+  geom_abline(slope = 1, intercept = 0, color = "red") +
+  labs(
+    title = "Observed vs Predicted Scatterplot",
+    x = "Predicted Values",
+    y = "Observed Values"
+  )
+
+# 선형성 검정 결과 P값은 0.7093로서 0.05 이하 유의수준보다 높기 때문에 귀무가설을 기각하지 못하여 상관계수 0임 (선형성 없음) 
+cor.test(prdData$pred, prdData$resid)
+
+# 등분산성 검정
+prdData %>% 
+  ggplot(aes(x = pred, y = resid)) +
+    geom_point() +
+    geom_hline(yintercept = 0, linetype = "dashed", color = "blue") +
+    labs(
+      title = "Residual vs. Predicted Values Scatterplot",
+      x = "Predicted Values",
+      y = "Residuals"
+    )
+
+# 등분산성 검정 결과 P값은 0.02222로서 0.05 이하 유의수준보다 낮기 때문에 귀무가설을 기각하여 둥분산성 X 
+lmtest::bptest(lmBestModel)
+
+# 정규성 검정
+prdData %>%
+  ggplot(aes(sample = resid)) +
+  stat_qq() +
+  stat_qq_line() +
+  labs(title = "Q-Q Plot of resid",
+       x = "Theoretical Quantiles",
+       y = "Sample Quantiles")
+
+
+# 정규성 검정 결과 P값은 0.02955로서 0.05 이하 유의수준보다 작기 때문에 귀무가설을 기각하여 정규분포 X
+shapiro.test(prdData$resid)
+```
+
+# visualization using test data
 - As a result, the correlation coefficient between the two data is 0.43, 
 which is statistically significant at the significance level of 0.05 or less.
 - Also, the root mean square error (RMSE) verification result between predictions 
@@ -343,12 +454,6 @@ and actual measurements is 1.27, and some errors occur.
 because the number of training data is small at 331.
 # Therefore, it is believed that avgtime's prediction performance will improve if it not only collects a variety of learning data but also includes analysis variables.
 ```{r, warning=FALSE}
-# Best model and cross-validation using test data
-prdData = testData %>% 
-  add_predictions(rsStepAic, var = "pred") %>%
-  add_residuals(rsStepAic, var = "resid")
-head(prdData)
-
 # Visualization
 ggpubr::ggscatter(prdData, x = "pred", y = "avgtime_numeric") +
   ggpubr::stat_regline_equation(label.x.npc = 0.0, label.y.npc = 0.95, color = "blue", size = 4.5) +
