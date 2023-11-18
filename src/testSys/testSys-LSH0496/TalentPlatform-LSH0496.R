@@ -60,6 +60,8 @@ library(multcomp)
 library(psych)
 library(mclust)
 library(abdiv)
+library(moments)
+library(rstatix)
 
 # devtools::install_github("data-edu/tidyLPA", force = TRUE)
 # installed.packages("devtools")
@@ -98,10 +100,14 @@ data_1 = data %>%
     satisf_total = satisf_1 + satisf_2 + satisf_3 + satisf_4 + satisf_5 + satisf_6,
     continu_total = continu_1 + continu_2 + continu_3 + continu_4 + continu_5 + continu_6 + continu_7 + continu_8 + continu_9 + continu_10 + continu_11 + continu_12,
     service_total = service_1 + service_2 + service_3 + service_4 + service_5 + service_6 + service_7,
-    function_total = function_1_1 + function_1_2 + function_1_3 + function_1_4 + function_1_5 + function_1_6 + function_1_7 + function_1_8 + function_1_9 + function_1_10
+    function_total = function_1_1 + function_1_2 + function_1_3 + function_1_4 + function_1_5 + function_1_6 + function_1_7 + function_1_8 + function_1_9 + function_1_10,
+    function2_total = function_2,
+    function3_total = function_3,
+    function23_total = function_2 + function3_total,
+    function4_total = function_4
   ) %>%
   dplyr::mutate(across(c(gender, residen_home, live_alone, live_alone_t, marriage, ltc_insurance, ltc_insurance_t, med_aid, adm_way, chronic, classification), as.factor)) %>%
-  dplyr::mutate(across(c(function_total, paybur_1), as.numeric))
+  dplyr::mutate(across(c(function_total, paybur_1, age, duration, function2_total, function3_total, function23_total, function4_total), as.numeric))
 
 # ==============================================================================
 # 1. 대상자의 일반적 특성과 장기입원 관련 요인: 기술통계 (평균/표준편차)
@@ -112,16 +118,36 @@ data_1 = data %>%
 data_1_summary = data_1 %>%
   summarise(
     across(
-      c(illper_total, function_total, fam_total, carebur_total, satisf_total, continu_total, service_total, paybur_1, inten_1),
-      list(mean = ~mean(.x, na.rm = TRUE), sd = ~sd(.x, na.rm = TRUE))
+      c(illper_total, function_total, fam_total, carebur_total, satisf_total, continu_total, service_total, paybur_1, inten_1, age, duration, function2_total, function3_total, function23_total, function4_total),
+      list(mean = ~mean(.x, na.rm = TRUE), 
+           sd = ~sd(.x, na.rm = TRUE),
+           skew = ~skewness(.x, na.rm = TRUE), 
+           kurtosis = ~kurtosis(.x, na.rm = TRUE)
+           )
     )
   ) %>%
+  round(2) %>% 
   t()
 
 data_1_summary
 
-# duration, age 컬럼 부재
-00 #
+
+# colnames(data_1)
+data_1_summary = data_1 %>%
+  summarise(
+    across(
+      c(illper_1:illper_8, function_1_1:function_1_10, paybur_1, fam_1:fam_5, carebur_1:carebur_4, satisf_1:satisf_6, continu_1:continu_12, service_1:service_7),
+      list(mean = ~mean(.x, na.rm = TRUE)
+           , sd = ~sd(.x, na.rm = TRUE)
+      )
+    )
+  ) %>%
+  round(2) %>%
+  t()
+
+data_1_summary
+
+
 
 # gender: 성별, 남성(1), 여성(2)
 # residen_home: 거주지, 대도시(1), 중소도시(2), 농어촌(3)
@@ -135,8 +161,9 @@ data_1_summary
 # classification: 환자분류군(의료최고도, 의료고도, 의료중도, 의료경도, 선택입원군)
 m2 = data_1 %>%
   # dplyr::select(patient, inten_1, gender, residen_home, live_alone, marriage, ltc_insurance, med_aid, adm_way, chronic, classification, duration, age) %>%
-  dplyr::select(patient, inten_1, gender, residen_home, live_alone, marriage, ltc_insurance, med_aid, adm_way, chronic, classification) %>%
+  dplyr::select(patient, inten_1, gender, residen_home, live_alone, marriage, ltc_insurance, med_aid, adm_way, chronic, classification, age, duration, function2_total, function3_total, function4_total) %>%
   dplyr::mutate(
+    inten_1_fac = inten_1,
     # age_g = factor(ifelse(age < 75, '75세미만', '75세이상')),
     # duration_l = factor(ifelse(duration < 6, '120일미만', '120일이상'), levels = c('120일미만', '120일이상')),
     gender = factor(gender, levels = c(1, 2), labels = c('남성', '여성')),
@@ -148,24 +175,61 @@ m2 = data_1 %>%
     adm_way = factor(adm_way, levels = c(1, 2), labels = c('응급', '외래')),
     chronic = factor(chronic, levels = c(1, 2), labels = c('1개', '2개이상')),
     inten_1 = factor(ifelse(inten_1 <= 1, 1, 2), levels = c(1, 2), labels = c('의향없음', '의향있음')),
-    classification = factor(classification, levels = c(1, 2, 3, 4, 5), labels = c('의료최고도', '의료고도', '의료중도', '의료경도', '선택입원군'))
+    age_g = factor(ifelse(age < 75, 1, 2), levels = c(1, 2), labels = c('75세미만', '75세이상')),
+    duration_l = factor(ifelse(duration < 6, 1, 2), levels = c(1, 2), labels = c('120일미만', '120일이상')),
+    classification = factor(classification, levels = c(1, 2, 3, 4, 5), labels = c('의료최고도', '의료고도', '의료중도', '의료경도', '선택입원군')),
+    function2_total = factor(function2_total, levels = c(1, 2, 3, 4), labels = c('조절할 수 있음', '가끔 실금함', '자주 실금함', '조절 못함')),
+    function3_total = factor(function3_total, levels = c(1, 2, 3, 4), labels = c('조절할 수 있음', '가끔 실금함', '자주 실금함', '조절 못함')),
+    function4_total = factor(function4_total, levels = c(1, 2), labels = c('예', '아니오'))
   )
 
 # ==============================================================================
 # 1. 대상자의 일반적 특성과 장기입원 관련 요인: 빈도/백분율
 # ==============================================================================
-#기초통계량(인구특성)
-a1 <- table(m2$inten_1, m2$gender); addmargins(a1); prop.table(a1, 2) * 100 #성별
-# a2 <- table(m2$inten_1, m2$age_g); addmargins(a2); prop.table(a2, 2) * 100 #연령
-a4 <- table(m2$inten_1, m2$residen_home); addmargins(a4); prop.table(a4, 2) * 100 #거주지
-a5 <- table(m2$inten_1, m2$live_alone); addmargins(a5); prop.table(a5, 2) * 100 #동반거주유형
-a6 <- table(m2$inten_1, m2$marriage); addmargins(a6); prop.table(a6, 2) * 100 #배우자 유무
-a7 <- table(m2$inten_1, m2$classification); addmargins(a7); prop.table(a7, 2) * 100 #환자분류군
-a8 <- table(m2$inten_1, m2$ltc_insurance); addmargins(a8); prop.table(a8, 2) * 100 #장기요양등급
-a9 <- table(m2$inten_1, m2$med_aid); addmargins(a9); prop.table(a9, 2) * 100 #의료급여여부
-a10 <- table(m2$inten_1, m2$adm_way); addmargins(a10); prop.table(a10, 2) * 100 #입원경로
-# a11 <- table(m2$inten_1, m2$duration_l); addmargins(a11); prop.table(a11, 2) * 100 #입원기간
-a12 <- table(m2$inten_1, m2$chronic); addmargins(a12); prop.table(a12, 2) * 100 #만성질환수(na 3개)
+# 기초통계량(인구특성)
+cnt = nrow(m2)
+
+# 성별
+a1 <- table(m2$inten_1, m2$gender); addmargins(a1); (addmargins(a1) / cnt * 100.0) %>% round(2); prop.table(a1, 2) %>% round(4) * 100 
+
+# 연령
+a2 <- table(m2$inten_1, m2$age_g); addmargins(a2); (addmargins(a2) / cnt * 100.0) %>% round(2); prop.table(a2, 2) %>% round(4) * 100 %>% round(2) 
+
+# 거주지
+a4 <- table(m2$inten_1, m2$residen_home); addmargins(a4); (addmargins(a4) / cnt * 100.0) %>% round(2); prop.table(a4, 2) %>% round(4) * 100 
+
+# 동반거주유형
+a5 <- table(m2$inten_1, m2$live_alone); addmargins(a5); (addmargins(a5) / cnt * 100.0) %>% round(2); prop.table(a5, 2) %>% round(4) * 100 
+
+# 배우자 유무
+a6 <- table(m2$inten_1, m2$marriage); addmargins(a6); (addmargins(a6) / cnt * 100.0) %>% round(2); prop.table(a6, 2) %>% round(4) * 100 
+
+# 장기요양등급
+a8 <- table(m2$inten_1, m2$ltc_insurance); addmargins(a8); (addmargins(a8) / cnt * 100.0) %>% round(2); prop.table(a8, 2) %>% round(4) * 100 
+
+# 의료급여여부
+a9 <- table(m2$inten_1, m2$med_aid); addmargins(a9); (addmargins(a9) / cnt * 100.0) %>% round(2); prop.table(a9, 2) %>% round(4) * 100 
+
+# 입원경로
+a10 <- table(m2$inten_1, m2$adm_way); addmargins(a10); (addmargins(a10) / cnt * 100.0) %>% round(2); prop.table(a10, 2) %>% round(4) * 100 
+
+# 환자분류군
+a7 <- table(m2$inten_1, m2$classification); addmargins(a7); (addmargins(a7) / cnt * 100.0) %>% round(2); prop.table(a7, 2) %>% round(4) * 100 
+
+# 입원기간
+a11 <- table(m2$inten_1, m2$duration_l); addmargins(a11); (addmargins(a11) / cnt * 100.0) %>% round(2); prop.table(a11, 2) %>% round(4) * 100 
+
+# 만성질환수(na 3개)
+a12 <- table(m2$inten_1, m2$chronic); addmargins(a12); (addmargins(a12) / cnt * 100.0) %>% round(2); prop.table(a12, 2) %>% round(4) * 100 
+
+# 와상여부
+a13 <- table(m2$inten_1, m2$function4_total); addmargins(a13); (addmargins(a13) / cnt * 100.0) %>% round(2); prop.table(a13, 2) %>% round(4) * 100 
+
+# 대변 조절
+a14 <- table(m2$inten_1, m2$function2_total); addmargins(a14); (addmargins(a14) / cnt * 100.0) %>% round(2); prop.table(a14, 2) %>% round(4) * 100 
+
+# 소변 조절
+a15 <- table(m2$inten_1, m2$function3_total); addmargins(a15); (addmargins(a15) / cnt * 100.0) %>% round(2); prop.table(a15, 2) %>% round(4) * 100 
 
 
 #범주형 변수간 시각화
@@ -189,26 +253,64 @@ barplot(a1, main = "성별에 따른 퇴원의향", xlab = "입원기간(Adm.dur
         col = c("lightgrey", "lightblue"), legend = rownames(a1), beside = TRUE)
 
 
-# mosaicplot(inten_1 ~ age_g, data = m2,
-#            main = "연령에 따른 퇴원의향 분포 비교",
-#            xlab = "연령대(age)", ylab = "퇴원의향(will)",
-#            col = rainbow(length(unique(m2$inten_1))))
+mosaicplot(inten_1 ~ age_g, data = m2,
+           main = "연령에 따른 퇴원의향 분포 비교",
+           xlab = "연령대(age)", ylab = "퇴원의향(will)",
+           col = rainbow(length(unique(m2$inten_1))))
 
-# mosaicplot(inten_1 ~ duration_l, data = m2,
-#            main = "입원기간에 따른 퇴원의향 분포 비교",
-#            xlab = "입원기간(duration)", ylab = "퇴원의향(will)",
-#            col = rainbow(length(unique(m2$inten_1))))
+mosaicplot(inten_1 ~ duration_l, data = m2,
+           main = "입원기간에 따른 퇴원의향 분포 비교",
+           xlab = "입원기간(duration)", ylab = "퇴원의향(will)",
+           col = rainbow(length(unique(m2$inten_1))))
 
 # ==============================================================================
 # 1. 대상자의 일반적 특성과 장기입원 관련 요인: 상관계수
 # ==============================================================================
+data_1$patient
 # 상관계수 계산
 corData = data_1 %>% 
-  dplyr::select(inten_1, gender, residen_home, live_alone, marriage, ltc_insurance, med_aid, adm_way, chronic, classification) %>%
-  dplyr::mutate(across(everything(), as.numeric)) %>% 
-  cor()
+  # dplyr::select(inten_1, gender, residen_home, live_alone, marriage, ltc_insurance, med_aid, adm_way, chronic, classification, age, duration) %>%
+  dplyr::select(illper_total, function_total, paybur_1, fam_total, carebur_total, satisf_total, continu_total, service_total) %>%
+  na.omit() %>% 
+  dplyr::mutate(across(everything(), as.numeric))
 
-corData[ , "inten_1"] %>% sort()
+
+# corMat = cor(corData)
+# corMat %>% round(2)
+# corMat[ , "inten_1"] %>% sort() %>% round(2)
+
+corMat = rstatix::cor_mat(corData)
+corPmat = rstatix::cor_pmat(corData)
+
+# 상관계수
+corMat %>%
+  dplyr::select(-rowname) %>% 
+  as.data.frame() %>% 
+  round(2)
+
+# 상관계수 유의성검정
+corPmat %>%
+  dplyr::select(-rowname) %>% 
+  as.data.frame() %>% 
+  round(2)
+
+# 상관계수 행렬
+ggcorrplot::ggcorrplot(corMat, hc.order = TRUE, type = "lower", lab_col = "black", outline.color = "white", lab = TRUE, p.mat = corPmat) + 
+  labs(title = 'Correlation Matrix')
+
+
+data_1 %>%
+  summarise(
+    across(
+      c(illper_total, function_total, paybur_1, fam_total, carebur_total, satisf_total, continu_total, service_total),
+      list(mean = ~mean(.x, na.rm = TRUE)
+           , sd = ~sd(.x, na.rm = TRUE)
+      )
+    )
+  ) %>%
+  round(2) %>% 
+  t()
+
 
 # 퇴원 여부와의 관계성을 파악하기 위해 상관분석을 수행함
 # 그 결과 퇴원 여부를 기준으로 chronic, ltc_insurance, med_aid, marriage, adm_way으로 갈수록 양의 관계인 반면
@@ -222,7 +324,7 @@ corData[ , "inten_1"] %>% sort()
 # ==============================================================================
 # 내적 합치도 Cronbach's alpha 계산
 cronAlpha = data_1 %>% 
-  dplyr::select(inten_1, gender, residen_home, live_alone, marriage, ltc_insurance, med_aid, adm_way, chronic, classification) %>%
+  dplyr::select(inten_1, gender, residen_home, live_alone, marriage, ltc_insurance, med_aid, adm_way, chronic, classification, age, duration) %>%
   dplyr::mutate(across(everything(), as.numeric)) %>% 
   psych::alpha(check.keys = TRUE)
 
@@ -241,27 +343,56 @@ cronAlpha$alpha.drop
 # 장기입원 관련요인을 도출하기 위해서 7종 주요 변수를 통해 잠재유형 (Latent profile)을 수행함
 # 최적의 프로파일을 찾기 위해서 1~10 프로파일을 설정하여 시뮬레이션하였고 AIC 검증 지표에서 가장 낮은 오차를 선정함
 # 그 결과 최종적인 잠재유형 수는 8로 결정함
-
 set.seed(1)
 
 modelCfg = data_1 %>%
-  dplyr::select(fam_total:function_total) %>%
+  # dplyr::select(fam_total:function_total, age, duration) %>%
+  # dplyr::select(illper_total, function_total, paybur_1, fam_total, carebur_total, satisf_total, continu_total, service_total) %>%
+  # paybur_1 변수 제외 : 잠재 프로파일 분석과정에서 10개 미만 고유값일 경우 오류 발생
+  dplyr::select(illper_total, function_total, fam_total, carebur_total, satisf_total, continu_total, service_total) %>%
   # na.omit() %>%
   single_imputation() %>%
   scale()
 
-# 1~10 n_profiles 프로파일 시뮬레이션을 통해 최적의 프로파일 찾기
+# 1~5 n_profiles 프로파일 시뮬레이션을 통해 최적의 프로파일 찾기
 simData = tibble::tibble()
-for (i in 1:10) {
+for (i in 1:4) {
   set.seed(1)
   
-  model = estimate_profiles(modelCfg, n_profiles = i, variances = "equal", covariances = "zero")
-  
+  model = tidyLPA::estimate_profiles(modelCfg, n_profiles = i, variances = "equal", covariances = "zero")
+  # model = tidyLPA::estimate_profiles(modelCfg, n_profiles = i, variances = "equal", covariances = "varying")
+  # model = tidyLPA::estimate_profiles(modelCfg, n_profiles = i, variances = "varying", covariances = "zero")
+  # model = tidyLPA::estimate_profiles(modelCfg, n_profiles = i, variances = "varying", covariances = "varying")
+
   valData = model[[1]][[2]] %>%
     as.tibble()
   
   simData = dplyr::bind_rows(simData, valData)
 }
+
+# 표4 장기입원 노인환자 모형 적합도
+simDataL1 = simData %>% 
+  # dplyr::arrange(BIC) %>%
+  as.data.frame() %>% 
+  round(2)
+
+for (cls in simDataL1$Classes) {
+  modelProf = estimate_profiles(modelCfg, n_profiles = cls, variances = "equal", covariances = "zero")
+  
+  modelResData = get_data(modelProf) %>% 
+    as.tibble()
+  
+  modelResDataL1 = modelResData %>% 
+    dplyr::group_by(Class) %>% 
+    dplyr::summarise(
+      cnt = n()
+      , rat = cnt / nrow(modelResData) * 100.0
+    ) %>% 
+    dplyr::mutate(
+      label = sprintf("%s (%s)", round(rat, 2), cnt)
+    )
+}
+
 
 # 가장 적합한 지수를 지닌 잠재유형 수 결정
 # 현재 검증지표에 따라 최적의 결과 상이
@@ -270,19 +401,43 @@ bestData = simData %>%
   # dplyr::arrange(KIC) %>%
   # dplyr::arrange(AWE) %>%
   # dplyr::arrange(CLC) %>%
-  dplyr::arrange(AIC) %>%
-  # dplyr::arrange(BIC) %>%
+  # dplyr::arrange(AIC) %>%
+  dplyr::arrange(BIC) %>%
   dplyr::slice(1)
 
 bestData
 
-m3 = estimate_profiles(modelCfg, n_profiles = bestData$Classes, variances = "equal", covariances = "zero")
+m3 = tidyLPA::estimate_profiles(modelCfg, n_profiles = bestData$Classes, variances = "equal", covariances = "zero")
 
 # 밀도함수 시각화
-# plot_density(m3)
+saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, "plot_density")
+dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
+
+tidyLPA::plot_density(m3) +
+  theme(text = element_text(size = 16)) +
+  ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
+
+cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n") 
 
 # 산포도 시각화
-# plot_bivariate(m3, rawdata = FALSE)
+# saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, "plot_bivariate")
+# dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
+# 
+# tidyLPA::plot_bivariate(m3, rawdata = FALSE) +
+#   theme(text = element_text(size = 16)) +
+#   ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
+# 
+# cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+
+# 프로파일 시각화
+saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, "plot_profiles")
+dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
+
+tidyLPA::plot_profiles(m3) +
+  theme(text = element_text(size = 16)) +
+  ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
+
+cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 
 # class count
 get_data(m3) %>%
@@ -297,15 +452,79 @@ c3 = get_data(m3) %>%
 data_2 = data_1 %>% 
   dplyr::select(fam_total:function_total, paybur_1)
 
-data_3 = cbind(m2, data_2, c3) %>% 
+# colnames(m2)
+# colnames(data_2)
+
+data_3 = cbind(m2, data_2, c3) %>%
   dplyr::mutate(
     Class_fac = as.factor(Class),
     inten_1_num = as.numeric(inten_1)
   )
 
+
+
+# 그림4 요양병원 장기입원 노인 환자에 따른 잠재유형2 잠재프로파일
+# <표 5> 노인 환자 잠재유형의 응답 평균 및 표준편차
+# statData$key %>% unique() %>% sort()
+statData = data_3 %>%
+  dplyr::select(c(illper_total, function_total, paybur_1, fam_total, carebur_total, satisf_total, continu_total, service_total, Class)) %>% 
+  tidyr::gather(-Class, key = "key", value = "val") %>% 
+  dplyr::mutate(
+    label = dplyr::case_when(
+      stringr::str_detect(key, regex("carebur_total")) ~ "돌봄 부담에 대한 인지"
+      , stringr::str_detect(key, regex("continu_total")) ~ "돌봄 지속성"
+      , stringr::str_detect(key, regex("fam_total")) ~ "가족 지지"
+      , stringr::str_detect(key, regex("function_total")) ~ "기능적 독립"
+      , stringr::str_detect(key, regex("illper_total")) ~ "질병 인식"
+      , stringr::str_detect(key, regex("paybur_1")) ~ "환자 의료비 부담"
+      , stringr::str_detect(key, regex("satisf_total")) ~ "거주 만족도"
+      , stringr::str_detect(key, regex("service_total")) ~ "지역사회서비스 접근용이성"
+    )
+  ) %>% 
+  dplyr::group_by(Class, label) %>% 
+  dplyr::summarise(
+    meanVal = mean(val, na.rm = TRUE)
+    , sdVal = sd(val, na.rm = TRUE)
+  )
+
+# 정렬
+statData$label = forcats::fct_relevel(statData$label, c("가족 지지", "돌봄 부담에 대한 인지", "질병 인식", "환자 의료비 부담", "거주 만족도", "돌봄 지속성", "지역사회서비스 접근용이성", "기능적 독립"))
+statData$Class = as.factor(statData$Class)
+
+mainTitle = sprintf("요양병원 장기입원 노인 환자에 따른 잠재유형2 잠재프로파일 %s", "막대그래프")
+saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
+dir.create(fs::path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
+
+ggplot(statData, aes(x = label, y = meanVal, color = Class, group = Class)) +
+  geom_line() +
+  geom_point() +
+  ggrepel::geom_text_repel(aes(label = scales::comma(meanVal)), vjust = -1.0, size = 4, show.legend = FALSE) +
+  labs(x = NULL, y = "평균", fill = NULL, color = NULL, title = NULL, subtitle = mainTitle) +
+  theme(
+    text = element_text(size = 16)
+    , axis.text.x = element_text(angle = 45, hjust = 1)
+  ) +
+  ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
+
+cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+
+
 # ==============================================================================
 # 3. 잠재유형에 따른 퇴원의향의 차이 비교: 
 # ==============================================================================
+# 2. 노인 환자 잠재유형에 따른 퇴원의향
+# 가. 노인 환자 잠재유형간 퇴원 의향 차이
+statData = data_3 %>% 
+  dplyr::group_by(Class, inten_1_fac) %>% 
+  dplyr::summarise(
+    cnt = n()
+    , rat = cnt / nrow(data_3) * 100.0
+  ) %>% 
+  dplyr::mutate(
+    label = sprintf("%s (%s)", round(rat, 2), cnt)
+  )
+print(statData)
+
 # 잠재유형에 따른 퇴원의향 평균/표준편차
 data_3 %>% 
   dplyr::group_by(Class) %>% 
@@ -369,7 +588,7 @@ data_4 = data_3 %>%
     inten_1_num = ifelse(inten_1 == "의향없음", 0, 1)
   ) %>% 
   na.omit() %>% 
-  dplyr::select(inten_1_num, Class, fam_total, carebur_total, illper_total, satisf_total, continu_total, service_total, function_total, paybur_1)
+  dplyr::select(inten_1_num, Class, fam_total, carebur_total, illper_total, satisf_total, continu_total, service_total, function_total, paybur_1, age, duration)
 
 testData = data_4
 
