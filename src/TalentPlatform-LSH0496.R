@@ -62,6 +62,7 @@ library(mclust)
 library(abdiv)
 library(moments)
 library(rstatix)
+library(nnet)
 
 # devtools::install_github("data-edu/tidyLPA", force = TRUE)
 # installed.packages("devtools")
@@ -86,7 +87,8 @@ library(rstatix)
 # 4) 연구에 대한 충분한 이해를 표현하고, 스스로 참여를 결정하여 동의서에 서명한 환자
 
 # fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "dataset_practice_3_1106.csv"))
-fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "dataset_practice_3_1107.csv"))
+# fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "dataset_practice_3_1107.csv"))
+fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "20231120_dataset_practice_3_final.csv"))
 data = readr::read_csv(fileInfo, locale = readr::locale(encoding = "UTF-8"))
 
 # ==============================================================================
@@ -95,11 +97,12 @@ data = readr::read_csv(fileInfo, locale = readr::locale(encoding = "UTF-8"))
 data_1 = data %>%
   dplyr::mutate(
     fam_total = fam_1 + fam_2 + fam_3 + 5 - fam_4 + fam_5,
-    carebur_total = carebur_1 + carebur_2 + carebur_3 + carebur_4,
-    illper_total = illper_1 + illper_2 + 5 - illper_3 + 5 - illper_4 + illper_5 + 5 - illper_6 + illper_7 + illper_8,
+    carebur_total = 16-(carebur_1 + carebur_2 + carebur_3 + carebur_4), #역환산
+    illper_total = 40-(illper_1 + illper_2 +5 - illper_3 + 5 - illper_4 + illper_5 + 5 - illper_6 + illper_7 + illper_8), #역환산
+    paybur_11 = 5-paybur_1, #역환산
     satisf_total = satisf_1 + satisf_2 + satisf_3 + satisf_4 + satisf_5 + satisf_6,
     continu_total = continu_1 + continu_2 + continu_3 + continu_4 + continu_5 + continu_6 + continu_7 + continu_8 + continu_9 + continu_10 + continu_11 + continu_12,
-    service_total = service_1 + service_2 + service_3 + service_4 + service_5 + service_6 + service_7,
+    service_total = service_1 + service_2 + service_3 + service_4 + service_5,
     function_total = function_1_1 + function_1_2 + function_1_3 + function_1_4 + function_1_5 + function_1_6 + function_1_7 + function_1_8 + function_1_9 + function_1_10,
     function2_total = function_2,
     function3_total = function_3,
@@ -107,7 +110,7 @@ data_1 = data %>%
     function4_total = function_4
   ) %>%
   dplyr::mutate(across(c(gender, residen_home, live_alone, live_alone_t, marriage, ltc_insurance, ltc_insurance_t, med_aid, adm_way, chronic, classification), as.factor)) %>%
-  dplyr::mutate(across(c(function_total, paybur_1, age, duration, function2_total, function3_total, function23_total, function4_total), as.numeric))
+  dplyr::mutate(across(c(function_total, paybur_11, age, duration, function2_total, function3_total, function23_total, function4_total), as.numeric))
 
 # ==============================================================================
 # 1. 대상자의 일반적 특성과 장기입원 관련 요인: 기술통계 (평균/표준편차)
@@ -118,12 +121,12 @@ data_1 = data %>%
 data_1_summary = data_1 %>%
   summarise(
     across(
-      c(illper_total, function_total, fam_total, carebur_total, satisf_total, continu_total, service_total, paybur_1, inten_1, age, duration, function2_total, function3_total, function23_total, function4_total),
+      c(illper_total, function_total, fam_total, carebur_total, satisf_total, continu_total, service_total, paybur_11, inten_1, age, duration, function2_total, function3_total, function23_total, function4_total),
       list(mean = ~mean(.x, na.rm = TRUE), 
            sd = ~sd(.x, na.rm = TRUE),
            skew = ~skewness(.x, na.rm = TRUE), 
            kurtosis = ~kurtosis(.x, na.rm = TRUE)
-           )
+      )
     )
   ) %>%
   round(2) %>% 
@@ -131,12 +134,11 @@ data_1_summary = data_1 %>%
 
 data_1_summary
 
-
 # colnames(data_1)
 data_1_summary = data_1 %>%
   summarise(
     across(
-      c(illper_1:illper_8, function_1_1:function_1_10, paybur_1, fam_1:fam_5, carebur_1:carebur_4, satisf_1:satisf_6, continu_1:continu_12, service_1:service_7),
+      c(illper_1:illper_8, function_1_1:function_1_10, paybur_11, fam_1:fam_5, carebur_1:carebur_4, satisf_1:satisf_6, continu_1:continu_12, service_1:service_7),
       list(mean = ~mean(.x, na.rm = TRUE)
            , sd = ~sd(.x, na.rm = TRUE)
       )
@@ -161,11 +163,17 @@ data_1_summary
 # classification: 환자분류군(의료최고도, 의료고도, 의료중도, 의료경도, 선택입원군)
 m2 = data_1 %>%
   # dplyr::select(patient, inten_1, gender, residen_home, live_alone, marriage, ltc_insurance, med_aid, adm_way, chronic, classification, duration, age) %>%
-  dplyr::select(patient, inten_1, gender, residen_home, live_alone, marriage, ltc_insurance, med_aid, adm_way, chronic, classification, age, duration, function2_total, function3_total, function4_total) %>%
+  # dplyr::select(patient, inten_1, gender, residen_home, live_alone, marriage, ltc_insurance, med_aid, adm_way, chronic, classification, age, duration, function2_total, function3_total, function4_total) %>%
   dplyr::mutate(
-    inten_1_fac = inten_1,
-    # age_g = factor(ifelse(age < 75, '75세미만', '75세이상')),
-    # duration_l = factor(ifelse(duration < 6, '120일미만', '120일이상'), levels = c('120일미만', '120일이상')),
+    inten_1_fac = factor(ifelse(inten_1 <= 1, 1, 2), levels = c(1, 2), labels = c('의향없음', '의향있음')),
+    inten_res_1_fac = factor(ifelse(inten_res_1 <= 1, 1, 2), levels = c(1, 2), labels = c('틀림', '맞음')),
+    inten_res_2_fac = factor(ifelse(inten_res_2 <= 1, 1, 2), levels = c(1, 2), labels = c('틀림', '맞음')),
+    inten_res_3_fac = factor(ifelse(inten_res_3 <= 1, 1, 2), levels = c(1, 2), labels = c('틀림', '맞음')),
+    inten_res_4_fac = factor(ifelse(inten_res_4 <= 1, 1, 2), levels = c(1, 2), labels = c('틀림', '맞음')),
+    inten_res_5_fac = factor(ifelse(inten_res_5 <= 1, 1, 2), levels = c(1, 2), labels = c('틀림', '맞음')),
+    inten_res_6_fac = factor(ifelse(inten_res_6 <= 1, 1, 2), levels = c(1, 2), labels = c('틀림', '맞음')),
+    inten_res_7_fac = factor(ifelse(inten_res_7 <= 1, 1, 2), levels = c(1, 2), labels = c('틀림', '맞음')),
+    
     gender = factor(gender, levels = c(1, 2), labels = c('남성', '여성')),
     residen_home = factor(residen_home, levels = c(1, 2, 3), labels = c('대도시', '중소도시', '농어촌')),
     live_alone = factor(live_alone, levels = c(1, 2, 3, 4), labels = c('노인부부', '자녀 동거', '기타', '혼자거주')),
@@ -174,14 +182,46 @@ m2 = data_1 %>%
     med_aid = factor(med_aid, levels = c(1, 2, 3), labels = c('1종', '2종', '미해당')),
     adm_way = factor(adm_way, levels = c(1, 2), labels = c('응급', '외래')),
     chronic = factor(chronic, levels = c(1, 2), labels = c('1개', '2개이상')),
-    inten_1 = factor(ifelse(inten_1 <= 1, 1, 2), levels = c(1, 2), labels = c('의향없음', '의향있음')),
     age_g = factor(ifelse(age < 75, 1, 2), levels = c(1, 2), labels = c('75세미만', '75세이상')),
-    duration_l = factor(ifelse(duration < 6, 1, 2), levels = c(1, 2), labels = c('120일미만', '120일이상')),
+    duration_l = factor(ifelse(duration < 120, 1, 2), levels = c(1, 2), labels = c('120일미만', '120일이상')),
     classification = factor(classification, levels = c(1, 2, 3, 4, 5), labels = c('의료최고도', '의료고도', '의료중도', '의료경도', '선택입원군')),
-    function2_total = factor(function2_total, levels = c(1, 2, 3, 4), labels = c('조절할 수 있음', '가끔 실금함', '자주 실금함', '조절 못함')),
-    function3_total = factor(function3_total, levels = c(1, 2, 3, 4), labels = c('조절할 수 있음', '가끔 실금함', '자주 실금함', '조절 못함')),
+    function2_total = factor(function2_total, levels = c(4, 3, 2, 1), labels = c('조절할 수 있음', '가끔 실금함', '자주 실금함', '조절 못함')),
+    function3_total = factor(function3_total, levels = c(4, 3, 2, 1), labels = c('조절할 수 있음', '가끔 실금함', '자주 실금함', '조절 못함')),
     function4_total = factor(function4_total, levels = c(1, 2), labels = c('예', '아니오'))
-  )
+  ) %>%
+  dplyr::mutate(
+    inten_1_num = as.numeric(inten_1_fac)
+    , inten_res_1_num = as.numeric(inten_res_1_fac)
+    , inten_res_2_num = as.numeric(inten_res_2_fac)
+    , inten_res_3_num = as.numeric(inten_res_3_fac)
+    , inten_res_4_num = as.numeric(inten_res_4_fac)
+    , inten_res_5_num = as.numeric(inten_res_5_fac)
+    , inten_res_6_num = as.numeric(inten_res_6_fac)
+    , inten_res_7_num = as.numeric(inten_res_7_fac)
+  ) %>% 
+  dplyr::select(
+    inten_1_fac, inten_1_num, gender, residen_home, live_alone, marriage, ltc_insurance
+    , med_aid, adm_way, chronic, age_g, duration_l, classification, function2_total, function3_total, function4_total
+    , inten_res_1_fac, inten_res_2_fac, inten_res_3_fac, inten_res_4_fac, inten_res_5_fac, inten_res_6_fac, inten_res_7_fac
+    , inten_res_1_num, inten_res_2_num, inten_res_3_num, inten_res_4_num, inten_res_5_num, inten_res_6_num, inten_res_7_num
+    )
+
+#일반적 특성 표 작성용
+data.frame('Freq'=table(m2$age_g), 'prop'=paste0(round(prop.table(table(m2$age_g))*100,2),'%'))
+data.frame('Freq'=table(m2$gender), 'prop'=paste0(round(prop.table(table(m2$gender))*100,2),'%'))
+data.frame('Freq'=table(m2$residen_home), 'prop'=paste0(round(prop.table(table(m2$residen_home))*100,2),'%'))
+data.frame('Freq'=table(m2$live_alone), 'prop'=paste0(round(prop.table(table(m2$live_alone))*100,2),'%'))
+data.frame('Freq'=table(m2$marriage), 'prop'=paste0(round(prop.table(table(m2$marriage))*100,2),'%'))
+data.frame('Freq'=table(m2$ltc_insurance), 'prop'=paste0(round(prop.table(table(m2$ltc_insurance))*100,2),'%'))
+data.frame('Freq'=table(m2$med_aid), 'prop'=paste0(round(prop.table(table(m2$med_aid))*100,2),'%'))
+data.frame('Freq'=table(m2$duration_l), 'prop'=paste0(round(prop.table(table(m2$duration_l))*100,2),'%'))
+data.frame('Freq'=table(m2$adm_way), 'prop'=paste0(round(prop.table(table(m2$adm_way))*100,2),'%'))
+data.frame('Freq'=table(m2$classification), 'prop'=paste0(round(prop.table(table(m2$classification))*100,2),'%'))
+data.frame('Freq'=table(m2$chronic), 'prop'=paste0(round(prop.table(table(m2$chronic))*100,2),'%'))
+data.frame('Freq'=table(m2$function2_total), 'prop'=paste0(round(prop.table(table(m2$function2_total))*100,2),'%'))
+data.frame('Freq'=table(m2$function3_total), 'prop'=paste0(round(prop.table(table(m2$function3_total))*100,2),'%'))
+data.frame('Freq'=table(m2$function4_total), 'prop'=paste0(round(prop.table(table(m2$function4_total))*100,2),'%'))
+
 
 # ==============================================================================
 # 1. 대상자의 일반적 특성과 장기입원 관련 요인: 빈도/백분율
@@ -235,7 +275,7 @@ a15 <- table(m2$inten_1, m2$function3_total); addmargins(a15); (addmargins(a15) 
 #범주형 변수간 시각화
 # par(mfrow = c(2, 2))
 par(mfrow = c(1, 1))
-# par(family = "AppleGothic")
+par(family = "AppleGothic")
 
 # 대상자의 일반적인 특성을 파악하기 위해서 입원 전 거주지, 연령, 입원기간에 대한 상세 분석을 수행함
 
@@ -252,7 +292,6 @@ barplot(a4, main = "입원 전 거주지에 따른 퇴원의향", xlab = "입원
 barplot(a1, main = "성별에 따른 퇴원의향", xlab = "입원기간(Adm.duration)", ylab = "퇴원의향(discharge will)",
         col = c("lightgrey", "lightblue"), legend = rownames(a1), beside = TRUE)
 
-
 mosaicplot(inten_1 ~ age_g, data = m2,
            main = "연령에 따른 퇴원의향 분포 비교",
            xlab = "연령대(age)", ylab = "퇴원의향(will)",
@@ -266,11 +305,12 @@ mosaicplot(inten_1 ~ duration_l, data = m2,
 # ==============================================================================
 # 1. 대상자의 일반적 특성과 장기입원 관련 요인: 상관계수
 # ==============================================================================
-data_1$patient
+# data_1$patient
+
 # 상관계수 계산
 corData = data_1 %>% 
   # dplyr::select(inten_1, gender, residen_home, live_alone, marriage, ltc_insurance, med_aid, adm_way, chronic, classification, age, duration) %>%
-  dplyr::select(illper_total, function_total, paybur_1, fam_total, carebur_total, satisf_total, continu_total, service_total) %>%
+  dplyr::select(illper_total, function_total, paybur_11, fam_total, carebur_total, satisf_total, continu_total, service_total,inten_1) %>%
   na.omit() %>% 
   dplyr::mutate(across(everything(), as.numeric))
 
@@ -286,31 +326,31 @@ corPmat = rstatix::cor_pmat(corData)
 corMat %>%
   dplyr::select(-rowname) %>% 
   as.data.frame() %>% 
-  round(2)
+  round(3)
 
 # 상관계수 유의성검정
 corPmat %>%
   dplyr::select(-rowname) %>% 
   as.data.frame() %>% 
-  round(2)
+  round(4)
 
 # 상관계수 행렬
 ggcorrplot::ggcorrplot(corMat, hc.order = TRUE, type = "lower", lab_col = "black", outline.color = "white", lab = TRUE, p.mat = corPmat) + 
   labs(title = 'Correlation Matrix')
 
-
 data_1 %>%
   summarise(
     across(
-      c(illper_total, function_total, paybur_1, fam_total, carebur_total, satisf_total, continu_total, service_total),
+      c(illper_total, function_total, paybur_11, fam_total, carebur_total, satisf_total, continu_total, service_total, inten_1),
       list(mean = ~mean(.x, na.rm = TRUE)
            , sd = ~sd(.x, na.rm = TRUE)
       )
     )
   ) %>%
-  round(2) %>% 
+  round(3) %>% 
   t()
 
+data_1$illper_total
 
 # 퇴원 여부와의 관계성을 파악하기 위해 상관분석을 수행함
 # 그 결과 퇴원 여부를 기준으로 chronic, ltc_insurance, med_aid, marriage, adm_way으로 갈수록 양의 관계인 반면
@@ -347,8 +387,8 @@ set.seed(1)
 
 modelCfg = data_1 %>%
   # dplyr::select(fam_total:function_total, age, duration) %>%
-  # dplyr::select(illper_total, function_total, paybur_1, fam_total, carebur_total, satisf_total, continu_total, service_total) %>%
-  # paybur_1 변수 제외 : 잠재 프로파일 분석과정에서 10개 미만 고유값일 경우 오류 발생
+  # dplyr::select(illper_total, function_total, paybur_11, fam_total, carebur_total, satisf_total, continu_total, service_total) %>%
+  # paybur_11 변수 제외 : 잠재 프로파일 분석과정에서 10개 미만 고유값일 경우 오류 발생
   dplyr::select(illper_total, function_total, fam_total, carebur_total, satisf_total, continu_total, service_total) %>%
   # na.omit() %>%
   single_imputation() %>%
@@ -356,16 +396,16 @@ modelCfg = data_1 %>%
 
 # 1~5 n_profiles 프로파일 시뮬레이션을 통해 최적의 프로파일 찾기
 simData = tibble::tibble()
-for (i in 1:4) {
+for (i in 1:5) {
   set.seed(1)
   
   model = tidyLPA::estimate_profiles(modelCfg, n_profiles = i, variances = "equal", covariances = "zero")
   # model = tidyLPA::estimate_profiles(modelCfg, n_profiles = i, variances = "equal", covariances = "varying")
   # model = tidyLPA::estimate_profiles(modelCfg, n_profiles = i, variances = "varying", covariances = "zero")
   # model = tidyLPA::estimate_profiles(modelCfg, n_profiles = i, variances = "varying", covariances = "varying")
-
+  
   valData = model[[1]][[2]] %>%
-    as.tibble()
+    as_tibble()
   
   simData = dplyr::bind_rows(simData, valData)
 }
@@ -401,17 +441,19 @@ bestData = simData %>%
   # dplyr::arrange(KIC) %>%
   # dplyr::arrange(AWE) %>%
   # dplyr::arrange(CLC) %>%
-  # dplyr::arrange(AIC) %>%
+  dplyr::arrange(AIC) %>%
   dplyr::arrange(BIC) %>%
   dplyr::slice(1)
 
 bestData
 
+# 2023.11.21
+# m3 = tidyLPA::estimate_profiles(modelCfg, n_profiles = 4, variances = "equal", covariances = "zero")
 m3 = tidyLPA::estimate_profiles(modelCfg, n_profiles = bestData$Classes, variances = "equal", covariances = "zero")
 
 # 밀도함수 시각화
 saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, "plot_density")
-dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
+dir.create(fs::path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
 
 tidyLPA::plot_density(m3) +
   theme(text = element_text(size = 16)) +
@@ -431,9 +473,9 @@ cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 
 # 프로파일 시각화
 saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, "plot_profiles")
-dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
+dir.create(fs::path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
 
-tidyLPA::plot_profiles(m3) +
+tidyLPA::plot_profiles(m3, add_line = T) +
   theme(text = element_text(size = 16)) +
   ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
 
@@ -444,40 +486,38 @@ get_data(m3) %>%
   dplyr::group_by(Class) %>%
   count()
 
+
 #주요 변수 combine
 c3 = get_data(m3) %>% 
-  as.tibble() %>% 
+  as_tibble() %>% 
   dplyr::select(Class)
 
 data_2 = data_1 %>% 
-  dplyr::select(fam_total:function_total, paybur_1)
+  dplyr::select(fam_total:function_total, paybur_11, inten_1)
 
 # colnames(m2)
 # colnames(data_2)
 
-data_3 = cbind(m2, data_2, c3) %>%
-  dplyr::mutate(
-    Class_fac = as.factor(Class),
-    inten_1_num = as.numeric(inten_1)
-  )
+data_3 = cbind(m2, data_2, c3) %>% 
+  dplyr::mutate(Class_fac = as.factor(Class))
 
+# data_3 %>% as.factor(Class) %>% as.factor(inten_1)
 
 
 # 그림4 요양병원 장기입원 노인 환자에 따른 잠재유형2 잠재프로파일
 # <표 5> 노인 환자 잠재유형의 응답 평균 및 표준편차
 # statData$key %>% unique() %>% sort()
 statData = data_3 %>%
-  dplyr::select(c(illper_total, function_total, paybur_1, fam_total, carebur_total, satisf_total, continu_total, service_total, Class)) %>% 
+  dplyr::select(c(illper_total, function_total, fam_total, carebur_total, satisf_total, continu_total, service_total, Class)) %>% 
   tidyr::gather(-Class, key = "key", value = "val") %>% 
   dplyr::mutate(
     label = dplyr::case_when(
-      stringr::str_detect(key, regex("carebur_total")) ~ "돌봄 부담에 대한 인지"
-      , stringr::str_detect(key, regex("continu_total")) ~ "돌봄 지속성"
-      , stringr::str_detect(key, regex("fam_total")) ~ "가족 지지"
+      stringr::str_detect(key, regex("illper_total")) ~ "질병 인식"
       , stringr::str_detect(key, regex("function_total")) ~ "기능적 독립"
-      , stringr::str_detect(key, regex("illper_total")) ~ "질병 인식"
-      , stringr::str_detect(key, regex("paybur_1")) ~ "환자 의료비 부담"
+      , stringr::str_detect(key, regex("fam_total")) ~ "가족 지지"
+      ,  stringr::str_detect(key, regex("carebur_total")) ~ "돌봄 부담에 대한 인지"
       , stringr::str_detect(key, regex("satisf_total")) ~ "거주 만족도"
+      , stringr::str_detect(key, regex("continu_total")) ~ "돌봄 지속성"
       , stringr::str_detect(key, regex("service_total")) ~ "지역사회서비스 접근용이성"
     )
   ) %>% 
@@ -488,164 +528,357 @@ statData = data_3 %>%
   )
 
 # 정렬
-statData$label = forcats::fct_relevel(statData$label, c("가족 지지", "돌봄 부담에 대한 인지", "질병 인식", "환자 의료비 부담", "거주 만족도", "돌봄 지속성", "지역사회서비스 접근용이성", "기능적 독립"))
+# statData$label = forcats::fct_relevel(statData$label, c("가족 지지", "돌봄 부담에 대한 인지", "질병 인식", "환자 의료비 부담", "거주 만족도", "돌봄 지속성", "지역사회서비스 접근용이성", "기능적 독립"))
+statData$label = forcats::fct_relevel(statData$label, c("질병 인식", "기능적 독립", "가족 지지", "돌봄 부담에 대한 인지", "거주 만족도", "돌봄 지속성", "지역사회서비스 접근용이성"))
 statData$Class = as.factor(statData$Class)
 
-mainTitle = sprintf("요양병원 장기입원 노인 환자에 따른 잠재유형2 잠재프로파일 %s", "막대그래프")
+mainTitle = sprintf("요양병원 장기입원 노인 환자 잠재유형", "막대그래프")
 saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
 dir.create(fs::path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
+
+# install.packages("ggplot2")
 
 ggplot(statData, aes(x = label, y = meanVal, color = Class, group = Class)) +
   geom_line() +
   geom_point() +
-  ggrepel::geom_text_repel(aes(label = scales::comma(meanVal)), vjust = -1.0, size = 4, show.legend = FALSE) +
+  # ggrepel::geom_text_repel(aes(label = scales::comma(meanVal)), vjust = -1.0, size = 4, show.legend = FALSE) +
+  ggrepel::geom_text_repel(aes(label = round(meanVal, 2)), vjust = -1.0, size = 4, show.legend = FALSE) +
   labs(x = NULL, y = "평균", fill = NULL, color = NULL, title = NULL, subtitle = mainTitle) +
   theme(
     text = element_text(size = 16)
     , axis.text.x = element_text(angle = 45, hjust = 1)
-  ) +
-  ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
+    ) 
 
 cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 
 
+# ===================================================================
+# 다. 분류된 장기입원 잠재유형간 평균 차이 검정 
+# <표 6> 잠재유형간 주요 요인의 평균 차이 검정 결과
+# ===================================================================
+selData = data_3 %>%
+  dplyr::select(c(illper_total, function_total, fam_total, carebur_total, satisf_total, continu_total, service_total))
+
+# 질병인식의 경우 aov 검정 결과에서 P값은 1.0552e-14로서 유의수준 0.05 이하에서 잠재유형 간에 통계적으로 유의미한 차이가 있음.
+# 사후 검정 결과 유형3이 유형 1과 2에 비해 높은 평균값을 가짐
+
+# 기능적 독립의 경우 aov 검정 결과에서 P값은 2.22e-16로서 유의수준 0.05 이하에서 잠재유형 간에 통계적으로 유의미한 차이가 있음.
+# 사후 검정 결과 유형3이 유형 1과 2에 비해 높은 평균값을 가짐
+
+# 가족지지의 경우 aov 검정 결과에서 P값은 4.668e-05로서 유의수준 0.05 이하에서 잠재유형 간에 통계적으로 유의미한 차이가 있음.
+# 사후 검정 결과 유형3이 유형 1과 2에 비해 높은 평균값을 가짐
+
+# 돌봄 부담에 대한 인지의 경우 aov 검정 결과에서 P값은 0.013552로서 유의수준 0.05 이하에서 잠재유형 간에 통계적으로 유의미한 차이가 있음.
+# 사후 검정 결과 유형3이 유형 1과 2에 비해 높은 평균값을 가짐. 유형 2와 1 간의 차이는 유의하지 못함
+
+# 거주 만족도의 경우 aov 검정 결과에서 P값은 2.2945e-12로서 유의수준 0.05 이하에서 잠재유형 간에 통계적으로 유의미한 차이가 있음.
+# 사후 검정 결과 유형3이 유형 1과 2에 비해 높은 평균값을 가짐. 
+
+# 돌봄 지속성의 경우 aov 검정 결과에서 P값은 2.22e-16로서 유의수준 0.05 이하에서 잠재유형 간에 통계적으로 유의미한 차이가 있음.
+# 사후 검정 결과 유형3이 유형 1과 2에 비해 높은 평균값을 가짐.
+
+# 지역사회서비스 접근용이성의 경우 aov 검정 결과에서 P값은 2.22e-16로서 유의수준 0.05 이하에서 잠재유형 간에 통계적으로 유의미한 차이가 있음.
+# 사후 검정 결과 유형3이 유형 1과 2에 비해 높은 평균값을 가짐.
+
+for (name in names(selData)) {
+  cat(sprintf("[CHECK] name : %s", name), "\n")
+  
+  colInfo = get(name, selData)
+
+  meanVal = mean(colInfo, na.rm = TRUE) %>% round(2)
+  cat(sprintf("[CHECK] meanVal : %s", meanVal), "\n")
+  
+  sdVal = sd(colInfo, na.rm = TRUE) %>% round(2)
+  cat(sprintf("[CHECK] sdVal : %s", sdVal), "\n")
+  
+  aovRes = aov(colInfo ~ Class_fac, data = data_3)
+  tVal = summary(aovRes)[[1]]["Class_fac", "F value"] %>% round(2)
+  cat(sprintf("[CHECK] tVal : %s", tVal), "\n")
+  
+  summary(aovRes) %>% print()
+  
+  # 사후 검정을 위해서 잠재유형 간의 평균이 통계적 유의성 검정
+  thkRes = TukeyHSD(aovRes)
+  thkRes$Class_fac %>% print()
+}
+
+
+# ===================================================================
+# 나. 노인 환자 잠재유형간 퇴원결정 이유 차이
+# <표 9> 잠재유형에 따른 퇴원결정 이유 평균과 표준편차 사후검정
+# ===================================================================
+# inten_res_1의 경우 5가지 답변 (0~4까지 점수)에서 1를 기준으로 2가지 답변 (틀림 1, 맞음 2)으로 재 환산
+
+# 질병인식의 경우 aov 검정 결과에서 P값은 1.0552e-14로서 유의수준 0.05 이하에서 잠재유형 간에 통계적으로 유의미한 차이가 있음.
+# 사후 검정 결과 유형3이 유형 1과 2에 비해 높은 평균값을 가지고 통계적으로 유의함
+
+# 1.퇴원 후 돌봄, 식사, 이동서비스 등이 제공되어서
+# aov 검정 결과에서 P값은 0.16914로서 유의수준 0.05 이하에서 잠재유형 간에 통계적으로 유의미한 차이가 없음
+# 사후 검정 결과 모든 유형 간의 차이도 통계적으로 유의하지 않음
+
+# 2.거주할 곳이 마련되어서
+# aov 검정 결과에서 P값은 0.00043466로서 유의수준 0.05 이하에서 잠재유형 간에 통계적으로 유의미한 차이가 있음
+# 사후 검정 결과 유형3이 유형 1과 2에 비해 낮은 평균값을 가지고 통계적으로 유의함
+# 따라서 퇴원결정에 있어서 중요한 요소로 판단됨
+
+# 3.입원치료가 더이상 필요 없어서 (통원 치료가 가능해서)
+# aov 검정 결과에서 P값은 0.84002로서 유의수준 0.05 이하에서 잠재유형 간에 통계적으로 유의미한 차이가 없음
+# 사후 검정 결과 모든 유형 간의 차이도 통계적으로 유의하지 않음
+
+# 4.병원이 불편해서
+# aov 검정 결과에서 P값은 0.0027135로서 유의수준 0.05 이하에서 잠재유형 간에 통계적으로 유의미한 차이가 있음
+# 사후 검정 결과 유형3이 유형 1과 2에 비해 낮은 평균값을 가지고 통계적으로 유의함
+# 따라서 퇴원결정에 있어서 중요한 요소로 판단됨
+
+# 5.집이 그리워서
+# aov 검정 결과에서 P값은 0.0017086로서 유의수준 0.05 이하에서 잠재유형 간에 통계적으로 유의미한 차이가 있음
+# 사후 검정 결과 유형3이 유형 1과 2에 비해 낮은 평균값을 가지고 통계적으로 유의함
+# 따라서 퇴원결정에 있어서 중요한 요소로 판단됨
+
+# 6.계속 병원에 있을 수 없어서
+# aov 검정 결과에서 P값은 0.045321로서 유의수준 0.05 이하에서 잠재유형 간에 통계적으로 유의미한 차이가 있음
+# 사후 검정 결과 유형3이 유형 1에 비해 낮은 평균값을 가지고 통계적으로 유의함
+# 따라서 퇴원결정에 있어서 중요한 요소로 판단됨
+
+# 7.가족들의 결정에 따라서
+# aov 검정 결과에서 P값은 0.0057591로서 유의수준 0.05 이하에서 잠재유형 간에 통계적으로 유의미한 차이가 있음
+# 사후 검정 결과 유형3이 유형 1에 비해 낮은 평균값을 가지고 통계적으로 유의함
+
+# 즉 "퇴원 후 돌봄, 식사, 이동서비스 등이 제공되어서" 및 "입원치료가 더이상 필요 없어서"의 경우 잠재유형 간에 큰 차이를 보이지 않았으나 그 외의 경우 유의미 차이를 보임
+# 특히 유형3은 다른 유형 1,2에 비해 덜 중요한 요소로 판단됨
+
+# dplyr::select(c(illper_total, function_total, fam_total, carebur_total, satisf_total, continu_total, service_total))
+
+nameList = c("inten_res_1_num", "inten_res_2_num", "inten_res_3_num", "inten_res_4_num", "inten_res_5_num", "inten_res_6_num", "inten_res_7_num")
+clsList = data_3$Class %>% unique() %>% sort()
+
+for (name in nameList) {
+  cat(sprintf("[CHECK] name : %s", name), "\n")
+  
+  selData = data_3 %>%
+    dplyr::select(name, Class, Class_fac)
+  
+  if (nrow(selData) < 1) next
+  
+  for (cls in clsList) {
+    cat(sprintf("[CHECK] cls : %s", cls), "\n")
+    
+    selDataL1 = selData %>%
+      dplyr::filter(Class == cls)
+      
+    if (nrow(selDataL1) < 1) next
+    
+    colDtlInfo = get(name, selDataL1)
+    
+    meanVal = mean(colDtlInfo, na.rm = TRUE) %>% round(2)
+    cat(sprintf("[CHECK] meanVal : %s", meanVal), "\n")
+    
+    sdVal = sd(colDtlInfo, na.rm = TRUE) %>% round(2)
+    cat(sprintf("[CHECK] sdVal : %s", sdVal), "\n")
+  }
+
+  colInfo = get(name, selData)
+  aovRes = aov(colInfo ~ Class_fac, data = selData)
+  tVal = summary(aovRes)[[1]]["Class_fac", "F value"] %>% round(2)
+  cat(sprintf("[CHECK] tVal : %s", tVal), "\n")
+  
+  summary(aovRes) %>% print()
+  
+  # 사후 검정을 위해서 잠재유형 간의 평균이 통계적 유의성 검정
+  thkRes = TukeyHSD(aovRes)
+  thkRes$Class_fac %>% print()
+}
+
+
 # ==============================================================================
-# 3. 잠재유형에 따른 퇴원의향의 차이 비교: 
+# 2. 분류된 잠재유형에 대한 영향요인
+# 가. 잠재유형간 영향을 미치는 예측변인 탐색  
 # ==============================================================================
-# 2. 노인 환자 잠재유형에 따른 퇴원의향
-# 가. 노인 환자 잠재유형간 퇴원 의향 차이
-statData = data_3 %>% 
-  dplyr::group_by(Class, inten_1_fac) %>% 
-  dplyr::summarise(
-    cnt = n()
-    , rat = cnt / nrow(data_3) * 100.0
-  ) %>% 
-  dplyr::mutate(
-    label = sprintf("%s (%s)", round(rat, 2), cnt)
-  )
-print(statData)
-
-# 잠재유형에 따른 퇴원의향 평균/표준편차
-data_3 %>% 
-  dplyr::group_by(Class) %>% 
-  dplyr::summarise(
-    meanVal = mean(inten_1_num, na.rm = TRUE), 
-    sd = sd(inten_1_num, na.rm = TRUE)
-  )
-
-# 잠재유형 (독립변수 범주형)과 퇴원의향 (종속변수 범주형)에 대한 독립성 검증 (카이제곱 검정)
-tableRes = base::table(data_3$inten_1, data_3$Class_fac)
-chiRes = chisq.test(tableRes)
-chiRes
-
-# 잠재유형과 퇴원의향에 대한 독립성 검증을 위해서 카이제곱 검정을 수행함
-# 그 결과 P값는 0.13으로서 0.05 이하에서 통계적으로 유의미한 관계가 없기 때문에 서로 간의 관계성이 없음
-
-# Pearson's Chi-squared test
-# 
-# data:  tableRes
-# X-squared = 11.073039, df = 7, p-value = 0.1354647
-
-# 일원배치 분산분석은 하나의 범주형 독립변수가 연속형 종속변수에 미치는 효과를 평가합니다. 
-# 퇴원의향이 점수화 되어 있을 경우(예를 들어, 퇴원 의향의 강도)
-
-# 잠재유형 (종속변수 범주형)에 따른 퇴원의향 (종속변수 연속형)의 평균 차이평가 (일원배치 분산분석)
-# 잠재유형 (종속변수 범주형)에 따른 퇴원의향 (종속변수 연속형)의 평균 차이 평가를 위해서 일원배치 분산분석을 수행함
-# 그 결과 P값는 0.13으로서 0.05 이하에서 통계적으로 유의미한 관계가 없기 때문에 서로 간의 평균 차이는 우연에 의해 발생했을 가능성이 높음 (연관성 없음)
-aovRes = aov(inten_1_num ~ Class_fac, data = data_3)
-summary(aovRes)
-
-# plot(aovRes, 1)
-
-# 사후 검정을 위해서 잠재유형 간의 평균이 통계적 유의성 검정
-# thkRes = TukeyHSD(aovRes)
-# summary(thkRes, which = "Class_fac")
-# plot(thkRes)
-
-# boxplot으로 비교하기
-boxplot(data = data_3, inten_1 ~ Class, main = "환자유형에 따른 퇴원의향 비교", xlab = "환자유형", ylab = "퇴원의향", col = c("lightgreen"))
-
-# 일반적 특성에 따른 퇴원의향 차이
-# demog_aov = aov(inten_1 ~ gender + residen_home + live_alone + marriage + ltc_insurance + med_aid + chronic + adm_way + classification + age_g + duration_l, data = data_3)
-demog_aov = aov(inten_1_num ~ gender + residen_home + live_alone + marriage + ltc_insurance + med_aid + chronic + adm_way + classification, data = data_3)
-summary(demog_aov) #residen_home=.004**, adm_way=.019*, duration_1=.047* (adm_way는 n수 부족)
-
-# 거주지 차이: 중소도시와 대도시간의 퇴원의향의 평균에 차이가 있다. p=.003**
-summary(glht(demog_aov, linfct = mcp(residen_home = "Tukey"))) 
-
-# 외래/응급 p=.099
-summary(glht(demog_aov, linfct = mcp(adm_way = "Tukey")))
-
-# 120일 이상/이하 p=.476*
-# summary(glht(demog_aov, linfct = mcp(duration_l = "Tukey"))) 
-
-# ==============================================================================
-# 4. 잠재유형의 퇴원의향에 영향을 미치는 요인 
-# ==============================================================================
-# 로지스틱 회귀분석을 통해 잠재유형의 퇴원의향에 영향을 미치는 요인을 탐색
+# 다항 로지스틱 회귀분석을 통해 잠재유형의 퇴원의향에 영향을 미치는 요인을 탐색
 data_4 = data_3 %>% 
-  dplyr::mutate(
-    inten_1_num = ifelse(inten_1 == "의향없음", 0, 1)
-  ) %>% 
-  na.omit() %>% 
-  dplyr::select(inten_1_num, Class, fam_total, carebur_total, illper_total, satisf_total, continu_total, service_total, function_total, paybur_1, age, duration)
+  # dplyr::select(c(Class_fac, illper_total, function_total, fam_total, carebur_total, satisf_total, continu_total, service_total))
+  dplyr::select(c(Class_fac, age_g, gender, residen_home, live_alone, marriage, ltc_insurance, med_aid, duration_l, adm_way, classification, function_total, function2_total, function3_total, function4_total)) %>% 
+  dplyr::mutate(across(c(age_g, gender, residen_home, live_alone, marriage, ltc_insurance, med_aid, duration_l, adm_way, classification, function_total, function2_total, function3_total, function4_total), as.numeric))
 
-testData = data_4
+# 참조집단 1 - 비교집단 2
+# 참조집단 1 - 비교집단 3
+data_4$Class_fac = relevel(data_4$Class_fac, ref = "1")
+mulModel = nnet::multinom(Class_fac ~ ., data = data_4)
 
-# 전체 변수에 대한 로지스틱 회귀모형 수행
-# 독립변수 : 퇴원의향 제외한 전체 변수
-# 종속변수 : 퇴원의향
-glmFitVarAll = glm(inten_1_num ~ ., data = data_4, family = binomial)
+# 회귀계수
+summary(mulModel)$coefficients %>% round(2) %>% t()
 
-# 기본값으로 변수 선택
-# rsStep = step(glmFitVarAll)
-# summary(rsStep)
+# 표준오차
+summary(mulModel)$standard.errors %>% round(2) %>% t()
 
-# AIC 기준으로 변수 선택
-rsStepAic = MASS::stepAIC(glmFitVarAll, direction = "both")
+# OR 추정값
+exp(coef(mulModel)) %>% round(2)
 
-# 결과에 대한 요약
-summary(rsStepAic)
-
-# 한 눈에 분석 결과 확인 가능
-rsStepAic$anova
+# 유의성 검정
+zTest = summary(mulModel)$coefficients / summary(mulModel)$standard.errors
+pVal = ((1 - pnorm(abs(zTest), 0, 1)) * 2) %>% round(2) %>% t()
+pVal
 
 
-# 테스트셋을 이용한 예측
-obs = testData$inten_1_num
-prd = predict.glm(rsStepAic, newdata = testData, type = "response")
-prdBin = ifelse(prd > 0.5, 1, 0)
+# 참조집단 2 - 비교집단 3
+data_4$Class_fac = relevel(data_4$Class_fac, ref = "2")
+mulModel = nnet::multinom(Class_fac ~ ., data = data_4)
 
-# 검증 측정을 위한 기초 설정
-lmPred = ROCR::prediction(prd, obs)
+# 회귀계수
+summary(mulModel)$coefficients %>% round(2) %>% t()
 
-# ROC 커브를 위한 설정
-perform = ROCR::performance(lmPred, "tpr", "fpr")
-plot(perform, main = 'ROC Curve')
+# 표준오차
+summary(mulModel)$standard.errors %>% round(2) %>% t()
 
-# AUC 측정 : 1에 가까울수록 최고 성능 : 0.69
-ROCR::performance(lmPred, "auc")@y.values[[1]]
+# OR 추정값
+exp(coef(mulModel)) %>% round(2) %>% t()
 
-# 이항편차 측정 : 낮을수록 좋음 : 56.67
-# abdiv::binomial_deviance(obs, prd)
-
-
-# 분할표에서 퇴원 O/X일때 실측 (obs), 예측 (prdBin)에서 서로간의 동일할 경우 높은 성능을 보임
-# 즉 반면에 실측/예측에서 서로간의 퇴원여부가 서로 다를 다소 오차를 보임
-# 이는 데이터 개수가 155개로 적기 때문에 다양한 조건에 대해 학습자료의 부재로 판단됨
-# 따라서 다종다양한 학습 데이터를 수집할 뿐만 아니라 분석 변수를 포함한다면 퇴원여부의 예측 성능이 향상될 것으로 사료됨
-#    prdBin
-# obs  0  1
-# 0 46 30
-# 1 25 48
-table(obs, prdBin)
+# 유의성 검정
+zTest = summary(mulModel)$coefficients / summary(mulModel)$standard.errors
+pVal = ((1 - pnorm(abs(zTest), 0, 1)) * 2) %>% round(2) %>% t()
+pVal
 
 
+# # ==============================================================================
+# # 3. 잠재유형에 따른 퇴원의향의 차이 비교: 
+# # ==============================================================================
+# # 2. 노인 환자 잠재유형에 따른 퇴원의향
+# # 가. 노인 환자 잠재유형간 퇴원 의향 차이
+# statData = data_3 %>%
+#   dplyr::group_by(Class, inten_1) %>% 
+#   dplyr::summarise(
+#     cnt = n()
+#     , rat = cnt / nrow(data_3) * 100.0
+#   ) %>% 
+#   dplyr::mutate(
+#     label = sprintf("%s (%s)", round(rat, 2), cnt)
+#   )
+# print(statData)
+# 
+# # 잠재유형에 따른 퇴원의향 평균/표준편차
+# data_3 %>% 
+#   dplyr::group_by(Class) %>% 
+#   dplyr::summarise(
+#     meanVal = mean(inten_1_num, na.rm = TRUE), 
+#     sd = sd(inten_1_num, na.rm = TRUE)
+#   )
+# 
+# # 잠재유형 (독립변수 범주형)과 퇴원의향 (종속변수 범주형)에 대한 독립성 검증 (카이제곱 검정)
+# tableRes = base::table(data_3$inten_1, data_3$Class_fac)
+# chiRes = chisq.test(tableRes)
+# chiRes
+# 
+# # 잠재유형과 퇴원의향에 대한 독립성 검증을 위해서 카이제곱 검정을 수행함
+# # 그 결과 P값는 0.13으로서 0.05 이하에서 통계적으로 유의미한 관계가 없기 때문에 서로 간의 관계성이 없음
+# 
+# # Pearson's Chi-squared test
+# # 
+# # data:  tableRes
+# # X-squared = 11.073039, df = 7, p-value = 0.1354647
+# 
+# # 일원배치 분산분석은 하나의 범주형 독립변수가 연속형 종속변수에 미치는 효과를 평가합니다. 
+# # 퇴원의향이 점수화 되어 있을 경우(예를 들어, 퇴원 의향의 강도)
+# 
+# # 잠재유형 (종속변수 범주형)에 따른 퇴원의향 (종속변수 연속형)의 평균 차이평가 (일원배치 분산분석)
+# # 잠재유형 (종속변수 범주형)에 따른 퇴원의향 (종속변수 연속형)의 평균 차이 평가를 위해서 일원배치 분산분석을 수행함
+# # 그 결과 P값는 0.13으로서 0.05 이하에서 통계적으로 유의미한 관계가 없기 때문에 서로 간의 평균 차이는 우연에 의해 발생했을 가능성이 높음 (연관성 없음)
+# aovRes = aov(inten_1_num ~ Class_fac, data = data_3)
+# summary(aovRes)
+# 
+# aovRes = aov(inten_1 ~ Class_fac, data = data_3) 
+# summary(aovRes)
+# 
+# # plot(aovRes, 1)
+# 
+# # 사후 검정을 위해서 잠재유형 간의 평균이 통계적 유의성 검정
+# # thkRes = TukeyHSD(aovRes)
+# # summary(thkRes, which = "Class_fac")
+# # plot(thkRes)
+# 
+# # boxplot으로 비교하기
+# boxplot(data = data_3, inten_1 ~ Class, main = "환자유형에 따른 퇴원의향 비교", xlab = "환자유형", ylab = "퇴원의향", col = c("lightgreen"))
+# 
+# # 일반적 특성에 따른 퇴원의향 차이
+# # demog_aov = aov(inten_1 ~ gender + residen_home + live_alone + marriage + ltc_insurance + med_aid + chronic + adm_way + classification + age_g + duration_l, data = data_3)
+# demog_aov = aov(inten_1_num ~ gender + residen_home + live_alone + marriage + ltc_insurance + med_aid + chronic + adm_way + classification, data = data_3)
+# summary(demog_aov) #residen_home=.004**, adm_way=.019*, duration_1=.047* (adm_way는 n수 부족)
+# 
+# # 거주지 차이: 중소도시와 대도시간의 퇴원의향의 평균에 차이가 있다. p=.003**
+# summary(glht(demog_aov, linfct = mcp(residen_home = "Tukey"))) 
+# 
+# # 외래/응급 p=.099
+# summary(glht(demog_aov, linfct = mcp(adm_way = "Tukey")))
+# 
+# # 120일 이상/이하 p=.476*
+# # summary(glht(demog_aov, linfct = mcp(duration_l = "Tukey"))) 
 
-# 장기입원 환자유형에 따른 퇴원의향의 차이를 확인하기 위해 정규성 검증 (일원배치 분산분석)
-# 그 결과 P값는 0.02으로서 0.05 이하에서 통계적으로 유의미하기 때문에 정규분포를 따르지 않는다고 판단됨
-tableRes = table(data_3$inten_1, data_3$Class_fac)
-tableRes
-
-shaRes = shapiro.test(tableRes)
-shaRes
+# # ==============================================================================
+# # 4. 잠재유형의 퇴원의향에 영향을 미치는 요인 
+# # ==============================================================================
+# # 로지스틱 회귀분석을 통해 잠재유형의 퇴원의향에 영향을 미치는 요인을 탐색
+# data_4 = data_3 %>% 
+#   dplyr::mutate(
+#     inten_1_fac_num = ifelse(inten_1_fac == "의향없음", 0, 1)
+#   ) %>% 
+#   na.omit() %>% 
+#   dplyr::select(c(inten_1_fac_num, illper_total, function_total, fam_total, carebur_total, satisf_total, continu_total, service_total))
+# 
+# testData = data_4
+# 
+# # 전체 변수에 대한 로지스틱 회귀모형 수행
+# # 독립변수 : 퇴원의향 제외한 전체 변수
+# # 종속변수 : 퇴원의향
+# glmFitVarAll = glm(inten_1_fac_num ~ ., data = data_4, family = binomial)
+# 
+# # 기본값으로 변수 선택
+# # rsStep = step(glmFitVarAll)
+# # summary(rsStep)
+# 
+# # AIC 기준으로 변수 선택
+# rsStepAic = MASS::stepAIC(glmFitVarAll, direction = "both")
+# 
+# # 결과에 대한 요약
+# summary(rsStepAic)
+# 
+# # 한 눈에 분석 결과 확인 가능
+# rsStepAic$anova
+# 
+# 
+# # 테스트셋을 이용한 예측
+# obs = testData$inten_1_fac_num
+# prd = predict.glm(rsStepAic, newdata = testData, type = "response")
+# prdBin = ifelse(prd > 0.5, 1, 0)
+# 
+# # 검증 측정을 위한 기초 설정
+# lmPred = ROCR::prediction(prd, obs)
+# 
+# # ROC 커브를 위한 설정
+# perform = ROCR::performance(lmPred, "tpr", "fpr")
+# plot(perform, main = 'ROC Curve')
+# 
+# # AUC 측정 : 1에 가까울수록 최고 성능 : 0.69
+# ROCR::performance(lmPred, "auc")@y.values[[1]]
+# 
+# # 이항편차 측정 : 낮을수록 좋음 : 56.67
+# # abdiv::binomial_deviance(obs, prd)
+# 
+# 
+# # 분할표에서 퇴원 O/X일때 실측 (obs), 예측 (prdBin)에서 서로간의 동일할 경우 높은 성능을 보임
+# # 즉 반면에 실측/예측에서 서로간의 퇴원여부가 서로 다를 다소 오차를 보임
+# # 이는 데이터 개수가 155개로 적기 때문에 다양한 조건에 대해 학습자료의 부재로 판단됨
+# # 따라서 다종다양한 학습 데이터를 수집할 뿐만 아니라 분석 변수를 포함한다면 퇴원여부의 예측 성능이 향상될 것으로 사료됨
+# #    prdBin
+# # obs  0  1
+# # 0 46 30
+# # 1 25 48
+# table(obs, prdBin)
+# 
+# 
+# 
+# # 장기입원 환자유형에 따른 퇴원의향의 차이를 확인하기 위해 정규성 검증 (일원배치 분산분석)
+# # 그 결과 P값는 0.02으로서 0.05 이하에서 통계적으로 유의미하기 때문에 정규분포를 따르지 않는다고 판단됨
+# tableRes = table(data_3$inten_1_fac, data_3$Class_fac)
+# tableRes
+# 
+# shaRes = shapiro.test(tableRes)
+# shaRes
