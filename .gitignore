@@ -8,12 +8,14 @@ resources/
 .idea/
 fig_files/
 testSys/
+
 # 특정 파일
 .Rproj.user
 .Rhistory
 .RData*
 info_parallel.log
 fig.html
+
 # 하위 파일 전체
 *.cfg
 *.ttf
@@ -26,11 +28,11 @@ fig.html
 .RData*
 *.html
 *.png
-*.csv
+#*.csv
 *.txt
 *.pdf
 *.ini
-.csv
+#.csv
 .txt
 .bin
 .RData
