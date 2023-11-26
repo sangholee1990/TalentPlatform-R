@@ -58,6 +58,7 @@ library(fs)
 # fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "K.TAEAN호설치전후평가_230405.xlsx"))
 fileList = Sys.glob(file.path(globalVar$inpPath, serviceName, "*.xlsx"))
 
+# fileInfo = fileList[1]
 orgDataL2 = tibble::tibble()
 for (fileInfo in fileList) {
   cat(sprintf("[CHECK] fileInfo : %s", fileInfo), "\n")
