@@ -13,6 +13,11 @@
 #================================================
 # R을 이용한 제품전후 전력량 비교 및 통계 검정 보고서 (08.08일 기준으로 이전 및 이후)
 
+# 8월 8일 기준 이전 데이타와 이후 데이타의 값이 얼마나 감소 했나? 입니다.
+# 이데이타는 컨테이너 항에 있는 크레인의 전력 사용량 값입니다.
+# 크레인의 가동에 따라 전력값이 변화 하기때문에 이 데이타 값을 어떻게 기준을 잡아야 할지를 이데이타에서 확인 해야 합니다.
+# 감사합니다.
+
 # ================================================
 # 초기 환경변수 설정
 # ================================================
@@ -63,38 +68,45 @@ orgDataL2 = tibble::tibble()
 for (fileInfo in fileList) {
   cat(sprintf("[CHECK] fileInfo : %s", fileInfo), "\n")
     
-  orgData = openxlsx::read.xlsx(fileInfo, sheet = 1, startRow = 15)
+  orgData = openxlsx::read.xlsx(fileInfo, sheet = 1, startRow = 0)
   
   orgDataL1 = orgData %>% 
-    dplyr::select(c("sDateTime", "WP+_INTVL[Wh]_1")) %>% 
     tibble::as.tibble() %>% 
+    tidyr::gather(-X1, key = "key", value = "val") %>% 
     dplyr::mutate(
-      dtDateTime = readr::parse_datetime(sDateTime, format = "%Y-%m-%d %H:%M:%S")
+      sDateTime = sprintf("%s %s", key, X1)
+    ) %>% 
+    dplyr::select(-c("X1", "key")) %>% 
+    dplyr::mutate(
+      dtDateTime = readr::parse_datetime(sDateTime, format = "%Y-%m-%d %H:%M")
       , dtDate = lubridate::date(dtDateTime)
     ) %>% 
     dplyr::mutate(
       label = dplyr::case_when(
-        as.Date("2022-02-16") <= dtDate & dtDate <= as.Date("2022-04-01") ~ "before"
-        , as.Date("2022-04-01") <= dtDate & dtDate <= as.Date("2022-05-02") ~ "before"
-        , as.Date("2022-05-03") <= dtDate & dtDate <= as.Date("2022-08-24") ~ "after"
-        , as.Date("2022-08-25") <= dtDate & dtDate <= as.Date("2022-11-01") ~ "before"
-        , as.Date("2022-11-01") <= dtDate & dtDate <= as.Date("2023-02-15") ~ "before"
-        , as.Date("2023-02-16") <= dtDate & dtDate <= as.Date("2023-05-10") ~ "after"
-        , TRUE ~ NA_character_
+        as.Date("2023-08-08") <= dtDate ~ "after"
+        , TRUE ~ "before"
       )
     ) %>% 
     dplyr::filter(
-      ! is.na(label)
+      ! is.na(val)
       , ! is.na(dtDate)
     )
  
   orgDataL2 = dplyr::bind_rows(orgDataL2, orgDataL1)
 }
 
+
+orgDataL2$label = as.factor(orgDataL2$label)
+wilcox_test_result <- wilcox.test(val ~ label, data = orgDataL2)
+
+wilcox_test_result <- wilcox.test(val ~ label, p.adjust.methods = "bonferroni", correct = FALSE, data = orgDataL2)
+wilcox_test_result
+# library(dunn.test)
+orgDataL3 = orgDataL2 %>% 
+  dplyr::select(label, val)
+dunn.test::dunn.test(val ~ label, data = orgDataL3)
+
 data = orgDataL2 %>% 
-  dplyr::rename(
-    "val" = "WP+_INTVL[Wh]_1"
-  ) %>% 
   dplyr::mutate(
     dtYear = lubridate::year(dtDateTime)
     , dtMonth = lubridate::month(dtDateTime)
@@ -105,14 +117,23 @@ data = orgDataL2 %>%
     sumVal = sum(val, na.rm = TRUE)
   )
 
-data2022 = data %>% 
-  dplyr::filter(dtYear == 2022)
+# wilcox_test_result <- wilcox.test(sumVal ~ label, data = data)
+# wilcox_test_result
 
-data2023 = data %>% 
-  dplyr::filter(dtYear == 2023)
+wilcox_test_result <- wilcox.test(val ~ label, data, p.adjust.methods = "bonferroni", correct = FALSE)
+wilcox_test_result
 
-dataL1 = data2022 %>% 
-  dplyr::left_join(data2023, by = c("dtMonth" = "dtMonth", "dtDay" = "dtDay")) %>% 
+
+dataBef = data %>% 
+  dplyr::filter(label == "before")
+
+dataAft = data %>% 
+  dplyr::filter(label == "after")
+
+
+
+
+dataL1 = data %>% 
   dplyr::rename(
     "before" = "sumVal.x"
     ,  "after" = "sumVal.y"
