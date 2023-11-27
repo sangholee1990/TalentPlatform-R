@@ -126,6 +126,7 @@ library(lubridate)
 library(fs)
 library(httr)
 library(curl)
+library(openxlsx)
 
 # 설정 정보
 sysOpt = list(
@@ -135,14 +136,15 @@ sysOpt = list(
       , stn = "0"
       , help = "0"
       , saveFilePattern = "/DATA/OBS/%Y%m/%d/ASOS_OBS_%Y%m%d%H%M.csv"
+      , saveXlsxPattern = "/DATA/OBS/ASOS_OBS_%s-%s.xlsx"
     )
-    , aws = list(
-      url = "https://apihub.kma.go.kr/api/typ01/cgi-bin/url/nph-aws2_min"
-      , disp = "0"
-      , stn = "0"
-      , help = "0"
-      , saveFilePattern = "/DATA/OBS/%Y%m/%d/AWS_OBS_%Y%m%d%H%M.csv"
-    )
+    # , aws = list(
+    #   url = "https://apihub.kma.go.kr/api/typ01/cgi-bin/url/nph-aws2_min"
+    #   , disp = "0"
+    #   , stn = "0"
+    #   , help = "0"
+    #   , saveFilePattern = "/DATA/OBS/%Y%m/%d/AWS_OBS_%Y%m%d%H%M.csv"
+    # )
   )
   
   # 시작일/종료일
@@ -154,6 +156,9 @@ sysOpt = list(
   , authKey = "hQDU-t1aQHaA1PrdWvB2eA"
 )
 
+# ******************************************************************************
+# 자료 수집
+# ******************************************************************************
 # i = 1
 # key = "asos"
 # key = "aws"
@@ -161,6 +166,7 @@ for (key in names(sysOpt$apiInfo)) {
   apiInfo = sysOpt$apiInfo[[key]]
   cat(sprintf("[CHECK] key : %s", key), "\n")
   
+  # 날짜 목록
   dtDateList = seq(lubridate::ymd_hm(sysOpt$srtDate), lubridate::ymd_hm(sysOpt$endDate), by = "3 hours")
   
   for (i in 1:length(dtDateList)) {
@@ -221,4 +227,55 @@ for (key in names(sysOpt$apiInfo)) {
     readr::write_csv(data, saveFile, col_names = FALSE)
     cat(sprintf("[CHECK] API 성공 : %s : %s", dtDateInfo, saveFile), "\n")
   }
+}
+
+
+# ******************************************************************************
+# 자료 처리
+# ******************************************************************************
+# i = 1
+# key = "asos"
+for (key in names(sysOpt$apiInfo)) {
+  apiInfo = sysOpt$apiInfo[[key]]
+  cat(sprintf("[CHECK] key : %s", key), "\n")
+  
+  # 날짜 목록
+  dtDateList = seq(lubridate::ymd_hm(sysOpt$srtDate), lubridate::ymd_hm(sysOpt$endDate), by = "3 hours")
+  
+  # 파일 읽기
+  dataL2 = tibble::tibble()
+  for (i in 1:length(dtDateList)) {
+    dtDateInfo = dtDateList[i]
+    
+    saveFile = format(dtDateInfo, apiInfo$saveFilePattern)
+    if (file.exists(saveFile) == FALSE) next
+    
+    data = readr::read_csv(saveFile, col_names = FALSE, progress = FALSE, show_col_types = FALSE)
+
+    #  1. TM     : 관측시각 (KST)
+    #  2. STN    : 국내 지점번호
+    # 12. TA     : 기온 (C)
+    # 14. HM     : 상대습도 (%)
+    dataL1 = data %>% 
+      dplyr::rename(
+        TM = X1
+        , STN = X2
+        , TA = X12
+        , HM = X14
+      ) %>% 
+      dplyr::select(TM, STN, TA, HM) %>% 
+      dplyr::mutate(across(c(TM, STN), as.character))
+    
+    dataL2 = dplyr::bind_rows(dataL2, dataL1)
+  }
+  
+  
+  # 엑셀 저장
+  saveXlsxFile = sprintf(apiInfo$saveXlsxPattern , min(dataL2$TM, na.rm = TRUE), max(dataL2$TM, na.rm = TRUE))
+  dir.create(path_dir(saveXlsxFile), showWarnings = FALSE, recursive = TRUE)
+  wb = openxlsx::createWorkbook()
+  openxlsx::addWorksheet(wb, key)
+  openxlsx::writeData(wb, key, dataL2, startRow = 1, startCol = 1, colNames = TRUE, rowNames = FALSE)
+  openxlsx::saveWorkbook(wb, file = saveXlsxFile, overwrite = TRUE)
+  cat(sprintf("[CHECK] saveXlsxFile : %s", saveXlsxFile), "\n")
 }
