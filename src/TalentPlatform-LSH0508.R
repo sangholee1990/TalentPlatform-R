@@ -95,87 +95,50 @@ for (fileInfo in fileList) {
   orgDataL2 = dplyr::bind_rows(orgDataL2, orgDataL1)
 }
 
-
-orgDataL2$label = as.factor(orgDataL2$label)
-wilcox_test_result <- wilcox.test(val ~ label, data = orgDataL2)
-
-wilcox_test_result <- wilcox.test(val ~ label, p.adjust.methods = "bonferroni", correct = FALSE, data = orgDataL2)
-wilcox_test_result
-# library(dunn.test)
-orgDataL3 = orgDataL2 %>% 
-  dplyr::select(label, val)
-dunn.test::dunn.test(val ~ label, data = orgDataL3)
-
 data = orgDataL2 %>% 
   dplyr::mutate(
-    dtYear = lubridate::year(dtDateTime)
-    , dtMonth = lubridate::month(dtDateTime)
-    , dtDay = lubridate::day(dtDateTime)
-  ) %>% 
-  dplyr::group_by(dtYear, dtMonth, dtDay, label) %>% 
-  dplyr::summarise(
-    sumVal = sum(val, na.rm = TRUE)
+    # dtYear = lubridate::year(dtDateTime)
+    # , dtMonth = lubridate::month(dtDateTime)
+    # , dtDay = lubridate::day(dtDateTime)
+    dtYmd = format(dtDateTime, "%Y%m%d")
+  ) #%>% 
+
+dataL1 = data %>%
+  dplyr::mutate(
+    dtDate = readr::parse_date(dtYmd, "%Y%m%d")
+    , dtXran = lubridate::decimal_date(dtDate)
   )
 
-# wilcox_test_result <- wilcox.test(sumVal ~ label, data = data)
-# wilcox_test_result
+dataL1 %>% 
+  dplyr::ungroup() %>% 
+  # dplyr::select(label, sumVal) %>%
+  dplyr::select(label, val) %>%
+  dplyr::group_by(label) %>%
+  dplyr::summarise_all(list(
+    sum = ~sum(., na.rm = TRUE),
+    mean = ~mean(., na.rm = TRUE),
+    max = ~max(., na.rm = TRUE),
+    min = ~min(., na.rm = TRUE)
+  ))
 
-wilcox_test_result <- wilcox.test(val ~ label, data, p.adjust.methods = "bonferroni", correct = FALSE)
-wilcox_test_result
 
+prdData = data.frame(dtXran = c(2000, 2023.8, 2024))
 
-dataBef = data %>% 
+befData = dataL1 %>% 
   dplyr::filter(label == "before")
 
-dataAft = data %>% 
+befModel = lm(val ~ dtXran, data = befData)
+predict(befModel, newdata = prdData)
+
+# 100 - (6669 / 4494 * 100)
+
+
+aftData = dataL1 %>% 
   dplyr::filter(label == "after")
 
-
-
-
-dataL1 = data %>% 
-  dplyr::rename(
-    "before" = "sumVal.x"
-    ,  "after" = "sumVal.y"
-  ) %>% 
-  dplyr::ungroup() %>%
-  dplyr::select(before, after) %>%
-  dplyr::filter(! is.na(before), ! is.na(after)) %>% 
-  dplyr::mutate(
-    id = dplyr::row_number()
-  ) %>%
-  tidyr::gather(-id, key = "key", value = "val") %>%
-  dplyr::filter(
-    ! id %in% c(1, 45, 46)
-    , val < 2500000
-    )
-
-dataL1$key = as.factor(dataL1$key)
-
-dataL2 = dataL1 %>% 
-  tidyr::pivot_wider(names_from = key, values_from = val) %>% 
-  dplyr::mutate(rat = 100 - (after / before * 100)) %>% 
-  dplyr::mutate(key = "ratio")# %>% 
-  # dplyr::filter(abs(rat) > 100)
-
-dataL3 = dataL2 %>%
-  dplyr::select(-id, -before, -after, -key) %>% 
-  dplyr::summarise_all(list(
-    sum = ~sum(., na.rm = TRUE),
-    mean = ~mean(., na.rm = TRUE),
-    max = ~max(., na.rm = TRUE),
-    min = ~min(., na.rm = TRUE)
-  ))
-
-dataL1 %>% 
-  dplyr::select(-id) %>% 
-  dplyr::group_by(key) %>% 
-  dplyr::summarise_all(list(
-    sum = ~sum(., na.rm = TRUE),
-    mean = ~mean(., na.rm = TRUE),
-    max = ~max(., na.rm = TRUE),
-    min = ~min(., na.rm = TRUE)
-  ))
+aftModel = lm(val ~ dtXran, data = aftData)
+predict(aftModel, newdata = prdData)
+# 100 - (890 / 11138 * 100)
 
 # *****************************************
 # 시각화
@@ -185,13 +148,15 @@ saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, plotSubTitle)
 dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
 
 makePlot = ggpubr::ggscatter(
-  data = dataL1, x = "id", y = "val", color = "key"
-  , add = "reg.line", alpha = 0.3, palette = c("#00AFBB", "#E7B800")
+  data = dataL1, x = "dtXran", y = "val", color = "label"
+  , add = "reg.line", alpha = 0.1, palette = c("#00AFBB", "#E7B800")
 ) +
-  labs(title = NULL, x = "인덱스", y = "전력 사용량", color = NULL, subtitle = plotSubTitle) +
+  labs(title = NULL, x = "연도", y = "전력 사용량", color = NULL, subtitle = plotSubTitle) +
   theme_bw() +
-  ggpubr::stat_regline_equation(aes(color = key), label.x.npc = 0.0, label.y.npc = 0.95, size = 6) +
-  ggpubr::stat_cor(aes(color = key), label.x.npc = 0.5, label.y.npc = 0.95, p.accuracy = 0.01, r.accuracy = 0.01, size = 6) +
+  ggpubr::stat_regline_equation(aes(color = label), label.x.npc = 0.0, label.y.npc = 0.95, size = 6, show.legend = FALSE) +
+  ggpubr::stat_cor(aes(color = label), label.x.npc = 0.5, label.y.npc = 0.95, p.accuracy = 0.01, r.accuracy = 0.01, size = 6, show.legend = FALSE) +
+  scale_x_continuous(minor_breaks = c(2023 + ((1:20) * 0.05)), breaks= c(2023 + ((1:20) * 0.05)),  limits=c(2023.45, 2023.90)) +
+  scale_y_continuous(minor_breaks = seq(0, 20000, 5000), breaks=seq(0, 20000, 5000), limits=c(0, 20000)) +
   theme(
     text = element_text(size = 18)
     , legend.position = "top"
@@ -202,27 +167,27 @@ ggplot2::last_plot()
 cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 
 
-plotSubTitle = sprintf("%s", "제품전후 전력량에 따른 절감율 추이")
-saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, plotSubTitle)
-dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
-
-makePlot = ggpubr::ggscatter(
-  data = dataL2, x = "id", y = "rat"
-  , add = "reg.line", alpha = 0.3
-) +
-  labs(title = NULL, x = "인덱스", y = "절감 비율", fill = NULL, color = NULL, subtitle = plotSubTitle) +
-  theme_bw() +
-  ggpubr::stat_regline_equation(label.x.npc = 0.0, label.y.npc = 0.95, size = 6) +
-  ggpubr::stat_cor(label.x.npc = 0.5, label.y.npc = 0.95, p.accuracy = 0.01, r.accuracy = 0.01, size = 6) +
-  theme(
-    text = element_text(size = 18)
-    # , legend.position = "top"
-    , legend.position = "none"
-  )
-
-ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
-ggplot2::last_plot()
-cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+# plotSubTitle = sprintf("%s", "제품전후 전력량에 따른 절감율 추이")
+# saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, plotSubTitle)
+# dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
+# 
+# makePlot = ggpubr::ggscatter(
+#   data = dataL2, x = "id", y = "rat"
+#   , add = "reg.line", alpha = 0.3
+# ) +
+#   labs(title = NULL, x = "인덱스", y = "절감 비율", fill = NULL, color = NULL, subtitle = plotSubTitle) +
+#   theme_bw() +
+#   ggpubr::stat_regline_equation(label.x.npc = 0.0, label.y.npc = 0.95, size = 6) +
+#   ggpubr::stat_cor(label.x.npc = 0.5, label.y.npc = 0.95, p.accuracy = 0.01, r.accuracy = 0.01, size = 6) +
+#   theme(
+#     text = element_text(size = 18)
+#     # , legend.position = "top"
+#     , legend.position = "none"
+#   )
+# 
+# ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
+# ggplot2::last_plot()
+# cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 
 
 plotSubTitle = sprintf("%s", "제품전후 전력량에 따른 밀도함수")
@@ -231,9 +196,9 @@ dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
 
 makePlot = ggpubr::ggdensity(
   data = dataL1, x = "val", add = "mean", rug = TRUE,
-  color = "key", fill = "key", palette = c("#00AFBB", "#E7B800")
+  color = "label", fill = "label", palette = c("#00AFBB", "#E7B800")
 ) +
-  labs(title = NULL, x = "전력 사용량", y = "밀도함수", color = NULL, subtitle = plotSubTitle) +
+  labs(title = NULL, x = "전력 사용량", y = "밀도함수", fill = NULL, color = NULL, subtitle = plotSubTitle) +
   theme(
     text = element_text(size = 18)
     , legend.position = "top"
@@ -250,12 +215,13 @@ dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
 
 makePlot = ggpubr::gghistogram(
   data = dataL1, x = "val", add = "mean", rug = TRUE,
-  color = "key", fill = "key", palette = c("#00AFBB", "#E7B800")
+  color = "label", fill = "label", palette = c("#00AFBB", "#E7B800")
 ) +
-  labs(title = NULL, x = "전력 사용량", y = "밀도함수", color = NULL, subtitle = plotSubTitle) +
+  labs(title = NULL, x = "전력 사용량", y = "밀도함수", fill = NULL, color = NULL, subtitle = plotSubTitle) +
   theme(
     text = element_text(size = 18)
-    , legend.position = "top"
+    # , legend.position = "top"
+    , legend.position = "none"
   )
 
 ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
@@ -268,14 +234,15 @@ saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, plotSubTitle)
 dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
 
 makePlot = ggpubr::ggboxplot(
-  dataL1, x = "key", y = "val", color = "key", palette =c("#00AFBB", "#E7B800"),
-  add = "jitter", shape = "key", alpah = 0.1
+  dataL1, x = "label", y = "val", color = "label", palette =c("#00AFBB", "#E7B800"),
+  add = "jitter", shape = "label", alpah = 0.01
 ) +
-  ggpubr::stat_compare_means(comparisons = list( c("before", "after"))) +
+  ggpubr::stat_compare_means(comparisons = list( c("before", "after")), show.legend = FALSE) +
   labs(title = NULL, x = "전력 사용량", y = "밀도함수", color = NULL, subtitle = plotSubTitle) +
   theme(
     text = element_text(size = 18)
-    , legend.position = "top"
+    # , legend.position = "top"
+    , legend.position = "none"
   )
 
 ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
@@ -287,10 +254,10 @@ cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 # 통계 검정
 # *****************************************
 # F 검정
-fTest = var.test(val ~ key, data = dataL1, conf.level = 0.95)
+fTest = var.test(val ~ label, data = dataL1, conf.level = 0.95)
 print(fTest)
 
-# F 검정에서 유의수준 p-value < 0.05 이하로서 귀무가설이 기각 (두 그룹은 분산 차이)
+# F 검정에서 P값은 2.2204e-16로서 유의수준 0.05 이하이기 때문에 귀무가설이 기각되어 두 그룹 간의 분산 차이 (등분산 X)
 mainTitle = sprintf("%s", "제품전후 간의 F 검정")
 saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
 dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
@@ -303,12 +270,12 @@ cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 
 # T 검정
 # 등분산 가정 O
-tTest = t.test(val ~ key, data = dataL1, conf.level = 0.95, var.equal = TRUE, paired = FALSE)
+# tTest = t.test(val ~ label, data = dataL1, conf.level = 0.95, var.equal = TRUE, paired = FALSE)
 
 # 등분산 가정 X
-# tTest = t.test(val ~ key, data = dataL1, conf.level = 0.95, var.equal = FALSE, paired = FALSE)
+tTest = t.test(val ~ label, data = dataL1, conf.level = 0.95, var.equal = FALSE, paired = FALSE)
 
-# T 검정에서 유의수준 p-value는 0.01 이하로서 귀무가설 기각 (두 그룹은 평균 차이)
+# T 검정에서 P값은 2.2204e-16로서 유의수준 0.05 이하이기 때문에 귀무가설이 기각되어 두 그룹 간의 평균 차이
 print(tTest)
 
 mainTitle = sprintf("%s", "제품전후 간의 T 검정")
@@ -320,4 +287,5 @@ plot(tTest) +
 
 ggplot2::last_plot()
 cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+
 
