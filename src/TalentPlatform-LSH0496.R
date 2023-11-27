@@ -75,10 +75,15 @@ library(rstatix)
 library(nnet)
 # devtools::install_github("ricardo-bion/ggradar")
 library(ggradar)
+library(sysfonts)
 
-# showtext::showtext_opts(dpi = 100)
-# showtext::showtext_opts(dpi = 600)
-# showtext::showtext.auto()
+
+# 국문 폰트 설정
+if (Sys.info()["sysname"] == "Windows") {
+  sysfonts::font.add(family = "malgun", regular = "C:/Windows/Fonts/malgun.ttf")
+  showtext::showtext_opts(dpi = 600)
+  showtext::showtext.auto()
+}
 
 # ==============================================================================
 # 파일 읽기
@@ -294,7 +299,11 @@ a15 <- table(m2$inten_1, m2$function3_total); addmargins(a15); (addmargins(a15) 
 #범주형 변수간 시각화
 # par(mfrow = c(2, 2))
 par(mfrow = c(1, 1))
-# par(family = "AppleGothic")
+if (Sys.info()["sysname"] == "Windows") {
+  par(family = "malgun")
+} else {
+  par(family = "AppleGothic")
+}
 
 # 대상자의 일반적인 특성을 파악하기 위해서 입원 전 거주지, 연령, 입원기간에 대한 상세 분석을 수행함
 
@@ -501,6 +510,7 @@ for (i in 1:(length(modelList) - 1)) {
   }
 }
 
+lrtData
 
 for (cls in simDataL1$Classes) {
   modelProf = estimate_profiles(modelCfg, n_profiles = cls, variances = "equal", covariances = "zero")
@@ -537,7 +547,7 @@ bestData
 m3 = tidyLPA::estimate_profiles(modelCfg, n_profiles = bestData$Classes, variances = "equal", covariances = "zero")
 
 # 밀도함수 시각화
-saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, "plot_density")
+saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, "밀도함수")
 dir.create(fs::path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
 
 tidyLPA::plot_density(m3) +
@@ -558,7 +568,7 @@ cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 # cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 
 # 프로파일 시각화
-saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, "plot_profiles")
+saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, "프로파일")
 dir.create(fs::path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
 
 tidyLPA::plot_profiles(m3, add_line = T) +
@@ -645,28 +655,45 @@ ggplot(statData, aes(x = label, y = meanVal, color = Class, group = Class)) +
 
 cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 
-# 레이더 차트
+# 2023.11.27 평균 레이더 차트
 statDataL1 = statData %>%
   dplyr::ungroup() %>%
   dplyr::mutate(val = meanVal) %>%
   dplyr::select(Group, label, val) %>%
   tidyr::spread(key = "label", value = "val")
 
-saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, "레이더 평균 차트")
+saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, "평균 레이더 차트")
 dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
-
-
 
 ggradar::ggradar(
   statDataL1
-  , values.radar = c("0%", "50%", "100%")
+  , values.radar = c(0, 30, 60)
   , legend.position = "bottom"
-  , grid.min = min(statData$meanVal, na.rm = TRUE)
-  , grid.mid = median(statData$meanVal, na.rm = TRUE)
-  # , grid.max = max(statData$meanVal, na.rm = TRUE)
-  , grid.max = max(statData$meanVal, na.rm = TRUE)
-  ) + 
-  ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
+  , grid.min = 0, grid.mid = 30, grid.max = 60
+  , font.radar = "malgun"
+  ) +
+  ggsave(filename = saveImg, width = 12, height = 10, dpi = 600)
+
+cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n") 
+
+# 2023.11.27 표준편차 레이더 차트
+statDataL1 = statData %>%
+  dplyr::ungroup() %>%
+  dplyr::mutate(val = sdVal) %>%
+  dplyr::select(Group, label, val) %>%
+  tidyr::spread(key = "label", value = "val")
+
+saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, "표준편차 레이더 차트")
+dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
+
+ggradar::ggradar(
+  statDataL1
+  , values.radar = c(0, 5, 10)
+  , legend.position = "bottom"
+  , grid.min = 0, grid.mid = 5, grid.max = 10
+  , font.radar = "malgun"
+) +
+  ggsave(filename = saveImg, width = 12, height = 10, dpi = 600)
 
 cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n") 
 
