@@ -280,6 +280,8 @@ for (key in names(sysOpt$apiInfo)) {
     dataL2 = dplyr::bind_rows(dataL2, dataL1)
   }
   
+  if (nrow(dataL2) < 1) next
+  
   # 엑셀 저장
   saveXlsxFile = sprintf(apiInfo$saveXlsxPattern , min(dataL2$TM, na.rm = TRUE), max(dataL2$TM, na.rm = TRUE))
   dir.create(path_dir(saveXlsxFile), showWarnings = FALSE, recursive = TRUE)
