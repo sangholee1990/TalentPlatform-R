@@ -76,6 +76,7 @@ df = mpg %>%
 
 ggplot(df, aes(x = reorder(manufacturer, meanVal), y = meanVal)) + 
   geom_bar(stat = "identity") +
+  geom_text(aes(label = round(meanVal, 2)), nudge_y = -0.75, size = 4, color = "white") +
   labs(x = "제조사", y = "평균 도시 연비", title = "SUV 제조사별 평균 도시 연비 상위 5위 막대 그래프")
 
 # 자동차 종류별 빈도 분포
@@ -86,4 +87,5 @@ df = mpg %>%
 
 ggplot(data = df, aes(x = reorder(class, cnt), y = cnt)) + 
   geom_bar(stat = "identity")  +
+  geom_text(aes(label = cnt), nudge_y = -2.0, size = 4, color = "white") +
   labs(x = "자동차 종류", y = "개수", title = "자동차 종류별 빈도 분포")
