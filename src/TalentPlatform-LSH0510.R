@@ -70,13 +70,13 @@ ggplot(class_mpg, aes(x = class, y = cty)) +
 df = mpg %>% 
   dplyr::filter(class == "suv") %>% 
   dplyr::group_by(manufacturer) %>% 
-  dplyr::summarise(meanVal = mean(cty, na.rm = TRUE)) %>%
-  dplyr::top_n(5) %>% 
-  dplyr::arrange(desc(meanVal))
+  dplyr::summarise(mean_cty = mean(cty, na.rm = TRUE)) %>%
+  dplyr::arrange(desc(mean_cty)) %>% 
+  head(5)
 
-ggplot(df, aes(x = reorder(manufacturer, meanVal), y = meanVal)) + 
+ggplot(df, aes(x = reorder(manufacturer, -mean_cty), y = mean_cty)) + 
   geom_bar(stat = "identity") +
-  geom_text(aes(label = round(meanVal, 2)), nudge_y = -0.75, size = 4, color = "white") +
+  geom_text(aes(label = round(mean_cty, 2)), nudge_y = -0.75, size = 4, color = "white") +
   labs(x = "제조사", y = "평균 도시 연비", title = "SUV 제조사별 평균 도시 연비 상위 5위 막대 그래프")
 
 # 자동차 종류별 빈도 분포
@@ -85,7 +85,7 @@ df = mpg %>%
   dplyr::summarise(cnt = n()) %>%
   dplyr::arrange(desc(cnt))
 
-ggplot(data = df, aes(x = reorder(class, cnt), y = cnt)) + 
+ggplot(data = df, aes(x = reorder(class, -cnt), y = cnt)) + 
   geom_bar(stat = "identity")  +
   geom_text(aes(label = cnt), nudge_y = -2.0, size = 4, color = "white") +
   labs(x = "자동차 종류", y = "개수", title = "자동차 종류별 빈도 분포")
