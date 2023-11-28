@@ -83,13 +83,14 @@ for (fileInfo in fileList) {
     ) %>% 
     dplyr::mutate(
       label = dplyr::case_when(
-        as.Date("2023-08-08") <= dtDate ~ "after"
-        , TRUE ~ "before"
+        dtDate < as.Date("2023-08-08")~ "before"
+        , dtDate > as.Date("2023-08-23") ~ "after"
       )
     ) %>% 
     dplyr::filter(
       ! is.na(val)
       , ! is.na(dtDate)
+      , ! is.na(label)
     )
  
   orgDataL2 = dplyr::bind_rows(orgDataL2, orgDataL1)
@@ -122,23 +123,24 @@ dataL1 %>%
   ))
 
 
-prdData = data.frame(dtXran = c(2000, 2023.8, 2024))
+prdData = data.frame(dtXran = c(2023, 2024))
 
 befData = dataL1 %>% 
   dplyr::filter(label == "before")
 
 befModel = lm(val ~ dtXran, data = befData)
-predict(befModel, newdata = prdData)
+predict(befModel, newdata = prdData) %>% round(2)
 
-# 100 - (6669 / 4494 * 100)
-
+# 100 - (6668.58 / 4493.68 * 100)
+# -48.39908494
 
 aftData = dataL1 %>% 
   dplyr::filter(label == "after")
 
 aftModel = lm(val ~ dtXran, data = aftData)
-predict(aftModel, newdata = prdData)
-# 100 - (890 / 11138 * 100)
+predict(aftModel, newdata = prdData) %>% round(2)
+# 100 - (1321.00 / 9586.27 * 100)
+# 86.21987488
 
 # *****************************************
 # 시각화
@@ -163,9 +165,8 @@ makePlot = ggpubr::ggscatter(
   )
 
 ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
-ggplot2::last_plot()
+# ggplot2::last_plot()
 cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
-
 
 # plotSubTitle = sprintf("%s", "제품전후 전력량에 따른 절감율 추이")
 # saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, plotSubTitle)
@@ -205,9 +206,8 @@ makePlot = ggpubr::ggdensity(
   )
 
 ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
-ggplot2::last_plot()
+# ggplot2::last_plot()
 cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
-
 
 plotSubTitle = sprintf("%s", "제품전후 전력량에 따른 빈도분포")
 saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, plotSubTitle)
@@ -220,12 +220,11 @@ makePlot = ggpubr::gghistogram(
   labs(title = NULL, x = "전력 사용량", y = "밀도함수", fill = NULL, color = NULL, subtitle = plotSubTitle) +
   theme(
     text = element_text(size = 18)
-    # , legend.position = "top"
-    , legend.position = "none"
+    , legend.position = "top"
   )
 
 ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
-ggplot2::last_plot()
+# ggplot2::last_plot()
 cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 
 
@@ -246,7 +245,7 @@ makePlot = ggpubr::ggboxplot(
   )
 
 ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
-ggplot2::last_plot()
+# ggplot2::last_plot()
 cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 
 
@@ -285,7 +284,4 @@ dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
 plot(tTest) +
   ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
 
-ggplot2::last_plot()
 cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
-
-
