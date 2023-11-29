@@ -102,7 +102,11 @@ data = orgDataL2 %>%
     # , dtMonth = lubridate::month(dtDateTime)
     # , dtDay = lubridate::day(dtDateTime)
     dtYmd = format(dtDateTime, "%Y%m%d")
-  ) #%>% 
+  ) # %>%
+  # dplyr::group_by(dtYmd, label) %>% 
+  # dplyr::summarise(
+  #   val = sum(val, na.rm = TRUE)
+  # )
 
 dataL1 = data %>%
   dplyr::mutate(
@@ -123,7 +127,14 @@ dataL1 %>%
   ))
 
 
-prdData = data.frame(dtXran = c(2023, 2024))
+
+# lubridate::decimal_date(as.Date("2023-01-01"))
+# lubridate::decimal_date(as.Date("2023-08-08"))
+# lubridate::decimal_date(as.Date("2023-08-01"))
+# lubridate::decimal_date(as.Date("2023-08-23"))
+# lubridate::decimal_date(as.Date("2024-01-01"))
+
+prdData = data.frame(dtXran = c(2023, 2023.580822, 2023.641096, 2024))
 
 befData = dataL1 %>% 
   dplyr::filter(label == "before")
@@ -131,16 +142,35 @@ befData = dataL1 %>%
 befModel = lm(val ~ dtXran, data = befData)
 predict(befModel, newdata = prdData) %>% round(2)
 
+# 2023 ~ 2024년
 # 100 - (6668.58 / 4493.68 * 100)
 # -48.39908494
+
+# 08.08 ~ 08.23일
+# 100 - (5888.00     / 5798.62    * 100)
+# -1.54140123
+
+# 08.01 ~ 08.23일
+# 100 - (5888.00     / 5756.91     * 100)
+# -2.277089619
 
 aftData = dataL1 %>% 
   dplyr::filter(label == "after")
 
 aftModel = lm(val ~ dtXran, data = aftData)
 predict(aftModel, newdata = prdData) %>% round(2)
+
+# 2023 ~ 2024년
 # 100 - (1321.00 / 9586.27 * 100)
 # 86.21987488
+
+# 08.08 ~ 08.23일
+# 100 - (4287.44     / 4627.11       * 100)
+# 7.340867194
+
+# 08.01 ~ 08.23일
+# 100 - (4287.44     / 4785.62        * 100)
+# 10.40993643
 
 # *****************************************
 # 시각화
@@ -158,7 +188,7 @@ makePlot = ggpubr::ggscatter(
   ggpubr::stat_regline_equation(aes(color = label), label.x.npc = 0.0, label.y.npc = 0.95, size = 6, show.legend = FALSE) +
   ggpubr::stat_cor(aes(color = label), label.x.npc = 0.5, label.y.npc = 0.95, p.accuracy = 0.01, r.accuracy = 0.01, size = 6, show.legend = FALSE) +
   scale_x_continuous(minor_breaks = c(2023 + ((1:20) * 0.05)), breaks= c(2023 + ((1:20) * 0.05)),  limits=c(2023.45, 2023.90)) +
-  scale_y_continuous(minor_breaks = seq(0, 20000, 5000), breaks=seq(0, 20000, 5000), limits=c(0, 20000)) +
+  # scale_y_continuous(minor_breaks = seq(0, 20000, 5000), breaks=seq(0, 20000, 5000), limits=c(0, 20000)) +
   theme(
     text = element_text(size = 18)
     , legend.position = "top"
@@ -166,7 +196,7 @@ makePlot = ggpubr::ggscatter(
 
 ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
 # ggplot2::last_plot()
-cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+# cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 
 # plotSubTitle = sprintf("%s", "제품전후 전력량에 따른 절감율 추이")
 # saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, plotSubTitle)
