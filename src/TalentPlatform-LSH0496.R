@@ -660,7 +660,14 @@ statDataL1 = statData %>%
   dplyr::ungroup() %>%
   dplyr::mutate(val = meanVal) %>%
   dplyr::select(Group, label, val) %>%
-  tidyr::spread(key = "label", value = "val")
+  tidyr::spread(key = "label", value = "val") %>% 
+  dplyr::mutate(
+    Group = dplyr::case_when(
+      stringr::str_detect(Group, regex("Class 1")) ~ "유형 1"
+      , stringr::str_detect(Group, regex("Class 2")) ~ "유형 2"
+      , stringr::str_detect(Group, regex("Class 3")) ~ "유형 3"
+    )
+  )
 
 saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, "평균 레이더 차트")
 dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
@@ -681,7 +688,14 @@ statDataL1 = statData %>%
   dplyr::ungroup() %>%
   dplyr::mutate(val = sdVal) %>%
   dplyr::select(Group, label, val) %>%
-  tidyr::spread(key = "label", value = "val")
+  tidyr::spread(key = "label", value = "val") %>% 
+  dplyr::mutate(
+    Group = dplyr::case_when(
+      stringr::str_detect(Group, regex("Class 1")) ~ "유형 1"
+      , stringr::str_detect(Group, regex("Class 2")) ~ "유형 2"
+      , stringr::str_detect(Group, regex("Class 3")) ~ "유형 3"
+    )
+  )
 
 saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, "표준편차 레이더 차트")
 dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
@@ -692,7 +706,7 @@ ggradar::ggradar(
   , legend.position = "bottom"
   , grid.min = 0, grid.mid = 5, grid.max = 10
   , font.radar = "malgun"
-) +
+  ) +
   ggsave(filename = saveImg, width = 12, height = 10, dpi = 600)
 
 cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n") 

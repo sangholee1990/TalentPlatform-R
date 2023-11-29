@@ -57,6 +57,17 @@ blood_pressure %>%
 
 ## Exercise 2
 
+- Q) What type of correlation does the "Years"
+variable demonstrate with "Systol"?
+  - Positive?
+  - Negative?
+  - None?
+- A) Negative (-0.087)
+
+- Q) Which variable shows a moderate-to-strong positive correlation with 
+"Systol"?
+- A) Weight (0.521)
+
 ```{r, fig.asp= 1, fig.width = 8, out.width = "100%"}
 blood_pressure %>%
   pivot_longer(cols = Age:Pulse, names_to = "measurement", values_to = "value") %>%
@@ -64,18 +75,15 @@ blood_pressure %>%
     geom_point(mapping = aes(x = value, y = Systol)) +
     facet_wrap(~ measurement, scales = "free_x") +
     geom_smooth(mapping = aes(x = value, y = Systol), method = "lm")
+
+# correlation coefficient
+cor(blood_pressure)[ ,1]
 ```
-
-i. What type of correlation does the "Years" variable demonstrate with "Systol"?
-+ Negative
-
-ii. Which variable shows a moderate-to-strong positive correlatio with "Systol"?
-+
 
 ## Exercise 3
 
 ```{r}
-blood_pressure %>%
+blood_pressure_updated = blood_pressure %>%
   mutate(
     urban_frac_life = Years / Age
     )
@@ -84,49 +92,159 @@ blood_pressure %>%
 ## Exercise 4
 
 ```{r}
-blood_pressure %>%
-  systol_urban_frac_model <- lm( y ~ x, data  = blood_pressure_updated)
+systol_urban_frac_model = lm(Systol ~ urban_frac_life, data
+                             = blood_pressure_updated)
 ```
-
-
 
 ## Exercise 5
 
+```{r}
+systol_urban_frac_model %>% 
+  tidy()
 
-
+model_performance = glance(systol_urban_frac_model)
+print(model_performance[, 1:3])
+```
 
 ## Exercise 6
 
+- Q) What is the name of the column that holds the response variable values 
+predicted by the model?
+- A) pred
 
+- Q) What is the name of the column that holds the residuals for each 
+observation?
+- A) resid
 
+```{r}
+systol_urban_frac_df = blood_pressure_updated %>% 
+  add_predictions(systol_urban_frac_model) %>% 
+  add_residuals(systol_urban_frac_model)
+
+print(systol_urban_frac_df)
+```
 
 ## Exercise 7
 
-
-
+- Q) Does your model meet the linearity condition?
+- A) It is distributed symmetrically and evenly based on the red line, 
+satisfying linearity.
+```{r}
+ggplot(systol_urban_frac_df) +
+  geom_point(mapping = aes(x = pred, y = Systol)) +
+  geom_abline(intercept=0, slope=1, color="red") +
+   labs(title="Actual vs Predicted", x="Predicted", y="Actual")
+```
 
 ## Exercise 8
 
+- Q) Does it look like the variability is reasonably constant all the way along
+the line?
+- A) Since it is evenly distributed based on the red line, the volatility of the
+residuals is constant.
 
-
+- Q) Does the model meet the third criteria of constant variability of 
+residuals?
+- A) Same as previous answer.
+```{r}
+ggplot(systol_urban_frac_df, aes(x=pred, y=resid)) + 
+  geom_point() + 
+  geom_hline(yintercept = 0, color = "red") + 
+  labs(title="Residuals vs Predicted", x="Predicted", y="Residuals")
+```
 
 ## Exercise 9
 
+What is the shape of the distribution of the residuals?
+- Q) Symmetric?
+- A) Symmetry
 
+- Q) Skewed?
+- A) tilted to the right
 
+- Q) Does the model seem to meet the second condition of nearly normal 
+residuals? Why or why not?
+- A) In the residual histogram, it is judged to be a normal residual because 
+it is normally distributed with 0 as the standard.
+
+```{r}
+ggplot(systol_urban_frac_df, aes(x=resid)) +
+  geom_histogram(binwidth=25) +
+  labs(title="Histogram of Residuals", x="Residuals", y="Frequency")
+```
 
 ## Exercise 10
 
+- Q) Does this new model perform better or worse than the previous model?
+- A) The coefficient of determination of the new linear model 
+(systol_weight_model) is 0.27, showing better prediction performance than the 
+existing linear model (systol_urban_frac_model, coefficient of determination 
+= 0.07).
 
+```{r}
+systol_weight_model = lm(Systol ~ Weight, data = blood_pressure_updated)
 
+systol_weight_model %>% 
+  tidy()
+
+systol_weight_model %>% 
+  glance()
+```
 
 ## Exercise 11
 
+- Q) Does this model and the visualizations created from it follow the 
+assumptions necessary for a linear model?
+- A) It is distributed symmetrically and evenly based on the red line,
+satisfying linearity.
 
+- Q) Does the model meet the third criteria of constant variability of 
+residuals?
+- A) Same as previous answer
 
+Should we conclude that the second model is reliable? Why or why not?
+- Q) Symmetric?
+- A) Symmetry
+
+- Q) Skewed?
+- A) tilted to the left
+
+- Q) Does the model seem to meet the second condition of nearly normal 
+residuals? Why or why not?
+- A) In the residual histogram, it is judged to be a normal residual because 
+it is normally distributed with 0 as the standard.
+
+```{r}
+# Exercise 06
+systol_weight_df = blood_pressure_updated %>% 
+  add_predictions(systol_weight_model) %>% 
+  add_residuals(systol_weight_model)
+print(systol_weight_df)
+
+# Exercise 07
+ggplot(systol_weight_df) +
+  geom_point(mapping = aes(x = pred, y = Systol)) +
+  geom_abline(intercept=0, slope=1, color="red") +
+  labs(title="Actual vs Predicted", x="Predicted", y="Actual")
+
+# Exercise 09
+ggplot(systol_weight_df, aes(x=resid)) +
+  geom_histogram(binwidth=25) +
+  labs(title="Histogram of Residuals", x="Residuals", y="Frequency")
+```
 
 ## Exercise 12
 
++ How does the second model compare with the first in terms of
+- Q) Their R2 values
+- A) The modified coefficient of determination of the new linear model 
+(systol_weight_model) is 0.27, showing better prediction performance than the 
+existing linear model (model_performance, coefficient of determination = 0.07).
 
+- Q) How well they meet the 3 assumptions
+- A) New/existing linear models are judged by linearity and normal residuals.
 
-
+```{r}
+summary(systol_urban_frac_model)
+summary(systol_weight_model)
+```

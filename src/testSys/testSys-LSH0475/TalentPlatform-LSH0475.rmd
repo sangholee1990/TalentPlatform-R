@@ -55,16 +55,16 @@ blood_pressure %>%
   ggplot() +
     geom_point(mapping = aes(x = value, y = Systol)) +
     facet_wrap(~ measurement, scales = "free_x") +
-    geom_smooth(mapping = aes(x = value, y = Systol), method = "lm")
+    geom_smooth(mapping = aes(x = value, y = Systol), method = "lm") +
+    labs(x = "Measurement Value", y = "Systolic Blood Pressure", title = "Scatter Plot of Various Measurements vs Systolic Blood Pressure")
 ```
 
 ## Exercise 2
-- Q) What type of correlation does the "Years"
-variable demonstrate with "Systol"?
+- Q) What type of correlation does the "Years" variable demonstrate with "Systol"?
   - Positive?
   - Negative?
   - None?
-- A) Negative (-0.087)
+- A) 0값에 매우 가깝기 때문에 None (-0.087)
 
 - Q) Which variable shows a moderate-to-strong positive correlation with "Systol"?
 - A) Weight (0.521)
@@ -77,7 +77,7 @@ blood_pressure %>%
     geom_smooth(mapping = aes(x = value, y = Systol), method = "lm")
 
 # 상관계수
-cor(blood_pressure)[ ,1]
+cor(blood_pressure)[ ,1] %>% sort()
 ```
 
 i. What type of correlation does the "Years" variable demonstrate with "Systol"?
@@ -130,10 +130,13 @@ print(systol_urban_frac_df)
 - Q) Does your model meet the linearity condition?
 - A) 적색선을 기준으로 대칭적으로 고르게 분포되어 있어서 선형성을 만족함
 ```{r}
-ggplot(systol_urban_frac_df) +
-  geom_point(mapping = aes(x = pred, y = Systol)) +
-  geom_abline(intercept=0, slope=1, color="red") +
-   labs(title="Actual vs Predicted", x="Predicted", y="Actual")
+ggplot() +
+  geom_point(mapping = aes(x = pred, y = Systol), data = systol_urban_frac_df) +
+  geom_abline(slope = 1, intercept = 0, color = "red") +
+   labs(title="Actual vs Predicted", x="Urban frac life", y="Actual")
+
+# 선형성 검정 결과 P값은 0.08881로서 0.05 이하 유의수준보다 낮기 때문에 귀무가설을 채택하여 상관계수 0이 아님 (선형성 있음) 
+cor.test(systol_urban_frac_df$pred, systol_urban_frac_df$Systol)
 ```
 
 ## Exercise 8
@@ -152,16 +155,16 @@ ggplot(systol_urban_frac_df, aes(x=pred, y=resid)) +
 ## Exercise 9
 What is the shape of the distribution of the residuals?
 - Q) Symmetric?
-- A) 대칭
+- A) No, 비대칭
 
 - Q) Skewed?
 - A) 우측으로 기울어짐
 
 - Q) Does the model seem to meet the second condition of nearly normal residuals? Why or why not?
-- A) 잔차 히스토그램에서 0을 기준으로 정규 분포를 띠기 때문에 정상적인 잔차로 판단됨
+- A) 아니요, 모델은 거의 정상적인 잔차의 조건을 충족하지 않는 것으로 보입니다. 잔차 히스토그램이 정규분포를 띠지 않고, 특히 한쪽으로 기울어진 비대칭 형태를 보이
 ```{r}
 ggplot(systol_urban_frac_df, aes(x=resid)) +
-  geom_histogram(binwidth=25) +
+  geom_histogram(binwidth=0.5) +
   labs(title="Histogram of Residuals", x="Residuals", y="Frequency")
 ```
 
@@ -175,7 +178,8 @@ systol_weight_model %>%
   tidy()
 
 systol_weight_model %>% 
-  glance()
+  glance() %>% 
+  dplyr::select(1:5)
 ```
 
 ## Exercise 11
@@ -190,7 +194,7 @@ Should we conclude that the second model is reliable? Why or why not?
 - A) 대칭
 
 - Q) Skewed?
-- A) 좌측으로 기울어짐
+- A) No
 
 - Q) Does the model seem to meet the second condition of nearly normal residuals? Why or why not?
 - A) 잔차 히스토그램에서 0을 기준으로 정규 분포를 띠기 때문에 정상적인 잔차로 판단됨
@@ -209,7 +213,7 @@ ggplot(systol_weight_df) +
 
 # Exercise 09
 ggplot(systol_weight_df, aes(x=resid)) +
-  geom_histogram(binwidth=25) +
+  geom_histogram(binwidth=0.5) +
   labs(title="Histogram of Residuals", x="Residuals", y="Frequency")
 ```
 
