@@ -58,6 +58,7 @@ library(webr)
 library(openxlsx)
 library(lubridate)
 library(fs)
+library(modelr)
 
 # 파일 읽기
 # fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "K.TAEAN호설치전후평가_230405.xlsx"))
@@ -133,10 +134,12 @@ dataL1 %>%
 # lubridate::decimal_date(as.Date("2023-08-01"))
 # lubridate::decimal_date(as.Date("2023-08-23"))
 # lubridate::decimal_date(as.Date("2024-01-01"))
+# lubridate::decimal_date(as.Date("2024-07-01"))
+# lubridate::decimal_date(as.Date("2024-08-01"))
+# lubridate::decimal_date(as.Date("2024-09-01"))
+# lubridate::decimal_date(as.Date("2024-10-01"))
 
-prdData = data.frame(dtXran = c(2023, 2023.580822, 2023.641096, 2024))
-prdData = data.frame(dtXran = seq(2023, 2024, 0.1))
-
+# prdData = data.frame(dtXran = seq(2023, 2024, 0.01))
 
 befData = dataL1 %>% 
   dplyr::filter(label == "before")
@@ -174,11 +177,59 @@ aftData = predict(aftModel, newdata = prdData) %>% round(2)
 # 100 - (4287.44     / 4785.62        * 100)
 # 10.40993643
 
-plot(prdData$dtXran, befData)
-points(prdData$dtXran, aftData)
 
 # 21115548.689/10440.166
 
+prdData = data.frame(dtXran = seq(2023, 2024, 0.01)) %>% 
+  modelr::add_predictions(befModel, var = "befPrd") %>% 
+  modelr::add_predictions(aftModel, var = "aftPrd") %>%
+  dplyr::mutate(
+    absDiff = abs(aftPrd - befPrd)
+  )
+
+prdData %>% 
+  dplyr::top_n(-1, wt = absDiff)
+  
+# dtXran      befPrd      aftPrd        absDiff
+# 1 2023.487788 5554.573186 5554.570583 0.002603233792
+
+# plot(prdData$dtXran, prdData$befPrd, xlab = "연도", ylab = "전력 사용량")
+# points(prdData$dtXran, prdData$aftPrd, col = "red")
+
+prdDataL1 = prdData %>% 
+  tidyr::pivot_longer(cols = c(befPrd, aftPrd), names_to = "key", values_to = "value")
+
+plotSubTitle = sprintf("%s", "제품전후 연도별 시뮬레이션")
+saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, plotSubTitle)
+dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
+
+ggplot(prdDataL1, aes(x = dtXran, y = value, color = key)) +
+  geom_point() +
+  labs(x = "연도", y = "전력 사용량", color = NULL, subtitle = plotSubTitle) +
+  scale_color_manual(values = c("black", "red"), labels = c("Before","After")) +
+  theme(
+    text = element_text(size = 16)
+    , legend.position = "top"
+  ) + 
+  ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
+
+# 2023-06-28 01:01:22 UTC
+# lubridate::date_decimal(2023.487788)
+
+# lubridate::decimal_date(as.Date("2024-06-01"))
+# lubridate::date_decimal(2024.415301)
+
+
+tibble(dtDate = as.Date(c("2023-06-28", "2023-07-01", "2023-07-15", "2023-07-21", "2023-07-28", "2023-08-01", "2023-08-15", "2023-09-01", "2023-10-01"))) %>% 
+  dplyr::mutate(
+    dtXran = lubridate::decimal_date(dtDate)
+  ) %>% 
+  modelr::add_predictions(befModel, var = "befPrd") %>% 
+  modelr::add_predictions(aftModel, var = "aftPrd") %>% 
+  dplyr::mutate(
+    befPer = 100 - (5554.573186  / befPrd * 100) %>% round(2)
+    , aftPer = 100 - (5554.573186  / aftPrd * 100) %>% round(2)
+  )
 
 
 # *****************************************
