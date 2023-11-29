@@ -124,12 +124,16 @@ if (env == "local") {
 library(tidyverse)
 library(lubridate)
 library(fs)
+# API 웹 요청
 library(httr)
 library(curl)
+# 엑셀 다운로드
 library(openxlsx)
 
 # 설정 정보
 sysOpt = list(
+  
+  # 기상청 API 허브 정보
   apiInfo = list(
     asos = list(
       url = "https://apihub.kma.go.kr/api/typ01/url/kma_sfctm3.php"
@@ -161,6 +165,7 @@ sysOpt = list(
 # ******************************************************************************
 # i = 1
 # key = "asos"
+# 시작일-종료일, 3시간 목록
 # key = "aws"
 for (key in names(sysOpt$apiInfo)) {
   apiInfo = sysOpt$apiInfo[[key]]
@@ -256,6 +261,10 @@ for (key in names(sysOpt$apiInfo)) {
     #  2. STN    : 국내 지점번호
     # 12. TA     : 기온 (C)
     # 14. HM     : 상대습도 (%)
+    
+    # 컬럼 이름 변경
+    # TM, STN 문자열 변환
+    # 특정 STN 지점 (90, 92) 선택
     dataL1 = data %>% 
       dplyr::rename(
         TM = X1
@@ -264,11 +273,14 @@ for (key in names(sysOpt$apiInfo)) {
         , HM = X14
       ) %>% 
       dplyr::select(TM, STN, TA, HM) %>% 
-      dplyr::mutate(across(c(TM, STN), as.character))
+      dplyr::filter(STN %in% c(90, 92)) %>%
+      dplyr::mutate(across(c(TM, STN), as.character)) 
     
+    # 데이터 병합
     dataL2 = dplyr::bind_rows(dataL2, dataL1)
   }
   
+  if (nrow(dataL2) < 1) next
   
   # 엑셀 저장
   saveXlsxFile = sprintf(apiInfo$saveXlsxPattern , min(dataL2$TM, na.rm = TRUE), max(dataL2$TM, na.rm = TRUE))
