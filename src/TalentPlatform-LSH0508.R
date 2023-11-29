@@ -206,7 +206,7 @@ dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
 ggplot(prdDataL1, aes(x = dtXran, y = value, color = key)) +
   geom_point() +
   labs(x = "연도", y = "전력 사용량", color = NULL, subtitle = plotSubTitle) +
-  scale_color_manual(values = c("black", "red"), labels = c("Before","After")) +
+  scale_color_manual(values = c("red", "black"), labels = c("after","before")) +
   theme(
     text = element_text(size = 16)
     , legend.position = "top"
@@ -220,7 +220,7 @@ ggplot(prdDataL1, aes(x = dtXran, y = value, color = key)) +
 # lubridate::date_decimal(2024.415301)
 
 
-tibble(dtDate = as.Date(c("2023-06-28", "2023-07-01", "2023-07-15", "2023-07-21", "2023-07-28", "2023-08-01", "2023-08-15", "2023-09-01", "2023-10-01"))) %>% 
+statData = tibble(dtDate = as.Date(c("2023-06-28", "2023-07-01", "2023-07-15", "2023-07-21", "2023-07-28", "2023-08-01", "2023-08-15", "2023-09-01", "2023-10-01"))) %>% 
   dplyr::mutate(
     dtXran = lubridate::decimal_date(dtDate)
   ) %>% 
