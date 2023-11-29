@@ -135,12 +135,14 @@ dataL1 %>%
 # lubridate::decimal_date(as.Date("2024-01-01"))
 
 prdData = data.frame(dtXran = c(2023, 2023.580822, 2023.641096, 2024))
+prdData = data.frame(dtXran = seq(2023, 2024, 0.1))
+
 
 befData = dataL1 %>% 
   dplyr::filter(label == "before")
 
 befModel = lm(val ~ dtXran, data = befData)
-predict(befModel, newdata = prdData) %>% round(2)
+befData = predict(befModel, newdata = prdData) %>% round(2)
 
 # 2023 ~ 2024년
 # 100 - (6668.58 / 4493.68 * 100)
@@ -158,7 +160,7 @@ aftData = dataL1 %>%
   dplyr::filter(label == "after")
 
 aftModel = lm(val ~ dtXran, data = aftData)
-predict(aftModel, newdata = prdData) %>% round(2)
+aftData = predict(aftModel, newdata = prdData) %>% round(2)
 
 # 2023 ~ 2024년
 # 100 - (1321.00 / 9586.27 * 100)
@@ -171,6 +173,13 @@ predict(aftModel, newdata = prdData) %>% round(2)
 # 08.01 ~ 08.23일
 # 100 - (4287.44     / 4785.62        * 100)
 # 10.40993643
+
+plot(prdData$dtXran, befData)
+points(prdData$dtXran, aftData)
+
+# 21115548.689/10440.166
+
+
 
 # *****************************************
 # 시각화
