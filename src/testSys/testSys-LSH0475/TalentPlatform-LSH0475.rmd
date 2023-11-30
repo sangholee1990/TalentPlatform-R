@@ -43,6 +43,7 @@ knitr::opts_chunk$set(
 suppressPackageStartupMessages(library(tidyverse))
 suppressPackageStartupMessages(library(broom))
 suppressPackageStartupMessages(library(modelr))
+
 # Load dataset
 blood_pressure <- read_rds("blood_pressure.rds")
 ```
@@ -80,12 +81,6 @@ blood_pressure %>%
 cor(blood_pressure)[ ,1] %>% sort()
 ```
 
-i. What type of correlation does the "Years" variable demonstrate with "Systol"?
-+ Negative
-
-ii. Which variable shows a moderate-to-strong positive correlatio with "Systol"?
-+
-
 ## Exercise 3
 
 ```{r}
@@ -108,8 +103,10 @@ systol_urban_frac_model = lm(Systol ~ urban_frac_life, data  = blood_pressure_up
 systol_urban_frac_model %>% 
   tidy()
 
-model_performance = glance(systol_urban_frac_model)
-print(model_performance[, 1:3])
+model_performance = glance(systol_urban_frac_model) %>% 
+  dplyr::select(1:5)
+
+model_performance
 ```
 
 ## Exercise 6
@@ -128,15 +125,15 @@ print(systol_urban_frac_df)
 
 ## Exercise 7
 - Q) Does your model meet the linearity condition?
-- A) 적색선을 기준으로 대칭적으로 고르게 분포되어 있어서 선형성을 만족함
+- A) 청색선을 기준으로 대칭적으로 고르게 분포되어 있어서 음의 선형성을 만족함
 ```{r}
-ggplot() +
-  geom_point(mapping = aes(x = pred, y = Systol), data = systol_urban_frac_df) +
-  geom_abline(slope = 1, intercept = 0, color = "red") +
-   labs(title="Actual vs Predicted", x="Urban frac life", y="Actual")
+ggplot(mapping = aes(x = urban_frac_life, y = Systol), data = systol_urban_frac_df) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  labs(title="Scatter Plot of Urban frac life vs Systolic", x="Urban frac life", y="Systol")
 
-# 선형성 검정 결과 P값은 0.08881로서 0.05 이하 유의수준보다 낮기 때문에 귀무가설을 채택하여 상관계수 0이 아님 (선형성 있음) 
-cor.test(systol_urban_frac_df$pred, systol_urban_frac_df$Systol)
+# 선형성 검정 결과 P값은 0.08881로서 0.05 이하 유의수준보다 낮기 때문에 귀무가설 (상관계수 0이 아님)을 채택하여 선형성 존재
+cor.test(systol_urban_frac_df$urban_frac_life, systol_urban_frac_df$Systol)
 ```
 
 ## Exercise 8
@@ -155,16 +152,16 @@ ggplot(systol_urban_frac_df, aes(x=pred, y=resid)) +
 ## Exercise 9
 What is the shape of the distribution of the residuals?
 - Q) Symmetric?
-- A) No, 비대칭
+- A) No, 비대칭성
 
 - Q) Skewed?
-- A) 우측으로 기울어짐
+- A) 잔차가 우측으로 기울어짐
 
 - Q) Does the model seem to meet the second condition of nearly normal residuals? Why or why not?
-- A) 아니요, 모델은 거의 정상적인 잔차의 조건을 충족하지 않는 것으로 보입니다. 잔차 히스토그램이 정규분포를 띠지 않고, 특히 한쪽으로 기울어진 비대칭 형태를 보이
+- A) No, 잔차의 히스토그램은 정규분포를 띠지 않고 특히 우측으로 기울어진 비대칭 형태를 보임
 ```{r}
 ggplot(systol_urban_frac_df, aes(x=resid)) +
-  geom_histogram(binwidth=0.5) +
+  geom_histogram() +
   labs(title="Histogram of Residuals", x="Residuals", y="Frequency")
 ```
 
@@ -184,14 +181,14 @@ systol_weight_model %>%
 
 ## Exercise 11
 - Q) Does this model and the visualizations created from it follow the assumptions necessary for a linear model?
-- A) 적색선을 기준으로 대칭적으로 고르게 분포되어 있어서 선형성을 만족함
+- A) 청색선을 기준으로 대칭적으로 고르게 분포되어 있어서 선형성을 만족함
 
 - Q) Does the model meet the third criteria of constant variability of residuals?
-- A) 앞선 답변과 동일
+- A) 적색 선을 기준으로 고르게 분포되어 있기 때문에 잔차의 변동성은 일정함
 
 Should we conclude that the second model is reliable? Why or why not?
 - Q) Symmetric?
-- A) 대칭
+- A) 대칭성
 
 - Q) Skewed?
 - A) No
@@ -206,14 +203,23 @@ systol_weight_df = blood_pressure_updated %>%
 print(systol_weight_df)
 
 # Exercise 07
-ggplot(systol_weight_df) +
-  geom_point(mapping = aes(x = pred, y = Systol)) +
-  geom_abline(intercept=0, slope=1, color="red") +
-  labs(title="Actual vs Predicted", x="Predicted", y="Actual")
+ggplot(mapping = aes(x = Weight, y = Systol), data = systol_weight_df) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  labs(title="Scatter Plot of Weight vs Systolic", x="Weight", y="Systol")
+
+# 선형성 검정 결과 P값은 0.0006654로서 0.05 이하 유의수준보다 낮기 때문에 귀무가설 (상관계수 0이 아님)을 채택하여 선형성 존재
+cor.test(systol_weight_df$Weight, systol_weight_df$Systol)
+
+# Exercise 08
+ggplot(systol_weight_df, aes(x=pred, y=resid)) + 
+  geom_point() + 
+  geom_hline(yintercept = 0, color = "red") + 
+  labs(title="Residuals vs Predicted", x="Predicted", y="Residuals")
 
 # Exercise 09
 ggplot(systol_weight_df, aes(x=resid)) +
-  geom_histogram(binwidth=0.5) +
+  geom_histogram() +
   labs(title="Histogram of Residuals", x="Residuals", y="Frequency")
 ```
 
@@ -223,7 +229,9 @@ How does the second model compare with the first in terms of
 - A) 신규 선형 모델 (systol_weight_model)의 수정된 결정계수는 0.27로서 기존 선형 모델 (model_performance, 결정계수 = 0.07)보다 좋은 예측 성능을 보임
 
 - Q) How well they meet the 3 assumptions
-- A) 신규/기존 선형 모델은 선형성, 정상적인 잔차, 로 판단됨
+<!-- - A) 선형성의 경우, 독립성의 경우 -->
+
+<!-- 신규/기존 선형 모델은 선형성, 정상적인 잔차, 로 판단됨 -->
 ```{r}
 summary(systol_urban_frac_model)
 summary(systol_weight_model)
