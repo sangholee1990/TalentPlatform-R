@@ -1,6 +1,6 @@
 ---
 title: "Assignment 5: Under (blood) pressure"
-author: Sangwon Yum
+author: "Sangwon Yum"
 date: "`r Sys.Date()`"
 documentclass: article
 geometry: margin=1in
@@ -24,6 +24,7 @@ output:
     smart: true
     dev: svg
     latex_engine: xelatex
+mainfont: "Malgun Gothic"
 ---
 
 ```{r setup, include = FALSE}
@@ -78,7 +79,8 @@ blood_pressure %>%
     geom_smooth(mapping = aes(x = value, y = Systol), method = "lm")
 
 # 상관계수
-cor(blood_pressure)[ ,1] %>% sort()
+cor(blood_pressure)[ ,1] %>% 
+  sort()
 ```
 
 ## Exercise 3
@@ -105,8 +107,6 @@ systol_urban_frac_model %>%
 
 model_performance = glance(systol_urban_frac_model) %>% 
   dplyr::select(1:5)
-
-model_performance
 ```
 
 ## Exercise 6
@@ -120,25 +120,25 @@ systol_urban_frac_df = blood_pressure_updated %>%
   add_predictions(systol_urban_frac_model) %>% 
   add_residuals(systol_urban_frac_model)
 
-print(systol_urban_frac_df)
+head(systol_urban_frac_df)
 ```
 
 ## Exercise 7
 - Q) Does your model meet the linearity condition?
-- A) 청색선을 기준으로 대칭적으로 고르게 분포되어 있어서 음의 선형성을 만족함
+- A) 청색선을 기준으로 불규칙하게 분포되어 있기 때문에 선형성 없음
 ```{r}
 ggplot(mapping = aes(x = urban_frac_life, y = Systol), data = systol_urban_frac_df) +
   geom_point() +
   geom_smooth(method = "lm") +
   labs(title="Scatter Plot of Urban frac life vs Systolic", x="Urban frac life", y="Systol")
 
-# 선형성 검정 결과 P값은 0.08881로서 0.05 이하 유의수준보다 낮기 때문에 귀무가설 (상관계수 0이 아님)을 채택하여 선형성 존재
+# 선형성 검정 결과 P값은 0.08881로서 0.05 이하 유의수준보다 높기 때문에 귀무가설 (상관계수 0이 아님)을 기각하여 선형성 없음
 cor.test(systol_urban_frac_df$urban_frac_life, systol_urban_frac_df$Systol)
 ```
 
 ## Exercise 8
 - Q) Does it look like the variability is reasonably constant all the way along the line?
-- A) 적색 선을 기준으로 고르게 분포되어 있기 때문에 잔차의 변동성은 일정함
+- A) No, 적색 선을 기준으로 불규칙하게 분포되어 있기 때문에
 
 - Q) Does the model meet the third criteria of constant variability of residuals?
 - A) 앞선 답변과 동일
@@ -196,13 +196,14 @@ Should we conclude that the second model is reliable? Why or why not?
 - Q) Does the model seem to meet the second condition of nearly normal residuals? Why or why not?
 - A) 잔차 히스토그램에서 0을 기준으로 정규 분포를 띠기 때문에 정상적인 잔차로 판단됨
 ```{r}
-# Exercise 06
+# 신규 선형 모델
 systol_weight_df = blood_pressure_updated %>% 
   add_predictions(systol_weight_model) %>% 
   add_residuals(systol_weight_model)
-print(systol_weight_df)
 
-# Exercise 07
+head(systol_weight_df)
+
+# 선형성
 ggplot(mapping = aes(x = Weight, y = Systol), data = systol_weight_df) +
   geom_point() +
   geom_smooth(method = "lm") +
@@ -211,13 +212,13 @@ ggplot(mapping = aes(x = Weight, y = Systol), data = systol_weight_df) +
 # 선형성 검정 결과 P값은 0.0006654로서 0.05 이하 유의수준보다 낮기 때문에 귀무가설 (상관계수 0이 아님)을 채택하여 선형성 존재
 cor.test(systol_weight_df$Weight, systol_weight_df$Systol)
 
-# Exercise 08
+# 등분산성
 ggplot(systol_weight_df, aes(x=pred, y=resid)) + 
   geom_point() + 
   geom_hline(yintercept = 0, color = "red") + 
   labs(title="Residuals vs Predicted", x="Predicted", y="Residuals")
 
-# Exercise 09
+# 정규성
 ggplot(systol_weight_df, aes(x=resid)) +
   geom_histogram() +
   labs(title="Histogram of Residuals", x="Residuals", y="Frequency")
@@ -226,12 +227,10 @@ ggplot(systol_weight_df, aes(x=resid)) +
 ## Exercise 12
 How does the second model compare with the first in terms of
 - Q) Their R2 values
-- A) 신규 선형 모델 (systol_weight_model)의 수정된 결정계수는 0.27로서 기존 선형 모델 (model_performance, 결정계수 = 0.07)보다 좋은 예측 성능을 보임
+- A) 신규 선형 모델 (systol_weight_model)의 수정된 결정계수는 0.27로서 기존 선형 모델 (systol_urban_frac_model, 결정계수 = 0.07)보다 좋은 예측 성능을 보임
 
 - Q) How well they meet the 3 assumptions
-<!-- - A) 선형성의 경우, 독립성의 경우 -->
-
-<!-- 신규/기존 선형 모델은 선형성, 정상적인 잔차, 로 판단됨 -->
+- A) 기존 선형 모델 (systol_weight_model)의 경우 선형성은 없고 등분산성 (잔차의 변동성)도 불규칙하고 무엇보다도 정규성에서도 비대칭성으로서 우측으로 기울어짐. 반면에 신규 선형 모델 (systol_weight_model)은 선형성, 등분산성 (잔차의 변동성), 정규성에서 모두 만족하다고 판단됨
 ```{r}
 summary(systol_urban_frac_model)
 summary(systol_weight_model)
