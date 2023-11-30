@@ -103,10 +103,11 @@ data = orgDataL2 %>%
     # , dtMonth = lubridate::month(dtDateTime)
     # , dtDay = lubridate::day(dtDateTime)
     dtYmd = format(dtDateTime, "%Y%m%d")
-  ) # %>%
-  # dplyr::group_by(dtYmd, label) %>% 
+  ) #%>%
+  # dplyr::group_by(dtYmd, label) %>%
   # dplyr::summarise(
-  #   val = sum(val, na.rm = TRUE)
+  #   # val = sum(val, na.rm = TRUE)
+  #   val = mean(val, na.rm = TRUE)
   # )
 
 dataL1 = data %>%
@@ -178,7 +179,38 @@ aftData = predict(aftModel, newdata = prdData) %>% round(2)
 # 10.40993643
 
 
-# 21115548.689/10440.166
+# 평균
+befDataL1 = befData %>% 
+  # dplyr::filter(as.Date("2023-06-01") <= dtDate & dtDate >= as.Date("2023-06-30"))
+  dplyr::filter(as.Date("2023-07-01") <= dtDate & dtDate >= as.Date("2023-07-31"))
+  # dplyr::filter(as.Date("2023-08-01") <= dtDate & dtDate <= as.Date("2023-08-31"))
+
+aftDataL1 = aftData %>% 
+  # dplyr::filter(as.Date("2023-08-24") <= dtDate & dtDate <= as.Date("2023-08-31"))
+  # dplyr::filter(as.Date("2023-09-01") <= dtDate & dtDate <= as.Date("2023-09-30"))
+  # dplyr::filter(as.Date("2023-10-01") <= dtDate & dtDate <= as.Date("2023-10-31"))
+  dplyr::filter(as.Date("2023-11-01") <= dtDate & dtDate <= as.Date("2023-11-30"))
+
+meanBefVal = mean(befDataL1$val, na.rm = TRUE)
+meanAftVal = mean(aftDataL1$val, na.rm = TRUE)
+
+((meanAftVal - meanBefVal) / meanBefVal * 100)
+
+# 06월 01일 ~ 06월 30일 제품 이전의 평균: 5671.211806
+# 07월 01일 ~ 07월 31일 제품 이전의 평균: 5630.350274
+# 08월 01일 ~ 08월 07일 제품 이전의 평균: 5530.155493
+# 08월 24일 ~ 08월 31일 제품 이후의 평균: 4649.239027 (절감율 -15.92%)
+# 09월 01일 ~ 09월 30일 제품 이후의 평균: 3927.36528 (절감율 -28.98%)
+# 10월 01일 ~ 10월 31일 제품 이후의 평균: 2689.294803 (절감율 -51.37%)
+# 11월 01일 ~ 11월 30일 제품 이후의 평균: 3080.293056 (절감율 -44.30%)
+
+
+# 절감율 : -15.93
+# ((4649.239027 - 5530.155493) / 5530.155493 * 100)
+
+
+
+# 100 - (5530.155493  / 4450.205042 * 100) %>% round(2)
 
 prdData = data.frame(dtXran = seq(2023, 2024, 0.01)) %>% 
   modelr::add_predictions(befModel, var = "befPrd") %>% 
@@ -230,6 +262,45 @@ statData = tibble(dtDate = as.Date(c("2023-06-28", "2023-07-01", "2023-07-15", "
     befPer = 100 - (5554.573186  / befPrd * 100) %>% round(2)
     , aftPer = 100 - (5554.573186  / aftPrd * 100) %>% round(2)
   )
+
+
+
+statData = tibble(dtDate = aftData$dtDate) %>% 
+  dplyr::distinct() %>% 
+  dplyr::mutate(
+    dtXran = lubridate::decimal_date(dtDate)
+  ) %>% 
+  modelr::add_predictions(befModel, var = "befPrd") %>% 
+  modelr::add_predictions(aftModel, var = "aftPrd") %>% 
+  dplyr::mutate(
+    befPer = 100 - (5554.573186  / befPrd * 100) %>% round(2)
+    , aftPer = 100 - (5554.573186  / aftPrd * 100) %>% round(2)
+  )
+
+
+befData = dataL1 %>% 
+  dplyr::filter(label == "before")
+
+aftData = dataL1 %>% 
+  dplyr::filter(label == "after")
+
+befModel = lm(val ~ dtXran, data = befData)
+aftModel = lm(val ~ dtXran, data = aftData)
+
+
+
+# statData = befData %>%
+#   modelr::add_predictions(befModel, var = "befPrd")
+
+# plot(statData$dtXran, statData$val)
+# points(statData$dtXran, statData$befPrd)
+
+
+statData = befData %>%
+  modelr::add_predictions(aftModel, var = "aftPrd")
+
+plot(statData$dtXran, statData$val)
+points(statData$dtXran, statData$aftPrd)
 
 
 # *****************************************
