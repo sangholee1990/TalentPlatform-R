@@ -14,7 +14,7 @@ output:
     number_sections: no
     dev: pdf
     latex_engine: xelatex
-# mainfont: "Malgun Gothic"
+mainfont: "Malgun Gothic"
 ---
 
 ```{r setup, include = FALSE}
@@ -31,8 +31,8 @@ knitr::opts_chunk$set(
 )
 
 # Cost function for cross validation
-cost <- function(obs, pred) {
-  outcome <- pred > 0.5
+cost = function(obs, pred) {
+  outcome = pred > 0.5
   return(1 - (sum(obs == outcome) / length(obs)))
 }
 
@@ -50,12 +50,7 @@ train_df = read_csv(file = "train.csv") %>%
     across(c(Pclass, SibSp, Parch), as.character)
     , did_survive = as.logical(Survived)
     )
-
-
-test_df = read_csv(file = "test.csv")
 ```
-
-
 
 ## Exercise 2
 - Q) How do the Age and Fare distributions differ for survivors versus passengers who died?
@@ -75,8 +70,6 @@ train_df %>%
     facet_wrap(~ key, scales = "free") +
     labs(title = "Histograms of Age and Fare by Survival", x = "Value", y = "Frequency", fill = "Survived")
 ```
-
-
 
 ## Exercise 3
 - Q) Which of these variables are good predictors for survival?
@@ -99,8 +92,6 @@ train_df %>%
     labs(title = "Bar Plots of Pclass, Sex, Parch, and SibSp by Survival", x = "Category", y = "Count", fill = "Survived")
 ```
 
-
-
 ## Exercise 4
 - Q) How does the interaction of gender and passenger class seem to affect survival?
 - A) 남성보다 여성의 생존율 높음, 3등석보다 상급석 (1등석, 2등석)의 생존율 높음. 따라서 성별과 승객 등급이 생존에 중요한 영향을 끼침
@@ -115,8 +106,6 @@ train_df %>%
     facet_grid(. ~ did_survive, scales = "free") +
     labs(title = "Mosaic plot of who wurvived the Titanic", x = "Passenger class", y = "Gender")
 ```
-
-
 
 ## Exercise 5
 ```{r}
@@ -144,8 +133,6 @@ train_imputed %>%
   )
 ```
 
-
-
 ## Exercise 6
 - Q) What is the accuracy of your model?
 - A) moderate (0.62)
@@ -158,7 +145,6 @@ model_1_preds = train_imputed %>%
   dplyr::mutate(
     outcome = if_else(pred > 0.5, 1, 0)
     )
-model_1_preds
 
 model_1_preds %>% 
   dplyr::mutate(correct = if_else(Survived == outcome, 1, 0)) %>%
@@ -168,42 +154,62 @@ model_1_preds %>%
     )
 ```
 
-
-
 ## Exercise 7
 ```{r}
-cost = function(y, yhat) {
-  prd = ifelse(yhat > 0.5, 1, 0)
-  accuracy = mean(y == prd)
-  1 - accuracy
-}
-
+set.seed(1)
 logistic_cv1 = cv.glm(data = train_imputed, glmfit = model_1, cost = cost, K = 5)
 error_model = logistic_cv1$delta[1]
 error_model
 ```
 
-
-
 ## Exercise 8
 - Q) Which of your three models has the most accurate validation error? Why?
-- A)
+- A) model_3 (0.188), 회귀모형이 복자하나 변수들 간의 상호작용 포함
 ```{r}
-model_2 = glm(Survived ~ age_imputed +  SibSp + Pclass + Sex, family = "binomial", data = train_imputed)
+set.seed(1)
+model_2 = glm(Survived ~ age_imputed + SibSp + Pclass + Sex, family = "binomial", data = train_imputed)
 cv_model_2 = cv.glm(data = train_imputed, glmfit = model_2, cost = cost, K = 5)
 error_model_2 = cv_model_2$delta[1]
 error_model_2
 
-model_3 = glm(Survived ~ (age_imputed + SibSp + Pclass + Sex)^2, family = "binomial", data = train_imputed)
+set.seed(1)
+model_3 = glm(Survived ~ age_imputed + SibSp + Pclass + Sex + Pclass * age_imputed + Sex * age_imputed, family = "binomial", data = train_imputed)
 cv_model_3 = cv.glm(data = train_imputed, glmfit = model_3, cost = cost, K = 5)
 error_model_3 = cv_model_3$delta[1]
 error_model_3
 ```
 
-
-
 ## Bonus Exercise
 If you choose to do the bonus exercise, write your code here. Otherwise you can delete this section.
 ```{r}
+test_df = read_csv(file = "test.csv") %>% 
+  dplyr::mutate(
+    across(c(Pclass, SibSp, Parch), as.character)
+    # , did_survive = as.logical(Survived)
+    )
 
+test_imputed = test_df %>% 
+  dplyr::mutate(
+    age_imputed = if_else(
+      condition = is.na(Age)
+      , true = median(Age, na.rm = TRUE)
+      , false = Age
+    )
+  )
+
+test_imputed %>%
+  dplyr::summarise(
+    total = n()
+    , missing = sum(is.na(age_imputed))
+    , fraction_missing = missing / total
+  )
+
+model_3_preds = test_imputed %>% 
+  modelr::add_predictions(model_3, type = "response") %>% 
+  dplyr::mutate(
+    outcome = if_else(pred > 0.5, 1, 0)
+    )
+
+subData = tibble::tibble(PassengerId = model_3_preds$PassengerId, Survived = model_3_preds$outcome)
+write.csv(subData, "submission.csv", row.names = FALSE)
 ```
