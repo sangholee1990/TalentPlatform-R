@@ -24,6 +24,7 @@ output:
     number_sections: no
     smart: yes
     dev: svg
+    latex_engine: xelatex
   github_document:
     html_preview: false
     pandoc_args: --webtex
@@ -31,6 +32,8 @@ output:
     toc_depth: 4
     dev: svg
     df_print: kable
+    latex_engine: xelatex
+mainfont: "Malgun Gothic"
 ---
 
 ```{r setup, include = FALSE}
