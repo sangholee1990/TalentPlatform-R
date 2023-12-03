@@ -77,7 +77,6 @@ library(nnet)
 library(ggradar)
 library(sysfonts)
 
-
 # 국문 폰트 설정
 if (Sys.info()["sysname"] == "Windows") {
   sysfonts::font.add(family = "malgun", regular = "C:/Windows/Fonts/malgun.ttf")
@@ -160,7 +159,6 @@ data_1_summary = data_1 %>%
   t()
 
 data_1_summary
-
 
 
 # gender: 성별, 남성(1), 여성(2)
@@ -854,10 +852,16 @@ for (name in nameList) {
 # 가. 잠재유형간 영향을 미치는 예측변인 탐색  
 # ==============================================================================
 # 다항 로지스틱 회귀분석을 통해 잠재유형의 퇴원의향에 영향을 미치는 요인을 탐색
+# data_4 = data_3 %>% 
+#   dplyr::select(c(Class_fac, age_g, gender, residen_home, live_alone, marriage, ltc_insurance, med_aid, duration_l, adm_way, classification, function_total, function2_total, function3_total, function4_total)) %>% 
+#   dplyr::mutate(across(c(age_g, gender, residen_home, live_alone, marriage, ltc_insurance, med_aid, duration_l, adm_way, classification, function_total, function2_total, function3_total, function4_total), as.numeric)) 
+
+# 2023.12.03 표준화 또는 정규화
 data_4 = data_3 %>% 
-  # dplyr::select(c(Class_fac, illper_total, function_total, fam_total, carebur_total, satisf_total, continu_total, service_total))
   dplyr::select(c(Class_fac, age_g, gender, residen_home, live_alone, marriage, ltc_insurance, med_aid, duration_l, adm_way, classification, function_total, function2_total, function3_total, function4_total)) %>% 
-  dplyr::mutate(across(c(age_g, gender, residen_home, live_alone, marriage, ltc_insurance, med_aid, duration_l, adm_way, classification, function_total, function2_total, function3_total, function4_total), as.numeric))
+  dplyr::mutate(across(c(age_g, gender, residen_home, live_alone, marriage, ltc_insurance, med_aid, duration_l, adm_way, classification, function_total, function2_total, function3_total, function4_total), as.numeric)) # %>% 
+# dplyr::mutate(across(where(is.numeric), scale)) # 표준화
+# dplyr::mutate(across(where(is.numeric), ~(. - min(., na.rm = TRUE)) / (max(., na.rm = TRUE) - min(., na.rm = TRUE)))) # 정규화
 
 # 참조집단 1 - 비교집단 2
 # 참조집단 1 - 비교집단 3
