@@ -1,13 +1,3 @@
-#===============================================================================================
-# Routine : Main R program
-#
-# Purpose : 재능상품 오투잡
-#
-# Author : 해솔
-#
-# Revisions: V1.0 May 28, 2020 First release (MS. 해솔)
-#===============================================================================================
-
 #================================================
 # 요구사항
 #================================================
@@ -22,25 +12,15 @@ env = "local"  # 로컬 : 원도우 환경, 작업환경 (현재 소스 코드 �
 
 prjName = "test"
 serviceName = "LSH0514"
+contextPath = "."
 
-if (Sys.info()[["sysname"]] == "Windows") {
-  contextPath = ifelse(env == "local", ".", "C:/SYSTEMS/PROG/R/TalentPlatform-R")
-} else {
-  contextPath = ifelse(env == "local", ".", "/SYSTEMS/PROG/R/PyCharm")
-}
-
-if (env == "local") {
-  globalVar = list(
-    "inpPath" = contextPath
-    , "figPath" = contextPath
-    , "outPath" = contextPath
-    , "tmpPath" = contextPath
-    , "logPath" = contextPath
-  )
-} else {
-  # source(here::here(file.path(contextPath, "src"), "InitConfig.R"), encoding = "UTF-8")
-  source(file.path(contextPath, "src", "InitConfig.R"))
-}
+globalVar = list(
+  "inpPath" = contextPath
+  , "figPath" = contextPath
+  , "outPath" = contextPath
+  , "tmpPath" = contextPath
+  , "logPath" = contextPath
+)
 
 # ================================================
 # 비즈니스 로직 수행
