@@ -4,25 +4,6 @@
 # R을 이용한 마케팅 데이터 분석 (요약통계량, 히스토그램, 군집분석, 분류나무 분석)
 
 # ================================================
-# 초기 환경변수 설정
-# ================================================
-env = "local"  # 로컬 : 원도우 환경, 작업환경 (현재 소스 코드 환경 시 .) 설정
-# env = "dev"  # 개발 : 원도우 환경, 작업환경 (사용자 환경 시 contextPath) 설정
-# env = "oper"  # 운영 : 리눅스 환경, 작업환경 (사용자 환경 시 contextPath) 설정
-
-prjName = "test"
-serviceName = "LSH0514"
-contextPath = "."
-
-globalVar = list(
-  "inpPath" = contextPath
-  , "figPath" = contextPath
-  , "outPath" = contextPath
-  , "tmpPath" = contextPath
-  , "logPath" = contextPath
-)
-
-# ================================================
 # 비즈니스 로직 수행
 # ================================================
 # 라이브러리 읽기
@@ -31,7 +12,7 @@ library(rpart)
 library(caret)
 
 # 파일 읽기
-fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "sales.csv"))
+fileInfo = Sys.glob("./sales.csv")
 data = read.csv(fileInfo)
 
 # ==============================================================================
