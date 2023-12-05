@@ -48,6 +48,15 @@ if (env == "local") {
 # 라이브러리 읽기
 library(tidyverse)
 library(openxlsx)
+library(ggradar)
+library(sysfonts)
+
+# 국문 폰트 설정
+if (Sys.info()["sysname"] == "Windows") {
+  sysfonts::font.add(family = "malgun", regular = "C:/Windows/Fonts/malgun.ttf")
+  showtext::showtext_opts(dpi = 600)
+  showtext::showtext.auto()
+}
 
 # 파일 읽기
 fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "20231205_★설문+결과_정리_0816.xlsx"))
@@ -93,22 +102,36 @@ cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 
 # 시민 및 전문가에 따른 공간 하위요소
 dataL1 = data %>% 
-  dplyr::filter(name == "공간 하위요소2")
+  dplyr::filter(name == "공간 하위요소2") %>% 
+  dplyr::select(type, key, val) %>%
+  tidyr::spread(key = "key", value = "val") %>% 
+  dplyr::rename(
+    "Group" = "type"
+  ) 
+
 
 mainTitle = sprintf("%s", "시민 및 전문가에 따른 공간 하위요소")
 saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
 dir.create(fs::path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
 
-ggplot(dataL1, aes(x = type, y = val, fill = type, label = round(val, 2))) + 
-  geom_bar(position="dodge", stat="identity") +
-  geom_text(nudge_y = -1.0, size = 5, color = "white") +
-  facet_wrap(~key, scale = "free_x") +
-  labs(x = NULL, y = "비율", fill = NULL, color = NULL, title = NULL, subtitle = mainTitle) +
-  theme(text = element_text(size = 16)) +
-  ggsave(filename = saveImg, width = 10, height = 10, dpi = 600)
+ggradar::ggradar(
+  dataL1
+  , values.radar = c(0, 12, 24)
+  , legend.position = "bottom"
+  , grid.min = 0, grid.mid = 12, grid.max = 24
+  , font.radar = "malgun"
+  ) +
+  ggsave(filename = saveImg, width = 12, height = 10, dpi = 600)
 
 cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 
+# ggplot(dataL1, aes(x = type, y = val, fill = type, label = round(val, 2))) + 
+#   geom_bar(position="dodge", stat="identity") +
+#   geom_text(nudge_y = -1.0, size = 5, color = "white") +
+#   facet_wrap(~key, scale = "free_x") +
+#   labs(x = NULL, y = "비율", fill = NULL, color = NULL, title = NULL, subtitle = mainTitle) +
+#   theme(text = element_text(size = 16)) +
+#   ggsave(filename = saveImg, width = 10, height = 10, dpi = 600)
 
 # 시민 및 전문가에 따른 행태 하위요소
 dataL1 = data %>% 
@@ -125,5 +148,86 @@ ggplot(dataL1, aes(x = type, y = val, fill = type, label = round(val, 2))) +
   labs(x = NULL, y = "비율", fill = NULL, color = NULL, title = NULL, subtitle = mainTitle) +
   theme(text = element_text(size = 16)) +
   ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
+
+cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+
+
+# 전문가에 따른 상위 요소 비율
+dataL1 = data %>% 
+  dplyr::filter(name == "상위 요소 비율")
+
+mainTitle = sprintf("%s", "전문가에 따른 상위 요소 비율")
+saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
+dir.create(fs::path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
+
+ggplot(dataL1, aes(x = '', y = val, fill = key, label = sprintf("%s\n%s %%", key, round(val, 2)))) +
+  geom_bar(stat = 'identity', alpha = 0.6) +
+  coord_polar('y', start = 0) +
+  ggrepel::geom_label_repel(position = position_stack(vjust = 0.5), color = "white", size = 5, alpha = 0.8, show.legend = FALSE) +
+  labs(x = NULL, y = NULL, fill = NULL, title = NULL, subtitle = mainTitle) +
+  theme_minimal() +
+  theme_classic() +
+  theme(
+    text = element_text(size = 16)
+    , axis.line = element_blank()
+    , axis.text = element_blank()
+    , axis.ticks = element_blank()
+    , legend.position = "top"
+  ) +
+  ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
+
+cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+
+
+# 전문가에 따른 공간 하위요소 비율
+dataL1 = data %>% 
+  dplyr::filter(name == "공간 하위요소 비율")
+
+mainTitle = sprintf("%s", "전문가에 따른 공간 하위요소 비율")
+saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
+dir.create(fs::path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
+
+ggplot(dataL1, aes(x = '', y = val, fill = key, label = sprintf("%s\n%s %%", key, round(val, 2)) )) +
+  geom_bar(stat = 'identity', alpha = 0.6) +
+  coord_polar('y', start = 0) +
+  ggrepel::geom_label_repel(position = position_stack(vjust = 0.25), color = "white", size = 5, alpha = 0.8, show.legend = FALSE) +
+  labs(x = NULL, y = NULL, fill = NULL, title = NULL, subtitle = mainTitle) +
+  theme_minimal() +
+  theme_classic() +
+  theme(
+    text = element_text(size = 16)
+    , axis.line = element_blank()
+    , axis.text = element_blank()
+    , axis.ticks = element_blank()
+    , legend.position = "top"
+  ) +
+  ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
+
+cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+
+
+# 전문가에 따른 행태 하위요소 비율
+dataL1 = data %>% 
+  dplyr::filter(name == "행태 하위요소 비율")
+
+mainTitle = sprintf("%s", "전문가에 따른 행태 하위요소 비율")
+saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
+dir.create(fs::path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
+
+ggplot(dataL1, aes(x = '', y = val, fill = key, label = sprintf("%s\n%s %%", key, round(val, 2)) )) +
+  geom_bar(stat = 'identity', alpha = 0.6) +
+  coord_polar('y', start = 0) +
+  ggrepel::geom_label_repel(position = position_stack(vjust = 0.5), color = "white", size = 5, alpha = 0.8, show.legend = FALSE) +
+  labs(x = NULL, y = NULL, fill = NULL, title = NULL, subtitle = mainTitle) +
+  theme_minimal() +
+  theme_classic() +
+  theme(
+    text = element_text(size = 16)
+    , axis.line = element_blank()
+    , axis.text = element_blank()
+    , axis.ticks = element_blank()
+    , legend.position = "top"
+  ) +
+  ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
 
 cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
