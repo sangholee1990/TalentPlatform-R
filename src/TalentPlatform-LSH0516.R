@@ -59,7 +59,8 @@ if (Sys.info()["sysname"] == "Windows") {
 }
 
 # 파일 읽기
-fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "20231205_★설문+결과_정리_0816.xlsx"))
+# fileInfo = "C:/SYSTEMS/PROG/R/TalentPlatform-R/resources/input/test/LSH0516/20231205_★설문+결과_정리_0816.xlsx")
+ileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "20231205_★설문+결과_정리_0816.xlsx"))
 
 data = openxlsx::read.xlsx(fileInfo) %>% 
   as.tibble()
