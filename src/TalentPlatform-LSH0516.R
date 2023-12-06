@@ -201,6 +201,118 @@ ggradar::ggradar(
 
 cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 
+# 응답자에 따른 시민의 성별
+dataL1 = data %>% 
+  dplyr::filter(name == "응답자에 따른 시민의 성별") %>% 
+  dplyr::mutate(
+    id = sprintf("%s-%s", key, order)
+  ) %>% 
+  dplyr::select(id, type, val) %>%
+  tidyr::spread(key = "id", value = "val") %>% 
+  dplyr::rename(
+    "Group" = "type"
+  ) 
+
+mainTitle = sprintf("%s", "응답자에 따른 시민의 성별")
+saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
+dir.create(fs::path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
+
+ggradar::ggradar(
+  dataL1
+  , values.radar = c(0, 3.5, 3)
+  , legend.position = "bottom"
+  , grid.min = 0, grid.mid = 3.5, grid.max = 7
+  , font.radar = "malgun"
+) +
+  ggsave(filename = saveImg, width = 12, height = 10, dpi = 600)
+
+cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+
+
+# 응답자에 따른 시민의 연령대
+dataL1 = data %>% 
+  dplyr::filter(name == "응답자에 따른 시민의 연령대") %>% 
+  dplyr::mutate(
+    id = sprintf("%s-%s", key, order)
+  ) %>% 
+  dplyr::select(id, type, val) %>%
+  tidyr::spread(key = "id", value = "val") %>% 
+  dplyr::rename(
+    "Group" = "type"
+  ) 
+
+mainTitle = sprintf("%s", "응답자에 따른 시민의 연령대")
+saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
+dir.create(fs::path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
+
+ggradar::ggradar(
+  dataL1
+  , values.radar = c(0, 3.5, 3)
+  , legend.position = "bottom"
+  , grid.min = 0, grid.mid = 3.5, grid.max = 7
+  , font.radar = "malgun"
+) +
+  ggsave(filename = saveImg, width = 12, height = 10, dpi = 600)
+
+cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+
+
+# 응답자에 따른 전문가의 직업
+dataL1 = data %>% 
+  dplyr::filter(name == "응답자에 따른 전문가의 직업") %>% 
+  dplyr::mutate(
+    id = sprintf("%s-%s", key, order)
+  ) %>% 
+  dplyr::select(id, type, val) %>%
+  tidyr::spread(key = "id", value = "val") %>% 
+  dplyr::rename(
+    "Group" = "type"
+  ) 
+
+mainTitle = sprintf("%s", "응답자에 따른 전문가의 직업")
+saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
+dir.create(fs::path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
+
+ggradar::ggradar(
+  dataL1
+  , values.radar = c(0, 3.5, 3)
+  , legend.position = "bottom"
+  , grid.min = 0, grid.mid = 3.5, grid.max = 7
+  , font.radar = "malgun"
+) +
+  ggsave(filename = saveImg, width = 12, height = 10, dpi = 600)
+
+cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+
+
+# 응답자에 따른 전문가의 경력
+dataL1 = data %>% 
+  dplyr::filter(name == "응답자에 따른 전문가의 경력") %>% 
+  dplyr::mutate(
+    id = sprintf("%s-%s", key, order)
+  ) %>% 
+  dplyr::select(id, type, val) %>%
+  tidyr::spread(key = "id", value = "val") %>% 
+  dplyr::rename(
+    "Group" = "type"
+  ) 
+
+mainTitle = sprintf("%s", "응답자에 따른 전문가의 경력")
+saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
+dir.create(fs::path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
+
+ggradar::ggradar(
+  dataL1
+  , values.radar = c(0, 3.5, 3)
+  , legend.position = "bottom"
+  , grid.min = 0, grid.mid = 3.5, grid.max = 7
+  , font.radar = "malgun"
+) +
+  ggsave(filename = saveImg, width = 12, height = 10, dpi = 600)
+
+cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+
+
 # 전문가에 따른 상위 요소 비율
 # dataL1 = data %>% 
 #   dplyr::filter(name == "상위 요소 비율")
