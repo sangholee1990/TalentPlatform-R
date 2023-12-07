@@ -312,6 +312,105 @@ ggradar::ggradar(
 
 cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 
+# 시민 및 전문가에 따른 형태 하위요소 TOP3
+dataL1 = data %>% 
+  dplyr::filter(name == "시민 및 전문가에 따른 형태 하위요소 TOP3")
+
+mainTitle = sprintf("%s", "시민 및 전문가에 따른 형태 하위요소 TOP3")
+saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
+dir.create(fs::path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
+
+ggplot(dataL1, aes(x = type, y = val, fill = key, label = round(val, 2))) + 
+  geom_bar(position="dodge", stat="identity") +
+  geom_text(nudge_y = -2.0, size = 5, color = "white") +
+  facet_wrap(~order, scale = "free_x") +
+  labs(x = NULL, y = "비율", fill = NULL, color = NULL, title = NULL, subtitle = mainTitle) +
+  theme(text = element_text(size = 16)) +
+  ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
+
+cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+
+
+# 시민에 따른 상위 요소 비율
+dataL1 = data %>%
+  dplyr::filter(name == "시민에 따른 상위 요소 비율")
+
+mainTitle = sprintf("%s", "시민에 따른 상위 요소 비율")
+saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
+dir.create(fs::path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
+
+ggplot(dataL1, aes(x = '', y = val, fill = key, label = sprintf("%s\n%s %%", key, round(val, 2)))) +
+  geom_bar(stat = 'identity', alpha = 0.6) +
+  coord_polar('y', start = 0) +
+  ggrepel::geom_label_repel(position = position_stack(vjust = 0.5), color = "white", size = 5, alpha = 0.8, show.legend = FALSE) +
+  labs(x = NULL, y = NULL, fill = NULL, title = NULL, subtitle = mainTitle) +
+  theme_minimal() +
+  theme_classic() +
+  theme(
+    text = element_text(size = 16)
+    , axis.line = element_blank()
+    , axis.text = element_blank()
+    , axis.ticks = element_blank()
+    , legend.position = "top"
+  ) +
+  ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
+
+cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+
+
+# 시민에 따른 공간 하위요소 비율
+dataL1 = data %>%
+  dplyr::filter(name == "시민에 따른 공간 하위요소 비율")
+
+mainTitle = sprintf("%s", "시민에 따른 공간 하위요소 비율")
+saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
+dir.create(fs::path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
+
+ggplot(dataL1, aes(x = '', y = val, fill = key, label = sprintf("%s\n%s %%", key, round(val, 2)) )) +
+  geom_bar(stat = 'identity', alpha = 0.6) +
+  coord_polar('y', start = 0) +
+  ggrepel::geom_label_repel(position = position_stack(vjust = 0.25), color = "white", size = 5, alpha = 0.8, show.legend = FALSE) +
+  labs(x = NULL, y = NULL, fill = NULL, title = NULL, subtitle = mainTitle) +
+  theme_minimal() +
+  theme_classic() +
+  theme(
+    text = element_text(size = 16)
+    , axis.line = element_blank()
+    , axis.text = element_blank()
+    , axis.ticks = element_blank()
+    , legend.position = "top"
+  ) +
+  ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
+
+cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+
+
+# 시민에 따른 행태 하위요소 비율
+dataL1 = data %>%
+  dplyr::filter(name == "시민에 따른 행태 하위요소 비율")
+
+mainTitle = sprintf("%s", "시민에 따른 행태 하위요소 비율")
+saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
+dir.create(fs::path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
+
+ggplot(dataL1, aes(x = '', y = val, fill = key, label = sprintf("%s\n%s %%", key, round(val, 2)) )) +
+  geom_bar(stat = 'identity', alpha = 0.6) +
+  coord_polar('y', start = 0) +
+  ggrepel::geom_label_repel(position = position_stack(vjust = 0.5), color = "white", size = 5, alpha = 0.8, show.legend = FALSE) +
+  labs(x = NULL, y = NULL, fill = NULL, title = NULL, subtitle = mainTitle) +
+  theme_minimal() +
+  theme_classic() +
+  theme(
+    text = element_text(size = 16)
+    , axis.line = element_blank()
+    , axis.text = element_blank()
+    , axis.ticks = element_blank()
+    , legend.position = "top"
+  ) +
+  ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
+
+cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+
 
 # 전문가에 따른 상위 요소 비율
 # dataL1 = data %>% 
