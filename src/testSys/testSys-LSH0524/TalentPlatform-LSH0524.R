@@ -96,22 +96,46 @@ calculate_CAI <- function(data) {
   data %>% 
     rowwise() %>% 
     mutate(
-      SO2_index = calculate_index(SO2, 0, 1, 0, 500),
-      CO_index = calculate_index(CO, 0, 50, 0, 500),
-      O3_index = calculate_index(O3, 0, 0.6, 0, 500),
-      NO2_index = calculate_index(NO2, 0, 2, 0, 500),
-      PM10_index = calculate_index(PM10, 0, 600, 0, 500),
-      PM25_index = calculate_index(`PM2.5`, 0, 500, 0, 500),
+      SO2_index = calculate_index(SO2, 0, 0.02, 0, 50),
+      SO2_index = if_else(SO2 > 0.02, calculate_index(SO2, 0.021, 0.05, 51, 100), SO2_index),
+      SO2_index = if_else(SO2 > 0.05, calculate_index(SO2, 0.051, 0.15, 101, 250), SO2_index),
+      SO2_index = if_else(SO2 > 0.15, calculate_index(SO2, 0.151, 1, 251, 500), SO2_index),
+      
+      CO_index = calculate_index(CO, 0, 2, 0, 50),
+      CO_index = if_else(CO > 2, calculate_index(CO, 2.01, 9, 51, 100), CO_index),
+      CO_index = if_else(CO > 9, calculate_index(CO, 9.01, 15, 101, 250), CO_index),
+      CO_index = if_else(CO > 15, calculate_index(CO, 15.01, 50, 251, 500), CO_index),
+      
+      O3_index = calculate_index(O3, 0, 0.03, 0, 50),
+      O3_index = if_else(O3 > 0.03, calculate_index(O3, 0.031, 0.09, 51, 100), O3_index),
+      O3_index = if_else(O3 > 0.09, calculate_index(O3, 0.091, 0.15, 101, 250), O3_index),
+      O3_index = if_else(O3 > 0.15, calculate_index(O3, 0.151, 0.6, 251, 500), O3_index),
+      
+      NO2_index = calculate_index(NO2, 0, 0.03, 0, 50),
+      NO2_index = if_else(NO2 > 0.03, calculate_index(NO2, 0.031, 0.06, 51, 100), NO2_index),
+      NO2_index = if_else(NO2 > 0.06, calculate_index(NO2, 0.061, 0.2, 101, 250), NO2_index),
+      NO2_index = if_else(NO2 > 0.2, calculate_index(NO2, 0.201, 2, 251, 500), NO2_index),
+      
+      PM10_index = calculate_index(PM10, 0, 30, 0, 50),
+      PM10_index = if_else(PM10 > 30, calculate_index(PM10, 31, 80, 51, 100), PM10_index),
+      PM10_index = if_else(PM10 > 80, calculate_index(PM10, 81, 150, 101, 250), PM10_index),
+      PM10_index = if_else(PM10 > 150, calculate_index(PM10, 151, 600, 251, 500), PM10_index),
+      
+      PM25_index = calculate_index(`PM2.5`, 0, 15, 0, 50),
+      PM25_index = if_else(`PM2.5` > 15, calculate_index(`PM2.5`, 16, 35, 51, 100), PM25_index),
+      PM25_index = if_else(`PM2.5` > 35, calculate_index(`PM2.5`, 36, 75, 101, 250), PM25_index),
+      PM25_index = if_else(`PM2.5` > 75, calculate_index(`PM2.5`, 76, 500, 251, 500), PM25_index),
+      
       CAI = max(SO2_index, CO_index, O3_index, NO2_index, PM10_index, PM25_index),
+      
       num_above_moderate = sum(c(SO2_index, CO_index, O3_index, NO2_index, PM10_index, PM25_index) >= 101),
+      
       final_CAI = case_when(
-        num_above_moderate >= 3 ~ CAI + 75,
         num_above_moderate >= 2 ~ CAI + 50,
+        num_above_moderate >= 3 ~ CAI + 75,
         TRUE ~ CAI
       )
-    ) #%>%
-    # ungroup() %>%
-    # select(final_CAI)
+    )
 }
 
 
