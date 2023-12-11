@@ -50,165 +50,118 @@ library(tidyverse)
 library(openxlsx)
 # install.packages("plm")
 library(plm)
+library(rstatix)
 
+
+# 파일 읽기
 fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "ME2.csv"))
-data = readr::read_csv(fileInfo)
+meData = readr::read_csv(fileInfo)
 
-colnames(data)
+colnames(meData)
+summary(meData)
 
 
 fileInfo2 = Sys.glob(file.path(globalVar$inpPath, serviceName, "SE2.csv"))
-data2 = readr::read_csv(fileInfo2)
+seData = readr::read_csv(fileInfo2)
 
 
-summary(data)
-summary(data2)
+colnames(seData)
+summary(seData)
+# ================================================
+# 고정효과모형
+# ================================================
+meDataL1 = meData %>%
+  dplyr::select(-location, -years)
 
-colnames(data)
-colnames(data2)
+
+corMat = rstatix::cor_mat(meDataL1)
+corPmat = rstatix::cor_pmat(meDataL1)
+
+# 상관계수
+corMat %>%
+  dplyr::select(-rowname) %>% 
+  as.data.frame() %>% 
+  round(3)
+
+# 상관계수 유의성검정
+corPmat %>%
+  dplyr::select(-rowname) %>% 
+  as.data.frame() %>% 
+  round(4)
+
+# 상관계수 행렬
+ggcorrplot::ggcorrplot(corMat, hc.order = TRUE, type = "lower", lab_col = "black", outline.color = "white", lab = TRUE, p.mat = corPmat) + 
+  labs(title = '상관계수 행렬') +
+  theme(
+    panel.background = element_rect(fill = "white")
+    , plot.background = element_rect(fill = "white", color = NA)
+  ) 
+
+# 다중공선성 계산
+lmFit = lm(manufacturing_employment ~ total_exports + number_of_plants + consumer_price_index + per_capita_personal_income + working_age_population + manufacturing_business_cycle_index + total_company_asset, data = meDataL1)
+
+# 다중공선성 계산
+# 10 이상 제거  number_of_plants O , consumer_price_index O per_capita_personal_income, total_exports                   
+car::vif(lmFit)
 
 
-# 패널 데이터로 변환
-pdata <- pdata.frame(data, index = c("location", "years"))
 
-# 고정효과모형 적용
-fe_model <- plm(manufacturing_employment ~ total_exports + number_of_plants + consumer_price_index + per_capita_personal_income + working_age_population + manufacturing_business_cycle_index + total_company_asset, data = pdata, model = "within")
+# 패널 데이터로 변환 및 고정효과모형 적용
+# total_exports 제거
+meModel = plm::plm(manufacturing_employment ~ number_of_plants + consumer_price_index + per_capita_personal_income + working_age_population + manufacturing_business_cycle_index + total_company_asset, index = c('location', 'years'), data = meData, model = "within")
 
 # 모델 요약 출력
-summary(fe_model)
+summary(meModel)
 
 
-dataL1 = data %>%
-  dplyr::select(-location, -year)
-
-full_model <- lm(manufacturing_employment ~ ., data = dataL1)
-
-# 단계적 선택을 사용하여 모델 최적화
-stepwise_model <- step(full_model, direction = "both")
-
-# 선택된 모델에서 사용된 변수 확인
-# selected_vars <- names(coef(stepwise_model))
-
-# 고정효과모형 적용을 위한 공식 생성
-# fe_formula <- as.formula(paste("manufacturing_employment ~", paste(selected_vars[-1], collapse = " + ")))
-
-
-# 고정효과모형
-feModel = plm::plm(manufacturing_employment ~ years + total_exports + 
-number_of_plants + per_capita_personal_income + working_age_population + total_company_asset, index = c('years'), data = dataL1, model = "within")
-
-summary(feModel)
-
-
-# feModel = plm::plm(manufacturing_employment ~ ., data = dataL1, model = "within")
-
-# feModel
-# summary(feModel)
-
+s# ================================================
 # 확률효과모형
-# reModel = plm::plm(service_employment ~ ., data = data2, model = "random")
+# ================================================
+seDataL1 = seData %>% 
+  dplyr::select(-years, -location)
 
-reModel = plm::plm(manufacturing_employment ~ years + total_exports + 
-number_of_plants + per_capita_personal_income + working_age_population + total_company_asset, index = c('years'), data = dataL1, model = "random")
 
-reModel
-summary(reModel)
+corMat = rstatix::cor_mat(seDataL1)
+corPmat = rstatix::cor_pmat(seDataL1)
 
+# 상관계수
+corMat %>%
+  dplyr::select(-rowname) %>% 
+  as.data.frame() %>% 
+  round(3)
+
+# 상관계수 유의성검정
+corPmat %>%
+  dplyr::select(-rowname) %>% 
+  as.data.frame() %>% 
+  round(4)
+
+# 상관계수 행렬
+ggcorrplot::ggcorrplot(corMat, hc.order = TRUE, type = "lower", lab_col = "black", outline.color = "white", lab = TRUE, p.mat = corPmat) + 
+  labs(title = '상관계수 행렬') +
+  theme(
+    panel.background = element_rect(fill = "white")
+    , plot.background = element_rect(fill = "white", color = NA)
+  ) 
+
+# 다중공선성 계산
+lmFit = lm(service_employment ~ total_exports + number_of_company + consumer_price_index + per_capita_personal_income + working_age_population + service_business_cycle_index + total_company_asset, data = seDataL1)
+
+# 다중공선성 계산
+# 10 이상 제거  number_of_plants O , consumer_price_index O per_capita_personal_income, total_exports                   
+car::vif(lmFit)
+
+
+seModel = plm::plm(service_employment ~ number_of_company + consumer_price_index + per_capita_personal_income + working_age_population + service_business_cycle_index + total_company_asset, index = c('location', 'years'), data = seData, model = "random")
+
+summary(seModel)
+
+
+# ================================================
 # 하우스만 검정
-hausman_test <- phtest(fe_model, re_model)
+# ================================================
+hausman_test <- phtest(meModel, seModel)
+hausman_test
 
-# 결과 출력
-summary(fe_model)
-summary(re_model)
-print(hausman_test)
-
-
-
-# 
-# # 참조 데이터 읽기
-# # fileInfo2 = "C:/SYSTEMS/PROG/R/TalentPlatform-R/resources/input/test/LSH0518/(2022년 17차 한국복지패널조사) 조사설계서-가구용(beta1).xlsx"
-# fileInfo2 = Sys.glob(file.path(globalVar$inpPath, serviceName, "(2022년 17차 한국복지패널조사) 조사설계서-가구용(beta1).xlsx"))
-# 
-# refData = openxlsx::read.xlsx(fileInfo2, sheet = "직종코드(2019 신분류)") 
-# 
-# # 특정 컬럼 선택
-# refDataL1 = refData[ , c("소분류", "X4")]
-# refDataL1$소분류 = as.numeric(refDataL1$소분류)
-# colnames(refDataL1) = c("nameCode", "name")
-# head(refDataL1)
-# 
-# # 원본 데이터 읽기
-# for (i in 15:17) {
-#   
-#   if (i == 15) year = 2020
-#   if (i == 16) year = 2021
-#   if (i == 17) year = 2022
-#   
-#   fileInfo = Sys.glob(sprintf("C:/SYSTEMS/PROG/R/TalentPlatform-R/resources/input/test/LSH0518/Koweps_h%s_*_beta*.sav", i))
-#   
-#   if (length(fileInfo) < 1) next
-#   
-#   data = read_spss(fileInfo)
-#   
-#   # 컬럼 정보
-#   colnames(data)
-#   
-#   # 특정 컬럼 선택
-#   # 성별 h1601_4, h1701_4 : 1.남, 2.여
-#   # 직종 h1603_8, h1703_8 : 직종코드 참조
-#   sexCode = sprintf("h%s01_4", i)
-#   nameCode = sprintf("h%s03_8", i)
-#   dataL1 = data[ , c(sexCode, nameCode)]
-#   colnames(dataL1) = c("sexCode", "nameCode")
-#   
-#   # 데이터 병합 (좌측 조인)
-#   dataL2 = merge(dataL1, refDataL1, by = "nameCode", all.x = TRUE)
-#   
-#   dataL2$sex = factor(dataL2$sexCode, levels = c("1", "2"), labels = c("남", "여"))
-#   
-#   # 남성에 따른 상위 10개 직업
-#   dataL3 = dataL2[dataL2$sex == "남", ]
-#   
-#   jobFreq = table(dataL3$name)
-#   jobFreqSort = sort(jobFreq, decreasing = TRUE)
-#   jobTop = head(jobFreqSort, 10)
-#   print(jobTop)
-#   
-#   # 이미지 저장
-#   mainTitle = sprintf("%s년 남성에 따른 상위 10개 직업", year)
-#   saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
-#   dir.create(dirname(saveImg), showWarnings = FALSE, recursive = TRUE)
-#   
-#   png(file = saveImg, width = 22, height = 6, units = "in", res = 600)
-#   barplot(jobTop, las = 1, main = mainTitle, xlab = "직업", ylab = "빈도")
-#   dev.off()
-#   
-#   # 여성에 따른 상위 10개 직업
-#   dataL3 = dataL2[dataL2$sex == "여", ]
-#   
-#   jobFreq = table(dataL3$name)
-#   jobFreqSort = sort(jobFreq, decreasing = TRUE)
-#   jobTop = head(jobFreqSort, 10)
-#   print(jobTop)
-#   
-#   # 이미지 저장
-#   mainTitle = sprintf("%s년 여성에 따른 상위 10개 직업", year)
-#   saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
-#   dir.create(dirname(saveImg), showWarnings = FALSE, recursive = TRUE)
-#   
-#   png(file = saveImg, width = 22, height = 6, units = "in", res = 600)
-#   barplot(jobTop, las = 1, main = mainTitle, xlab = "직업", ylab = "빈도") 
-#   dev.off()
-# }
-# 
-# 
-# # 주요 결과
-# # 남성의 경우 매년 상위 직업군 (경영 관련 사무원, 청소원 및 환경미화원, 매장 판매 종사자, 영업 종사자)에 속하며 특히 모든 연도에서 상위 2개 직업 (작물 재배 종사자, 자동차 운전원)으로 나타냄
-# # 반면에 건설 및 광업 단순 종사자는 2020년 및 2022년에는 상위 직업으로 속하나 2021년 다소 순위가 하락함
-# 
-# # 여성의 경우 매년 상위 직업군 (돌봄 및 보건 서비스 종사자, 음식 관련 단순 종사자, 매장 판매 종사자)에 속하며 특히 모든 연도에서 상위 2개 직업 (청소원 및 환경미화원, 작물 재배 종사자)으로 나타냄
-# # 반면에 일부 직업 (가사 및 육아 도우미, 조리사)은 여성의 상위 직업군에 속하나 남성에는 나타나지 않음. 이는 전통적으로 남성보다 여성에게 할당되는 역할과 관련되어 있기 때문으로 판단됨
-# 
-# # 종합 결과
-# # 2020~2022년 성별에 따른 상위 10개 직업 분포 및 시각화를 수행함.
-# # 그 결과 특정 직업은 성별에 관계없이 안정적인 상위 직업군 (남성: 작물 재배 종사자, 자동차 운전원; 여성:청소원 및 환경미화원, 작물 재배 종사자) 속함. 반면에 성별 차이에 따라 특화 직업군 (남성: 건설 및 광업 단순 종사자; 여성: 가사 및 육아 도우미, 조리사)의 특징을 보임
+# P값은 2.2204e-16로서 유의수준 0.05 이하에서 귀무가설 (고정효과모형과 무작위효과모형이 동일한 계수이다)을 기각하여 두 모형 간에 추정된 계수은 통계적으로 유의미함
+# 또한 고정효과모형이 확률효과모형보다 데이터에 더 적합하다고 할 수 있습니다. 다시 말해, 개별 패널(여기서는 'location'과 'years')의 고유한 특성이 종속변수(여기서는 'manufacturing_employment')에 영향을 미침 
