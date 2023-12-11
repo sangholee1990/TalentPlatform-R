@@ -102,5 +102,8 @@ Fireworks = function(num_fireworks = 10, num_points = 30, sleep_time = 0.1, colo
 
 Fireworks(10, 30)
 
-
+num_fireworks = 10
+num_points = 30
+sleep_time = 0.1
+color_alpha = 0.3
 
