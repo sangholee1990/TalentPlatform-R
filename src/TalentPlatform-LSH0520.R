@@ -74,7 +74,7 @@ colnames(seData)
 summary(seData)
 
 # ================================================
-# 고정효과모형
+# 고정효과 모형
 # ================================================
 # 상관계수를 위한 데이터 추출
 meDataL1 = meData %>%
@@ -95,20 +95,28 @@ ggcorrplot::ggcorrplot(corMat, hc.order = TRUE, type = "lower", lab_col = "black
   ) 
 
 
-# 고정효과모형 적용
+# 고정효과 모형 학습
 # 독립변수: number_of_plants, consumer_price_index, per_capita_personal_income, working_age_population, manufacturing_business_cycle_index, total_company_asset
 # 종속변수: manufacturing_employment
 meModel = plm::plm(
   manufacturing_employment ~ number_of_plants + consumer_price_index + per_capita_personal_income + working_age_population + manufacturing_business_cycle_index + total_company_asset
   , index = c('location', 'years')
-  , data = meData, model = "within"
+  , data = meData
+  , model = "within"
   )
 
-# 모델 요약
+# 모형 요약
+# 종속 변수 (제조업 고용 manufacturing_employment)를 예측하기 위해서 독립변수 6종을 통해 고정효과 모형을 수행함
+# 모형 결과 수정된 결정계수는 0.1951로서 유의수준 0.05 이하에서 통계적으로 유의미함 (P값 참조)
+# 또한 회귀계수의 경우 consumer_price_index, per_capita_personal_income, working_age_population은 통계적으로 유의미한 영향을 보인 반면
+# 그 외 (number_of_plants, manufacturing_business_cycle_index, total_company_asset)는 유의하지 못함
 summary(meModel)
 
+# 시각화
+plot(meModel)
+
 # ================================================
-# 확률효과모형
+# 확률효과 모형
 # ================================================
 # 상관계수를 위한 데이터 추출
 seDataL1 = seData %>% 
@@ -128,24 +136,32 @@ ggcorrplot::ggcorrplot(corMat, hc.order = TRUE, type = "lower", lab_col = "black
     , plot.background = element_rect(fill = "white", color = NA)
   ) 
 
-# 다중공선성 계산
-lmFit = lm(service_employment ~ total_exports + number_of_company + consumer_price_index + per_capita_personal_income + working_age_population + service_business_cycle_index + total_company_asset, data = seDataL1)
+# 확률효과 모형 학습
+# 독립변수: number_of_company, consumer_price_index, per_capita_personal_income, working_age_population, service_business_cycle_index, total_company_asset
+# 종속변수: service_employment
+seModel = plm::plm(
+  service_employment ~ number_of_company + consumer_price_index + per_capita_personal_income + working_age_population + service_business_cycle_index + total_company_asset
+  , index = c('location', 'years')
+  , data = seData
+  , model = "random"
+  )
 
-# 다중공선성 계산
-# 10 이상 제거  number_of_plants O , consumer_price_index O per_capita_personal_income, total_exports                   
-car::vif(lmFit)
-
-
-seModel = plm::plm(service_employment ~ number_of_company + consumer_price_index + per_capita_personal_income + working_age_population + service_business_cycle_index + total_company_asset, index = c('location', 'years'), data = seData, model = "random")
-
+# 모형 요약
+# 종속 변수 (서비스 취업 service_employment)를 예측하기 위해서 독립변수 6종을 통해 확률효과 모형을 수행함
+# 모형 결과 수정된 결정계수는 0.9305로서 유의수준 0.05 이하에서 통계적으로 유의미함 (P값 참조)
+# 또한 회귀계수의 경우 number_of_company, per_capita_personal_income, working_age_population, total_company_asset은 통계적으로 유의미한 영향을 보인 반면
+# 그 외 (consumer_price_index, service_business_cycle_index)는 유의하지 못함
 summary(seModel)
 
+# 시각화
+plot(seModel)
 
 # ================================================
 # 하우스만 검정
 # ================================================
-hausman_test <- phtest(meModel, seModel)
-hausman_test
+hausmanTest = plm::phtest(meModel, seModel)
+hausmanTest
 
-# P값은 2.2204e-16로서 유의수준 0.05 이하에서 귀무가설 (고정효과모형과 무작위효과모형이 동일한 계수이다)을 기각하여 두 모형 간에 추정된 계수은 통계적으로 유의미함
-# 또한 고정효과모형이 확률효과모형보다 데이터에 더 적합하다고 할 수 있습니다. 다시 말해, 개별 패널(여기서는 'location'과 'years')의 고유한 특성이 종속변수(여기서는 'manufacturing_employment')에 영향을 미침 
+# 두 패널 (고정효과 모형, 확률효과 모형) 모형 간의 일관성 및 적합성을 결정하기 위해서 하우스만 검정을 수행함
+# 그 결과 P값은 2.2204e-16로서 유의수준 0.05 이하에서 귀무가설 (고정효과 모형과 확률효과 모형이 일관된 결과이다)을 기각하여 두 모형 간에 추정된 계수은 통계적으로 유의미함
+# 즉 제조업 고용인 고정효과 모형이 서비스 취업인 확률효과 모형보다 더 적합하다고 판단됨
