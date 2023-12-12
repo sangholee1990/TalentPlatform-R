@@ -53,43 +53,40 @@ library(plm)
 library(rstatix)
 
 
-# 파일 읽기
+# me 파일 읽기
 fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "ME2.csv"))
 meData = readr::read_csv(fileInfo)
 
+# 컬럼 정보
 colnames(meData)
+
+# 요약 정보
 summary(meData)
 
-
+# se 파일 읽기
 fileInfo2 = Sys.glob(file.path(globalVar$inpPath, serviceName, "SE2.csv"))
 seData = readr::read_csv(fileInfo2)
 
-
+# 컬럼 정보
 colnames(seData)
+
+# 요약 정보
 summary(seData)
+
 # ================================================
 # 고정효과모형
 # ================================================
+# 상관계수를 위한 데이터 추출
 meDataL1 = meData %>%
   dplyr::select(-location, -years)
 
-
+# 상관계수
 corMat = rstatix::cor_mat(meDataL1)
+
+# 상관계수의 유의성 검정
 corPmat = rstatix::cor_pmat(meDataL1)
 
-# 상관계수
-corMat %>%
-  dplyr::select(-rowname) %>% 
-  as.data.frame() %>% 
-  round(3)
-
-# 상관계수 유의성검정
-corPmat %>%
-  dplyr::select(-rowname) %>% 
-  as.data.frame() %>% 
-  round(4)
-
-# 상관계수 행렬
+# 상관계수/유의성 검정 시각화
 ggcorrplot::ggcorrplot(corMat, hc.order = TRUE, type = "lower", lab_col = "black", outline.color = "white", lab = TRUE, p.mat = corPmat) + 
   labs(title = '상관계수 행렬') +
   theme(
@@ -97,46 +94,33 @@ ggcorrplot::ggcorrplot(corMat, hc.order = TRUE, type = "lower", lab_col = "black
     , plot.background = element_rect(fill = "white", color = NA)
   ) 
 
-# 다중공선성 계산
-lmFit = lm(manufacturing_employment ~ total_exports + number_of_plants + consumer_price_index + per_capita_personal_income + working_age_population + manufacturing_business_cycle_index + total_company_asset, data = meDataL1)
 
-# 다중공선성 계산
-# 10 이상 제거  number_of_plants O , consumer_price_index O per_capita_personal_income, total_exports                   
-car::vif(lmFit)
+# 고정효과모형 적용
+# 독립변수: number_of_plants, consumer_price_index, per_capita_personal_income, working_age_population, manufacturing_business_cycle_index, total_company_asset
+# 종속변수: manufacturing_employment
+meModel = plm::plm(
+  manufacturing_employment ~ number_of_plants + consumer_price_index + per_capita_personal_income + working_age_population + manufacturing_business_cycle_index + total_company_asset
+  , index = c('location', 'years')
+  , data = meData, model = "within"
+  )
 
-
-
-# 패널 데이터로 변환 및 고정효과모형 적용
-# total_exports 제거
-meModel = plm::plm(manufacturing_employment ~ number_of_plants + consumer_price_index + per_capita_personal_income + working_age_population + manufacturing_business_cycle_index + total_company_asset, index = c('location', 'years'), data = meData, model = "within")
-
-# 모델 요약 출력
+# 모델 요약
 summary(meModel)
 
-
-s# ================================================
+# ================================================
 # 확률효과모형
 # ================================================
+# 상관계수를 위한 데이터 추출
 seDataL1 = seData %>% 
   dplyr::select(-years, -location)
 
-
+# 상관계수
 corMat = rstatix::cor_mat(seDataL1)
+
+# 상관계수의 유의성 검정
 corPmat = rstatix::cor_pmat(seDataL1)
 
-# 상관계수
-corMat %>%
-  dplyr::select(-rowname) %>% 
-  as.data.frame() %>% 
-  round(3)
-
-# 상관계수 유의성검정
-corPmat %>%
-  dplyr::select(-rowname) %>% 
-  as.data.frame() %>% 
-  round(4)
-
-# 상관계수 행렬
+# 상관계수/유의성 검정 시각화
 ggcorrplot::ggcorrplot(corMat, hc.order = TRUE, type = "lower", lab_col = "black", outline.color = "white", lab = TRUE, p.mat = corPmat) + 
   labs(title = '상관계수 행렬') +
   theme(
