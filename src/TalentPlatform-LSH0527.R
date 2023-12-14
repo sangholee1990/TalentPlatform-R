@@ -48,7 +48,6 @@ if (env == "local") {
 # 라이브러리 읽기
 library(tidyverse)
 
-
 # ================================================
 # 연령대별 여행자 비율
 # ================================================
@@ -68,13 +67,14 @@ dir.create(fs::path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
 ggplot(sexDataL1, aes(x = 연령대, y = val, fill = key, group = key, label = round(val, 2))) + 
   geom_bar(stat = "identity", position = "dodge") +
   geom_text(position = position_dodge(width = 0.9), vjust = 1.5, size = 5, color = "white") +
-  labs(x = "연렁대", y = "비율 [%]", fill = NULL, color = NULL, title = NULL, subtitle = mainTitle) +
+  labs(x = "연령대", y = "비율 [%]", fill = NULL, color = NULL, title = NULL, subtitle = mainTitle) +
   theme(
     text = element_text(size = 16)
     , legend.position = "top"
     ) +
   ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
 
+# shell.exec(saveImg)
 cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 
 
