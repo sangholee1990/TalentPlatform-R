@@ -55,7 +55,6 @@ library(extrafont)
 library(magick)
 library(webshot)
 library(webshot2)
-library(ggradar)
 
 # 파일 읽기
 fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "LSH0529. R을 이용한 학위 논문 표 및 그림 시각화.xlsx"))
@@ -80,7 +79,17 @@ figDataL1 = figData %>%
     , leg = sprintf("%s (%s)", key2, key)
   ) %>% 
   dplyr::select(leg, name2, Heating, Cooling) %>%
-  tidyr::pivot_longer(cols = c("Heating", "Cooling"), names_to = "key", values_to = "val")
+  tidyr::pivot_longer(cols = c("Heating", "Cooling"), names_to = "key", values_to = "val") %>% 
+  dplyr::mutate(
+    name2 = dplyr::case_when(
+      name2 == "바닥" ~ "FLOOR"
+      , name2 == "외벽" ~ "EXTERIOR WALL"
+      , name2 == "지붕" ~ "ROOF"
+      , name2 == "창면적비" ~ "WINDOW AREA RATIO"
+      , name2 == "창호" ~ "WINDOW"
+      , TRUE ~ NA_character_
+    )
+  )
 
 legList = figDataL1$leg %>% unique() %>% sort(decreasing = TRUE)
 
@@ -97,7 +106,7 @@ dir.create(dirname(saveImg), showWarnings = FALSE, recursive = TRUE)
 ggplot(figDataL1, aes(x = leg, y = val, color = key, group = key, label = round(val, 2))) + 
   geom_line() +
   geom_point() +
-  labs(x = NULL, y = "냉난방에너지 영향정도", fill = NULL, color = NULL, title = NULL, subtitle = mainTitle) +
+  labs(x = NULL, y = "Building Performance", fill = NULL, color = NULL, title = NULL, subtitle = mainTitle) +
   scale_y_continuous(minor_breaks = seq(0, 50, 5), breaks=seq(0, 50, 5), limits = c(20, 40)) +
   theme(
     text = element_text(size = 16)
@@ -107,6 +116,7 @@ ggplot(figDataL1, aes(x = leg, y = val, color = key, group = key, label = round(
   facet_wrap(~ name2, scale = "free_x", ncol = 2) + 
   ggsave(filename = saveImg, width = 8, height = 10, dpi = 600)
 
+# shell.exec(saveImg)
 cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 
 
@@ -136,7 +146,7 @@ dir.create(dirname(saveImg), showWarnings = FALSE, recursive = TRUE)
 ggplot(figDataL1, aes(x = leg, y = val, color = key, group = key, label = round(val, 2))) + 
   geom_line() +
   geom_point() +
-  labs(x = NULL, y = "건물에너지성능 영향정도", fill = NULL, color = NULL, title = NULL, subtitle = mainTitle) +
+  labs(x = NULL, y = "Building Performance", fill = NULL, color = NULL, title = NULL, subtitle = mainTitle) +
   scale_y_continuous(minor_breaks = seq(0, 50, 5), breaks=seq(0, 50, 5), limits = c(30, 50)) +
   theme(
     text = element_text(size = 16)
@@ -146,6 +156,7 @@ ggplot(figDataL1, aes(x = leg, y = val, color = key, group = key, label = round(
   facet_wrap(~ name2, scale = "free_x", ncol = 2) + 
   ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
 
+# shell.exec(saveImg)
 cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 
 # 냉난방설비 종류의 건물에너지성능 영향정도
@@ -171,8 +182,8 @@ saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
 dir.create(dirname(saveImg), showWarnings = FALSE, recursive = TRUE)
 
 ggplot(figDataL1, aes(x = key, y = val, fill = leg, group = leg, label = round(val, 2))) + 
-  geom_bar(stat = "identity", position = "dodge") +
-  labs(x = NULL, y = "건물에너지성능 영향정도", fill = NULL, color = NULL, title = NULL, subtitle = mainTitle) +
+  geom_bar(stat = "identity", position = "dodge", alpha = 0.5) +
+  labs(x = NULL, y = "Building Performance", fill = NULL, color = NULL, title = NULL, subtitle = mainTitle) +
   scale_y_continuous(minor_breaks = seq(0, 300, 50), breaks=seq(0, 300, 50), limits = c(0, 250)) +
   theme(
     text = element_text(size = 16)
@@ -181,8 +192,8 @@ ggplot(figDataL1, aes(x = key, y = val, fill = leg, group = leg, label = round(v
   facet_wrap(~ name2, scale = "free_x", ncol = 2) + 
   ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
 
+# shell.exec(saveImg)
 cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
-
 
 
 # 신재생에너지 종류의 건물에너지성능 영향정도
@@ -208,8 +219,8 @@ saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
 dir.create(dirname(saveImg), showWarnings = FALSE, recursive = TRUE)
 
 ggplot(figDataL1, aes(x = key, y = val, fill = leg, group = leg, label = round(val, 2))) + 
-  geom_bar(stat = "identity", position = "dodge") +
-  labs(x = NULL, y = "건물에너지성능 영향정도", fill = NULL, color = NULL, title = NULL, subtitle = mainTitle) +
+  geom_bar(stat = "identity", position = "dodge", alpha = 0.5) +
+  labs(x = NULL, y = "Building Performance", fill = NULL, color = NULL, title = NULL, subtitle = mainTitle) +
   scale_y_continuous(minor_breaks = seq(0, 300, 50), breaks=seq(0, 300, 50), limits = c(0, 250)) +
   theme(
     text = element_text(size = 16)
@@ -246,8 +257,8 @@ saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
 dir.create(dirname(saveImg), showWarnings = FALSE, recursive = TRUE)
 
 ggplot(figDataL1, aes(x = key, y = val, fill = leg, group = leg, label = round(val, 2))) + 
-  geom_bar(stat = "identity", position = "dodge") +
-  labs(x = NULL, y = "건물에너지성능 영향정도", fill = NULL, color = NULL, title = NULL, subtitle = mainTitle) +
+  geom_bar(stat = "identity", position = "dodge", alpha = 0.5) +
+  labs(x = NULL, y = "Building Performance", fill = NULL, color = NULL, title = NULL, subtitle = mainTitle) +
   scale_y_continuous(minor_breaks = seq(0, 300, 50), breaks=seq(0, 300, 50), limits = c(0, 250)) +
   theme(
     text = element_text(size = 16)
@@ -287,8 +298,8 @@ saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
 dir.create(dirname(saveImg), showWarnings = FALSE, recursive = TRUE)
 
 ggplot(figDataL1, aes(x = key, y = val, fill = leg, group = leg, label = round(val, 2))) + 
-  geom_bar(stat = "identity", position = "dodge") +
-  labs(x = NULL, y = "건물에너지성능 영향정도", fill = NULL, color = NULL, title = NULL, subtitle = mainTitle) +
+  geom_bar(stat = "identity", position = "dodge", alpha = 0.5) +
+  labs(x = NULL, y = "Building Performance", fill = NULL, color = NULL, title = NULL, subtitle = mainTitle) +
   scale_y_continuous(minor_breaks = seq(0, 300, 50), breaks=seq(0, 300, 50), limits = c(0, 250)) +
   theme(
     text = element_text(size = 16)
@@ -329,8 +340,8 @@ saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
 dir.create(dirname(saveImg), showWarnings = FALSE, recursive = TRUE)
 
 ggplot(figDataL1, aes(x = key, y = val, fill = leg, group = leg, label = round(val, 2))) + 
-  geom_bar(stat = "identity", position = "dodge") +
-  labs(x = NULL, y = "건물에너지성능 영향정도", fill = NULL, color = NULL, title = NULL, subtitle = mainTitle) +
+  geom_bar(stat = "identity", position = "dodge", alpha = 0.5) +
+  labs(x = NULL, y = "Building Performance", fill = NULL, color = NULL, title = NULL, subtitle = mainTitle) +
   scale_y_continuous(minor_breaks = seq(0, 300, 50), breaks=seq(0, 300, 50), limits = c(0, 250)) +
   theme(
     text = element_text(size = 16)
@@ -381,10 +392,10 @@ for (nameInfo in nameList) {
   saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
   dir.create(dirname(saveImg), showWarnings = FALSE, recursive = TRUE)
   
-  makePlot = ggplot(tabDataL1, aes(x = id2, y = val, color = id, group = id, label = round(val, 2))) + 
+  makePlot = ggplot(tabDataL1, aes(x = id2, y = val, color = id, label = round(val, 2))) + 
     geom_line() +
     geom_point() +
-    labs(x = NULL, y = "기술 요소", fill = NULL, color = NULL, title = NULL, subtitle = mainTitle) +
+    labs(x = NULL, fill = NULL, color = NULL, title = NULL, subtitle = mainTitle) +
     # scale_y_continuous(minor_breaks = seq(0, 50, 5), breaks=seq(0, 50, 5), limits = c(30, 50)) +
     theme(
       text = element_text(size = 16)
@@ -392,10 +403,13 @@ for (nameInfo in nameList) {
       , legend.key.size = unit(0.45, "cm")
       , axis.text.x = element_text(angle = 45, hjust = 1, size = 12)
     ) +
+    labs(y = "     IR (%)                              PV Capa. (Kw)") +
     guides(color = guide_legend(nrow = 2)) +
     facet_wrap(~ leg, scale = "free_y", ncol = 1)
+  
   ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
   
+  # shell.exec(saveImg)
   cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
   
   # 제로에너지건축물 인증 1~5등급을 만족하는 기술비용 조합 세부
@@ -410,7 +424,8 @@ for (nameInfo in nameList) {
     ) %>% 
     dplyr::arrange(key2Fac) %>%
     tibble::column_to_rownames("leg") %>% 
-    dplyr::select(key2, id2, PV, IR)
+    dplyr::select(id2, PV, IR)
+    # dplyr::select(key2, id2, PV, IR)
   
   subTitle = sprintf("%s 세부", nameInfo)
   saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, subTitle)
@@ -420,13 +435,14 @@ for (nameInfo in nameList) {
   tabDataL3 = tabDataL2 %>% 
     dplyr::mutate(
       IR = formattable::color_tile("white", "orange")(IR)
-      , key2 = kableExtra::cell_spec(key2, "html", align = "c", color = factor(key2, c("패시브, 액티브, 신재생 최소", "패시브, 액티브 최대, 신재생 최소", "패시브 최대, 액티브, 신재생 최소"), c("red", "green", "blue")))
+      # , key2 = kableExtra::cell_spec(key2, "html", align = "c", color = factor(key2, c("패시브, 액티브, 신재생 최소", "패시브, 액티브 최대, 신재생 최소", "패시브 최대, 액티브, 신재생 최소"), c("red", "green", "blue")))
     ) %>% 
     kableExtra::kbl(escape = FALSE, row.names = TRUE, col.names = c("Desc.", "Comb.", "PV Capa. (kW)", "IR (%)")) %>%
     kableExtra::kable_paper(c("striped"), full_width = FALSE) %>% 
-    kableExtra::column_spec(4, color = "white", background = spec_color(tabDataL2$PV, end = 0.7)) %>% 
+    kableExtra::column_spec(3, color = "white", background = spec_color(tabDataL2$PV, end = 0.7)) %>% 
     kableExtra::save_kable(file = tmpImg, density = 600, zoom = 10)
   
+  # shell.exec(tmpImg)
   # file_move(tmpImg, saveImg)
   
   # 이미지 여백 제거
@@ -451,9 +467,12 @@ for (nameInfo in nameList) {
     tidyr::pivot_longer(cols = c("passiveCost", "renewCost", "totalCost"), names_to = "key", values_to = "val") %>% 
     dplyr::mutate(
       label = dplyr::case_when(
-        key == "passiveCost" ~ "패시브"
-        , key == "renewCost" ~ "신재생"
-        , key == "totalCost" ~ "전체"
+        # key == "passiveCost" ~ "패시브"
+        # , key == "renewCost" ~ "신재생"
+        # , key == "totalCost" ~ "전체"
+        key == "passiveCost" ~ "PASSIVE"
+        , key == "renewCost" ~ "RENEWABLE"
+        , key == "totalCost" ~ "TOTAL"
         , TRUE ~ NA_character_
       )
     )
@@ -476,7 +495,7 @@ for (nameInfo in nameList) {
   makePlot = ggplot(tabDataL1, aes(x = id2, y = val, color = label, group = label, label = round(val, 2))) + 
     geom_line() +
     geom_point() +
-    labs(x = NULL, y = "공사비", fill = NULL, color = NULL, title = NULL, subtitle = mainTitle) +
+    labs(x = NULL, y = "Cost", fill = NULL, color = NULL, title = NULL, subtitle = mainTitle) +
     # scale_y_continuous(minor_breaks = seq(0, 50, 5), breaks=seq(0, 50, 5), limits = c(30, 50)) +
     theme(
       text = element_text(size = 16)
@@ -487,8 +506,10 @@ for (nameInfo in nameList) {
     guides(color = guide_legend(nrow = 1)) +
     # facet_wrap(~ label, scale = "free_y", ncol = 1)
     facet_wrap(~ type, scale = "free_y", ncol = 1)
-  ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
   
+  ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
+
+  # shell.exec(saveImg)
   cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
   
   
@@ -533,10 +554,9 @@ for (nameInfo in nameList) {
     magick::image_trim() %>%
     magick::image_write(path = saveImg)
   
+  # shell.exec(saveImg)
   cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 }
-
-
 
 
 # 제로에너지건축물 인증 1~5등급 기술요소 조합에 대한 패시브 및 신재생 공사비
@@ -545,9 +565,20 @@ tabDataL1 = tabData %>%
   tidyr::pivot_longer(cols = c("passiveCost", "renewCost", "totalCost"), names_to = "key", values_to = "val") %>% 
   dplyr::mutate(
     label = dplyr::case_when(
-      key == "passiveCost" ~ "패시브"
-      , key == "renewCost" ~ "신재생"
-      , key == "totalCost" ~ "전체"
+      # key == "passiveCost" ~ "패시브"
+      # , key == "renewCost" ~ "신재생"
+      # , key == "totalCost" ~ "전체"
+      key == "passiveCost" ~ "PASSIVE"
+      , key == "renewCost" ~ "RENEWABLE"
+      , key == "totalCost" ~ "TOTAL"
+      , TRUE ~ NA_character_
+    )
+    , type = dplyr::case_when(
+      type == "1등급" ~ "CLASS 1"
+      , type == "2등급" ~ "CLASS 2"
+      , type == "3등급" ~ "CLASS 3"
+      , type == "4등급" ~ "CLASS 4"
+      , type == "5등급" ~ "CLASS 5"
       , TRUE ~ NA_character_
     )
   )
@@ -570,7 +601,7 @@ dir.create(dirname(saveImg), showWarnings = FALSE, recursive = TRUE)
 makePlot = ggplot(tabDataL1, aes(x = id2, y = val, color = type, group = type, label = round(val, 2))) + 
   geom_line() +
   geom_point() +
-  labs(x = NULL, y = "공사비", fill = NULL, color = NULL, title = NULL, subtitle = mainTitle) +
+  labs(x = NULL, y = "Cost", fill = NULL, color = NULL, title = NULL, subtitle = mainTitle) +
   # scale_y_continuous(minor_breaks = seq(0, 50, 5), breaks=seq(0, 50, 5), limits = c(30, 50)) +
   theme(
     text = element_text(size = 16)
@@ -581,8 +612,10 @@ makePlot = ggplot(tabDataL1, aes(x = id2, y = val, color = type, group = type, l
   guides(color = guide_legend(nrow = 1)) +
   # facet_wrap(~ label, scale = "free_y", ncol = 1)
   facet_wrap(~ label, scale = "free_y", ncol = 1)
+
 ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
 
+# shell.exec(saveImg)
 cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 
 
@@ -627,4 +660,3 @@ tmpImg %>%
   magick::image_write(path = saveImg)
 
 cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
-
