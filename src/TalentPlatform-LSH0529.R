@@ -55,6 +55,7 @@ library(extrafont)
 library(magick)
 library(webshot)
 library(webshot2)
+library(ggradar)
 
 # 파일 읽기
 fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "LSH0529. R을 이용한 학위 논문 표 및 그림 시각화.xlsx"))
