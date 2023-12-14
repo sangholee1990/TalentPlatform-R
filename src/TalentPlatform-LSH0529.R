@@ -49,11 +49,12 @@ if (env == "local") {
 library(tidyverse)
 library(kableExtra)
 library(formattable)
-library(webshot)
 library(openxlsx)
 library(forcats)
 library(extrafont)
 library(magick)
+library(webshot)
+library(webshot2)
 
 # 파일 읽기
 fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "LSH0529. R을 이용한 학위 논문 표 및 그림 시각화.xlsx"))
@@ -348,7 +349,10 @@ cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 tabData = openxlsx::read.xlsx(fileInfo, sheet = "표") %>% 
   as.tibble()
 
+colnames(tabData)
+
 nameList = tabData$name %>% unique() %>% sort(decreasing = TRUE)
+nameInfo = "제로에너지건축물 인증 5등급을 만족하는 기술요소 조합"
 for (nameInfo in nameList) {
   cat(sprintf("[CHECK] nameInfo : %s", nameInfo), "\n")
   
@@ -393,8 +397,7 @@ for (nameInfo in nameList) {
   
   cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
   
-  
-  # 제로에너지건축물 인증 1~5등급을 만족하는 기술요소 조합 세부
+  # 제로에너지건축물 인증 1~5등급을 만족하는 기술비용 조합 세부
   tabDataL2 =  tabData %>% 
     dplyr::filter(
       name == nameInfo
@@ -433,3 +436,194 @@ for (nameInfo in nameList) {
   
   cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 }
+
+
+nameList = tabData$name2 %>% unique() %>% sort(decreasing = TRUE)
+nameInfo = "제로에너지건축물 인증 5등급 기술요소 조합에 대한 패시브 및 신재생 공사비"
+for (nameInfo in nameList) {
+  cat(sprintf("[CHECK] nameInfo : %s", nameInfo), "\n")
+  
+  # 제로에너지건축물 인증 1~5등급 기술요소 조합에 대한 패시브 및 신재생 공사비
+  tabDataL1 = tabData %>% 
+    dplyr::filter(name2 == nameInfo) %>% 
+    dplyr::select(c(type, id, id2, key2, passiveCost, renewCost, totalCost)) %>%
+    tidyr::pivot_longer(cols = c("passiveCost", "renewCost", "totalCost"), names_to = "key", values_to = "val") %>% 
+    dplyr::mutate(
+      label = dplyr::case_when(
+        key == "passiveCost" ~ "패시브"
+        , key == "renewCost" ~ "신재생"
+        , key == "totalCost" ~ "전체"
+        , TRUE ~ NA_character_
+      )
+    )
+  
+  # legList = tabDataL1$leg %>% unique()
+  id2List = tabDataL1$id2 %>% unique()
+  labelList = tabDataL1$label %>% unique()
+  
+  # 정렬
+  # tabDataL1$leg = forcats::fct_relevel(tabDataL1$leg, legList)
+  tabDataL1$id2 = forcats::fct_relevel(tabDataL1$id2, id2List)
+  tabDataL1$label = forcats::fct_relevel(tabDataL1$label, labelList)
+  
+  summary(tabDataL1)
+  
+  mainTitle = sprintf("%s", nameInfo)
+  saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
+  dir.create(dirname(saveImg), showWarnings = FALSE, recursive = TRUE)
+  
+  makePlot = ggplot(tabDataL1, aes(x = id2, y = val, color = label, group = label, label = round(val, 2))) + 
+    geom_line() +
+    geom_point() +
+    labs(x = NULL, y = "공사비", fill = NULL, color = NULL, title = NULL, subtitle = mainTitle) +
+    # scale_y_continuous(minor_breaks = seq(0, 50, 5), breaks=seq(0, 50, 5), limits = c(30, 50)) +
+    theme(
+      text = element_text(size = 16)
+      , legend.position = "top"
+      # , legend.key.size = unit(0.45, "cm")
+      , axis.text.x = element_text(angle = 45, hjust = 1, size = 12)
+    ) +
+    guides(color = guide_legend(nrow = 1)) +
+    # facet_wrap(~ label, scale = "free_y", ncol = 1)
+    facet_wrap(~ type, scale = "free_y", ncol = 1)
+  ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
+  
+  cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+  
+  
+  # 제로에너지건축물 인증 1~5등급 기술요소 조합에 대한 패시브 및 신재생 공사비 세부
+  tabDataL2 =  tabData %>% 
+    dplyr::filter(
+      name2 == nameInfo
+      , ! is.na(key2)
+    ) %>% 
+    dplyr::mutate(
+      leg = sprintf("(%s) %s", type, id) %>% stringr::str_trim(side = "both")
+      , key2Fac = factor(key2, levels = c("패시브, 액티브, 신재생 최소", "패시브 최대, 액티브, 신재생 최소", "패시브, 액티브 최대, 신재생 최소"))
+    ) %>% 
+    dplyr::arrange(key2Fac) %>%
+    tibble::column_to_rownames("leg") %>% 
+    dplyr::select(totalCost)
+  
+  subTitle = sprintf("%s 세부", nameInfo)
+  saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, subTitle)
+  dir.create(dirname(saveImg), showWarnings = FALSE, recursive = TRUE)
+  tmpImg = tempfile(fileext = ".png")
+  tmpHtml = tempfile(fileext = ".html")
+  
+  tabDataL3 = tabDataL2 %>% 
+    # dplyr::mutate(
+      # totalCost = formattable::color_tile("white", "orange")(totalCost)
+        # , key2 = kableExtra::cell_spec(key2, "html", align = "c", color = factor(key2, c("패시브, 액티브, 신재생 최소", "패시브, 액티브 최대, 신재생 최소", "패시브 최대, 액티브, 신재생 최소"), c("red", "green", "blue")))
+    # ) %>%
+    kableExtra::kbl(escape = FALSE, row.names = TRUE, col.names = c("Cost of Passive + Renewable (won)")) %>%
+    kableExtra::kable_paper(c("striped"), full_width = FALSE) %>% 
+    kableExtra::column_spec(2, color = "white", background = spec_color(tabDataL2$totalCost, end = 0.7)) %>% 
+    kableExtra::save_kable(file = tmpHtml, density = 600)
+
+  # file_move(tmpImg, saveImg)
+  
+  webshot::webshot(tmpHtml, tmpImg, zoom = 10)
+  # webshot2::webshot(tmpHtml, tmpImg)
+  
+  # 이미지 여백 제거
+  tmpImg %>% 
+    magick::image_read() %>% 
+    magick::image_trim() %>%
+    magick::image_write(path = saveImg)
+  
+  cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+}
+
+
+
+
+# 제로에너지건축물 인증 1~5등급 기술요소 조합에 대한 패시브 및 신재생 공사비
+tabDataL1 = tabData %>% 
+  dplyr::select(c(type, id, id2, key2, passiveCost, renewCost, totalCost)) %>%
+  tidyr::pivot_longer(cols = c("passiveCost", "renewCost", "totalCost"), names_to = "key", values_to = "val") %>% 
+  dplyr::mutate(
+    label = dplyr::case_when(
+      key == "passiveCost" ~ "패시브"
+      , key == "renewCost" ~ "신재생"
+      , key == "totalCost" ~ "전체"
+      , TRUE ~ NA_character_
+    )
+  )
+
+typeList = tabDataL1$type %>% unique() %>% sort()
+id2List = tabDataL1$id2 %>% unique()
+labelList = tabDataL1$label %>% unique()
+
+# 정렬
+tabDataL1$type = forcats::fct_relevel(tabDataL1$type, typeList)
+tabDataL1$id2 = forcats::fct_relevel(tabDataL1$id2, id2List)
+tabDataL1$label = forcats::fct_relevel(tabDataL1$label, labelList)
+
+summary(tabDataL1)
+
+mainTitle = sprintf("%s", "제로에너지건축물 인증 1~5등급 기술요소 조합에 대한 패시브 및 신재생 공사비")
+saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
+dir.create(dirname(saveImg), showWarnings = FALSE, recursive = TRUE)
+
+makePlot = ggplot(tabDataL1, aes(x = id2, y = val, color = type, group = type, label = round(val, 2))) + 
+  geom_line() +
+  geom_point() +
+  labs(x = NULL, y = "공사비", fill = NULL, color = NULL, title = NULL, subtitle = mainTitle) +
+  # scale_y_continuous(minor_breaks = seq(0, 50, 5), breaks=seq(0, 50, 5), limits = c(30, 50)) +
+  theme(
+    text = element_text(size = 16)
+    , legend.position = "top"
+    # , legend.key.size = unit(0.45, "cm")
+    , axis.text.x = element_text(angle = 45, hjust = 1, size = 12)
+  ) +
+  guides(color = guide_legend(nrow = 1)) +
+  # facet_wrap(~ label, scale = "free_y", ncol = 1)
+  facet_wrap(~ label, scale = "free_y", ncol = 1)
+ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
+
+cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+
+
+# 제로에너지건축물 인증 1~5등급 기술요소 조합에 대한 패시브 및 신재생 공사비 세부
+tabDataL2 =  tabData %>% 
+  dplyr::filter(
+    ! is.na(key2)
+  ) %>% 
+  dplyr::mutate(
+    leg = sprintf("(%s) %s", type, id) %>% stringr::str_trim(side = "both")
+    , key2Fac = factor(key2, levels = c("패시브, 액티브, 신재생 최소", "패시브 최대, 액티브, 신재생 최소", "패시브, 액티브 최대, 신재생 최소"))
+  ) %>% 
+  # dplyr::arrange(key2Fac) %>%
+  tibble::column_to_rownames("leg") %>% 
+  dplyr::select(totalCost)
+
+subTitle = sprintf("%s 세부", "제로에너지건축물 인증 1~5등급 기술요소 조합에 대한 패시브 및 신재생 공사비 세부")
+saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, subTitle)
+dir.create(dirname(saveImg), showWarnings = FALSE, recursive = TRUE)
+tmpImg = tempfile(fileext = ".png")
+tmpHtml = tempfile(fileext = ".html")
+
+tabDataL3 = tabDataL2 %>% 
+  # dplyr::mutate(
+  # totalCost = formattable::color_tile("white", "orange")(totalCost)
+  # , key2 = kableExtra::cell_spec(key2, "html", align = "c", color = factor(key2, c("패시브, 액티브, 신재생 최소", "패시브, 액티브 최대, 신재생 최소", "패시브 최대, 액티브, 신재생 최소"), c("red", "green", "blue")))
+  # ) %>%
+  kableExtra::kbl(escape = FALSE, row.names = TRUE, col.names = c("Cost of Passive + Renewable (won)")) %>%
+  kableExtra::kable_paper(c("striped"), full_width = FALSE) %>% 
+  kableExtra::column_spec(2, color = "white", background = spec_color(tabDataL2$totalCost, end = 0.7)) %>% 
+  kableExtra::save_kable(file = tmpHtml, density = 600)
+
+# file_move(tmpImg, saveImg)
+
+webshot::webshot(tmpHtml, tmpImg, zoom = 10)
+# webshot2::webshot(tmpHtml, tmpImg)
+
+# 이미지 여백 제거
+tmpImg %>% 
+  magick::image_read() %>% 
+  magick::image_trim() %>%
+  magick::image_write(path = saveImg)
+
+cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+
