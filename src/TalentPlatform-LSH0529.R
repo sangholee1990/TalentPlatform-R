@@ -120,6 +120,58 @@ ggplot(figDataL1, aes(x = leg, y = val, color = key, group = key, label = round(
 cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 
 
+figDataL1 = figData %>% 
+  dplyr::filter(name2 %in% c("외벽", "지붕", "바닥", "창호", "창면적비")) %>% 
+  dplyr::mutate(
+    key2 = ifelse(is.na(key2), "", key2)
+    # , leg = sprintf("%s\n%s", key2, key)
+    , leg = sprintf("%s (%s)", key2, key)
+  ) %>% 
+  dplyr::select(leg, name2, Heating, Cooling) %>%
+  tidyr::pivot_longer(cols = c("Heating", "Cooling"), names_to = "key", values_to = "val") %>% 
+  dplyr::mutate(
+    name2 = dplyr::case_when(
+      name2 == "바닥" ~ "FLOOR"
+      , name2 == "외벽" ~ "EXTERIOR WALL"
+      , name2 == "지붕" ~ "ROOF"
+      , name2 == "창면적비" ~ "WINDOW AREA RATIO"
+      , name2 == "창호" ~ "WINDOW"
+      , TRUE ~ NA_character_
+    )
+  )
+
+# 세부 냉난방에너지 영향정도
+name2List = figDataL1$name2 %>% unique()
+for (name2Info in name2List) {
+  
+  figDataL2 = figDataL1 %>% 
+    dplyr::filter(
+      name2 == name2Info
+    )
+  
+  mainTitle = sprintf("%s %s", name2Info, "열관류율의 냉난방에너지 영향정도")
+  saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
+  dir.create(dirname(saveImg), showWarnings = FALSE, recursive = TRUE)
+  
+  makePlot = ggplot(figDataL2, aes(x = leg, y = val, color = key, group = key, label = round(val, 2))) + 
+    geom_line() +
+    geom_point() +
+    labs(x = NULL, y = "Building Performance", fill = NULL, color = NULL, title = NULL, subtitle = mainTitle) +
+    scale_y_continuous(minor_breaks = seq(0, 50, 5), breaks=seq(0, 50, 5), limits = c(20, 40)) +
+    theme(
+      text = element_text(size = 16)
+      , legend.position = "top"
+      , axis.text.x = element_text(angle = 45, hjust = 1, size = 14)
+    ) +
+    facet_wrap(~ name2, scale = "free_x", ncol = 2)
+  
+  ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
+  
+  # shell.exec(saveImg)
+  cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+}
+
+
 # 난방 총 용량의 건물에너지성능 영향정도
 figDataL1 = figData %>% 
   dplyr::filter(name == "난방 총 용량의 건물에너지성능 영향정도") %>% 
