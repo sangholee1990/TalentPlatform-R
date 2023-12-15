@@ -1,0 +1,151 @@
+---
+title: "특정 장소별로 많이 일어나는 범죄 유형의 특성"
+author: "해솔"
+date: "`r Sys.Date()`"
+documentclass: article
+geometry: margin=1in
+fontsize: 11pt
+output:
+  pdf_document:
+    highlight: tango
+    toc: false
+    df_print: kable
+    fig_caption: no
+    number_sections: no
+    dev: pdf
+    latex_engine: xelatex
+  html_document:
+    highlight: tango
+    self_contained: true
+    theme: paper
+    toc: no
+    df_print: kable
+    fig_caption: no
+    number_sections: no
+    smart: yes
+    dev: svg
+mainfont: "Malgun Gothic"
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  eval = TRUE,
+  fig.width = 5,
+  fig.asp = 0.618,
+  out.width = "70%",
+  dpi = 120,
+  fig.align = "center",
+  cache = FALSE
+)
+
+# 라이브러리 읽기
+suppressPackageStartupMessages(library(tidyverse))
+suppressPackageStartupMessages(library(sysfonts))
+
+# 국문 폰트 설정
+if (Sys.info()["sysname"] == "Windows") {
+  sysfonts::font.add(family = "malgun", regular = "C:/Windows/Fonts/malgun.ttf")
+  showtext::showtext_opts(dpi = 600)
+  showtext::showtext.auto()
+}
+```
+
+## 주제: 특정 장소별로 많이 일어나는 범죄 유형의 특성
+## 사용 데이터: 공공데이터 포털에서 ‘경찰청_범죄 발생 장소별 통계’ 22,21,20년도 3개년치 데이터 사용
+
+## 사전 준비
+- 데이터 읽기 및 병합
+- 데이터 전처리 (wide -> long)
+```{r}
+dataL1 = tibble::tibble()
+
+# 데이터 읽기 및 병합
+fileList = Sys.glob(file.path("LSH0531/*.csv"))
+for (fileInfo in fileList) {
+  data = readr::read_csv(fileInfo, locale = locale("ko", encoding = "EUC-KR"))
+  dataL1 = dplyr:::bind_rows(dataL1, data)
+}
+
+# 데이터 전처리
+dataL2 = dataL1 %>% 
+  tidyr::pivot_longer(cols = c("아파트_연립다세대":"기타"), names_to = "name", values_to = "val")
+
+head(dataL2)
+```
+
+# 분석
+## 1. 데이터에서 다루는 범죄 유형 요약
+```{r, warning=FALSE}
+dataL3 = dataL2 %>%
+  dplyr::count(범죄대분류) %>%
+  dplyr::arrange(desc(n))
+
+dataL3
+
+ggplot(dataL3, aes(x = reorder(범죄대분류, -n), y = n)) +
+  geom_bar(stat = "identity") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.25)) +
+  labs(x = "범죄 유형", y = "발생 빈도", title = "범죄 유형별 발생 빈도")
+
+
+# dataL3 = dataL2 %>% 
+#   dplyr::group_by(범죄대분류, name) %>% 
+#   dplyr::summarise(
+#     sumVal = sum(val, na.rm = TRUE)
+#   )
+# 
+# mainTitle = sprintf("%s", "시간대 범죄대분류 발생횟수 시각화")
+# ggplot(dataL3, aes(x = name, y = sumVal, color = 범죄대분류, group = 범죄대분류)) +
+#   geom_line() +
+#   geom_point() +
+#   facet_wrap(~ 범죄대분류, scales = "free_y") +
+#   labs(x = NULL, y = "발생 횟수", fill = NULL, color = NULL, title = NULL, subtitle = mainTitle) +
+#   theme(
+#     text = element_text(size = 14)
+#     , axis.text.x = element_text(angle = 45, hjust = 1)
+#   )
+```
+
+## 2. 데이터에서 나타나는 범죄발생 장소 요약
+```{r, warning=FALSE}
+dataL3 = dataL2 %>%
+  dplyr::group_by(name) %>%
+  dplyr::summarise(
+    n = sum(val, na.rm = TRUE)
+  ) %>% 
+  dplyr::arrange(desc(n))
+
+dataL3
+
+ggplot(dataL3, aes(x = reorder(name, -n), y = n)) +
+  geom_bar(stat = "identity") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.25)) +
+  labs(x = "범죄 장소", y = "발생 빈도", title = "범죄 장소별 발생 빈도")
+```
+
+## 3. 장소별로 많이 일어나는 범죄의 유형
+```{r, warning=FALSE}
+# dataL2 = dataL1 %>% 
+#   tidyr::pivot_longer(cols = c("아파트_연립다세대":"기타"), names_to = "name", values_to = "val") %>% 
+#   dplyr::group_by(범죄대분류, 범죄중분류, name) %>% 
+#   dplyr::summarise(
+#     sumVal = sum(val, na.rm = TRUE)
+#   )
+
+```
+
+## 4. 범죄 유형(강력, 폭력, 지능 등)별로 가장 발생횟수가 빈번한 장소
+```{r, warning=FALSE}
+# dataL2 = dataL1 %>% 
+#   tidyr::pivot_longer(cols = c("아파트_연립다세대":"기타"), names_to = "name", values_to = "val") %>% 
+#   dplyr::group_by(범죄대분류, name) %>% 
+#   dplyr::summarise(
+#     sumVal = sum(val, na.rm = TRUE)
+#   ) %>% 
+#   dplyr::ungroup() %>% 
+#   dplyr::group_by(범죄대분류) %>% 
+#   dplyr::top_n(n = 1)
+# 
+# dataL2
+```
