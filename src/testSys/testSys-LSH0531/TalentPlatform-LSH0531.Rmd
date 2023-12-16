@@ -5,15 +5,16 @@ date: "`r Sys.Date()`"
 documentclass: article
 geometry: margin=1in
 fontsize: 11pt
+mainfont: "Malgun Gothic"
 output:
-  pdf_document:
-    highlight: tango
-    toc: false
-    df_print: kable
-    fig_caption: no
-    number_sections: no
-    dev: pdf
-    latex_engine: xelatex
+  # pdf_document:
+  #   highlight: tango
+  #   toc: false
+  #   df_print: kable
+  #   fig_caption: no
+  #   number_sections: no
+  #   dev: pdf
+  #   latex_engine: xelatex
   html_document:
     highlight: tango
     self_contained: true
@@ -24,24 +25,25 @@ output:
     number_sections: no
     smart: yes
     dev: svg
-mainfont: "Malgun Gothic"
 ---
 
 ```{r setup, include = FALSE}
 knitr::opts_chunk$set(
   echo = TRUE,
   eval = TRUE,
-  fig.width = 5,
+  fig.width = 10,
   fig.asp = 0.618,
-  out.width = "70%",
-  dpi = 120,
+  out.width = "100%",
+  dpi = 100,
   fig.align = "center",
   cache = FALSE
 )
 
 # 라이브러리 읽기
-suppressPackageStartupMessages(library(tidyverse))
 suppressPackageStartupMessages(library(sysfonts))
+suppressPackageStartupMessages(library(showtext))
+suppressPackageStartupMessages(library(tidyverse))
+suppressPackageStartupMessages(library(extrafont))
 
 # 국문 폰트 설정
 if (Sys.info()["sysname"] == "Windows") {
@@ -74,8 +76,10 @@ dataL2 = dataL1 %>%
 head(dataL2)
 ```
 
-# 분석
-## 1. 데이터에서 다루는 범죄 유형 요약
+## 분석
+- 1. 데이터에서 다루는 범죄 유형 요약
+- 범죄 대유형에 따른 발생 빈도를 막대그래프 시각화함
+- 그 결과 주로 지능/강력/폭력 범죄는 750 이상으로 분포하며 그 외 풍속/교통 범죄 등으로 나타냄
 ```{r, warning=FALSE}
 dataL3 = dataL2 %>%
   dplyr::count(범죄대분류) %>%
@@ -86,28 +90,12 @@ dataL3
 ggplot(dataL3, aes(x = reorder(범죄대분류, -n), y = n)) +
   geom_bar(stat = "identity") +
   theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.25)) +
-  labs(x = "범죄 유형", y = "발생 빈도", title = "범죄 유형별 발생 빈도")
-
-
-# dataL3 = dataL2 %>% 
-#   dplyr::group_by(범죄대분류, name) %>% 
-#   dplyr::summarise(
-#     sumVal = sum(val, na.rm = TRUE)
-#   )
-# 
-# mainTitle = sprintf("%s", "시간대 범죄대분류 발생횟수 시각화")
-# ggplot(dataL3, aes(x = name, y = sumVal, color = 범죄대분류, group = 범죄대분류)) +
-#   geom_line() +
-#   geom_point() +
-#   facet_wrap(~ 범죄대분류, scales = "free_y") +
-#   labs(x = NULL, y = "발생 횟수", fill = NULL, color = NULL, title = NULL, subtitle = mainTitle) +
-#   theme(
-#     text = element_text(size = 14)
-#     , axis.text.x = element_text(angle = 45, hjust = 1)
-#   )
+  labs(x = "범죄 유형", y = "발생 빈도", title = "범죄 유형에 따른 발생 빈도")
 ```
 
-## 2. 데이터에서 나타나는 범죄발생 장소 요약
+- 2. 데이터에서 나타나는 범죄발생 장소 요약
+- 범죄 장소에 따른 발생 빈도를 막대그래프 시각화함
+- 특히 1위 노상 및 2위 기타의 경우 각각 3,313,494 및 2,136,060로서 높은 비율로 차지한 반면에 대부분 낮은 분포를 나타냄
 ```{r, warning=FALSE}
 dataL3 = dataL2 %>%
   dplyr::group_by(name) %>%
@@ -124,28 +112,50 @@ ggplot(dataL3, aes(x = reorder(name, -n), y = n)) +
   labs(x = "범죄 장소", y = "발생 빈도", title = "범죄 장소별 발생 빈도")
 ```
 
-## 3. 장소별로 많이 일어나는 범죄의 유형
+- 3. 장소별로 많이 일어나는 범죄의 유형
+- 범죄 장소에 따른 자주 발생되는 범죄 유형을 막대그래프 시각화함
+- 항시 개방된 노상은 교통범죄에서 자주 일어나고 최근 보이스피싱 관련 기타 및 사무실은 지능범죄가 발생함
+- 그리고 아파트/주택 간의 층간 소음으로 인해 폭력범죄가 주로 나타냄
 ```{r, warning=FALSE}
-# dataL2 = dataL1 %>% 
-#   tidyr::pivot_longer(cols = c("아파트_연립다세대":"기타"), names_to = "name", values_to = "val") %>% 
-#   dplyr::group_by(범죄대분류, 범죄중분류, name) %>% 
-#   dplyr::summarise(
-#     sumVal = sum(val, na.rm = TRUE)
-#   )
+dataL3 = dataL2 %>% 
+  dplyr::group_by(name, 범죄대분류) %>% 
+  dplyr::summarise(
+    sumVal = sum(val, na.rm = TRUE)
+  ) %>% 
+  dplyr::ungroup() %>%
+  dplyr::group_by(name) %>%
+  dplyr::arrange(desc(sumVal))
 
+dataL3
+
+ggplot(dataL3, aes(x = reorder(name, -sumVal), y = sumVal, fill = 범죄대분류)) +
+  geom_bar(stat = "identity") +
+  theme(
+    axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.25)
+    # , text = element_text(size = 14)
+    ) +
+  labs(x = "범죄 장소", y = "발생 빈도", title = "장소별로 많이 일어나는 범죄의 유형")
 ```
 
-## 4. 범죄 유형(강력, 폭력, 지능 등)별로 가장 발생횟수가 빈번한 장소
+- 4. 범죄 유형(강력, 폭력, 지능 등)별로 가장 발생횟수가 빈번한 장소
 ```{r, warning=FALSE}
-# dataL2 = dataL1 %>% 
-#   tidyr::pivot_longer(cols = c("아파트_연립다세대":"기타"), names_to = "name", values_to = "val") %>% 
-#   dplyr::group_by(범죄대분류, name) %>% 
-#   dplyr::summarise(
-#     sumVal = sum(val, na.rm = TRUE)
-#   ) %>% 
-#   dplyr::ungroup() %>% 
-#   dplyr::group_by(범죄대분류) %>% 
-#   dplyr::top_n(n = 1)
-# 
-# dataL2
+dataL3 = dataL2 %>%
+  dplyr::group_by(범죄대분류, name) %>%
+  dplyr::summarise(
+    sumVal = sum(val, na.rm = TRUE)
+  ) %>%
+  dplyr::ungroup() %>%
+  dplyr::group_by(범죄대분류) %>%
+  dplyr::top_n(n = 1) %>% 
+  dplyr::arrange(desc(sumVal))
+
+dataL3
+
+ggplot(dataL3, aes(x = reorder(범죄대분류, -sumVal), y = sumVal, fill = name)) +
+  geom_bar(stat = "identity") +
+  theme(
+    axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.25)
+    # , text = element_text(size = 14)
+    ) +
+  labs(x = "범죄 유형", y = "발생 빈도", title = "범죄 유형별로 가장 발생횟수가 빈번한 장소")
 ```
