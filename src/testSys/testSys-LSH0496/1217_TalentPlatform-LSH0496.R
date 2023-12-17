@@ -563,6 +563,8 @@ bestData
 # 2023.11.21
  #m3 = tidyLPA::estimate_profiles(modelCfg, n_profiles = 3, variances = "equal", covariances = "zero")
 m3 = tidyLPA::estimate_profiles(modelCfg, n_profiles = 3, variances = "equal", covariances = "zero")
+# 2023.12.17
+# m3 = tidyLPA::estimate_profiles(modelCfg, n_profiles = bestData$Classes, variances = "equal", covariances = "zero")
 
 # 밀도함수 시각화
 saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, "plot_density")
@@ -678,19 +680,29 @@ ggplot(statData, aes(x = label, y = meanVal, color = Class, group = Class)) +
     , axis.text.x = element_text(angle = 45, hjust = 1))
 cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 
+summary(statData)
+
 # 레이더 차트
+# 2023.12.17
 statDataL1 = statData %>%
   dplyr::ungroup() %>%
   dplyr::mutate(val = meanVal) %>%
   dplyr::select(Group, label, val) %>%
-  tidyr::spread(key = "label", value = "val")
+  tidyr::spread(key = "label", value = "val") %>% 
+  dplyr::mutate(
+    Group = dplyr::case_when(
+      stringr::str_detect(Group, regex("Class 1")) ~ "유형 1"
+      , stringr::str_detect(Group, regex("Class 2")) ~ "유형 2"
+      , stringr::str_detect(Group, regex("Class 3")) ~ "유형 3"
+    )
+  )
 
 saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, "레이더 평균 차트")
 dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
 
 ggradar::ggradar(
   statDataL1
-  , values.radar = c("0%", "50%", "100%")
+  , values.radar = c("0", "30", "60")
   , legend.position = "bottom"
   , grid.min = min(statData$meanVal, na.rm = TRUE)
   , grid.mid = median(statData$meanVal, na.rm = TRUE)
