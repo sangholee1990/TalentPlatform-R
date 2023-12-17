@@ -7,14 +7,14 @@ geometry: margin=1in
 fontsize: 11pt
 mainfont: "Malgun Gothic"
 output:
-  # pdf_document:
-  #   highlight: tango
-  #   toc: false
-  #   df_print: kable
-  #   fig_caption: no
-  #   number_sections: no
-  #   dev: pdf
-  #   latex_engine: xelatex
+  pdf_document:
+    highlight: tango
+    toc: false
+    df_print: kable
+    fig_caption: no
+    number_sections: no
+    dev: pdf
+    latex_engine: xelatex
   html_document:
     highlight: tango
     self_contained: true
@@ -77,7 +77,7 @@ head(dataL2)
 ```
 
 ## 분석
-- 1. 데이터에서 다루는 범죄 유형 요약
+### 1. 데이터에서 다루는 범죄 유형 요약
 - 범죄 대유형에 따른 발생 빈도를 막대그래프 시각화함
 - 그 결과 주로 지능/강력/폭력 범죄는 750 이상으로 분포하며 그 외 풍속/교통 범죄 등으로 나타냄
 ```{r, warning=FALSE}
@@ -85,7 +85,7 @@ dataL3 = dataL2 %>%
   dplyr::count(범죄대분류) %>%
   dplyr::arrange(desc(n))
 
-dataL3
+head(dataL3)
 
 ggplot(dataL3, aes(x = reorder(범죄대분류, -n), y = n)) +
   geom_bar(stat = "identity") +
@@ -93,7 +93,7 @@ ggplot(dataL3, aes(x = reorder(범죄대분류, -n), y = n)) +
   labs(x = "범죄 유형", y = "발생 빈도", title = "범죄 유형에 따른 발생 빈도")
 ```
 
-- 2. 데이터에서 나타나는 범죄발생 장소 요약
+### 2. 데이터에서 나타나는 범죄발생 장소 요약
 - 범죄 장소에 따른 발생 빈도를 막대그래프 시각화함
 - 특히 1위 노상 및 2위 기타의 경우 각각 3,313,494 및 2,136,060로서 높은 비율로 차지한 반면에 대부분 낮은 분포를 나타냄
 ```{r, warning=FALSE}
@@ -104,7 +104,7 @@ dataL3 = dataL2 %>%
   ) %>% 
   dplyr::arrange(desc(n))
 
-dataL3
+head(dataL3)
 
 ggplot(dataL3, aes(x = reorder(name, -n), y = n)) +
   geom_bar(stat = "identity") +
@@ -112,10 +112,10 @@ ggplot(dataL3, aes(x = reorder(name, -n), y = n)) +
   labs(x = "범죄 장소", y = "발생 빈도", title = "범죄 장소별 발생 빈도")
 ```
 
-- 3. 장소별로 많이 일어나는 범죄의 유형
+### 3. 장소별로 많이 일어나는 범죄의 유형
 - 범죄 장소에 따른 자주 발생되는 범죄 유형을 막대그래프 시각화함
 - 항시 개방된 노상은 교통범죄에서 자주 일어나고 최근 보이스피싱 관련 기타 및 사무실은 지능범죄가 발생함
-- 그리고 아파트/주택 간의 층간 소음으로 인해 폭력범죄가 주로 나타냄
+- 또한 최근에 아파트/주택 간의 층간 소음으로 인해 폭력범죄가 주로 나타남
 ```{r, warning=FALSE}
 dataL3 = dataL2 %>% 
   dplyr::group_by(name, 범죄대분류) %>% 
@@ -126,7 +126,7 @@ dataL3 = dataL2 %>%
   dplyr::group_by(name) %>%
   dplyr::arrange(desc(sumVal))
 
-dataL3
+head(dataL3)
 
 ggplot(dataL3, aes(x = reorder(name, -sumVal), y = sumVal, fill = 범죄대분류)) +
   geom_bar(stat = "identity") +
@@ -137,7 +137,10 @@ ggplot(dataL3, aes(x = reorder(name, -sumVal), y = sumVal, fill = 범죄대분�
   labs(x = "범죄 장소", y = "발생 빈도", title = "장소별로 많이 일어나는 범죄의 유형")
 ```
 
-- 4. 범죄 유형(강력, 폭력, 지능 등)별로 가장 발생횟수가 빈번한 장소
+### 4. 범죄 유형(강력, 폭력, 지능 등)별로 가장 발생횟수가 빈번한 장소
+- 범죄 유형에 따른 자주 발생하는 횟수를 막대그래프 시각화함
+- 상위 5위 범죄의 경우 교통, 지능, 폭력, 기타, 절도로 나타나고 그 외 기타 범죄 (특별경제범죄, 풍속범죄 등)들은 다소 낮은 빈도로 분포함
+- 특히 상위 범죄 관련하여 원인은 앞서 설명한 "장소별로 많이 일어나는 범죄의 유형"과 동일함
 ```{r, warning=FALSE}
 dataL3 = dataL2 %>%
   dplyr::group_by(범죄대분류, name) %>%
@@ -149,9 +152,9 @@ dataL3 = dataL2 %>%
   dplyr::top_n(n = 1) %>% 
   dplyr::arrange(desc(sumVal))
 
-dataL3
+head(dataL3)
 
-ggplot(dataL3, aes(x = reorder(범죄대분류, -sumVal), y = sumVal, fill = name)) +
+ggplot(dataL3, aes(x = reorder(범죄대분류, -sumVal), y = sumVal, fill = 범죄대분류)) +
   geom_bar(stat = "identity") +
   theme(
     axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.25)
