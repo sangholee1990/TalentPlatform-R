@@ -11,7 +11,7 @@
 #================================================
 # 요구사항
 #================================================
-# 
+# R을 이용한 nloptr, lpSolve 패키지로부터 수치해석 알고리즘
 
 # ================================================
 # 초기 환경변수 설정
@@ -103,6 +103,49 @@ nlp <- nloptr(
 # Results
 print(paste("Optimal objective value:", nlp$objective))
 print(paste("Solution:", paste(nlp$solution, collapse = ", ")))
+
+
+
+
+# 라이브러리 읽기
+library(lpSolve)
+library(gmp)
+
+# Define the coefficients of the objective function
+objective_coeffs <- sapply(1:200, function(i) sin(i)^2 + cos(i))
+
+# Number of decision variables
+num_vars <- 200
+
+# Initialize the constraint matrix, direction, and right-hand side vector
+const_mat <- matrix(0, nrow = num_vars, ncol = num_vars)
+const_dir <- rep("<=", num_vars)
+const_rhs <- rep(0, num_vars)
+
+# Adding constraints for xi + xi+1 + xi+2 <= 2.758
+for (i in 1:(num_vars - 2)) {
+  const_mat[i, i:(i+2)] <- 1
+  const_rhs[i] <- 2.758
+}
+
+
+# Apply prime number constraints
+prime_indices = which(sapply(1:num_vars, function(i) gmp::isprime(n = i)) == 2)
+for (i in prime_indices) {
+  const_mat[i, i] <- 1
+  const_rhs[i] <- 1.56
+}
+
+# Solve the LP problem
+lp_solution <- lp("max", objective_coeffs, const_mat, const_dir, const_rhs)
+
+# Output the solution and objective value
+if (lp_solution$status == 0) {
+  print(paste("Objective value:", lp_solution$objval))
+  print("Solution:")
+  print(lp_solution$solution)
+} 
+
 
 
 
