@@ -887,6 +887,7 @@ print(statData)
 
 # ==============================================================================
 # 2023.12.10 <표 추가 1> 전체 노인 환자의 퇴원의향에 따른 퇴원결정 이유
+# 2023.12.25 OR 오즈비의 95% CI 신뢰구간
 # ==============================================================================
 # 독립변수 연속형
 # inten_res_1_num ~ inten_res_7_num
@@ -932,6 +933,8 @@ exp(coef(mulModel)) %>% round(2) %>% as.data.frame() %>% print()
 # 95% CI 신뢰구간
 confint(mulModel) %>% round(2) %>% as.data.frame() %>% print()
 
+# OR 오즈비의 95% CI 신뢰구간
+exp(confint(mulModel)) %>% round(2) %>% as.data.frame() %>% print()
 
 # ==============================================================================
 # 2023.12.10 <표 추가 2> 노인 환자 잠재유형별 퇴원의향에 따른 퇴원결정 이유 
@@ -993,9 +996,11 @@ for (cls in clsList) {
 
 # ==============================================================================
 # 2023.12.10 <표 추가4> 요양병원 노인 환자 잠재유형별 대상자의 특징> 기존 표2 를 추가 확대
+# 2023.12.25 특정 컬럼 (inten_1_fac)에 따른 퇴원의향 비교
 # ==============================================================================
 # 연령, 성별, 거주지, 동반거주유형 (독거여부), 배우자 유무, 장기요양등급, 의료급여여부, 입원기간, 입원경로, 환자분류군, 만성질환수, 와상여부, 대변 조절, 소변 조절
-colList = c("age_g", "gender", "residen_home", "live_alone", "marriage", "ltc_insurance", "med_aid", "duration_l", "adm_way", "classification", "chronic", "function4_total", "function2_total", "function3_total", "paybur_11")
+# colList = c("age_g", "gender", "residen_home", "live_alone", "marriage", "ltc_insurance", "med_aid", "duration_l", "adm_way", "classification", "chronic", "function4_total", "function2_total", "function3_total", "paybur_11")
+colList = c("inten_1_fac")
 
 # col = "age_g"
 for (col in colList) {
@@ -1027,8 +1032,6 @@ for (col in colList) {
       label = sprintf("%.2f(%.2f)", stat, pval)
     ) %>% 
     print()
-  
-
 }
 
 
