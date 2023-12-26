@@ -688,6 +688,13 @@ statDataL1 = statData %>%
   dplyr::ungroup() %>%
   dplyr::mutate(val = meanVal) %>%
   dplyr::select(Group, label, val) %>%
+  dplyr::mutate(
+    label = dplyr::case_when(
+      stringr::str_detect(label, regex("돌봄 부담에 대한 인지")) ~ "돌봄 부담 인지"
+      , stringr::str_detect(label, regex("지역사회서비스 접근용이성")) ~ "접근 용이성"
+      , TRUE ~ label
+    )
+  ) %>% 
   tidyr::spread(key = "label", value = "val") %>% 
   dplyr::mutate(
     Group = dplyr::case_when(
@@ -697,7 +704,16 @@ statDataL1 = statData %>%
     )
   )
 
-saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, "레이더 평균 차트")
+# saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, "레이더 평균 차트")
+# saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, "레이더 평균 차트_14x9")
+# saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, "레이더 평균 차트_7x8")
+# saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, "레이더 평균 차트_12x8")
+# saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, "레이더 평균 차트_12x10")
+# saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, "레이더 평균 차트_10x8")
+# saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, "레이더 평균 차트_9x9")
+saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, "레이더 평균 차트_9x8")
+# saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, "레이더 평균 차트_9x9")
+# saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, "레이더 평균 차트_8x6")
 dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
 
 ggradar::ggradar(
@@ -710,7 +726,15 @@ ggradar::ggradar(
   , grid.max = max(statData$meanVal, na.rm = TRUE)
   , font.radar = "malgun"
   ) +
-  ggsave(filename = saveImg, width = 12, height = 10, dpi = 600)
+  # ggsave(filename = saveImg, width = 7, height = 8, dpi = 600)
+  # ggsave(filename = saveImg, width = 14, height = 8, dpi = 600)
+  # ggsave(filename = saveImg, width = 14, height = 9, dpi = 600)
+  # ggsave(filename = saveImg, width = 12, height = 8, dpi = 600)
+  # ggsave(filename = saveImg, width = 12, height = 10, dpi = 600)
+  # ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
+  # ggsave(filename = saveImg, width = 9, height = 9, dpi = 600)
+  ggsave(filename = saveImg, width = 9, height = 8, dpi = 600)
+  # ggsave(filename = saveImg, width = 8, height = 6, dpi = 600)
 
 cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n") 
 
