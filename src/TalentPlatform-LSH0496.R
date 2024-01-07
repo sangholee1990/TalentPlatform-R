@@ -35,8 +35,8 @@
 # ================================================
 # 초기 환경변수 설정
 # ================================================
-# env = "local"  # 로컬 : 원도우 환경, 작업환경 (현재 소스 코드 환경 시 .) 설정
-env = "dev"  # 개발 : 원도우 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+env = "local"  # 로컬 : 원도우 환경, 작업환경 (현재 소스 코드 환경 시 .) 설정
+# env = "dev"  # 개발 : 원도우 환경, 작업환경 (사용자 환경 시 contextPath) 설정
 # env = "oper"  # 운영 : 리눅스 환경, 작업환경 (사용자 환경 시 contextPath) 설정
 
 prjName = "test"
@@ -118,9 +118,9 @@ data = readr::read_csv(fileInfo, locale = readr::locale(encoding = "UTF-8"))
 data_1 = data %>%
   dplyr::mutate(
     fam_total = fam_1 + fam_2 + fam_3 + 5 - fam_4 + fam_5,
-    carebur_total = 16-(carebur_1 + carebur_2 + carebur_3 + carebur_4), #역환산
-    illper_total = 40-(illper_1 + illper_2 +5 - illper_3 + 5 - illper_4 + illper_5 + 5 - illper_6 + illper_7 + illper_8), #역환산
-    paybur_11 = 5-paybur_1, #역환산
+    carebur_total = carebur_1 + carebur_2 + carebur_3 + carebur_4, #역환산
+    illper_total = illper_1 + illper_2 +5 - illper_3 + 5 - illper_4 + illper_5 + 5 - illper_6 + illper_7 + illper_8, #역환산
+    paybur_11 = paybur_1, #역환산
     satisf_total = satisf_1 + satisf_2 + satisf_3 + satisf_4 + satisf_5 + satisf_6,
     continu_total = continu_1 + continu_2 + continu_3 + continu_4 + continu_5 + continu_6 + continu_7 + continu_8 + continu_9 + continu_10 + continu_11 + continu_12,
     service_total = service_1 + service_2 + service_3 + service_4 + service_5,
@@ -209,7 +209,7 @@ m2 = data_1 %>%
     # inten_res_7_fac = factor(ifelse(inten_res_7 %in% c(1, 2), 1, ifelse(inten_1 == 3, 2, 3)), levels = c(1, 2, 3), labels = c('그렇지 않음', '보통임', '그러함')),
     
     # 2023.12.10 퇴원의향 2개 (1~2, 3~4), 퇴원결정사유 5개 (1~5) 분류
-    inten_1_fac = factor(ifelse(inten_1 %in% c(1, 2), 1, 2), levels = c(1, 2), labels = c('그렇지 않음', '그러함')),
+    inten_1_fac = factor(ifelse(inten_1 %in% c(1, 2), 0, 1), levels = c(0, 1), labels = c('의향없음', '의향있음')),
     inten_res_1_fac = factor(inten_res_1, levels = c(1, 2, 3, 4, 5), labels = c('전혀 그렇지 않다', '그렇지 않다', '보통이다', '그렇다', '매우 그렇다')),
     inten_res_2_fac = factor(inten_res_2, levels = c(1, 2, 3, 4, 5), labels = c('전혀 그렇지 않다', '그렇지 않다', '보통이다', '그렇다', '매우 그렇다')),
     inten_res_3_fac = factor(inten_res_3, levels = c(1, 2, 3, 4, 5), labels = c('전혀 그렇지 않다', '그렇지 않다', '보통이다', '그렇다', '매우 그렇다')),
@@ -462,12 +462,12 @@ modelCfg = data_1 %>%
   dplyr::select(illper_total, function_total, fam_total, carebur_total, satisf_total, continu_total, service_total) %>%
   dplyr::rename(
     "질병인식" = illper_total
-    , "기능적 독립" = function_total
-    , "가족 지지" = fam_total
-    , "돌봄 부담 인지" = carebur_total
-    , "거주 만족도" = satisf_total
-    , "돌봄 지속성" = continu_total
-    , "서비스 접근 용이성" = service_total
+    , "기능적독립" = function_total
+    , "가족지지" = fam_total
+    , "돌봄부담인지" = carebur_total
+    , "거주만족도" = satisf_total
+    , "돌봄지속성" = continu_total
+    , "서비스접근용이성" = service_total
   ) %>% 
   # na.omit() %>%
   single_imputation() %>%
@@ -531,10 +531,10 @@ for (i in 1:(length(modelList) - 1)) {
 
 
 for (cls in simDataL1$Classes) {
-  modelProf = estimate_profiles(modelCfg, n_profiles = cls, variances = "equal", covariances = "zero")
+  modelProf = estimate_profiles(modelCfg, n_profiles ="3", variances = "equal", covariances = "zero")
   
   modelResData = get_data(modelProf) %>% 
-    as.tibble()
+    as_tibble()
   
   modelResDataL1 = modelResData %>% 
     dplyr::group_by(Class) %>% 
@@ -561,8 +561,10 @@ bestData = simData %>%
 bestData
 
 # 2023.11.21
-# m3 = tidyLPA::estimate_profiles(modelCfg, n_profiles = 4, variances = "equal", covariances = "zero")
-m3 = tidyLPA::estimate_profiles(modelCfg, n_profiles = bestData$Classes, variances = "equal", covariances = "zero")
+ #m3 = tidyLPA::estimate_profiles(modelCfg, n_profiles = 3, variances = "equal", covariances = "zero")
+m3 = tidyLPA::estimate_profiles(modelCfg, n_profiles = 3, variances = "equal", covariances = "zero")
+# 2023.12.17
+# m3 = tidyLPA::estimate_profiles(modelCfg, n_profiles = bestData$Classes, variances = "equal", covariances = "zero")
 
 # 밀도함수 시각화
 saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, "plot_density")
@@ -570,8 +572,7 @@ dir.create(fs::path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
 
 tidyLPA::plot_density(m3) +
   labs(x = NULL, y = "밀도 함수") +
-  theme(text = element_text(size = 14)) +
-  ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
+  theme(text = element_text(size = 14)) 
 
 cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n") 
 
@@ -585,6 +586,13 @@ cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 # 
 # cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 
+# install.packages('extrafont')
+# library(extrafont)
+# font_import()
+# fonts()
+library(ggplot2)
+theme_set(theme_grey(base_family="AppleMyungjo"))
+
 # 프로파일 시각화
 saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, "plot_profiles")
 dir.create(fs::path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
@@ -592,10 +600,10 @@ dir.create(fs::path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
 tidyLPA::plot_profiles(m3, add_line = T) +
   labs(x = NULL, y = "프로파일 분포") +
   theme(
-    text = element_text(size = 16)
+    text = element_text(size = 13)
     , axis.text.x = element_text(angle = 45, hjust = 1)
   ) +
-  ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
+  theme_bw(base_family = "AppleGothic")
 
 cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 
@@ -669,32 +677,64 @@ ggplot(statData, aes(x = label, y = meanVal, color = Class, group = Class)) +
   labs(x = NULL, y = "평균", fill = NULL, color = NULL, title = NULL, subtitle = mainTitle) +
   theme(
     text = element_text(size = 16)
-    , axis.text.x = element_text(angle = 45, hjust = 1)
-  ) +
-  ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
-
+    , axis.text.x = element_text(angle = 45, hjust = 1))
 cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 
+summary(statData)
+
 # 레이더 차트
+# 2023.12.17
 statDataL1 = statData %>%
   dplyr::ungroup() %>%
   dplyr::mutate(val = meanVal) %>%
   dplyr::select(Group, label, val) %>%
-  tidyr::spread(key = "label", value = "val")
+  dplyr::mutate(
+    label = dplyr::case_when(
+      stringr::str_detect(label, regex("돌봄 부담에 대한 인지")) ~ "돌봄 부담 인지"
+      , stringr::str_detect(label, regex("지역사회서비스 접근용이성")) ~ "접근 용이성"
+      , TRUE ~ label
+    )
+  ) %>% 
+  tidyr::spread(key = "label", value = "val") %>% 
+  dplyr::mutate(
+    Group = dplyr::case_when(
+      stringr::str_detect(Group, regex("Class 1")) ~ "유형 1"
+      , stringr::str_detect(Group, regex("Class 2")) ~ "유형 2"
+      , stringr::str_detect(Group, regex("Class 3")) ~ "유형 3"
+    )
+  )
 
-saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, "레이더 평균 차트")
+# saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, "레이더 평균 차트")
+# saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, "레이더 평균 차트_14x9")
+# saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, "레이더 평균 차트_7x8")
+# saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, "레이더 평균 차트_12x8")
+# saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, "레이더 평균 차트_12x10")
+# saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, "레이더 평균 차트_10x8")
+# saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, "레이더 평균 차트_9x9")
+saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, "레이더 평균 차트_9x8")
+# saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, "레이더 평균 차트_9x9")
+# saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, "레이더 평균 차트_8x6")
 dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
 
 ggradar::ggradar(
   statDataL1
-  , values.radar = c("0%", "50%", "100%")
+  , values.radar = c("0", "30", "60")
   , legend.position = "bottom"
   , grid.min = min(statData$meanVal, na.rm = TRUE)
   , grid.mid = median(statData$meanVal, na.rm = TRUE)
   # , grid.max = max(statData$meanVal, na.rm = TRUE)
   , grid.max = max(statData$meanVal, na.rm = TRUE)
-  ) + 
-  ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
+  , font.radar = "malgun"
+  ) +
+  # ggsave(filename = saveImg, width = 7, height = 8, dpi = 600)
+  # ggsave(filename = saveImg, width = 14, height = 8, dpi = 600)
+  # ggsave(filename = saveImg, width = 14, height = 9, dpi = 600)
+  # ggsave(filename = saveImg, width = 12, height = 8, dpi = 600)
+  # ggsave(filename = saveImg, width = 12, height = 10, dpi = 600)
+  # ggsave(filename = saveImg, width = 10, height = 8, dpi = 600)
+  # ggsave(filename = saveImg, width = 9, height = 9, dpi = 600)
+  ggsave(filename = saveImg, width = 9, height = 8, dpi = 600)
+  # ggsave(filename = saveImg, width = 8, height = 6, dpi = 600)
 
 cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n") 
 
@@ -871,6 +911,7 @@ print(statData)
 
 # ==============================================================================
 # 2023.12.10 <표 추가 1> 전체 노인 환자의 퇴원의향에 따른 퇴원결정 이유
+# 2023.12.25 OR 오즈비의 95% CI 신뢰구간
 # ==============================================================================
 # 독립변수 연속형
 # inten_res_1_num ~ inten_res_7_num
@@ -916,6 +957,8 @@ exp(coef(mulModel)) %>% round(2) %>% as.data.frame() %>% print()
 # 95% CI 신뢰구간
 confint(mulModel) %>% round(2) %>% as.data.frame() %>% print()
 
+# OR 오즈비의 95% CI 신뢰구간
+exp(confint(mulModel)) %>% round(2) %>% as.data.frame() %>% print()
 
 # ==============================================================================
 # 2023.12.10 <표 추가 2> 노인 환자 잠재유형별 퇴원의향에 따른 퇴원결정 이유 
@@ -977,9 +1020,11 @@ for (cls in clsList) {
 
 # ==============================================================================
 # 2023.12.10 <표 추가4> 요양병원 노인 환자 잠재유형별 대상자의 특징> 기존 표2 를 추가 확대
+# 2023.12.25 특정 컬럼 (inten_1_fac)에 따른 퇴원의향 비교
 # ==============================================================================
 # 연령, 성별, 거주지, 동반거주유형 (독거여부), 배우자 유무, 장기요양등급, 의료급여여부, 입원기간, 입원경로, 환자분류군, 만성질환수, 와상여부, 대변 조절, 소변 조절
-colList = c("age_g", "gender", "residen_home", "live_alone", "marriage", "ltc_insurance", "med_aid", "duration_l", "adm_way", "classification", "chronic", "function4_total", "function2_total", "function3_total")
+# colList = c("age_g", "gender", "residen_home", "live_alone", "marriage", "ltc_insurance", "med_aid", "duration_l", "adm_way", "classification", "chronic", "function4_total", "function2_total", "function3_total", "paybur_11")
+colList = c("inten_1_fac")
 
 # col = "age_g"
 for (col in colList) {
@@ -1012,6 +1057,7 @@ for (col in colList) {
     ) %>% 
     print()
 }
+
 
 # ==============================================================================
 # 백업 코드 
