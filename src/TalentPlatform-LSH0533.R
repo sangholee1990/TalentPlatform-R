@@ -90,6 +90,7 @@ library(purrr)
 library(amap)
 library(broom)
 library(grt)
+library(geosphere)
 
 unscale = function(value, data, column) {
   scale_attr <- attr(data[[column]], "scaled:scale")
@@ -116,14 +117,16 @@ gridData = noncompliance::expand.grid.DT(
   newLon
   , newLat
   , col.names = c("lon", "lat")
-)
+) %>% 
+  as.tibble() %>% 
+  dplyr::mutate(across(c(lon, lat), as.numeric))
+
 
 sheetName = "모집단78개"
 bootNum = 10000
 bootDo = 30
 posLon = 129.2
 posLat = 35.8
-
 
 # **************************************************
 # 단일 이미지 테스트
@@ -187,10 +190,10 @@ posLat = 35.8
 # # posLon = 129.2
 # # posLat = 35.8
 # 
-# # 초기신라 지점
+# 초기신라 지점
 # posLon = 116.6
 # posLat = 31.8
-# 
+
 # posData = dataL4 %>%
 #   dplyr::ungroup() %>%
 #   dplyr::filter(xAxis == posLon, yAxis == posLat)
@@ -237,9 +240,21 @@ mbaData = plotDataL1 %>%
     xAxis = xyz.est.x
     , yAxis = xyz.est.y
     , density = xyz.est.z
+  ) %>% 
+  dplyr::mutate(
+    xyAxis = sprintf("%s-%s", xAxis, yAxis)
   )
+  # dplyr::mutate(across(c(xAxis, yAxis), as.numeric))
+
+
+# ggplot(data = mbaData, aes(x = xAxis, y = yAxis, fill = density, color = density)) +
+#   geom_raster(interpolate = TRUE, na.rm = TRUE) 
 
 plotDataL2 = plotData %>% 
+  # dplyr::mutate(across(c(xAxis, yAxis), as.numeric)) %>% 
+  dplyr::mutate(
+    xyAxis = sprintf("%s-%s", xAxis, yAxis)
+  ) %>% 
   # dplyr::bind_cols(plotData)
   # dplyr::mutate(
   #   xAxis = round(x, 1)
@@ -250,7 +265,31 @@ plotDataL2 = plotData %>%
     # , yAxis = ifelse(round(yVal * 10) %% 2 == 0, yVal, yVal - 0.1)
   # ) %>%
   # dplyr::distinct(xAxis, yAxis, .keep_all = TRUE) %>%
-  dplyr::left_join(mbaData, by = c("xAxis" = "xAxis", "yAxis" = "yAxis"))
+  # dplyr::left_join(mbaData, by = c("xAxis" = "xAxis", "yAxis" = "yAxis"))
+  dplyr::left_join(mbaData, by = c("xyAxis" = "xyAxis"), suffix = c("", ".y")) %>% 
+  dplyr::select(-xAxis.y, -yAxis.y, keep_all)
+
+
+# 초기신라 지점
+stnLon = 116.6
+stnLat = 31.8
+
+plotDataL3 = plotDataL2 %>% 
+  dplyr::mutate(
+    distKm = geosphere::distHaversine(cbind(xAxis, yAxis), cbind(stnLon, stnLat)) / 1000.0
+  ) %>% 
+  dplyr::arrange(distKm)
+
+head(plotDataL3)
+
+mbaDataL1 = mbaData %>% 
+  dplyr::mutate(
+    distKm = geosphere::distHaversine(cbind(xAxis, yAxis), cbind(stnLon, stnLat)) / 1000.0
+  ) %>% 
+  dplyr::arrange(distKm)
+
+# 1  117.  31.8 0.000802 116.6-31.8    0  
+head(mbaDataL1)
 
 # 파일 저장
 saveFile = sprintf("%s/%s/%s-%s_%s-%s_%s-%s.csv", globalVar$outPath, serviceName, sheetName, "plotDataL2", bootNum, bootDo, posLon, posLat)
@@ -265,6 +304,7 @@ dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
 
 makePlot = ggplot(data = plotDataL2, aes(x = xAxis, y = yAxis, fill = density, color = density)) +
   geom_raster(interpolate = TRUE, na.rm = TRUE) +
+  geom_point(aes(x = stnLon, y = stnLat), color = "green", shape = 15, alpha = 0.25) +
   scale_fill_gradientn(colours = cbMatlab) +
   geom_sf(data = mapGlobal, aes(x = NULL, y = NULL, fill = NULL, z = NULL), color = "black", fill = NA) +
   metR::scale_x_longitude(breaks = seq(90, 150, 10), limits = c(89.99, 150.01), expand = c(0, 0)) +
@@ -281,6 +321,7 @@ makePlot = ggplot(data = plotDataL2, aes(x = xAxis, y = yAxis, fill = density, c
 
 ggsave(makePlot, filename = saveImg, width = 10, height = 10, dpi = 600)
 # ggplot2::last_plot()
+# shell.exec(saveImg)
 cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 
 
@@ -295,17 +336,21 @@ dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
 png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
 mainTitle = sprintf("Count : %s", length(plotDataL3$density))
 
-breakList = seq(0, max(plotDataL3$density, na.rm = TRUE) + 0.001, by = 0.001)
-tickList = seq(0, max(plotDataL3$density, na.rm = TRUE) + 0.001, by = 0.001)
+# breakList = seq(0, max(plotDataL3$density, na.rm = TRUE) + 0.001, by = 0.001)
+# tickList = seq(0, max(plotDataL3$density, na.rm = TRUE) + 0.001, by = 0.001)
+breakList = seq(0, max(plotDataL3$density, na.rm = TRUE) + 0.0004, by = 0.0004)
+tickList = seq(0, max(plotDataL3$density, na.rm = TRUE) + 0.0004, by = 0.0004)
 histData = hist(plotDataL3$density, breaks = breakList)
 hist(plotDataL3$density, main = mainTitle, xlab = NULL, breaks = breakList, xaxt = "n")
 axis(side = 1, at = tickList, las = 2)
 text(histData$mids, histData$counts, pos = 3, labels = histData$counts)
 
 dev.off()
+# shell.exec(saveImg)
 cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 
-
+# i = 2
+tickList = seq(0, max(plotDataL3$density, na.rm = TRUE) + 0.0001, by = 0.0001)
 for (i in 1:length(tickList)) {
 
   if (is.na(tickList[i])) next
@@ -322,10 +367,10 @@ for (i in 1:length(tickList)) {
   
   hist(plotDataL4$meanVal)
   
-  saveImg = sprintf("%s/%s/%s-%s-%s_%s-%s_%s-%s.png", globalVar$figPath, serviceName, sheetName, "HistDen", tickInfo, bootNum, bootDo, posLon, posLat)
+  saveImg = sprintf("%s/%s/%s-%s-%.4f_%s-%s_%s-%s.png", globalVar$figPath, serviceName, sheetName, "HistDen", tickInfo, bootNum, bootDo, posLon, posLat)
   dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
   png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
-  mainTitle = sprintf("Tick : %s / Count : %s", tickInfo, length(plotDataL4$density))
+  mainTitle = sprintf("Tick : %.4f / Count : %s", tickInfo, length(plotDataL4$density))
   
   # min(plotDataL3$meanVal, na.rm = TRUE)
   # max(plotDataL3$meanVal, na.rm = TRUE)
@@ -342,19 +387,20 @@ for (i in 1:length(tickList)) {
   cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 }
 
+# shell.exec(saveImg)
 
 # ==============================================================================
 # 밀도함수 기반으로 군집화
 # ==============================================================================
 # kmeans 다중 클러스터링 (데이터 표준화 O)
-# plotDataL4 = plotDataL3 %>%
-#   dplyr::select(xAxis, yAxis, density)
-
 plotDataL4 = plotDataL3 %>%
-  dplyr::select(xAxis, yAxis, meanVal)
+  dplyr::select(xAxis, yAxis, density)
 
 # plotDataL4 = plotDataL3 %>%
-  # dplyr::select(xAxis, yAxis, meanVal, density)
+#   dplyr::select(xAxis, yAxis, meanVal)
+
+# plotDataL4 = plotDataL3 %>%
+#   dplyr::select(xAxis, yAxis, meanVal, density)
 
 plotDataL5 = plotDataL4 %>%
   dplyr::mutate(across(everything(), ~scale(.)))
@@ -365,7 +411,11 @@ plotDataL5 = plotDataL4 %>%
 #     , vars = c(colnames(plotDataL3))
 #   )
 
-for (nClu in 1:12) {
+# nClu = 3
+
+statDataL3 = tibble::tibble()
+for (nClu in 1:15) {
+  
   cat(sprintf("[CHECK] nClu : %s", nClu), "\n")
   
   # 클러스터링 모형
@@ -373,9 +423,65 @@ for (nClu in 1:12) {
     purrr::keep(is.numeric) %>% 
     amap::Kmeans(centers = nClu, method = "euclidean")
   
-  # 원시 데이터+ 클러스터링 결과
+  # 원시 데이터 + 클러스터링 결과
   pointAssignments = broom::augment(kcluModel, plotDataL5) %>% 
     dplyr::mutate(across(colnames(plotDataL5), ~grt::unscale(.)))
+  
+  # 최근접 찾기
+  statData = pointAssignments %>% 
+    dplyr::mutate(
+      distKm = geosphere::distHaversine(cbind(xAxis, yAxis), cbind(stnLon, stnLat)) / 1000.0
+    ) %>% 
+    dplyr::arrange(distKm) %>% 
+    dplyr::slice(1) %>% 
+    dplyr::mutate(
+      isFlag = TRUE
+    )
+  
+  statDataL1 = statData %>% 
+    dplyr::select(.cluster, isFlag)
+  
+  statDataL2 = pointAssignments %>% 
+    dplyr::group_by(.cluster) %>% 
+    dplyr::summarise(
+      cnt = n()
+      , rat = cnt / nrow(pointAssignments) * 100.0
+    ) %>% 
+    dplyr::left_join(statDataL1, by = c(".cluster" = ".cluster")) %>% 
+    dplyr::mutate(
+      nClu = nClu
+    )
+  
+  statDataL3 = dplyr::bind_rows(statDataL3, statDataL2)
+  
+  saveImg = sprintf("%s/%s/%s-Normal%s.png", globalVar$figPath, serviceName, "Kmeans-hist-var3", nClu)
+  # saveImg = sprintf("%s/%s/%s-Normal%s.png", globalVar$figPath, serviceName, "Kmeans-hist-var4", nClu)
+  mainTitle = sprintf("%s개 군집에 따른 빈도수 (초기신라 : %s번)", nClu, statData$.cluster)
+  dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
+  
+  # makePlot = ggplot(pointAssignments, aes(x = .cluster, fill = .cluster)) +
+  #   geom_histogram(stat = "count", alpha = 0.6) +
+  #   geom_text(stat = "count", aes(label = ..count..), size = 5.0, vjust = 2.0, color = "black") +
+  #   labs(x = "군집", y = "빈도수", fill = NULL, title = NULL, subtitle = mainTitle) +
+  #   theme(
+  #     text = element_text(size = 16)
+  #     , legend.position = "top"
+  #   )
+  
+  makePlot = ggplot(statDataL2, aes(x = .cluster, y = cnt, fill = .cluster, label = cnt)) +
+    geom_bar(stat="identity", alpha = 0.6) +
+    geom_text(size = 5.0, vjust = 2.0, color = "black") +
+    labs(x = "군집", y = "빈도수", fill = NULL, title = NULL, subtitle = mainTitle) +
+    guides(color = guide_legend(nrow = 1)) +
+    theme(
+      text = element_text(size = 16)
+      , legend.position = "top"
+    )
+  ggsave(makePlot, filename = saveImg, width = 10, height = 8, dpi = 600)
+  
+  # shell.exec(saveImg)
+  cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+  
   
   # pointAssignments
   
@@ -384,8 +490,8 @@ for (nClu in 1:12) {
     dplyr::mutate(
       xAxis = unscale(xAxis, plotDataL5, "xAxis")
       , yAxis = unscale(yAxis, plotDataL5, "yAxis")
-      , meanVal = unscale(meanVal, plotDataL5, "meanVal")
-      # , density = unscale(density, plotDataL5, "density")
+      # , meanVal = unscale(meanVal, plotDataL5, "meanVal")
+      , density = unscale(density, plotDataL5, "density")
     )
   # dplyr::mutate(across(colnames(plotDataL5), ~grt::unscale(.)))
   # dplyr::mutate_each_(
@@ -396,7 +502,7 @@ for (nClu in 1:12) {
   # clusterInfo
   
   # 클러스터링 통계 결과 (amap::Kmean 라이브러리 이용 시 불가)
-  totWithinss = sum(kcluModel$withinss, na.rm = TRUE)
+  # totWithinss = sum(kcluModel$withinss, na.rm = TRUE)
   
   # 시각화
   saveImg = sprintf("%s/%s/%s-Normal%s.png", globalVar$figPath, serviceName, "Kmeans-Cluster-var3", nClu)
@@ -410,15 +516,7 @@ for (nClu in 1:12) {
     metR::scale_x_longitude(breaks = seq(90, 150, 10), limits = c(89.99, 150.01), expand = c(0, 0)) +
     metR::scale_y_latitude(breaks = seq(10, 60, 10), limits = c(9.99, 60), expand = c(0, 0)) +
     guides(color = guide_legend(nrow = 1)) +
-    labs(
-      subtitle = NULL
-      , x = NULL
-      , y = NULL
-      , fill = NULL
-      , colour = NULL
-      , title = NULL
-      , size = NULL
-    ) +
+    labs(subtitle = NULL, x = NULL, y = NULL, fill = NULL, colour = NULL, title = NULL, size = NULL) +
     theme(
       text = element_text(size = 16)
       , legend.position = "top"
@@ -430,80 +528,90 @@ for (nClu in 1:12) {
   cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 }
 
+statDataL4 = statDataL3 %>% 
+  dplyr::filter(isFlag == TRUE)
+
+saveFile = sprintf("%s/%s/%s.csv", globalVar$outPath, serviceName, "Kmeans-Cluster-var3")
+# saveFile = sprintf("%s/%s/%s.csv", globalVar$outPath, serviceName, "Kmeans-Cluster-var4")
+dir.create(path_dir(saveFile), showWarnings = FALSE, recursive = TRUE)
+readr::write_csv(x = statDataL4, file = saveFile)
+cat(sprintf("[CHECK] saveFile : %s", saveFile), "\n")
+
+
 
 # ****************************************************************
 # kmeans 다중 클러스터링 (데이터 표준화 O)
 # ****************************************************************
-kcluModelList = dplyr::tibble(nClu = 1:12) %>%
-  dplyr::mutate(
-    kcluModel = purrr::map(
-      nClu
-      , ~ amap::Kmeans(plotDataL5, centers = .x, method = "euclidean")
-    )
-    , augmented = purrr::map(kcluModel, broom::augment, plotDataL5)
-    , tidied = purrr::map(kcluModel, broom::tidy)
-    # 클러스터링 통계 결과 (amap::Kmean 라이브러리 이용 시 불가)
-    # , glanced = purrr::map(kcluModel, broom::glance)
-    # , tot.withinss = purrr::map(kcluModel, ~ sum(.x$withinss, na.rm = TRUE))
-  ) 
-
-
-# 원시 데이터+ 클러스터링 결과 
-pointAssignments = kcluModelList %>%
-  dplyr::select(nClu, augmented) %>%
-  tidyr::unnest(augmented) %>%
-  dplyr::mutate(
-    xAxis = unscale(xAxis, plotDataL5, "xAxis")
-    , yAxis = unscale(yAxis, plotDataL5, "yAxis")
-    # , meanVal = unscale(meanVal, plotDataL5, "meanVal")
-    , density = unscale(density, plotDataL5, "density")
-  )
-  # dplyr::mutate(across(colnames(plotDataL5), ~grt::unscale(.)))
-
-# 클러스터링 결과
-clusterInfo = kcluModelList %>%
-  dplyr::select(nClu, tidied) %>% 
-  tidyr::unnest(tidied) %>% 
-  dplyr::mutate(
-    xAxis = unscale(xAxis, plotDataL5, "xAxis")
-    , yAxis = unscale(yAxis, plotDataL5, "yAxis")
-    # , meanVal = unscale(meanVal, plotDataL5, "meanVal")
-    , density = unscale(density, plotDataL5, "density")
-  )
-
-
-# 시각화
-saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, "Kmeans-Cluster-var3-Multi")
-# saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, "Kmeans-Cluster-var4-Multi")
-dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
-
-ggplot(data = pointAssignments, aes(x = xAxis , y = yAxis, color = .cluster)) +
-  geom_point(size = 0.2, shape = 16, alpha = 0.5) + 
-  geom_label(data = clusterInfo, aes(x = xAxis , y = yAxis, label = cluster, fill = factor(cluster)), size = 3, colour = "white", fontface = "bold", show.legend = FALSE) +
-  geom_sf(data = mapGlobal, aes(x = NULL, y = NULL, fill = NULL, z = NULL), color = "black", fill = NA) +
-  metR::scale_x_longitude(breaks = seq(90, 150, 10), limits = c(89.99, 150.01), expand = c(0, 0)) +
-  metR::scale_y_latitude(breaks = seq(10, 60, 10), limits = c(9.99, 60), expand = c(0, 0)) +
-  guides(color = guide_legend(nrow = 1)) +
-  facet_wrap(~ nClu) +
-  labs(
-    subtitle = NULL
-    , x = NULL
-    , y = NULL
-    , fill = NULL
-    , colour = NULL
-    , title = NULL
-    , size = NULL
-  ) +
-  theme(
-    text = element_text(size = 16)
-    , legend.position = "top"
-    , legend.box = "horizontal"
-    , axis.line = element_blank()
-    , axis.text = element_blank()
-    , axis.ticks = element_blank()
-    , plot.margin = unit(c(0, 0, 0, 0), 'lines')
-  ) +
-  ggsave(filename = saveImg, width = 10, height = 10, dpi = 600)
-
-# shell.exec(saveImg)
-cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+# kcluModelList = dplyr::tibble(nClu = 1:12) %>%
+#   dplyr::mutate(
+#     kcluModel = purrr::map(
+#       nClu
+#       , ~ amap::Kmeans(plotDataL5, centers = .x, method = "euclidean")
+#     )
+#     , augmented = purrr::map(kcluModel, broom::augment, plotDataL5)
+#     , tidied = purrr::map(kcluModel, broom::tidy)
+#     # 클러스터링 통계 결과 (amap::Kmean 라이브러리 이용 시 불가)
+#     # , glanced = purrr::map(kcluModel, broom::glance)
+#     # , tot.withinss = purrr::map(kcluModel, ~ sum(.x$withinss, na.rm = TRUE))
+#   ) 
+# 
+# 
+# # 원시 데이터+ 클러스터링 결과 
+# pointAssignments = kcluModelList %>%
+#   dplyr::select(nClu, augmented) %>%
+#   tidyr::unnest(augmented) %>%
+#   dplyr::mutate(
+#     xAxis = unscale(xAxis, plotDataL5, "xAxis")
+#     , yAxis = unscale(yAxis, plotDataL5, "yAxis")
+#     # , meanVal = unscale(meanVal, plotDataL5, "meanVal")
+#     , density = unscale(density, plotDataL5, "density")
+#   )
+#   # dplyr::mutate(across(colnames(plotDataL5), ~grt::unscale(.)))
+# 
+# # 클러스터링 결과
+# clusterInfo = kcluModelList %>%
+#   dplyr::select(nClu, tidied) %>% 
+#   tidyr::unnest(tidied) %>% 
+#   dplyr::mutate(
+#     xAxis = unscale(xAxis, plotDataL5, "xAxis")
+#     , yAxis = unscale(yAxis, plotDataL5, "yAxis")
+#     # , meanVal = unscale(meanVal, plotDataL5, "meanVal")
+#     , density = unscale(density, plotDataL5, "density")
+#   )
+# 
+# 
+# # 시각화
+# saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, "Kmeans-Cluster-var3-Multi")
+# # saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, "Kmeans-Cluster-var4-Multi")
+# dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
+# 
+# ggplot(data = pointAssignments, aes(x = xAxis , y = yAxis, color = .cluster)) +
+#   geom_point(size = 0.2, shape = 16, alpha = 0.5) + 
+#   geom_label(data = clusterInfo, aes(x = xAxis , y = yAxis, label = cluster, fill = factor(cluster)), size = 3, colour = "white", fontface = "bold", show.legend = FALSE) +
+#   geom_sf(data = mapGlobal, aes(x = NULL, y = NULL, fill = NULL, z = NULL), color = "black", fill = NA) +
+#   metR::scale_x_longitude(breaks = seq(90, 150, 10), limits = c(89.99, 150.01), expand = c(0, 0)) +
+#   metR::scale_y_latitude(breaks = seq(10, 60, 10), limits = c(9.99, 60), expand = c(0, 0)) +
+#   guides(color = guide_legend(nrow = 1)) +
+#   facet_wrap(~ nClu) +
+#   labs(
+#     subtitle = NULL
+#     , x = NULL
+#     , y = NULL
+#     , fill = NULL
+#     , colour = NULL
+#     , title = NULL
+#     , size = NULL
+#   ) +
+#   theme(
+#     text = element_text(size = 16)
+#     , legend.position = "top"
+#     , legend.box = "horizontal"
+#     , axis.line = element_blank()
+#     , axis.text = element_blank()
+#     , axis.ticks = element_blank()
+#     , plot.margin = unit(c(0, 0, 0, 0), 'lines')
+#   ) +
+#   ggsave(filename = saveImg, width = 10, height = 10, dpi = 600)
+# 
+# # shell.exec(saveImg)
+# cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
