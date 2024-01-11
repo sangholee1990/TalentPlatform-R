@@ -105,6 +105,7 @@ addrName = "서울특별시"
 # addrDtlName = "동대문구"
 # addrDtlName = "강서구"
 addrDtlName = "도봉구"
+# addrDtlName = "도봉구을"
 
 # addrName = "경기도"
 # addrDtlName = "안성시"
@@ -145,7 +146,9 @@ addrDtlName = "도봉구"
 # 선거 주제도
 #=================================================
 fileInfoPattern = sprintf("*%s %s* 선거분석.xlsx", addrName, addrDtlName)
-fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, fileInfoPattern))
+# fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, fileInfoPattern))
+fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, fileInfoPattern))[1]
+
 # data = openxlsx::read.xlsx(fileInfo, sheet = 1)
 # data = readxl::read_excel(fileInfo, sheet = 1)
 data = xlsx::read.xlsx(fileInfo, sheetIndex = 2, encoding="UTF-8") %>% 
@@ -288,7 +291,10 @@ codeDataL1 = codeData %>%
 # 통합 데이터셋
 dataL5 = mapGlobal %>%
   dplyr::inner_join(codeDataL1, by = c("adm_dr_cd" = "읍면동코드")) %>%
-  dplyr::left_join(dataL3, by = c("adm_dr_nm" = "투표구2")) 
+  dplyr::left_join(dataL3, by = c("adm_dr_nm" = "투표구2")) %>% 
+  dplyr::filter(
+    ! is.na(투표자수)
+  )
 
 # dplyr::tbl_df(dataL5)
 
@@ -352,6 +358,7 @@ ggplot() +
   ggsave(filename = saveTmp, width = 8, height = 8, dpi = 600)
 
 fs::file_move(saveTmp, saveImg)
+# shell.exec(saveImg)
 cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 
 # ************************************************
@@ -455,6 +462,7 @@ ggplot(dataDtlL4, aes(x = label, y = val, fill = key, group = key, label = round
   ggsave(filename = saveTmp, width = 16, height = 12, dpi = 600)
 
 fs::file_move(saveTmp, saveImg)
+# shell.exec(saveImg)
 cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 
 #=================================================
@@ -479,8 +487,8 @@ cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 # addrDtlName = "남해군"
 
 # 선거 데이터 읽기
-fileInfoPattern = sprintf("*%s %s* 선거분석.xlsx", addrName, addrDtlName)
-fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, fileInfoPattern))
+# fileInfoPattern = sprintf("*%s %s* 선거분석.xlsx", addrName, addrDtlName)
+# fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, fileInfoPattern))
 data = xlsx::read.xlsx(fileInfo, sheetIndex = 3, encoding = "UTF-8")
 
 # fileInfoPattern = sprintf("선거분석 (%s %s).csv", addrName, addrDtlName)
