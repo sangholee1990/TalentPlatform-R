@@ -101,16 +101,17 @@ library(openxlsx)
 # 시군구/읍면동 설정
 #=================================================
 # 선거 데이터 읽기
-addrName = "서울특별시"
+# addrName = "서울특별시"
 # addrDtlName = "용산구"
 # addrDtlName = "동대문구"
 # addrDtlName = "강서구"
-addrDtlName = "도봉구"
+# addrDtlName = "도봉구"
 # addrDtlName = "도봉구을"
 
-# addrName = "경기도"
+addrName = "경기도"
 # addrDtlName = "안성시"
 # addrDtlName = "동두천시"
+addrDtlName = "부천시"
 
 # addrName = "경상남도"
 # addrDtlName = "남해군"
@@ -119,140 +120,140 @@ addrDtlName = "도봉구"
 # addrDtlName = "아산시"
 
 # 세부 투표구
-addrDtlVoteName = c("쌍문2동", "쌍문4동", "방학1동", "방학2동", "방학3동", "도봉1동", "도봉2동")
+# addrDtlVoteName = c("쌍문2동", "쌍문4동", "방학1동", "방학2동", "방학3동", "도봉1동", "도봉2동")
 
 # **********************************************
 # 대선 데이터
 # **********************************************
-fileName = "중앙선거관리위원회_제20대 대통령선거 투표구별 개표자료_20220309.xlsx"
-fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, fileName))
-
-# data = xlsx::read.xlsx(fileInfo, sheetName = "Data", encoding="UTF-8") %>% 
+# fileName = "중앙선거관리위원회_제20대 대통령선거 투표구별 개표자료_20220309.xlsx"
+# fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, fileName))
+# 
+# # data = xlsx::read.xlsx(fileInfo, sheetName = "Data", encoding="UTF-8") %>% 
+# #   as.tibble()
+# # data = xlsx::read.xlsx2(fileInfo, sheetName = "Data", encoding="UTF-8") %>%
+#   # as.tibble()
+# data = openxlsx::read.xlsx(fileInfo, sheet = 1) %>% 
 #   as.tibble()
-# data = xlsx::read.xlsx2(fileInfo, sheetName = "Data", encoding="UTF-8") %>%
-  # as.tibble()
-data = openxlsx::read.xlsx(fileInfo, sheet = 1) %>% 
-  as.tibble()
-
-# colnames(data)
-
-dataL1 = data %>% 
-  dplyr::filter(
-    stringr::str_detect(시도, regex(addrName))
-    , stringr::str_detect(구시군, regex(addrDtlName))
-  ) %>% 
-  dplyr::select(tidyselect::matches("시도|구시군|읍면동명|투표구명|선거인수|투표수|국민의힘.윤석열|더불어민주당.이재명")) %>%
-  dplyr::select(-무효투표수) %>% 
-  readr::type_convert()
-
-dataL2 = dataL1 %>% 
-  dplyr::filter(
-    stringr::str_detect(투표구명, regex("NA|소계|관내사전투표"))
-  ) %>% 
-  dplyr::mutate(
-    읍면동명 = zoo::na.locf(읍면동명)
-    , addr = sprintf("%s-%s-%s", 시도, 구시군, 읍면동명)
-  ) %>% 
-  dplyr::select(-c("시도", "구시군", "읍면동명"))
-
-dataL3 = dataL2 %>%
-  dplyr::group_by(addr) %>%
-  dplyr::summarise(across(everything(), list(소계 = ~.x[투표구명 == "소계"], 
-                                      관내 = ~.x[투표구명 == "관내사전투표"]))) %>% 
-  dplyr::mutate(선거인수_일반 = 선거인수_소계 - 선거인수_관내,
-         투표수_일반 = 투표수_소계 - 투표수_관내,
-         국민의힘.윤석열_일반  = 국민의힘.윤석열_소계  - 국민의힘.윤석열_관내,
-         더불어민주당.이재명_일반 = 더불어민주당.이재명_소계 - 더불어민주당.이재명_관내) %>%
-  dplyr::select(addr, 선거인수_일반, 투표수_일반, 국민의힘.윤석열_일반, 더불어민주당.이재명_일반) %>% 
-  rename_with(~str_replace(.x, "_일반", ""), ends_with("일반")) %>%
-  dplyr::mutate(투표구명 = "일반")
-  
-headData = dataL1 %>% 
-  dplyr::filter(
-    stringr::str_detect(읍면동명, regex("합계|거소·선상투표|관외사전투표|재외투표"))
-  ) 
-
-bodyData = dplyr::bind_rows(dataL2, dataL3) %>%
-  tidyr::separate(col = addr, into = c("시도", "구시군", "읍면동명"), sep = "-") %>%
-  dplyr::filter(
-    stringr::str_detect(읍면동명, regex(paste(addrDtlVoteName, collapse = "|")))
-  ) %>% 
-  dplyr::select(c("시도", "구시군", "읍면동명", "투표구명", "선거인수", "투표수", "국민의힘.윤석열", "더불어민주당.이재명")) %>% 
-  dplyr::mutate(
-    투표구명 = factor(투표구명, levels = c("소계", "관내사전투표", "일반"))
-    , 읍면동명 = factor(읍면동명, levels = addrDtlVoteName)
-  ) %>% 
-  dplyr::arrange(시도, 구시군, 읍면동명, 투표구명)
-
-tailData = dataL1 %>% 
-  dplyr::filter(
-    stringr::str_detect(읍면동명, regex("잘못 투입·구분된 투표지"))
-  ) 
-
-dataL4 = dplyr::bind_rows(headData, bodyData, tailData)
+# 
+# # colnames(data)
+# 
+# dataL1 = data %>% 
+#   dplyr::filter(
+#     stringr::str_detect(시도, regex(addrName))
+#     , stringr::str_detect(구시군, regex(addrDtlName))
+#   ) %>% 
+#   dplyr::select(tidyselect::matches("시도|구시군|읍면동명|투표구명|선거인수|투표수|국민의힘.윤석열|더불어민주당.이재명")) %>%
+#   dplyr::select(-무효투표수) %>% 
+#   readr::type_convert()
+# 
+# dataL2 = dataL1 %>% 
+#   dplyr::filter(
+#     stringr::str_detect(투표구명, regex("NA|소계|관내사전투표"))
+#   ) %>% 
+#   dplyr::mutate(
+#     읍면동명 = zoo::na.locf(읍면동명)
+#     , addr = sprintf("%s-%s-%s", 시도, 구시군, 읍면동명)
+#   ) %>% 
+#   dplyr::select(-c("시도", "구시군", "읍면동명"))
+# 
+# dataL3 = dataL2 %>%
+#   dplyr::group_by(addr) %>%
+#   dplyr::summarise(across(everything(), list(소계 = ~.x[투표구명 == "소계"], 
+#                                       관내 = ~.x[투표구명 == "관내사전투표"]))) %>% 
+#   dplyr::mutate(선거인수_일반 = 선거인수_소계 - 선거인수_관내,
+#          투표수_일반 = 투표수_소계 - 투표수_관내,
+#          국민의힘.윤석열_일반  = 국민의힘.윤석열_소계  - 국민의힘.윤석열_관내,
+#          더불어민주당.이재명_일반 = 더불어민주당.이재명_소계 - 더불어민주당.이재명_관내) %>%
+#   dplyr::select(addr, 선거인수_일반, 투표수_일반, 국민의힘.윤석열_일반, 더불어민주당.이재명_일반) %>% 
+#   rename_with(~str_replace(.x, "_일반", ""), ends_with("일반")) %>%
+#   dplyr::mutate(투표구명 = "일반")
+#   
+# headData = dataL1 %>% 
+#   dplyr::filter(
+#     stringr::str_detect(읍면동명, regex("합계|거소·선상투표|관외사전투표|재외투표"))
+#   ) 
+# 
+# bodyData = dplyr::bind_rows(dataL2, dataL3) %>%
+#   tidyr::separate(col = addr, into = c("시도", "구시군", "읍면동명"), sep = "-") %>%
+#   dplyr::filter(
+#     stringr::str_detect(읍면동명, regex(paste(addrDtlVoteName, collapse = "|")))
+#   ) %>% 
+#   dplyr::select(c("시도", "구시군", "읍면동명", "투표구명", "선거인수", "투표수", "국민의힘.윤석열", "더불어민주당.이재명")) %>% 
+#   dplyr::mutate(
+#     투표구명 = factor(투표구명, levels = c("소계", "관내사전투표", "일반"))
+#     , 읍면동명 = factor(읍면동명, levels = addrDtlVoteName)
+#   ) %>% 
+#   dplyr::arrange(시도, 구시군, 읍면동명, 투표구명)
+# 
+# tailData = dataL1 %>% 
+#   dplyr::filter(
+#     stringr::str_detect(읍면동명, regex("잘못 투입·구분된 투표지"))
+#   ) 
+# 
+# dataL4 = dplyr::bind_rows(headData, bodyData, tailData)
 
 
 # **********************************************
 # 국회의원 지역구 데이터
 # **********************************************
-fileName = "중앙선거관리위원회 국회의원선거 개표결과 정보_20200415/지역구/1서울/개표상황(투표구별)_도봉구을.xlsx"
-fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, fileName))
-
-data = openxlsx::read.xlsx(fileInfo, sheet = 1, startRow = 4) %>% 
-  as.tibble()
-
-# colnames(data)
-
-dataL1 = data %>% 
-  dplyr::select(tidyselect::matches("읍면동명|투표구명|선거인수|투표수|국민의힘.윤석열|더불어민주당.이재명")) %>%
-  dplyr::select(-무효투표수) %>% 
-  readr::type_convert()
-
-dataL2 = dataL1 %>% 
-  dplyr::filter(
-    stringr::str_detect(투표구명, regex("NA|소계|관내사전투표"))
-  ) %>% 
-  dplyr::mutate(
-    읍면동명 = zoo::na.locf(읍면동명)
-    , addr = sprintf("%s-%s-%s", 시도, 구시군, 읍면동명)
-  ) %>% 
-  dplyr::select(-c("시도", "구시군", "읍면동명"))
-
-dataL3 = dataL2 %>%
-  dplyr::group_by(addr) %>%
-  dplyr::summarise(across(everything(), list(소계 = ~.x[투표구명 == "소계"], 
-                                             관내 = ~.x[투표구명 == "관내사전투표"]))) %>% 
-  dplyr::mutate(선거인수_일반 = 선거인수_소계 - 선거인수_관내,
-                투표수_일반 = 투표수_소계 - 투표수_관내,
-                국민의힘.윤석열_일반  = 국민의힘.윤석열_소계  - 국민의힘.윤석열_관내,
-                더불어민주당.이재명_일반 = 더불어민주당.이재명_소계 - 더불어민주당.이재명_관내) %>%
-  dplyr::select(addr, 선거인수_일반, 투표수_일반, 국민의힘.윤석열_일반, 더불어민주당.이재명_일반) %>% 
-  rename_with(~str_replace(.x, "_일반", ""), ends_with("일반")) %>%
-  dplyr::mutate(투표구명 = "일반")
-
-headData = dataL1 %>% 
-  dplyr::filter(
-    stringr::str_detect(읍면동명, regex("합계|거소·선상투표|관외사전투표|재외투표"))
-  ) 
-
-bodyData = dplyr::bind_rows(dataL2, dataL3) %>%
-  tidyr::separate(col = addr, into = c("시도", "구시군", "읍면동명"), sep = "-") %>%
-  dplyr::filter(
-    stringr::str_detect(읍면동명, regex(paste(addrDtlVoteName, collapse = "|")))
-  ) %>% 
-  dplyr::select(c("시도", "구시군", "읍면동명", "투표구명", "선거인수", "투표수", "국민의힘.윤석열", "더불어민주당.이재명")) %>% 
-  dplyr::mutate(
-    투표구명 = factor(투표구명, levels = c("소계", "관내사전투표", "일반"))
-    , 읍면동명 = factor(읍면동명, levels = addrDtlVoteName)
-  ) %>% 
-  dplyr::arrange(시도, 구시군, 읍면동명, 투표구명)
-
-tailData = dataL1 %>% 
-  dplyr::filter(
-    stringr::str_detect(읍면동명, regex("잘못 투입·구분된 투표지"))
-  ) 
-
-dataL4 = dplyr::bind_rows(headData, bodyData, tailData)
+# fileName = "중앙선거관리위원회 국회의원선거 개표결과 정보_20200415/지역구/1서울/개표상황(투표구별)_도봉구을.xlsx"
+# fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, fileName))
+# 
+# data = openxlsx::read.xlsx(fileInfo, sheet = 1, startRow = 4) %>% 
+#   as.tibble()
+# 
+# # colnames(data)
+# 
+# dataL1 = data %>% 
+#   dplyr::select(tidyselect::matches("읍면동명|투표구명|선거인수|투표수|국민의힘.윤석열|더불어민주당.이재명")) %>%
+#   dplyr::select(-무효투표수) %>% 
+#   readr::type_convert()
+# 
+# dataL2 = dataL1 %>% 
+#   dplyr::filter(
+#     stringr::str_detect(투표구명, regex("NA|소계|관내사전투표"))
+#   ) %>% 
+#   dplyr::mutate(
+#     읍면동명 = zoo::na.locf(읍면동명)
+#     , addr = sprintf("%s-%s-%s", 시도, 구시군, 읍면동명)
+#   ) %>% 
+#   dplyr::select(-c("시도", "구시군", "읍면동명"))
+# 
+# dataL3 = dataL2 %>%
+#   dplyr::group_by(addr) %>%
+#   dplyr::summarise(across(everything(), list(소계 = ~.x[투표구명 == "소계"], 
+#                                              관내 = ~.x[투표구명 == "관내사전투표"]))) %>% 
+#   dplyr::mutate(선거인수_일반 = 선거인수_소계 - 선거인수_관내,
+#                 투표수_일반 = 투표수_소계 - 투표수_관내,
+#                 국민의힘.윤석열_일반  = 국민의힘.윤석열_소계  - 국민의힘.윤석열_관내,
+#                 더불어민주당.이재명_일반 = 더불어민주당.이재명_소계 - 더불어민주당.이재명_관내) %>%
+#   dplyr::select(addr, 선거인수_일반, 투표수_일반, 국민의힘.윤석열_일반, 더불어민주당.이재명_일반) %>% 
+#   rename_with(~str_replace(.x, "_일반", ""), ends_with("일반")) %>%
+#   dplyr::mutate(투표구명 = "일반")
+# 
+# headData = dataL1 %>% 
+#   dplyr::filter(
+#     stringr::str_detect(읍면동명, regex("합계|거소·선상투표|관외사전투표|재외투표"))
+#   ) 
+# 
+# bodyData = dplyr::bind_rows(dataL2, dataL3) %>%
+#   tidyr::separate(col = addr, into = c("시도", "구시군", "읍면동명"), sep = "-") %>%
+#   dplyr::filter(
+#     stringr::str_detect(읍면동명, regex(paste(addrDtlVoteName, collapse = "|")))
+#   ) %>% 
+#   dplyr::select(c("시도", "구시군", "읍면동명", "투표구명", "선거인수", "투표수", "국민의힘.윤석열", "더불어민주당.이재명")) %>% 
+#   dplyr::mutate(
+#     투표구명 = factor(투표구명, levels = c("소계", "관내사전투표", "일반"))
+#     , 읍면동명 = factor(읍면동명, levels = addrDtlVoteName)
+#   ) %>% 
+#   dplyr::arrange(시도, 구시군, 읍면동명, 투표구명)
+# 
+# tailData = dataL1 %>% 
+#   dplyr::filter(
+#     stringr::str_detect(읍면동명, regex("잘못 투입·구분된 투표지"))
+#   ) 
+# 
+# dataL4 = dplyr::bind_rows(headData, bodyData, tailData)
 
 # **********************************************
 # 20대 대선 다운로드
@@ -347,9 +348,9 @@ dataL3 = data %>%
   dplyr::mutate(
     maxVal = max(더불어민주당, 자유한국당, 중도층, na.rm = TRUE)
     , val = dplyr::case_when(
-      자유한국당 == maxVal ~ 1
-      , 더불어민주당 == maxVal ~ 2
-      , 중도층 == maxVal ~ 3
+      자유한국당 == maxVal ~ "자유한국당"
+      , 더불어민주당 == maxVal ~ "더불어민주당"
+      , 중도층 == maxVal ~ "중도층"
     )
     # , 투표구3 = gsub("*제[[:digit:]]+동", "", 투표구)# %>% str_replace(투표구, ., "")
     # , 투표구3 = ifelse(grepl("제[[:digit:]]+동", 투표구), str_replace(투표구, ., ""), 투표구)
@@ -423,7 +424,6 @@ codeDataL1 = codeData %>%
     , grepl(addrDtlName, 시군구명칭)
   ) 
 
-
 # 통합 데이터셋
 dataL5 = mapGlobal %>%
   dplyr::inner_join(codeDataL1, by = c("adm_dr_cd" = "읍면동코드")) %>%
@@ -449,7 +449,7 @@ ggplot() +
   theme_bw() +
   coord_fixed(ratio = 1) +
   # geom_sf(data = dataL5, aes(fill = factor(val)), inherit.aes = FALSE, alpha = 0.3) +
-  geom_sf(data = dataL5, aes(fill = factor(val)), inherit.aes = FALSE, alpha = 1.0, color = "white") +
+  geom_sf(data = dataL5, aes(fill = val), inherit.aes = FALSE, alpha = 1.0, color = "white") +
   geom_sf_text(data = dataL5, aes(label = 읍면동명칭), color = "white") +
   # geom_point(data = dataDtlL3, aes(x = lon, y = lat, color = factor(val)), shape = 16, show.legend = FALSE) +
   # ggrepel::geom_label_repel(
@@ -464,14 +464,14 @@ ggplot() +
   scale_fill_manual(
     name = NULL
     , na.value = "transparent"
-    , values = c("1" = ggplotDefaultColor[1], "2" = ggplotDefaultColor[2], "3" = ggplotDefaultColor[3])
+    , values = c("자유한국당" = ggplotDefaultColor[1], "더불어민주당" = ggplotDefaultColor[2], "중도층" = ggplotDefaultColor[3])
     , labels = c("자유한국당", "더불어민주당", "중도층")
+    , breaks = c("자유한국당", "더불어민주당", "중도층")
   ) +
   scale_color_manual(
     name = NULL
     , na.value = "transparent"
-    , values = c("1" = ggplotDefaultColor[1], "2" = ggplotDefaultColor[2], "3" = ggplotDefaultColor[3])
-    , labels = c("자유한국당", "더불어민주당", "중도층")
+    , values = c("자유한국당" = ggplotDefaultColor[1], "더불어민주당" = ggplotDefaultColor[2], "중도층" = ggplotDefaultColor[3])
   ) +
   # xlim(127.80, 128.08) +
   # ylim(34.69, 34.95) +
@@ -565,6 +565,7 @@ dataDtlL4 = data %>%
 
 # 정당에 따른 정렬
 dataDtlL4$key = forcats::fct_relevel(dataDtlL4$key, rev(c("%자유한국당", "%더불어민주당", "%중도층")))
+# dataDtlL4$key = forcats::fct_relevel(dataDtlL4$key, c("%자유한국당", "%더불어민주당", "%중도층"))
 
 selLabel = paste0("제", c(1:99), "투")
 dataDtlL4$label = forcats::fct_relevel(dataDtlL4$label, selLabel)
@@ -592,6 +593,7 @@ ggplot(dataDtlL4, aes(x = label, y = val, fill = key, group = key, label = round
     # , values = c("%자유한국당" = ggplotDefaultColor[1], "%더불어민주당" = ggplotDefaultColor[3], "%중도층" = "gray")
     , values = c("%자유한국당" = ggplotDefaultColor[1], "%더불어민주당" = ggplotDefaultColor[2], "%중도층" = ggplotDefaultColor[3])
     , labels = c("자유한국당", "더불어민주당", "중도층")
+    , breaks = c("%자유한국당", "%더불어민주당", "%중도층")
   ) +
   # facet_wrap(~투표구2, scale = "free", ncol = 3) +
   facet_wrap(~투표구2, scale = "free", ncol = 4) +
@@ -604,11 +606,11 @@ cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 #=================================================
 # 인구현황
 #=================================================
-# [행정안전부] 주민등록 인구통계 : https://jumin.mois.go.kr/
+# [행정안전부] 주민등록 인구통계 : https://jumin.mois.go.kr
 # [검색조건] 연령별 인구현황
 #   행정구역 (경상북도-남해군, 서울특별시-도봉구)
 #   등록구분 (거주자)
-#   연간 (2021년, 2022년)
+#   연간 (2021년, 2022년, 2023년)
 #   구분 (남/여 구분)
 #   연령 구분 단위 (1세)
 #   만 연령구분 (0, 100이상)
@@ -874,6 +876,7 @@ for (sexInfoPattern in sexListPattern) {
   }
 }
 
+# shell.exec(saveImg)
 
 # saveXlsxFile = sprintf("%s/%s_%s_%s_%s.xlsx", globalVar$outPath, serviceName, addrName, addrDtlName, "인구현황")
 # 
