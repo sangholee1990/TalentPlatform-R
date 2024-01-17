@@ -163,12 +163,16 @@ dataL3 = dataL2 %>%
          국민의힘.윤석열_일반  = 국민의힘.윤석열_소계  - 국민의힘.윤석열_관내,
          더불어민주당.이재명_일반 = 더불어민주당.이재명_소계 - 더불어민주당.이재명_관내) %>%
   dplyr::select(addr, 선거인수_일반, 투표수_일반, 국민의힘.윤석열_일반, 더불어민주당.이재명_일반) %>% 
-  rename_with(~str_replace(.x, "_일반", ""), starts_with("일반")) %>%
+  rename_with(~str_replace(.x, "_일반", ""), ends_with("일반")) %>%
   mutate(투표구명 = "일반")
   
 
-final_data <- bind_rows(data, data_with_general) %>%
-  arrange(지역, 투표구명)
+final_data <- bind_rows(dataL2, dataL3) %>%
+  arrange(addr, 투표구명) %>% 
+  tidyr::separate(col = addr, into = c("시도", "구시군", "읍면동명"), sep = "-") %>% 
+  dplyr::filter(
+    stringr::str_detect(읍면동명, regex(paste(addrDtlVoteName, collapse = "|")))
+  )
 
   # group_by(addr) %>%
   # group_modify(~ {
