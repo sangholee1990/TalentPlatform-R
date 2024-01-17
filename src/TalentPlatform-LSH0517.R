@@ -94,6 +94,7 @@ library(tidyverse)
 library(httr)
 library(AER)
 library(forcats)
+library(zoo)
 
 
 #=================================================
@@ -116,6 +117,93 @@ addrDtlName = "도봉구"
 
 # addrName = "충청남도"
 # addrDtlName = "아산시"
+
+# 세부 투표구
+addrDtlVoteName = c("쌍문2동", "쌍문4동", "방학1동", "방학2동", "방학3동", "도봉1동", "도봉2동")
+
+# **********************************************
+# 대선 데이터
+# **********************************************
+fileName = "중앙선거관리위원회_제20대 대통령선거 투표구별 개표자료_20220309.xlsx"
+fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, fileName))
+
+data = xlsx::read.xlsx2(fileInfo, sheetName = "Data", encoding="UTF-8") %>% 
+  as.tibble()
+
+# colnames(data)
+
+# 재외투표(공관)
+dataL1 = data %>% 
+  dplyr::filter(
+    stringr::str_detect(시도, regex(addrName))
+    , stringr::str_detect(구시군, regex(addrDtlName))
+    , ! stringr::str_detect(읍면동명, regex("재외투표(공관)"))
+    # , ! stringr::str_detect(투표구명, regex(paste(addrDtlVoteName, collapse = "|")))
+  ) %>% 
+  dplyr::select(tidyselect::matches("시도|구시군|읍면동명|투표구명|선거인수|투표수|국민의힘.윤석열|더불어민주당.이재명")) %>%
+  dplyr::select(-무효투표수) %>% 
+  readr::type_convert()
+
+dataL2 = dataL1 %>% 
+  dplyr::filter(
+    stringr::str_detect(투표구명, regex("NA|소계|관내사전투표"))
+  ) %>% 
+  dplyr::mutate(
+    읍면동명 = zoo::na.locf(읍면동명)
+    , addr = sprintf("%s-%s-%s", 시도, 구시군, 읍면동명)
+  ) %>% 
+  dplyr::select(-c("시도", "구시군", "읍면동명"))
+
+dataL3 = dataL2 %>%
+  group_by(addr) %>%
+  summarise(across(everything(), list(소계 = ~.x[투표구명 == "소계"], 
+                                      관내 = ~.x[투표구명 == "관내사전투표"]))) %>% 
+  mutate(선거인수_일반 = 선거인수_소계 - 선거인수_관내,
+         투표수_일반 = 투표수_소계 - 투표수_관내,
+         국민의힘.윤석열_일반  = 국민의힘.윤석열_소계  - 국민의힘.윤석열_관내,
+         더불어민주당.이재명_일반 = 더불어민주당.이재명_소계 - 더불어민주당.이재명_관내) %>%
+  dplyr::select(addr, 선거인수_일반, 투표수_일반, 국민의힘.윤석열_일반, 더불어민주당.이재명_일반) %>% 
+  rename_with(~str_replace(.x, "_일반", ""), starts_with("일반")) %>%
+  mutate(투표구명 = "일반")
+  
+
+final_data <- bind_rows(data, data_with_general) %>%
+  arrange(지역, 투표구명)
+
+  # group_by(addr) %>%
+  # group_modify(~ {
+  #   # "소계" 행과 "관내사전투표" 행을 찾습니다.
+  #   subtotal <- .x %>% filter(투표구명 == "소계")
+  #   pre_vote <- .x %>% filter(투표구명 == "관내사전투표")
+  #   
+  #   # "일반" 행에 들어갈 값을 계산합니다.
+  #   general <- subtotal - pre_vote
+  #   general$투표구명 <- "일반"
+  #   
+  #   # 결과적으로 계산된 "일반" 행을 추가합니다.
+  #   add_row(.x, general)
+  # }) %>%
+  # ungroup()
+
+
+
+
+dataL3 = dataL2 %>%
+  group_by(addr) %>%
+  # "소계"와 "관내사전투표" 값을 계산합니다.
+  mutate(across(선거인수:더불어민주당.이재명, ~ ifelse(투표구명 == "소계", ., NA_real_ - lag(.)))) %>%
+  # NA 값이 있는 행을 필터링하여 "일반" 행을 만듭니다.
+  filter(!is.na(선거인수)) %>%
+  # "일반" 행을 추가합니다.
+  group_modify(~ add_row(.x, 투표구명 = "일반", 선거인수 = .x$선거인수[1] - .x$선거인수[2], 
+                         투표수 = .x$투표수[1] - .x$투표수[2], 
+                         국민의힘.윤석열 = .x$국민의힘.윤석열[1] - .x$국민의힘.윤석열[2], 
+                         더불어민주당.이재명 = .x$더불어민주당.이재명[1] - .x$더불어민주당.이재명[2])) %>%
+  ungroup()
+
+
+  # dplyr::group_modify(~ add_row(.x, 투표구명 = "일반", 선거인수 = NA, 투표수 = NA, 국민의힘.윤석열 = NA, 더불어민주당.이재명 = NA)) %>%
+  # dplyr::ungroup() 
 
 
 # **********************************************
