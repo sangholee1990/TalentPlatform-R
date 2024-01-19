@@ -97,6 +97,21 @@ library(forcats)
 library(zoo)
 library(openxlsx)
 
+
+# 읍면동 지도 읽기
+mapInfo = Sys.glob(file.path(globalVar$mapPath, "LSMD/경기도/LSMD_ADM_SECT_UMD_41_202401.shp"))
+
+# shp 파일 읽기 (2)
+mapGlobal = sf::st_read(mapInfo, quiet = TRUE, options = "ENCODING=EUC-KR") %>% 
+  sf::st_transform(sp::CRS("+proj=longlat"))
+
+#   # 통합 데이터셋
+#   dataL5 = mapGlobal %>%
+#     dplyr::inner_join(codeDataL1, by = c("adm_dr_cd" = "읍면동코드")) %>%
+#     dplyr::left_join(dataL4, by = c("adm_dr_nm" = "투표구2")) 
+#   
+
+
 #=================================================
 # 시군구/읍면동 설정
 #=================================================
@@ -409,13 +424,45 @@ dataL3 = data %>%
 # 읍면동 지도 읽기
 mapInfo = Sys.glob(file.path(globalVar$mapPath, "koreaInfo/bnd_dong_00_2019_2019_2Q.shp"))
 
+# LAWD_CD	법정동코드
+# SIDO_NM	시도명
+# SGG_NM	시군구명
+# UMD_NM	읍면동명
+# RI_NM	리명
+# CRE_DT	생성 일자
+# DEL_DT	말소 일자
+# OLD_LAWDCD	구법정동코드
+# FRST_REGIST_DT	최초 등록일시
+# LAST_UPDT_DT	최종 수정일시
+# mapInfo = Sys.glob(file.path(globalVar$mapPath, "LSMD/경기도/*.shp"))
+
 # shp 파일 읽기 (2)
 mapGlobal = sf::st_read(mapInfo, quiet = TRUE, options = "ENCODING=EUC-KR") %>% 
-  sf::st_transform(CRS("+proj=longlat"))
+  sf::st_transform(sp::CRS("+proj=longlat"))
 
 # 법정동 코드 읽기 (2)
 codeInfo = Sys.glob(file.path(globalVar$mapPath, "admCode/admCode.xlsx"))
-codeData = openxlsx::read.xlsx(codeInfo, sheet = 1, startRow = 2)
+codeData = openxlsx::read.xlsx(codeInfo, sheet = 1, startRow = 2) %>% 
+  as.tibble()
+
+# 행정표준코드관리시스템: https://www.code.go.kr/stdcode/regCodeL.do
+# codeInfo = Sys.glob(file.path(globalVar$mapPath, "admCode/20240119_법정동코드 전체자료.txt"))
+
+# codeData = readr::read_delim(codeInfo, delim = "\t", locale = locale("ko", encoding = "EUC-KR"), col_types = "ccc") %>%
+#   magrittr::set_colnames(c("EMD_CD", "addr", "isUse")) %>%
+#     tidyr::separate(col = "addr", into = c("시도", "시군구", "읍면동", "리"), sep = " ") %>%
+#     dplyr::mutate(
+#       emdCd = stringr::str_sub(EMD_CD, 1, 8)
+#     ) %>%
+#     dplyr::filter(
+#       ! is.na(읍면동)
+#       , is.na(리)
+#       , isUse == "존재"
+    # )
+
+
+# codeInfo = Sys.glob(file.path(globalVar$mapPath, "LSMD/LSCT_LAWDCD.csv"))
+# codeData = readr::read_csv(codeInfo, locale = locale("ko", encoding = "EUC-KR"))
 
 codeDataL1 = codeData %>%
   dplyr::filter(
@@ -423,12 +470,18 @@ codeDataL1 = codeData %>%
     # , stringr::str_detect(시군구명칭, regex(addrDtlName))
     grepl(addrName, 시도명칭)
     , grepl(addrDtlName, 시군구명칭)
-  ) 
+    # grepl(addrName, 시도)
+    # , grepl(addrDtlName, 시군구)
+    # grepl(addrName, SIDO_NM)
+    # , grepl(addrDtlName, SGG_NM)
+  )
 
 # 통합 데이터셋
 dataL5 = mapGlobal %>%
   dplyr::inner_join(codeDataL1, by = c("adm_dr_cd" = "읍면동코드")) %>%
-  dplyr::left_join(dataL3, by = c("adm_dr_nm" = "투표구2")) %>% 
+  dplyr::left_join(dataL3, by = c("adm_dr_nm" = "투표구2")) %>%
+  # dplyr::inner_join(codeDataL1, by = c("EMD_CD" = "emdCd")) %>%
+  # dplyr::left_join(dataL3, by = c("EMD_NM" = "투표구2")) %>% 
   dplyr::filter(
     ! is.na(투표자수)
   )
@@ -628,7 +681,8 @@ cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 # 선거 데이터 읽기
 # fileInfoPattern = sprintf("*%s %s* 선거분석.xlsx", addrName, addrDtlName)
 # fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, fileInfoPattern))
-data = xlsx::read.xlsx(fileInfo, sheetIndex = 3, encoding = "UTF-8")
+# data = xlsx::read.xlsx(fileInfo, sheetIndex = 3, encoding = "UTF-8")
+data = openxlsx::read.xlsx(fileInfo, sheet = "인구현황")
 
 # fileInfoPattern = sprintf("선거분석 (%s %s).csv", addrName, addrDtlName)
 # fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, fileInfoPattern))
