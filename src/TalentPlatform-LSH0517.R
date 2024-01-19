@@ -101,17 +101,18 @@ library(openxlsx)
 # 시군구/읍면동 설정
 #=================================================
 # 선거 데이터 읽기
-# addrName = "서울특별시"
+addrName = "서울특별시"
 # addrDtlName = "용산구"
 # addrDtlName = "동대문구"
 # addrDtlName = "강서구"
 # addrDtlName = "도봉구"
 # addrDtlName = "도봉구을"
+addrDtlName = "마포구"
 
-addrName = "경기도"
+# addrName = "경기도"
 # addrDtlName = "안성시"
 # addrDtlName = "동두천시"
-addrDtlName = "부천시"
+# addrDtlName = "부천시"
 
 # addrName = "경상남도"
 # addrDtlName = "남해군"
@@ -616,7 +617,7 @@ cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 #   만 연령구분 (0, 100이상)
 # [검색]
 # [다운로드] csv 파일 다운로드
-# [바꾸기] 1행 컬럼 (2021년_ > 공백, 2022년_ > 공백)
+# [바꾸기] 1행 컬럼 (2021년_ > 공백, 2022년_ > 공백, 2023년_ > 공백)
 # [바꾸기] 1열 컬럼 (텍스트 나누기)
 # [수정] 행정구역 수정 (쌍문제1동 -> 쌍문1동)
 
