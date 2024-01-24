@@ -102,8 +102,8 @@ library(openxlsx)
 mapInfo = Sys.glob(file.path(globalVar$mapPath, "LSMD/경기도/LSMD_ADM_SECT_UMD_41_202401.shp"))
 
 # shp 파일 읽기 (2)
-mapGlobal = sf::st_read(mapInfo, quiet = TRUE, options = "ENCODING=EUC-KR") %>% 
-  sf::st_transform(sp::CRS("+proj=longlat"))
+# mapGlobal = sf::st_read(mapInfo, quiet = TRUE, options = "ENCODING=EUC-KR") %>% 
+  # sf::st_transform(sp::CRS("+proj=longlat"))
 
 #   # 통합 데이터셋
 #   dataL5 = mapGlobal %>%
@@ -116,13 +116,13 @@ mapGlobal = sf::st_read(mapInfo, quiet = TRUE, options = "ENCODING=EUC-KR") %>%
 # 시군구/읍면동 설정
 #=================================================
 # 선거 데이터 읽기
-addrName = "서울특별시"
+# addrName = "서울특별시"
 # addrDtlName = "용산구"
 # addrDtlName = "동대문구"
 # addrDtlName = "강서구"
 # addrDtlName = "도봉구"
 # addrDtlName = "도봉구을"
-addrDtlName = "마포구"
+# addrDtlName = "마포구"
 
 # addrName = "경기도"
 # addrDtlName = "안성시"
@@ -132,8 +132,8 @@ addrDtlName = "마포구"
 # addrName = "경상남도"
 # addrDtlName = "남해군"
 
-# addrName = "충청남도"
-# addrDtlName = "아산시"
+addrName = "충청남도"
+addrDtlName = "아산시"
 
 # 세부 투표구
 # addrDtlVoteName = c("쌍문2동", "쌍문4동", "방학1동", "방학2동", "방학3동", "도봉1동", "도봉2동")
