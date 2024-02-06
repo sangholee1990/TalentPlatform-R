@@ -61,7 +61,17 @@ library(bioRad)
 # Sys.setenv(PATH = paste("c:/rtools43/usr/bin", Sys.getenv("PATH"), sep=";"))
 # install.packages('https://cran.r-project.org/src/contrib/Archive/rgdal/rgdal_1.6-7.tar.gz',repos=NULL,type="source")
 library(rgdal)
+
+# 2024.02.06 R 구동 부분
+# rtools43 다운로드/설치
+# https://cran.r-project.org/bin/windows/Rtools/rtools43/rtools.html
+
+# terra 패키지 다운로드/설치
+# https://www.rdocumentation.org/packages/terra/versions/1.7-71
+# install.packages('terra')
+
 library(terra)
+library(sf)
 
 # 파일 검색
 fileList = Sys.glob(file.path(globalVar$inpPath, serviceName, "GDK_230209-10/RDR_GDK_FQC_*.uf"))
