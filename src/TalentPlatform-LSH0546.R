@@ -62,7 +62,6 @@ library(magrittr)
 fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "20240307_엑셀-크몽.xlsx"))
 
 data = openxlsx::read.xlsx(fileInfo, sheet = 1)
-
 data$group = as.factor(data$group)
 
 # colInfo = c("X", "Y")
@@ -88,66 +87,72 @@ for (typeInfo in typeList) {
         , sdZ = sd(z, na.rm = TRUE)
       )
     
-
+    
     # i = 1
     # groupInfo = 0
     statDataL1 = tibble::tibble()
+    statDataL2 = tibble::tibble()
     groupList = statData$group %>% unique() %>% sort()
     for (groupInfo in groupList) {
       
       statDataX = statData %>% 
-          dplyr::filter(group == groupInfo) %>% 
-          dplyr::select(dplyr::ends_with(colInfo[[1]])) %>%
-          magrittr::set_colnames(c("mean", "sd"))
+        dplyr::filter(group == groupInfo) %>% 
+        dplyr::select(dplyr::ends_with(colInfo[[1]])) %>%
+        magrittr::set_colnames(c("mean", "sd"))
       
       statDataY = statData %>% 
         dplyr::filter(group == groupInfo) %>% 
         dplyr::select(dplyr::ends_with(colInfo[[2]])) %>%
         magrittr::set_colnames(c("mean", "sd"))
       
-        x = cos(seq(0, 5 * pi, length.out = 1000)) * (1.96 * statDataX$sd) + statDataX$mean
-        y = sin(seq(0, 5 * pi, length.out = 1000)) * (1.96 * statDataY$sd) + statDataY$mean
-        
-      tmpData = tibble(
-        group = groupInfo
-        , x = x
-        , y = y
-      )
+      x = cos(seq(0, 5 * pi, length.out = 1000)) * (1.96 * statDataX$sd) + statDataX$mean
+      y = sin(seq(0, 5 * pi, length.out = 1000)) * (1.96 * statDataY$sd) + statDataY$mean
       
-      statDataL1 = dplyr::bind_rows(statDataL1, tmpData)
+      statDataL1 = dplyr::bind_rows(statDataL1, tibble::tibble(group = groupInfo, x = statDataX$mean, y = statDataY$mean))
+      statDataL2 = dplyr::bind_rows(statDataL2, tibble::tibble(group = groupInfo, x = x, y = y))
     }
-    
-        
-    statData %>% 
-      dplyr::select(dplyr::ends_with(colInfo[[1]]))
     
     
     ggplot() +
-      geom_point(data = dataL1, aes(x, y, color = group)) +
-      geom_point(data = statData, aes(x, y, color = group)) +
-      geom_path(data = statDataL1, aes(x, y, color = group)) +
-      labs(title = NULL, x = sprintf("%s-axis error (mm)", colInfo[[1]]), y =  sprintf("%s-axis error (mm)", colInfo[[2]]))
-    
+      geom_hline(yintercept = 0, colour = "grey", linetype = "dashed") + 
+      geom_vline(xintercept = 0, colour = "grey", linetype = "dashed") +
+      geom_point(data = dataL1, aes(x, y, colour = group)) +
+      # geom_point(data = statDataL1, aes(x, y, color = group), shape=17, size=3, show.legend = FALSE) +
+      geom_point(data = statDataL1 %>% dplyr::filter(group == 0), aes(x, y), color = "red", shape=17, size=3, show.legend = FALSE) +
+      geom_point(data = statDataL1 %>% dplyr::filter(group == 1), aes(x, y), color = "green", shape=17, size=3, show.legend = FALSE) +
+      geom_point(data = statDataL1 %>% dplyr::filter(group == 2), aes(x, y), color = "blue", shape=17, size=3, show.legend = FALSE) +
+      geom_path(data = statDataL2, aes(x, y, colour = group), linetype = "dashed", show.legend = FALSE) +
+      
+      labs(title = NULL, x = sprintf("%s-axis error (mm)", colInfo[[1]]), y =  sprintf("%s-axis error (mm)", colInfo[[2]]), color = "group") +
+      xlim(-4, 4) +
+      ylim(-4, 4) +
+      theme_classic() +
+      theme(
+        panel.border = element_rect(colour = "black", fill = NA, size = 0.5)
+        , legend.background = element_rect(colour = "black", fill = NA, size = 0.5)
+        , legend.position = c(0.95, 0.95)
+        , legend.justification = c("right", "top")
+      )
   }
 }
-    
-  #   
-  #     geom_bar(stat = "identity", position = "dodge") +
-  #     geom_text(position = position_dodge(width = 0.9), vjust = 1.5, size = 5, color = "white") +
-  #     labs(x = "학년", y = "성관계 비율 [%]", fill = NULL, color = NULL, title = NULL, subtitle = mainTitle) +
-  #     theme(
-  #       text = element_text(size = 16)
-  #       , legend.position = "top"
-  #     ) # +
-  #     # ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
-  #   
-  #   # shell.exec(saveImg)
-  #   cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
-  #   
-  #   
-  # }
+
+#   
+#     geom_bar(stat = "identity", position = "dodge") +
+#     geom_text(position = position_dodge(width = 0.9), vjust = 1.5, size = 5, color = "white") +
+#     labs(x = "학년", y = "성관계 비율 [%]", fill = NULL, color = NULL, title = NULL, subtitle = mainTitle) +
+#     theme(
+#       text = element_text(size = 16)
+#       , legend.position = "top"
+#     ) # +
+#     # ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
+#   
+#   # shell.exec(saveImg)
+#   cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+#   
+#   
 # }
-  
+# }
+
 #   
 #   dataL1 = data %>%
 #     dplyr::filter(
