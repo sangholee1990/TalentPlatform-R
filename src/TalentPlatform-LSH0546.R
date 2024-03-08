@@ -129,7 +129,7 @@ for (typeInfo in typeList) {
       
       x = cos(seq(0, 5 * pi, length.out = 100)) * (1.96 * statDataX$sd) + statDataX$mean
       y = sin(seq(0, 5 * pi, length.out = 100)) * (1.96 * statDataY$sd) + statDataY$mean
-
+      
       tmpData = tibble::tibble(group = groupInfo, x = x, y = y) %>% 
         dplyr::mutate(angle = atan2(y, x)) %>%
         dplyr::arrange(angle)
