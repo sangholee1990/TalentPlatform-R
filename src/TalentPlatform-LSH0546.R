@@ -31,6 +31,8 @@
 # 
 # 4. 현재 그래프가 좀 큰 것 같습니다 (제가 보내드린 예시 그래프와 비교해보면 축 눈금에서 4mm보다 큰 부위와 -4mm 보다 작은 부위 여유공간이 적어보입니다.). 예시 보내주신 것과 같이 해주시면 감사하겠습니다.
 
+# 다만 이게 논문에 싣을거라 TIF or TIFF 형태로 300DPI 이상으로 해주실 수 있을까요?
+
 # ================================================
 # 초기 환경변수 설정
 # ================================================
@@ -129,7 +131,7 @@ for (typeInfo in typeList) {
       
       x = cos(seq(0, 5 * pi, length.out = 100)) * (1.96 * statDataX$sd) + statDataX$mean
       y = sin(seq(0, 5 * pi, length.out = 100)) * (1.96 * statDataY$sd) + statDataY$mean
-
+      
       tmpData = tibble::tibble(group = groupInfo, x = x, y = y) %>% 
         dplyr::mutate(angle = atan2(y, x)) %>%
         dplyr::arrange(angle)
@@ -139,7 +141,8 @@ for (typeInfo in typeList) {
     }
     
     plotSubTitle = sprintf("%s_%s%s-axis-error", typeInfo, colInfo[[1]], colInfo[[2]])
-    saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, plotSubTitle)
+    # saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, plotSubTitle)
+    saveImg = sprintf("%s/%s/%s.tiff", globalVar$figPath, serviceName, plotSubTitle)
     dir.create(path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
     
     makePlot = ggplot() +
