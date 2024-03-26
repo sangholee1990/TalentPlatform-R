@@ -53,8 +53,9 @@ library(magrittr)
 library(scales)
 library(fs)
 library(ggpubr)
+library(forcats)
 
-ggplotDefaultColor = scales::hue_pal()(3)
+# ggplotDefaultColor = scales::hue_pal()(3)
 
 # ================================================
 # 파일 읽기
@@ -62,6 +63,51 @@ ggplotDefaultColor = scales::hue_pal()(3)
 fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "d1 (2 conditions).csv"))
 
 data = readr::read_csv(fileInfo)
+  
+
+data$Culture = factor(data$Culture, levels=c(0, 1), labels = c("South Koreans", "Americans"))
+
+summary(data)
+
+ggpubr::ggsummarystats(
+  data, x = "Culture", y = "Percentage_1", summaries = c("mean", "sd"), 
+  ggfunc = ggviolin
+  , error.plot = c("errorbar"), add = c("mean", "mean_sd"),  fill = "Culture"
+)
+
+# facet.by="Actual_behavior"
+
+# ggplot(data, aes(x = "Culture", y = "Percentage_1")) +
+#   geom_boxplot()
+
+ggpubr::ggboxplot(data, x = "Culture", y = "Percentage_1", color = "Culture", add = c("mean", "mean_sd", "jitter"), facet.by="Actual_behavior") + 
+  stat_anova_test(label.x.npc = 0.3, label.y.npc = 0.90, label = "{method} p = {p.format} {p.signif}")
+
+# + 
+  # ggscatter(data,  x = "Culture", y = "Percentage_1", color = "Culture")
+  
+  # geom_point(data = data, aes(x = "Culture", y = "Percentage_1", colour = "Culture"))  
+
+
+
+  # labs(
+  #   title = NULL
+  #   , fill = NULL
+  #   # , x = "예측"
+  #   # , y = "실측"
+  #   # , subtitle = mainTitle
+  # ) +
+  # theme(text = element_text(size = 16))
+
+# ggsave(makePlot, filename = saveImg, width = 6, height = 6, dpi = 600)
+
+  
+
+
+
+
+# 정렬
+
 
 data
 
@@ -90,10 +136,10 @@ my_comparisons <- list( as.factor(c(0, 1)) )
 ggsummarystats(
   data, x = "Culture", y = "Percentage_1", summaries = c("mean", "sd"), 
   ggfunc = ggboxplot, add = "jitter",  color = "Culture", shape = "Culture"
-# )
+)
   ) +
   # stat_compare_means(label.y = 50)
-  stat_compare_means(comparisons = my_comparisons)
+  # stat_compare_means(comparisons = my_comparisons)
 
 
 # data = openxlsx::read.xlsx(fileInfo, sheet = 1)
