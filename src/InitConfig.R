@@ -441,6 +441,7 @@ ggmap::register_google(key = globalVar$googleKey)
 # ******************************
 # 인터넷 환경에서 구글 폰트 추가
 # font.add.google("Gochi Hand", "gochi")
+# font.add.google("Gochi Hand", "gochi")
 
 # 오프라인 환경에서 특정 경로에서 국/영문 폰트 추가
 
