@@ -86,14 +86,23 @@ for (i in 1:50) {
   if (resData['error']['errorCode'] == "200") next
   if (resData['status'] != "OK") next
   
-  
   resDataL1 = resData$addresses %>% 
-    tibble::as.tibble() %>% 
-    dplyr::select(-c("addressElements"))
+    tibble::as.tibble() %>%
+    dplyr::select(-tidyselect::any_of("addressElements"))
   
+  resDataL1$i = i
   resDataL1$addr = addr
   if (nrow(resDataL1) < 1) next
   
-  dataL1 = dplyr::bind_rows(dataL1, resDataL2)
+  dataL1 = dplyr::bind_rows(dataL1, resDataL1)
 }
 
+saveXlsxFile = sprintf("%s/%s/%s.xlsx", globalVar$outPath, serviceName, "신주소변경")
+dir.create(fs::path_dir(saveXlsxFile), showWarnings = FALSE, recursive = TRUE)
+
+wb = openxlsx::createWorkbook()
+openxlsx::addWorksheet(wb, "Sheet1")
+openxlsx::writeData(wb, "Sheet1", dataL1, startRow = 1, startCol = 1, colNames = TRUE, rowNames = FALSE)
+openxlsx::saveWorkbook(wb, file = saveXlsxFile, overwrite = TRUE)
+
+cat(sprintf("[CHECK] saveXlsxFile : %s", saveXlsxFile), "\n")
