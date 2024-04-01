@@ -67,6 +67,10 @@ data = openxlsx::read.xlsx(fileInfo, sheet = 1, startRow = 1)
 
 dataL1 = tibble::tibble()
 # for (i in 1:nrow(data)) {
+# i = 13
+# i = 34
+# i = 43
+# i = 50
 for (i in 1:50) { 
   addr = data$address[i]
   cat(sprintf("[CHECK] addr : %s", addr), "\n")
@@ -83,18 +87,27 @@ for (i in 1:50) {
   resData = httr::content(apiRes, as = "text") %>%
     jsonlite::fromJSON()
   
-  if (resData['error']['errorCode'] == "200") next
-  if (resData['status'] != "OK") next
+  if (resData['error']['errorCode'] == "200") {next}
+  if (resData['status'] != "OK") {next}
   
   resDataL1 = resData$addresses %>% 
-    tibble::as.tibble() %>%
-    dplyr::select(-tidyselect::any_of("addressElements"))
+    tibble::as.tibble()
   
-  resDataL1$i = i
-  resDataL1$addr = addr
-  if (nrow(resDataL1) < 1) next
+  if (nrow(resDataL1) > 0) {
+    resDataL2 = resDataL1 %>% 
+      dplyr::select(-tidyselect::any_of("addressElements")) %>% 
+      dplyr::arrange(desc(roadAddress)) %>% 
+      dplyr::slice(1)
+  } else {
+    resDataL2 = tibble::tibble(i = NA, addr = NA)
+  }
   
-  dataL1 = dplyr::bind_rows(dataL1, resDataL1)
+  resDataL2$i = i
+  resDataL2$addr = addr
+  
+  if("roadAddress" %in% names(resDataL2)) resDataL2$addr2 = stringr::str_replace(resDataL2$roadAddress, "\\s*[^\\d\\s]+아파트.*$", "")
+  
+  dataL1 = dplyr::bind_rows(dataL1, resDataL2)
 }
 
 saveXlsxFile = sprintf("%s/%s/%s.xlsx", globalVar$outPath, serviceName, "신주소변경")
