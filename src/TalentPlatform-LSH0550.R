@@ -62,11 +62,13 @@ apiId = globalVar$naverApigwApiKeyId
 apiPw = globalVar$naverApigwApiKey
 
 # 파일 검색
-fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "주소변경.xlsx"))
+# fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "주소변경.xlsx"))
+fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "주소목록.xlsx"))
 
 # 파일 읽기
 data = openxlsx::read.xlsx(fileInfo, sheet = 1, startRow = 1)
 
+# i = 10
 # i = 13
 # i = 34
 # i = 43
@@ -112,7 +114,9 @@ for (i in 1:50) {
       dplyr::arrange(desc(roadAddress)) %>% 
       dplyr::slice(1)
     
-    if("roadAddress" %in% names(resDataL2)) resDataL2$addr2 = stringr::str_replace(resDataL2$roadAddress, "\\s*[^\\d\\s]+아파트.*$", "")
+    if("roadAddress" %in% names(resDataL2)) resDataL2$addr2 = stringr::str_replace(resDataL2$roadAddress, "\\s*[^\\d\\s]*아파트.*$", "")
+    # if("roadAddress" %in% names(resDataL2)) resDataL2$roadAddress = stringr::str_replace(resDataL2$roadAddress, "\\s*[^\\d\\s]*아파트.*$", "")
+    if("jibunAddress" %in% names(resDataL2)) resDataL2$jibunAddress = stringr::str_replace(resDataL2$jibunAddress, "\\s*[^\\d\\s]*아파트.*$", "")
   }
   
   resDataL3 = tibble::tibble(
@@ -127,7 +131,8 @@ for (i in 1:50) {
   dataL1 = dplyr::bind_rows(dataL1, resDataL3)
 }
 
-saveXlsxFile = sprintf("%s/%s/%s.xlsx", globalVar$outPath, serviceName, "신주소변경")
+# saveXlsxFile = sprintf("%s/%s/%s.xlsx", globalVar$outPath, serviceName, "신주소변경")
+saveXlsxFile = sprintf("%s/%s/%s.xlsx", globalVar$outPath, serviceName, "신주소목록")
 dir.create(fs::path_dir(saveXlsxFile), showWarnings = FALSE, recursive = TRUE)
 
 wb = openxlsx::createWorkbook()
