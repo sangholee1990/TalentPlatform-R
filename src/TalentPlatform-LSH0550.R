@@ -82,10 +82,12 @@ data = openxlsx::read.xlsx(fileInfo, sheet = 1, startRow = 1)
 dataL1 = tibble::tibble()
 # for (i in 1:nrow(data)) {
 for (i in 1:50) { 
+  
+  # 엑셀 내 주소 가져오기
   addr = data$address[i]
   cat(sprintf("[CHECK] addr : %s", addr), "\n")
   
-  # 네이버 API (지도) 요청
+  # 네이버 지오코딩 API 파라미터
   apiUrl = "https://naveropenapi.apigw.ntruss.com/map-geocode/v2/geocode"
   apiQuery = stringr::str_c(
     "?query=", RCurl::curlEscape(stringr::str_conv(addr, encoding = "UTF-8"))
@@ -94,47 +96,56 @@ for (i in 1:50) {
     # , "&language=eng"
     )
 
+  # API 요청
   apiRes = httr::GET(
     stringr::str_c(apiUrl, apiQuery)
     , httr::add_headers("X-NCP-APIGW-API-KEY-ID" = apiId, "X-NCP-APIGW-API-KEY" = apiPw, "Accept" = "application/json")
   )
   
+  # API 응답
   resData = httr::content(apiRes, as = "text") %>%
     jsonlite::fromJSON()
   
-  if (resData['error']['errorCode'] == "200") {next}
-  if (resData['status'] != "OK") {next}
+  # API 응답 성공 시 동작
+  if (resData['error']['errorCode'] == "200") next
+  if (resData['status'] != "OK") next
   
+  # 데이터프레임으로 변환
   resDataL1 = resData$addresses %>% 
     tibble::as.tibble()
   
-  if (nrow(resDataL1) > 0) {
-    resDataL2 = resDataL1 %>% 
-      dplyr::select(-tidyselect::any_of("addressElements")) %>% 
-      dplyr::arrange(desc(roadAddress)) %>% 
-      dplyr::slice(1)
-    
-    if("roadAddress" %in% names(resDataL2)) resDataL2$addr2 = stringr::str_replace(resDataL2$roadAddress, "\\s*[^\\d\\s]*아파트.*$", "")
-    # if("roadAddress" %in% names(resDataL2)) resDataL2$roadAddress = stringr::str_replace(resDataL2$roadAddress, "\\s*[^\\d\\s]*아파트.*$", "")
-    if("jibunAddress" %in% names(resDataL2)) resDataL2$jibunAddress = stringr::str_replace(resDataL2$jibunAddress, "\\s*[^\\d\\s]*아파트.*$", "")
-  }
+  # 특정 컬럼 (addressElements) 삭제
+  resDataL2 = resDataL1 %>% 
+    dplyr::select(-tidyselect::any_of("addressElements")) %>% 
+    dplyr::arrange(desc(roadAddress)) %>% 
+    dplyr::slice(1)
   
+  # 컬럼 내 roadAddress, jibunAddress 있을 경우 "아파트" 키워드 포함 텍스트 삭제
+  if("roadAddress" %in% names(resDataL2)) resDataL2$addr2 = stringr::str_replace(resDataL2$roadAddress, "\\s*[^\\d\\s]*아파트.*$", "")
+  # if("roadAddress" %in% names(resDataL2)) resDataL2$roadAddress = stringr::str_replace(resDataL2$roadAddress, "\\s*[^\\d\\s]*아파트.*$", "")
+  if("jibunAddress" %in% names(resDataL2)) resDataL2$jibunAddress = stringr::str_replace(resDataL2$jibunAddress, "\\s*[^\\d\\s]*아파트.*$", "")
+  
+  # 최종 파일 포맷으로 지정
+  # 데이터 유효성 검사를 통해 정상/비정상 구분
   resDataL3 = tibble::tibble(
     addr = addr  
-    , addr2 = ifelse(nchar(resDataL2$addr2) < 1, NA, resDataL2$addr2)
-    , jibunAddress = ifelse(nchar(resDataL2$jibunAddress) < 1, NA, resDataL2$jibunAddress)
-      , roadAddress = ifelse(nchar(resDataL2$roadAddress) < 1, NA, resDataL2$roadAddress)
-      , y = ifelse(nchar(resDataL2$y) < 1, NA, resDataL2$y)
-      , x = ifelse(nchar(resDataL2$x) < 1, NA, resDataL2$x)
+    , addr2 = ifelse(nrow(resDataL2) == 0 || nchar(resDataL2$addr2) < 1, NA, resDataL2$addr2)
+    , jibunAddress = ifelse(nrow(resDataL2) == 0 || nchar(resDataL2$jibunAddress) < 1, NA, resDataL2$jibunAddress)
+    , roadAddress = ifelse(nrow(resDataL2) == 0 || nchar(resDataL2$roadAddress) < 1, NA, resDataL2$roadAddress)
+    , englishAddress = ifelse(nrow(resDataL2) == 0 || nchar(resDataL2$englishAddress) < 1, NA, resDataL2$englishAddress)
+    , y = ifelse(nrow(resDataL2) == 0 || nchar(resDataL2$y) < 1, NA, resDataL2$y)
+    , x = ifelse(nrow(resDataL2) == 0 || nchar(resDataL2$x) < 1, NA, resDataL2$x)
   )
   
   dataL1 = dplyr::bind_rows(dataL1, resDataL3)
 }
 
+# 엑셀 파일 지정
 # saveXlsxFile = sprintf("%s/%s/%s.xlsx", globalVar$outPath, serviceName, "신주소변경")
 saveXlsxFile = sprintf("%s/%s/%s.xlsx", globalVar$outPath, serviceName, "신주소목록")
 dir.create(fs::path_dir(saveXlsxFile), showWarnings = FALSE, recursive = TRUE)
 
+# 엑셀 파일 저장
 wb = openxlsx::createWorkbook()
 openxlsx::addWorksheet(wb, "Sheet1")
 openxlsx::writeData(wb, "Sheet1", dataL1, startRow = 1, startCol = 1, colNames = TRUE, rowNames = FALSE)
