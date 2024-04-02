@@ -56,6 +56,8 @@ library(jsonlite)
 library(tibble)
 
 # API 인증키 정보
+# apiId = "아이디"
+# apiPw = "비밀번호"
 apiId = globalVar$naverApigwApiKeyId
 apiPw = globalVar$naverApigwApiKey
 
@@ -65,19 +67,30 @@ fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "주소변경.xlsx
 # 파일 읽기
 data = openxlsx::read.xlsx(fileInfo, sheet = 1, startRow = 1)
 
-dataL1 = tibble::tibble()
-# for (i in 1:nrow(data)) {
 # i = 13
 # i = 34
 # i = 43
 # i = 50
+# addr = "충청북도 충주시 중원대로 3379"
+# addr = "경기도 하남시 망월동 1125"
+# addr = "망월동 1125"
+
+# 주소와 좌표 검색 API 사용하기
+# https://navermaps.github.io/maps.js.ncp/docs/tutorial-3-geocoder-geocoding.example.html
+dataL1 = tibble::tibble()
+# for (i in 1:nrow(data)) {
 for (i in 1:50) { 
   addr = data$address[i]
   cat(sprintf("[CHECK] addr : %s", addr), "\n")
   
   # 네이버 API (지도) 요청
   apiUrl = "https://naveropenapi.apigw.ntruss.com/map-geocode/v2/geocode"
-  apiQuery = stringr::str_c("?query=", RCurl::curlEscape(stringr::str_conv(addr, encoding = "UTF-8")))
+  apiQuery = stringr::str_c(
+    "?query=", RCurl::curlEscape(stringr::str_conv(addr, encoding = "UTF-8"))
+    , "&count=100"
+    , "&page=1"
+    # , "&language=eng"
+    )
 
   apiRes = httr::GET(
     stringr::str_c(apiUrl, apiQuery)
@@ -98,16 +111,20 @@ for (i in 1:50) {
       dplyr::select(-tidyselect::any_of("addressElements")) %>% 
       dplyr::arrange(desc(roadAddress)) %>% 
       dplyr::slice(1)
-  } else {
-    resDataL2 = tibble::tibble(i = NA, addr = NA)
+    
+    if("roadAddress" %in% names(resDataL2)) resDataL2$addr2 = stringr::str_replace(resDataL2$roadAddress, "\\s*[^\\d\\s]+아파트.*$", "")
   }
   
-  resDataL2$i = i
-  resDataL2$addr = addr
+  resDataL3 = tibble::tibble(
+    addr = addr  
+    , addr2 = ifelse(nchar(resDataL2$addr2) < 1, NA, resDataL2$addr2)
+    , jibunAddress = ifelse(nchar(resDataL2$jibunAddress) < 1, NA, resDataL2$jibunAddress)
+      , roadAddress = ifelse(nchar(resDataL2$roadAddress) < 1, NA, resDataL2$roadAddress)
+      , y = ifelse(nchar(resDataL2$y) < 1, NA, resDataL2$y)
+      , x = ifelse(nchar(resDataL2$x) < 1, NA, resDataL2$x)
+  )
   
-  if("roadAddress" %in% names(resDataL2)) resDataL2$addr2 = stringr::str_replace(resDataL2$roadAddress, "\\s*[^\\d\\s]+아파트.*$", "")
-  
-  dataL1 = dplyr::bind_rows(dataL1, resDataL2)
+  dataL1 = dplyr::bind_rows(dataL1, resDataL3)
 }
 
 saveXlsxFile = sprintf("%s/%s/%s.xlsx", globalVar$outPath, serviceName, "신주소변경")
