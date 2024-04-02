@@ -57,12 +57,25 @@ library(forcats)
 library(patchwork)
 library(sysfonts)
 
-
 # 폰트 읽기
 if (Sys.info()["sysname"] == "Windows") {
   sysfonts::font.add(family = "Arial", regular = "C:/Windows/Fonts/Arial.ttf")
   showtext::showtext_opts(dpi = 600)
   showtext::showtext.auto()
+  
+  fontFam = "Arial"
+  fontSize = 12
+  
+  themeFont = theme(
+    text = element_text(family = fontFam, size = fontSize)
+    , axis.title = element_text(family = fontFam, size = fontSize)
+    , axis.text = element_text(family = fontFam, size = fontSize)
+    , plot.title = element_text(family = fontFam, size = fontSize)
+    , plot.subtitle = element_text(family = fontFam, size = fontSize)
+    , legend.text = element_text(family = fontFam, size = fontSize)
+    , legend.title = element_text(family = fontFam, size = fontSize)
+  )
+  
 }
 
 # ================================================
@@ -110,14 +123,15 @@ p1 = ggplot(data, aes(x = Culture, y = Percentage_1, color = Culture, fill = Cul
   # scale_y_continuous(minor_breaks=seq(0, 100, 20), breaks=seq(0, 100, 20), labels=sprintf("%s%%", seq(0, 100, 20)), expand=c(0,0)) +
   labs(y = "Actual behavior") +
   # facet_wrap(~Actual_behavior) +
-  theme_bw()
+  theme_bw() +
+  themeFont
 
 p2 = statData %>% 
   dplyr::rename(
     Frequency = freq
   ) %>% 
   ggpubr::ggsummarytable(
-    x = "Culture", y = c("Frequency"), digits = 1, size = 3, ggtheme = theme_bw()
+    x = "Culture", y = c("Frequency"), digits = 1, size = 4, ggtheme = theme_bw()
   ) + 
   labs(x = NULL) + 
   theme(
@@ -127,9 +141,10 @@ p2 = statData %>%
     , panel.grid.minor = element_blank()
     , panel.background = element_blank()
     , axis.ticks.x = element_blank()
-    ) 
+    )  +
+  themeFont
 
-makePlot = (p1 / p2) + plot_layout(heights = c(9, 1)) + theme(text = element_text(family = "Arial", size = 11))
+makePlot = (p1 / p2) + plot_layout(heights = c(9, 1))
 
 ggsave(print(makePlot), filename = saveImg, width = 10, height = 8, dpi = 600)
 
@@ -160,14 +175,15 @@ p1 = ggplot(data, aes(x = Culture, y = Percentage_1, color = Culture, fill = Cul
   # scale_y_continuous(minor_breaks=seq(0, 100, 20), breaks=seq(0, 100, 20), labels=sprintf("%s%%", seq(0, 100, 20)), expand=c(0,0)) +
   labs(x = NULL, y = "Actual behavior") +
   # facet_wrap(~Actual_behavior) +
-  theme_bw()
+  theme_bw() +
+  themeFont
 
 p2 = statData %>% 
   dplyr::rename(
     Frequency = freq
   ) %>% 
   ggpubr::ggsummarytable(
-    x = "Culture", y = c("Frequency"), digits = 1, size = 3, ggtheme = theme_bw()
+    x = "Culture", y = c("Frequency"), digits = 1, size = 4, ggtheme = theme_bw()
   ) + 
   labs(x = NULL) + 
   theme(
@@ -177,9 +193,10 @@ p2 = statData %>%
     , panel.grid.minor = element_blank()
     , panel.background = element_blank()
     , axis.ticks.x = element_blank()
-  )
+  ) +
+  themeFont
 
-makePlot = (p1 / p2) + plot_layout(heights = c(9, 1)) + theme(text = element_text(family = "Arial", size = 11))
+makePlot = (p1 / p2) + plot_layout(heights = c(9, 1))
 ggsave(print(makePlot), filename = saveImg, width = 10, height = 8, dpi = 600)
 
 # shell.exec(saveImg)
@@ -285,7 +302,8 @@ p1 = ggplot(dataL1, aes(x = Culture, y = DV_Intention, color = Pursuit, fill = P
   labs(x = NULL, y = "Transition Willingness", fill = NULL, color = NULL) +
   facet_wrap( ~ type, scales = "fixed", nrow = 1) +
   theme_bw() +
-  theme(legend.position = "top")
+  theme(legend.position = "top") +
+  themeFont
 # p1
 
 p2 = statData %>% 
@@ -295,7 +313,7 @@ p2 = statData %>%
     , SD = sdVal
   ) %>% 
   ggpubr::ggsummarytable(
-    x = "Culture", y = c("Mean", "SD"), facet.by = c("type"), digits = 2, size = 3, ggtheme = theme_bw(), position = position_dodge2(1.0)
+    x = "Culture", y = c("Mean", "SD"), facet.by = c("type"), digits = 2, size = 4, ggtheme = theme_bw(), position = position_dodge2(1.0)
   ) + 
   labs(x = NULL) + 
   theme(
@@ -306,10 +324,11 @@ p2 = statData %>%
     , panel.background = element_blank()
     , strip.text.x = element_blank()
     , axis.ticks.x = element_blank()
-  )
+  ) +
+  themeFont
 # p2
 
-makePlot = (p1 / p2) + plot_layout(heights = c(9, 1)) + theme(text = element_text(family = "Arial", size = 11))
+makePlot = (p1 / p2) + plot_layout(heights = c(9, 1))
 ggsave(print(makePlot), filename = saveImg, width = 10, height = 8, dpi = 600)
 
 # shell.exec(saveImg)
@@ -328,7 +347,8 @@ p1 = ggplot(dataL1, aes(x = Culture, y = DV_Intention, color = Pursuit, fill = P
   labs(x = NULL, y = "Transition Willingness", color = NULL, fill = NULL) +
   facet_wrap( ~ type, scales = "fixed", nrow = 1) +
   theme_bw() +
-  theme(legend.position = "top")
+  theme(legend.position = "top") +
+  themeFont
 # p1
 
 p2 = statData %>% 
@@ -338,7 +358,7 @@ p2 = statData %>%
     , SD = sdVal
   ) %>% 
   ggpubr::ggsummarytable(
-    x = "Culture", y = c("Mean", "SD"), facet.by = c("type"), digits = 1, size = 3, ggtheme = theme_bw(), position = position_dodge2(1.0)
+    x = "Culture", y = c("Mean", "SD"), facet.by = c("type"), digits = 1, size = 4, ggtheme = theme_bw(), position = position_dodge2(1.0)
   ) + 
   labs(x = NULL) + 
   theme(
@@ -349,10 +369,11 @@ p2 = statData %>%
     , panel.background = element_blank()
     , strip.text.x = element_blank()
     , axis.ticks.x = element_blank()
-  )
+  ) +
+  themeFont
 # p2
 
-makePlot = (p1 / p2) + plot_layout(heights = c(9, 1)) + theme(text = element_text(family = "Arial", size = 11))
+makePlot = (p1 / p2) + plot_layout(heights = c(9, 1))
 ggsave(print(makePlot), filename = saveImg, width = 10, height = 8, dpi = 600)
 
 # shell.exec(saveImg)
@@ -416,6 +437,7 @@ data$Status = factor(data$Status, levels=c(0, 1), labels = c("Self-Employed", "E
 
 # summary(data)
 
+# status = statusList[1]
 statusList = data$Status %>% unique() %>% sort()
 for (status in statusList) {
   cat(sprintf("[CHECK] status : %s", status), "\n")
@@ -475,15 +497,15 @@ for (status in statusList) {
   dir.create(fs::path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
   
   p1 = ggplot(dataL1, aes(x = Culture, y = DV_Intention, color = Pursuit, fill = Pursuit)) +
-    geom_violin(alpha = 0.5, show.legend = TRUE, trim=FALSE, position=position_dodge(1.0)) +
-    geom_point(data=statData, aes(x = Culture, y = meanVal), position=position_dodge(1.0), color = "black", size=3, show.legend = FALSE) +
-    geom_errorbar(data=statData, aes(x=Culture, y=NULL, ymax=upper, ymin=lower), stat='identity', width=0.1,color = "black", show.legend = FALSE, position=position_dodge(1.0)) +
-    # scale_y_continuous(minor_breaks=seq(0, 100, 2), breaks=seq(0, 100, 2)), expand=c(0,0), limits=c(1, 10)) +
+    geom_violin(alpha = 0.5, show.legend = TRUE, trim=FALSE, position=position_dodge(0.85)) +
+    geom_point(data=statData, aes(x = Culture, y = meanVal), position=position_dodge(0.85), color = "black", size=3, show.legend = FALSE) +
+    geom_errorbar(data=statData, aes(x=Culture, y=NULL, ymax=upper, ymin=lower), stat='identity', width=0.1,color = "black", show.legend = FALSE, position=position_dodge(0.85)) +
     # labs(x = "Pursuit Condition", y = "Transition Willingness") +
     labs(x = NULL, y = "Transition Willingness", fill = NULL, color = NULL) +
     # facet_wrap( ~ type, scales = "fixed", nrow = 1) +
     theme_bw() +
-    theme(legend.position = "top")
+    theme(legend.position = "top") +
+    themeFont
   # p1
   
   p2 = statData %>% 
@@ -494,7 +516,7 @@ for (status in statusList) {
     ) %>% 
     ggpubr::ggsummarytable(
       # x = "Culture", y = c("Mean", "SD"), facet.by = c("type"), digits = 2, size = 3, ggtheme = theme_bw(), position = position_dodge2(1.0)
-      x = "Culture", y = c("Mean", "SD"), digits = 2, size = 3, ggtheme = theme_bw(), position = position_dodge2(1.0)
+      x = "Culture", y = c("Mean", "SD"), digits = 2, size = 4, ggtheme = theme_bw(), position = position_dodge2(1.0)
     ) + 
     labs(x = NULL) + 
     theme(
@@ -505,10 +527,11 @@ for (status in statusList) {
       , panel.background = element_blank()
       , strip.text.x = element_blank()
       , axis.ticks.x = element_blank()
-    )
+    ) +
+    themeFont
   # p2
   
-  makePlot = (p1 / p2) + plot_layout(heights = c(9, 1)) + theme(text = element_text(family = "Arial", size = 11))
+  makePlot = (p1 / p2) + plot_layout(heights = c(9, 1)) + themeFont
   ggsave(print(makePlot), filename = saveImg, width = 10, height = 8, dpi = 600)
   
   # shell.exec(saveImg)
@@ -519,15 +542,16 @@ for (status in statusList) {
   dir.create(fs::path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
   
   p1 = ggplot(dataL1, aes(x = Culture, y = DV_Intention, color = Pursuit, fill = Pursuit)) +
-    geom_boxplot(color = "black", alpha = 0.1, show.legend = TRUE, position=position_dodge(1.0)) +
-    geom_jitter(alpha  = 0.5, size = 2, show.legend = FALSE, position=position_jitterdodge(dodge.width=1.0, jitter.width = 0.75, jitter.height = 0.5)) +
-    stat_summary(fun = mean, geom = "point", color = "black", size = 2, shape = 16, show.legend = FALSE, position=position_dodge(1.0)) +
+    geom_boxplot(color = "black", alpha = 0.1, show.legend = TRUE, position=position_dodge(0.85)) +
+    geom_jitter(alpha  = 0.5, size = 2, show.legend = FALSE, position=position_jitterdodge(dodge.width=0.85, jitter.width = 0.75, jitter.height = 0.5)) +
+    stat_summary(fun = mean, geom = "point", color = "black", size = 2, shape = 16, show.legend = FALSE, position=position_dodge(0.85)) +
     ggpubr::geom_pwc(label = "{p.format} {p.signif}", show.legend = FALSE) +
     # labs(x = "Pursuit Condition", y = "Transition Willingness") +
     labs(x = NULL, y = "Transition Willingness", color = NULL, fill = NULL) +
     # facet_wrap( ~ type, scales = "fixed", nrow = 1) +
     theme_bw() +
-    theme(legend.position = "top")
+    theme(legend.position = "top") +
+    themeFont
   # p1
   
   p2 = statData %>% 
@@ -538,7 +562,7 @@ for (status in statusList) {
     ) %>% 
     ggpubr::ggsummarytable(
       # x = "Culture", y = c("Mean", "SD"), facet.by = c("type"), digits = 1, size = 3, ggtheme = theme_bw(), position = position_dodge2(1.0)
-      x = "Culture", y = c("Mean", "SD"), digits = 1, size = 3, ggtheme = theme_bw(), position = position_dodge2(1.0)
+      x = "Culture", y = c("Mean", "SD"), digits = 1, size = 4, ggtheme = theme_bw(), position = position_dodge2(1.0)
     ) + 
     labs(x = NULL) + 
     theme(
@@ -549,10 +573,13 @@ for (status in statusList) {
       , panel.background = element_blank()
       , strip.text.x = element_blank()
       , axis.ticks.x = element_blank()
-    )
+    ) +
+    themeFont
   # p2
   
-  makePlot = (p1 / p2) + plot_layout(heights = c(9, 1)) + theme(text = element_text(family = "Arial", size = 11))
+  
+  makePlot = (p1 / p2) + plot_layout(heights = c(9, 1))
+  
   ggsave(print(makePlot), filename = saveImg, width = 10, height = 8, dpi = 600)
   
   # shell.exec(saveImg)
