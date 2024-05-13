@@ -81,10 +81,8 @@ colnames(data)
 # 요약
 summary(data)
 
-# 와인 품질 부여 (6 이상 1:Good, 그 외 0:Bad)
-# data$quaflag = ifelse(data$quality >= 6, "Good", "Bad")
+# 와인 품질 부여 (7 이상 1:Good, 그 외 0:Bad)
 data$quaflag = ifelse(data$quality >= 7, 1, 0)
-# data$quaflag = data$quality
 
 # 변수 제거
 dataL1 = data[ , ! names(data) %in% c("quality")]
@@ -92,6 +90,8 @@ dataL1 = data[ , ! names(data) %in% c("quality")]
 #=================================================================
 # 훈련 및 테스트 셋 설정
 #=================================================================
+set.seed(10)
+
 # 훈련 및 데이터 셋을 70:30으로 나누기 위한 인덱스 설정
 idx = sample(1:nrow(dataL1), nrow(dataL1) * 0.7)
 
@@ -125,13 +125,13 @@ table(prdFlag, obsFlag)
 
 conMatRes = caret::confusionMatrix(data = factor(prdFlag), reference = factor(obsFlag))
 
-# 정확도 : 0.860
+# 정확도 : 0.871
 round(conMatRes$overall["Accuracy"], 3)
 
-# 민감도 : 0.933  
+# 민감도 : 0.924   
 round(conMatRes$byClass["Sensitivity"], 3)
 
-# 특이도 : 0.391  
+# 특이도 : 0.483   
 round(conMatRes$byClass["Specificity"], 3)
 
 # ROC 커브를 위한 설정
@@ -140,14 +140,8 @@ logitRoc = ROCit::rocit(score = prdFlag, class = obsFlag)
 # 요약 결과
 summary(logitRoc)
 
-# mainTitle = "ROC 곡선-유의미한 변수"
-# saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, mainTitle)
-# png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
-
+# 시각화
 plot(logitRoc, main = mainTitle)
-
-# dev.off()
-
 
 # ================================================
 # 랜덤포레스트
@@ -169,13 +163,13 @@ table(prdFlag, obsFlag)
 
 conMatRes = caret::confusionMatrix(data = factor(prdFlag), reference = factor(obsFlag))
 
-# 정확도 : 0.902
+# 정확도 : 0.898 
 round(conMatRes$overall["Accuracy"], 3)
 
-# 민감도 : 0.974  
+# 민감도 : 0.957   
 round(conMatRes$byClass["Sensitivity"], 3)
 
-# 특이도 : 0.438  
+# 특이도 : 0.466   
 round(conMatRes$byClass["Specificity"], 3)
 
 # ROC 커브를 위한 설정
@@ -184,10 +178,5 @@ logitRoc = ROCit::rocit(score = prdFlag, class = obsFlag)
 # 요약 결과
 summary(logitRoc)
 
-# mainTitle = "ROC 곡선-유의미한 변수"
-# saveImg = sprintf("%s/%s_%s.png", globalVar$figPath, serviceName, mainTitle)
-# png(file = saveImg, width = 10, height = 8, units = "in", res = 600)
-
+# 시각화
 plot(logitRoc, main = mainTitle)
-
-# dev.off()
