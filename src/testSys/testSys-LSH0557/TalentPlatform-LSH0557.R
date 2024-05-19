@@ -104,6 +104,11 @@ webshot::webshot(tmpHtml, saveImg, vwidth = 1000, vheight = 800, delay = 5)
 # shell.exec(saveImg)
 cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 
+saveFile = sprintf("%s/%s/%s.csv", globalVar$outPath, serviceName, "TOP100 키워드")
+dir.create(dirname(saveFile), showWarnings = FALSE, recursive = TRUE)
+readr::write_csv(keywordData, file = saveFile)
+cat(sprintf("[CHECK] saveFile : %s", saveFile), "\n")
+
 # ==================================================================
 # 바차트
 # ==================================================================
