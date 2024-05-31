@@ -265,7 +265,7 @@ ggplot(data = dataL5, aes(x = doy, y = dtYear, fill = dens3)) +
   geom_raster(interpolate = FALSE, na.rm = TRUE) +
   # geom_tile(na.rm = TRUE) +
   # scale_x_continuous(expand = c(0, 0), limits = c(160, 280), minor_breaks = seq(160, 280, 20), breaks = seq(160, 280, 20)) +
-  scale_x_continuous(expand = c(0, 0), limits = c(0, 365), minor_breaks = seq(0, 365, 40), breaks = seq(0, 365, 40)) +
+  scale_x_continuous(expand = c(0, 0)  limits = c(0, 365), minor_breaks = seq(0, 365, 40), breaks = seq(0, 365, 40)) +
   scale_y_continuous(expand = c(0, 0), limits = c(2002.5, 2019.5), minor_breaks = seq(2000, 2022, 1), breaks = seq(2000, 2022, 1)) +
   # scale_fill_gradientn(colours = cbMatlabva, limits = c(0, 5000), na.value = cbMatlab[length(cbMatlab)]) +
   # scale_fill_gradientn(colours = cbMatlab, limits = c(0, 0.2), na.value = cbMatlab[length(cbMatlab)]) +
