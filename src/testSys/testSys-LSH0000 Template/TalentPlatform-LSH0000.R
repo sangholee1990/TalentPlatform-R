@@ -24,9 +24,9 @@ prjName = "test"
 serviceName = "LSH0528"
 
 if (Sys.info()[["sysname"]] == "Windows") {
-  contextPath = ifelse(env == "local", ".", "C:/SYSTEMS/PROG/R/TalentPlatform-R")
+  contextPath = ifelse(env == "local", getwd(), "C:/SYSTEMS/PROG/R/TalentPlatform-R")
 } else {
-  contextPath = ifelse(env == "local", ".", "/SYSTEMS/PROG/R/PyCharm")
+  contextPath = ifelse(env == "local", getwd(), "/SYSTEMS/PROG/R/PyCharm")
 }
 
 if (env == "local") {
