@@ -62,46 +62,103 @@ fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "dom_1st.xlsx"))
 data = openxlsx::read.xlsx(fileInfo, sheet = 1, startRow = 1) %>%
   tibble::as.tibble()
 
+domData = data %>% 
+  dplyr::filter(! is.na(DOM))
+
 # 요약
-summary(dom_1st)
+summary(domData)
 
-# 범위 설정
-priRange = range(data$SEN_1st, na.rm = TRUE)
-secRange = range(data$SEN_MC_pred, na.rm = TRUE)
-triRange = range(data$SEN_CR_pred, na.rm = TRUE)
-
-domData = data %>%
-  dplyr::mutate(
-    SEN_MC_pred2 = rescale(SEN_MC_pred, to = triRange)
-    , SEN_CR_pred2 = rescale(SEN_CR_pred, to = triRange)
-    )
-
-mainTitle = sprintf("%s", "mergeVis")
+# ******************************************************************************
+# 2024.06.01 기본 plot 시각화
+# ******************************************************************************
+mainTitle = sprintf("%s", "mergeVis2")
 saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
 dir.create(fs::path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
+png(file = saveImg, width = 10, height = 6, units = "in", res = 600)
 
-ggplot(data = domData) +
-  # 녹색 선
-  geom_vline(xintercept = 8, color = "green", size = 2) +
-  # 좌측
-  geom_line(aes(x = DOM, y = SEN_1st), color = "black", size = 1) +
+par(mar = c(3, 7, 2, 3))
 
-  # 좌측
-  geom_line(aes(x = DOM, y = SEN_CR_pred), color = "red", size = 1) +
-  geom_ribbon(aes(x = DOM, y = domData$SEN_MC_pred, ymin = -Inf, ymax = SEN_CR_pred), fill = "red", alpha = 0.2) +
-  
-  # 우측
-  geom_line(aes(x = DOM, y = SEN_MC_pred2), color = "blue", size = 1, alpha = 0.5) +
-  geom_ribbon(aes(x = DOM, y = SEN_MC_pred2, ymin = domData$SEN_MC_pred2, ymax = max(domData$SEN_MC_pred2, na.rm = TRUE)), fill = "blue", alpha = 0.2) +
-  scale_x_continuous(expand = c(0, 0), limits = c(0, 24), breaks = seq(0, 24, 6)) +
-  scale_y_continuous(expand = c(0, 0), name = "SEN_1st / SEN_CR_pred", sec.axis = sec_axis(trans = ~ rescale(., to = secRange), name = "SEN_MC_pred")) +
-  theme(
-    text = element_text(size = 14)
-  ) +
-  ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
+# 초기화 그림
+plot(domData$DOM, domData$SEN_1st, type = "n", axes = FALSE, xlab = "", ylab = "", main = "", xlim = c(0, 24), ylim = c(0, 7), yaxs = "i", xaxs = "i")
+rect(par("usr")[1], par("usr")[3], par("usr")[2], par("usr")[4], col = "grey90", border = NA)
+
+grid(col = "white", lty = "solid")
+box(col = "black", lwd = 1)
+
+lines(domData$DOM, domData$SEN_1st, col = "black", lwd = 2)
+
+# x축
+axis(1, lwd=1, line=0, col="black", at=seq(0, 24, 6))
+mtext(1, text="DOM", line=2)
+
+# y축
+axis(2, lwd=1, col="black")
+mtext(2, text="SEN 1st", line=2)
+
+# 멀티 y축
+par(new = TRUE)
+plot(domData$DOM, domData$SEN_MC_pred, axes = FALSE, xlab = "", ylab = "", main = "", lty = 1, lwd = 2, col = "blue", type="l", yaxs = "i", xaxs = "i", xlim = c(0, 24), ylim = c(13.2, max(domData$SEN_MC_pred, na.rm = TRUE)))
+polygon(c(domData$DOM, rev(domData$DOM)), c(domData$SEN_MC_pred, rep(max(domData$SEN_MC_pred, na.rm = TRUE), length(domData$DOM))), col = rgb(0, 0, 1, alpha = 0.2), border = NA)
+axis(4, lwd=1, col="black")
+mtext(4, text="SEN MC pred", line=2)
+
+# 멀티 y축
+par(new = TRUE)
+plot(domData$DOM, domData$SEN_CR_pred, axes = FALSE, xlab = "", ylab = "", main = "", lty = 1, lwd = 2, col = "red", type="l", yaxs = "i", xaxs = "i", xlim = c(0, 24))
+polygon(c(domData$DOM, rev(domData$DOM)), c(domData$SEN_CR_pred, rep(min(domData$SEN_CR_pred, na.rm = TRUE), length(domData$DOM))),
+        col = rgb(1, 0, 0, alpha = 0.2), border = NA)
+
+axis(2, lwd=1, line=4, col="black")
+mtext(2, text="SEN CR pred", line=6)
+
+# 세로 선
+abline(v = 8, col = "green", lwd = 2)
+
+dev.off()
 
 # shell.exec(saveImg)
 cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+
+# ******************************************************************************
+# 2024.06.01 ggplot2 시각화
+# ******************************************************************************
+# # 범위 설정
+# priRange = range(data$SEN_1st, na.rm = TRUE)
+# secRange = range(data$SEN_MC_pred, na.rm = TRUE)
+# triRange = range(data$SEN_CR_pred, na.rm = TRUE)
+# 
+# domData = data %>%
+#   dplyr::mutate(
+#     SEN_MC_pred2 = rescale(SEN_MC_pred, to = triRange)
+#     , SEN_CR_pred2 = rescale(SEN_CR_pred, to = triRange)
+#     )
+# 
+# mainTitle = sprintf("%s", "mergeVis")
+# saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
+# dir.create(fs::path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
+# 
+# ggplot(data = domData) +
+#   # 녹색 선
+#   geom_vline(xintercept = 8, color = "green", size = 2) +
+#   # 좌측
+#   geom_line(aes(x = DOM, y = SEN_1st), color = "black", size = 1) +
+# 
+#   # 좌측
+#   geom_line(aes(x = DOM, y = SEN_CR_pred), color = "red", size = 1) +
+#   geom_ribbon(aes(x = DOM, y = domData$SEN_MC_pred, ymin = -Inf, ymax = SEN_CR_pred), fill = "red", alpha = 0.2) +
+#   
+#   # 우측
+#   geom_line(aes(x = DOM, y = SEN_MC_pred2), color = "blue", size = 1, alpha = 0.5) +
+#   geom_ribbon(aes(x = DOM, y = SEN_MC_pred2, ymin = domData$SEN_MC_pred2, ymax = max(domData$SEN_MC_pred2, na.rm = TRUE)), fill = "blue", alpha = 0.2) +
+#   scale_x_continuous(expand = c(0, 0), limits = c(0, 24), breaks = seq(0, 24, 6)) +
+#   scale_y_continuous(expand = c(0, 0), name = "SEN_1st / SEN_CR_pred", sec.axis = sec_axis(trans = ~ rescale(., to = secRange), name = "SEN_MC_pred")) +
+#   theme(
+#     text = element_text(size = 14)
+#   ) +
+#   ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
+# 
+# # shell.exec(saveImg)
+# cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
   
   
 # ******************************************************************************
