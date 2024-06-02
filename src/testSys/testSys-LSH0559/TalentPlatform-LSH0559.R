@@ -80,9 +80,12 @@ par(mar = c(3, 7, 2, 3))
 
 # 초기화 그림
 plot(domData$DOM, domData$SEN_1st, type = "n", axes = FALSE, xlab = "", ylab = "", main = "", xlim = c(0, 24), ylim = c(0, 7), yaxs = "i", xaxs = "i")
-rect(par("usr")[1], par("usr")[3], par("usr")[2], par("usr")[4], col = "grey90", border = NA)
+# rect(par("usr")[1], par("usr")[3], par("usr")[2], par("usr")[4], col = "grey90", border = NA)
+rect(par("usr")[1], par("usr")[3], par("usr")[2], par("usr")[4], col = "white", border = NA)
 
-grid(col = "white", lty = "solid")
+# grid(col = "white", lty = "solid")
+# box(col = "black", lwd = 1)
+grid(col = "grey90", lty = 2)
 box(col = "black", lwd = 1)
 
 lines(domData$DOM, domData$SEN_1st, col = "black", lwd = 2)
@@ -97,8 +100,10 @@ mtext(2, text="SEN 1st", line=2)
 
 # 멀티 y축
 par(new = TRUE)
-plot(domData$DOM, domData$SEN_MC_pred, axes = FALSE, xlab = "", ylab = "", main = "", lty = 1, lwd = 2, col = "blue", type="l", yaxs = "i", xaxs = "i", xlim = c(0, 24), ylim = c(13.2, max(domData$SEN_MC_pred, na.rm = TRUE)))
-polygon(c(domData$DOM, rev(domData$DOM)), c(domData$SEN_MC_pred, rep(max(domData$SEN_MC_pred, na.rm = TRUE), length(domData$DOM))), col = rgb(0, 0, 1, alpha = 0.2), border = NA)
+# plot(domData$DOM, domData$SEN_MC_pred, axes = FALSE, xlab = "", ylab = "", main = "", lty = 1, lwd = 2, col = "blue", type="l", yaxs = "i", xaxs = "i", xlim = c(0, 24), ylim = c(13.2, max(domData$SEN_MC_pred, na.rm = TRUE)))
+plot(domData$DOM, domData$SEN_MC_pred, axes = FALSE, xlab = "", ylab = "", main = "", lty = 1, lwd = 2, col = "blue", type="l", yaxs = "i", xaxs = "i", xlim = c(0, 24), ylim = c(13.2, 14.6))
+# polygon(c(domData$DOM, rev(domData$DOM)), c(domData$SEN_MC_pred, rep(max(domData$SEN_MC_pred, na.rm = TRUE), length(domData$DOM))), col = rgb(0, 0, 1, alpha = 0.2), border = NA)
+polygon(c(domData$DOM, rev(domData$DOM)), c(domData$SEN_MC_pred, rep(14.6, length(domData$DOM))), col = rgb(0, 0, 1, alpha = 0.2), border = NA)
 axis(4, lwd=1, col="black")
 mtext(4, text="SEN MC pred", line=2)
 
