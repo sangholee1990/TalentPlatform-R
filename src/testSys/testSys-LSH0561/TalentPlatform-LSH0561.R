@@ -85,11 +85,8 @@ adamOpt = function(x, y, alpha = 0.001, beta1 = 0.9, beta2 = 0.999, delta = 1e-8
   
   # 2차 모멘트 벡터 초기화
   v = matrix(0, nrow = ncol(x), ncol = 1)
-  t = 0
-  
-  while (t < max_iter) {
-    t = t + 1
-    
+  for (t in 1:max_iter) {
+
     # 시점 t에서의 그래디언트 벡터 계산
     g = comGrd(w, x, y) 
     
@@ -107,11 +104,6 @@ adamOpt = function(x, y, alpha = 0.001, beta1 = 0.9, beta2 = 0.999, delta = 1e-8
     
     # 파라미터 업데이트
     w = w - alpha * (mHat / (sqrt(vHat) + delta)) 
-    
-    # 8712 갱신 후 반복문 중지
-    if (t == 8712) {
-      break
-    }
   }
   
   return(w)
