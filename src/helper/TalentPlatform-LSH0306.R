@@ -68,13 +68,13 @@ cbMatlab = colorRamps::matlab.like(11)
 
 # 공공데이터포털 API키
 # reqDataKey = globalVar$dataKey
-reqDataKey = "Ftj0WhfmnXN86rrVCPTGvlQJ%oJs9l+ZQjJzPgtc37yVPWuXs8UOP3kD2lTyy9DFInQZj2VvYFH1+Uh7gNgTLLA=="
+# reqDataKey = "인증키"
 
 # 요청 URL
 reqUrl = "http://openapi.molit.go.kr:8081/OpenAPI_ToolInstallPackage/service/rest/RTMSOBJSvc/getRTMSDataSvcAptTrade"
 
 # 구글 인증키
-ggmap::register_google(key = "AIzaSyCOfommvdtr_CVmQyL-5wFz31G21CklUE4")
+# ggmap::register_google(key = "인증키")
 
 
 # 요청 API
