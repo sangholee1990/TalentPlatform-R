@@ -67,14 +67,13 @@ Sys.setlocale("LC_ALL", "English")
 cbMatlab = colorRamps::matlab.like(11)
 
 # 공공데이터포털 API키
-# reqDataKey = globalVar$dataKey
-# reqDataKey = "인증키"
+reqDataKey = "인증키"
 
 # 요청 URL
 reqUrl = "http://openapi.molit.go.kr:8081/OpenAPI_ToolInstallPackage/service/rest/RTMSOBJSvc/getRTMSDataSvcAptTrade"
 
 # 구글 인증키
-# ggmap::register_google(key = "인증키")
+ggmap::register_google(key = "인증키")
 
 
 # 요청 API
