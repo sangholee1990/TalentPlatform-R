@@ -82,21 +82,20 @@ pageList = 0:pageMax
 
 # https://ec.europa.eu/tools/eudamed/api/devices/udiDiData?page=1&pageSize=25&size=25&iso2Code=en&sort=primaryDi,ASC&sort=versionNumber,DESC&deviceStatusCode=refdata.device-model-status.on-the-market&languageIso2Code=en
 
-baseUrl = "https://ec.europa.eu/tools/eudamed/api/devices/udiDiData"
-params = list(
-  page = 1,
-  pageSize = pageSize,
-  size = pageSize,
-  iso2Code = "en",
-  sort = c("primaryDi,ASC", "versionNumber,DESC"),
-  deviceStatusCode = "refdata.device-model-status.on-the-market",
-  languageIso2Code = "en"
-)
+# baseUrl = "https://ec.europa.eu/tools/eudamed/api/devices/udiDiData"
+# params = list(
+#   page = 1,
+#   pageSize = pageSize,
+#   size = pageSize,
+#   iso2Code = "en",
+#   sort = c("primaryDi,ASC", "versionNumber,DESC"),
+#   deviceStatusCode = "refdata.device-model-status.on-the-market",
+#   languageIso2Code = "en"
+# )
+# 
+# 
+# response = httr::GET(baseUrl, query = params)
 
-
-response = httr::GET(baseUrl, query = params)
-
-# url = sprintf("https://ec.europa.eu/tools/eudamed/api/devices/udiDiData?page=%s&pageSize=%s&size=%s&iso2Code=en&sort=primaryDi,ASC&sort=versionNumber,DESC&deviceStatusCode=refdata.device-model-status.on-the-market&languageIso2Code=en", 1, pageSize, pageSize)
 url = sprintf("https://ec.europa.eu/tools/eudamed/api/devices/udiDiData?page=%s&pageSize=%s&size=%s&iso2Code=en&deviceStatusCode=refdata.device-model-status.on-the-market&languageIso2Code=en", 0, pageSize, pageSize)
 
 # API 요청
@@ -132,6 +131,51 @@ resDtlData = httr::content(apiResDtl, as = "text", encoding = "UTF-8") %>%
 
 # resDtlData$manufacturer
 
+# ******************************************************************************
+# Manufacturer details
+# ******************************************************************************
+manDtlInfo = resDtlData$manufacturer
+
+# 1) Actor/Organisation name
+acrOrgName = tryCatch({
+  sprintf("%s[%s]", manDtlInfo$name, toupper(manDtlInfo$names$texts$language$isoCode))
+}, error = function(e) {NA})
+
+
+rvest::read_html(urlDtl) %>% 
+  html_node(xpath = '//*[@id="cdk-accordion-child-0"]/div/div/dl[1]/dd/div') %>%
+  html_text(trim = TRUE)
+
+xml2::read_html(urlDtl) %>%
+  html_nodes(".ng-star-inserted") %>%
+  html_text(trim = TRUE)
+  # html_nodes(xpath = "//td[text()='Actor/Organisation name']/following-sibling::td") %>%
+  # html_text(trim = TRUE)
+
+
+# 2) Actor ID/SRN
+actIdSrn = tryCatch({
+  sprintf("%s", manDtlInfo$srn)
+}, error = function(e) {NA})
+
+
+# 3) Applicable legislation
+# 4) UDI-DU/EUDAMED DI/ Issuing entity
+resDtlData$basicUdi$code
+resDtlData
+
+# 5) Risk class
+# 6) Device name
+# 7) UDI-DI code/Issuing entity
+# 8) Status,Nomenclature code(s)
+# 9) Name/Trade name(s)
+# 10) Member state of the placing on the EU market of the device
+
+
+resDtlData
+
+
+
 resDtlDataL1 = resDtlData$deviceCertificateInfoList %>% 
   tibble::as.tibble()
 
@@ -161,15 +205,6 @@ urlDtl %>%
   xml2::read_html() %>% 
   rvest::html_element("#cdk-accordion-child-1")
 
-# 2) Actor ID/SRN
-# 3) Applicable legislation
-# 4) Basic UDI-DU/EUDAMED DI/ Issuing entity
-# 5) Risk class
-# 6) Device name
-# 7) UDI-DI code/Issuing entity
-# 8) Status,Nomenclature code(s)
-# 9) Name/Trade name(s)
-# 10) Member state of the placing on the EU market of the device
 
 
 
