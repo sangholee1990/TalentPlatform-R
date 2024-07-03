@@ -127,7 +127,7 @@ for (pageInfo in pageList) {
     
     apiDtlDev = sprintf("https://ec.europa.eu/tools/eudamed/api/devices/basicUdiData/udiDiData/%s?languageIso2Code=en", uuidInfo)
     apiDtlTool = sprintf("https://ec.europa.eu/tools/eudamed/api/devices/udiDiData/%s?languageIso2Code=en", uuidInfo)
-    # urlDtl = sprintf("https://ec.europa.eu/tools/eudamed/#/screen/search-device/%s", uuidInfo)
+    urlDtl = sprintf("https://ec.europa.eu/tools/eudamed/#/screen/search-device/%s", uuidInfo)
     
     # API 요청/응답
     resDtlDevData = httr::GET(apiDtlDev) %>% 
@@ -186,14 +186,13 @@ for (pageInfo in pageList) {
       sprintf("%s [%s]", resDtlToolData$tradeName$texts$text, resDtlToolData$tradeName$texts$language$isoCode %>% toupper())
     }, error = function(e) {NA})
     
-    
     # 10) Member state of the placing on the EU market of the device
     memberState = tryCatch({
       sprintf("%s", resDtlToolData$placedOnTheMarket$name)
     }, error = function(e) {NA})
     
     data = tibble::tibble(
-      pageInfo, uuidInfo, api, apiDtlDev, apiDtlTool
+      pageInfo, uuidInfo, api, urlDtl, apiDtlDev, apiDtlTool
       , acrOrgName, actIdSrn, udiDu, riskCls, devName, udiDi, status, tradeName, memberState 
     )
     
