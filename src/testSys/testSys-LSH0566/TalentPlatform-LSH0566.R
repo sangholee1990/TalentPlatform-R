@@ -100,7 +100,8 @@ dataL1 = tibble::tibble()
 for (pageInfo in pageList) {
   
   # 테스트 조건
-  if (pageInfo > 2) next
+  # if (pageInfo > 0) next
+  if (pageInfo > 1) next
   
   per = round(pageInfo / length(pageList) * 100, 2)
   cat(sprintf("[CHECK] per : %s %%", per), "\n")
