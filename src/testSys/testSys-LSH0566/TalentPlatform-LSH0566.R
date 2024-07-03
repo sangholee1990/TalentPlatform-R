@@ -83,13 +83,13 @@ pageList = 0:pageMax
 apiCodeA = "https://ec.europa.eu/tools/eudamed/api/translationTexts/target/?target=a&language=en&languageIso2Code=undefined"
 
 resCodeA = httr::GET(apiCodeA) %>% 
-  httr::content(apiResDtl, as = "text", encoding = "UTF-8") %>% 
+  httr::content(as = "text", encoding = "UTF-8") %>% 
   jsonlite::fromJSON()
 
 apiCodeP = "https://ec.europa.eu/tools/eudamed/api/translationTexts/target/?target=p&language=en&languageIso2Code=undefined"
 
 resCodeP = httr::GET(apiCodeP) %>% 
-  httr::content(apiResDtl, as = "text", encoding = "UTF-8") %>% 
+  httr::content(as = "text", encoding = "UTF-8") %>% 
   jsonlite::fromJSON()
 
 
@@ -98,6 +98,8 @@ resCodeP = httr::GET(apiCodeP) %>%
 # ******************************************************************************
 dataL1 = tibble::tibble()
 for (pageInfo in pageList) {
+  
+  # 테스트 조건
   if (pageInfo > 2) next
   
   per = round(pageInfo / length(pageList) * 100, 2)
@@ -201,6 +203,8 @@ for (pageInfo in pageList) {
 }
 
 # 엑셀 저장
+print(dataL1)
+
 saveXlsxFile = sprintf("%s/%s/%s.xlsx", globalVar$outPath, serviceName, "dataL1")
 dir.create(fs::path_dir(saveXlsxFile), showWarnings = FALSE, recursive = TRUE)
 wb = openxlsx::createWorkbook()
