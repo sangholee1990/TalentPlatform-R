@@ -274,8 +274,10 @@ for (pageInfo in pageList) {
     dataL1 = dplyr::bind_rows(dataL1, data)
   }
 
-  readr::write_csv(x = dataL1, file = saveFile)
-  cat(sprintf("[CHECK] saveFile : %s", saveFile), "\n")
+  if (nrow(dataL1) > 0) {
+    readr::write_csv(x = dataL1, file = saveFile)
+    cat(sprintf("[CHECK] saveFile : %s", saveFile), "\n")  
+  }
 }
 
 # 데이터 병합 
