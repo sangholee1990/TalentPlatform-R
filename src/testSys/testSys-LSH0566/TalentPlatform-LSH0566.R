@@ -225,7 +225,7 @@ for (pageInfo in pageList) {
     
     # 13) UDI-DI details 섹션 내 additional product description
     addProDesc = tryCatch({
-      sprintf("%s", resDtlToolData$additionalDescription)
+      sprintf("%s [%s]", resDtlToolData$additionalDescription$text$text, resDtlToolData$additionalDescription$text$language$isoCode %>% toupper())
     }, error = function(e) {NA})
     
     # 데이터 변환
