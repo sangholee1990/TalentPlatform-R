@@ -14,16 +14,6 @@ output:
     dev: pdf
     highlight: tango
     latex_engine: xelatex
-  html_document:
-    theme: default
-    self_contained: true
-    toc: false
-    df_print: kable
-    fig_caption: false
-    number_sections: false
-    smart: true
-    dev: svg
-    latex_engine: xelatex
 mainfont: "Malgun Gothic"
 ---
 
@@ -113,7 +103,7 @@ library(rvest)
 library(curl)
 
 # 함수 선언
-errorHander = function(x) {
+errorHandler = function(x) {
   ifelse(is.na(x) || length(x) == 0 || x == "", NA, x)
 }
 
@@ -206,69 +196,69 @@ for (pageInfo in pageList) {
     
     # 1) Actor/Organisation name
     acrOrgName = tryCatch({
-      sprintf("%s[%s]", manDtlInfo$name, manDtlInfo$names$texts$language$isoCode %>% toupper()) %>% errorHander()
+      sprintf("%s[%s]", manDtlInfo$name, manDtlInfo$names$texts$language$isoCode %>% toupper()) %>% errorHandler()
     }, error = function(e) {NA})
     
     # 2) Actor ID/SRN
     actIdSrn = tryCatch({
-      sprintf("%s", manDtlInfo$srn) %>% errorHander()
+      sprintf("%s", manDtlInfo$srn) %>% errorHandler()
     }, error = function(e) {NA})
     
     # 3) Applicable legislation
     appLeg = tryCatch({
-      sprintf("%s", resCodeA[resDtlDevData$legislation$code] %>% unlist()) %>% errorHander()
+      sprintf("%s", resCodeA[resDtlDevData$legislation$code] %>% unlist()) %>% errorHandler()
     }, error = function(e) {NA})
     
     # 4) UDI-DU/EUDAMED DI/ Issuing entity
     udiDu = tryCatch({
       issEnt = resCodeA[resDtlDevData$basicUdi$issuingAgency$code] %>% unlist()
-      sprintf("%s / %s", resDtlDevData$basicUdi$code, issEnt) %>% errorHander()
+      sprintf("%s / %s", resDtlDevData$basicUdi$code, issEnt) %>% errorHandler()
     }, error = function(e) {NA})
     
     # 5) Risk class`refdata.risk
     riskCls = tryCatch({
-      sprintf("%s", resCodeA[resDtlDevData$riskClass$code] %>% unlist()) %>% errorHander()
+      sprintf("%s", resCodeA[resDtlDevData$riskClass$code] %>% unlist()) %>% errorHandler()
     }, error = function(e) {NA})
     
     # 6) Device name
     devName = tryCatch({
-      sprintf("%s", resDtlDevData$deviceName) %>% errorHander()
+      sprintf("%s", resDtlDevData$deviceName) %>% errorHandler()
     }, error = function(e) {NA})
     
     # 7) UDI-DI code/Issuing entity
     udiDi = tryCatch({
-      sprintf("%s / %s", resDtlToolData$primaryDi$code, resCodeA[resDtlToolData$primaryDi$issuingAgency$code] %>% unlist()) %>% errorHander()
+      sprintf("%s / %s", resDtlToolData$primaryDi$code, resCodeA[resDtlToolData$primaryDi$issuingAgency$code] %>% unlist()) %>% errorHandler()
     }, error = function(e) {NA})
     
     # 8) Status,Nomenclature code(s)
     status = tryCatch({
       tmpCode = (resDtlToolData$cndNomenclatures$description$texts %>% unlist())["text"] %>% tolower()
-      sprintf("%s: %s", resDtlToolData$cndNomenclatures$code, paste0(toupper(substring(tmpCode, 1, 1)), substring(tmpCode, 2))) %>% errorHander()
+      sprintf("%s: %s", resDtlToolData$cndNomenclatures$code, paste0(toupper(substring(tmpCode, 1, 1)), substring(tmpCode, 2))) %>% errorHandler()
     }, error = function(e) {NA})
     
     # 9) Name/Trade name(s)
     tradeName = tryCatch({
-      sprintf("%s [%s]", resDtlToolData$tradeName$texts$text, resDtlToolData$tradeName$texts$language$isoCode %>% toupper()) %>% errorHander()
+      sprintf("%s [%s]", resDtlToolData$tradeName$texts$text, resDtlToolData$tradeName$texts$language$isoCode %>% toupper()) %>% errorHandler()
     }, error = function(e) {NA})
     
     # 10) Member state of the placing on the EU market of the device
     memberState = tryCatch({
-      sprintf("%s", resDtlToolData$placedOnTheMarket$name) %>% errorHander()
+      sprintf("%s", resDtlToolData$placedOnTheMarket$name) %>% errorHandler()
     }, error = function(e) {NA})
     
     # 11) Basic UDI-DI details 섹션 내 Version
     version = tryCatch({
-      sprintf("Version %s", resDtlDevData$versionNumber) %>% errorHander()
+      sprintf("Version %s", resDtlDevData$versionNumber) %>% errorHandler()
     }, error = function(e) {NA})
     
     # 12) Basic UDI-DI details 섹션 내 Last update date
     lastUpdData = tryCatch({
-      sprintf("%s", resDtlToolData$deviceStatus$statusDate) %>% errorHander()
+      sprintf("%s", resDtlToolData$deviceStatus$statusDate) %>% errorHandler()
     }, error = function(e) {NA})
     
     # 13) UDI-DI details 섹션 내 additional product description
     addProDesc = tryCatch({
-      sprintf("%s [%s]", resDtlToolData$additionalDescription$text$text, resDtlToolData$additionalDescription$text$language$isoCode %>% toupper()) %>% errorHander()
+      sprintf("%s [%s]", resDtlToolData$additionalDescription$text$text, resDtlToolData$additionalDescription$text$language$isoCode %>% toupper()) %>% errorHandler()
     }, error = function(e) {NA})
     
     # 데이터 변환
