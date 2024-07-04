@@ -32,6 +32,10 @@
 # 3. 위 스크래핑해온 10가지 항목을 dataframe으로 만든 후 엑셀로 추출
 # 4. 결과: 10 X 471839 크기의 데이터셋
 
+# 다만 혹시, 3번 요청항목 "Application legislation" 컬럼을 보지못했는데 추가해주실 수 있을까요?
+
+# 그리고, 혹시 3개 컬럼을 추가로 요청드려도 될지도 여쭈어요 (1. Basic UDI-DI details 섹션 내 Version, 2. Last update date, 3. UDI-DI details 섹션 내 additional product description)
+
 # ================================================
 # 초기 환경변수 설정
 # ================================================
@@ -110,7 +114,7 @@ for (pageInfo in pageList) {
   dir.create(fs::path_dir(saveFile), showWarnings = FALSE, recursive = TRUE)
   
   isFile = file.exists(path = saveFile)
-  if (isFile == TRUE) next
+  # if (isFile == TRUE) next
   
   api = sprintf("https://ec.europa.eu/tools/eudamed/api/devices/udiDiData?page=%s&pageSize=%s&size=%s&iso2Code=en&deviceStatusCode=refdata.device-model-status.on-the-market&languageIso2Code=en", pageInfo, pageSize, pageSize)
   
@@ -168,6 +172,10 @@ for (pageInfo in pageList) {
     }, error = function(e) {NA})
     
     # 3) Applicable legislation
+    appLeg = tryCatch({
+      sprintf("%s", resCodeA[resDtlDevData$legislation$code] %>% unlist())
+    }, error = function(e) {NA})
+    
     # 4) UDI-DU/EUDAMED DI/ Issuing entity
     udiDu = tryCatch({
       issEnt = resCodeA[resDtlDevData$basicUdi$issuingAgency$code] %>% unlist()
@@ -205,9 +213,25 @@ for (pageInfo in pageList) {
       sprintf("%s", resDtlToolData$placedOnTheMarket$name)
     }, error = function(e) {NA})
     
+    # 11) Basic UDI-DI details 섹션 내 Version
+    version = tryCatch({
+      sprintf("Version %s", resDtlDevData$versionNumber)
+    }, error = function(e) {NA})
+    
+    # 12) Basic UDI-DI details 섹션 내 Last update date
+    lastUpdData = tryCatch({
+      sprintf("%s", resDtlToolData$deviceStatus$statusDate)
+    }, error = function(e) {NA})
+    
+    # 13) UDI-DI details 섹션 내 additional product description
+    addProDesc = tryCatch({
+      sprintf("%s", resDtlToolData$additionalDescription)
+    }, error = function(e) {NA})
+    
+    # 데이터 변환
     data = tibble::tibble(
       pageInfo, uuidInfo, api, urlDtl, apiDtlDev, apiDtlTool
-      , acrOrgName, actIdSrn, udiDu, riskCls, devName, udiDi, status, tradeName, memberState 
+      , acrOrgName, actIdSrn, appLeg, udiDu, riskCls, devName, udiDi, status, tradeName, memberState, version, lastUpdData, addProDesc
     )
     
     dataL1 = dplyr::bind_rows(dataL1, data)
