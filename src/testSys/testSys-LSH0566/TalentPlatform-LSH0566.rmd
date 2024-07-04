@@ -133,15 +133,22 @@ resCodeP = httr::GET(apiCodeP) %>%
 # ******************************************************************************
 # 기본 API 요청
 # ******************************************************************************
-dataL1 = tibble::tibble()
 for (pageInfo in pageList) {
   
   # 테스트 조건
   # if (pageInfo > 0) next
-  if (pageInfo > 1) next
+  # if (pageInfo > 1) next
+  if (pageInfo > 2) next
   
   per = round(pageInfo / length(pageList) * 100, 2)
   cat(sprintf("[CHECK] per : %s %%", per), "\n")
+  
+  # 파일 검사
+  saveFile = sprintf("%s/%s/%s-%s-%s.csv", globalVar$outPath, serviceName, "dataL1", pageSize, pageInfo)
+  dir.create(fs::path_dir(saveFile), showWarnings = FALSE, recursive = TRUE)
+  
+  isFile = file.exists(path = saveFile)
+  if (isFile == TRUE) next
   
   api = sprintf("https://ec.europa.eu/tools/eudamed/api/devices/udiDiData?page=%s&pageSize=%s&size=%s&iso2Code=en&deviceStatusCode=refdata.device-model-status.on-the-market&languageIso2Code=en", pageInfo, pageSize, pageSize)
   
@@ -161,6 +168,7 @@ for (pageInfo in pageList) {
   # ******************************************************************************
   # 세부 API 요청
   # ******************************************************************************
+  dataL1 = tibble::tibble()
   uuidList = resDataL1$uuid
   for (uuidInfo in uuidList) {
     cat(sprintf("[CHECK] pageInfo : %s / uuidInfo : %s", pageInfo, uuidInfo), "\n")
@@ -174,9 +182,13 @@ for (pageInfo in pageList) {
       httr::content(as = "text", encoding = "UTF-8") %>%
       jsonlite::fromJSON()
     
+    if (nrow(resDtlDevData) < 1) next
+    
     resDtlToolData = httr::GET(apiDtlTool) %>% 
       httr::content(as = "text", encoding = "UTF-8") %>%
       jsonlite::fromJSON()
+    
+    if (nrow(resDtlToolData) < 1) next
     
     # ******************************************************************************
     # 데이터 가공
@@ -238,9 +250,19 @@ for (pageInfo in pageList) {
     
     dataL1 = dplyr::bind_rows(dataL1, data)
   }
+
+
+  readr::write_csv(x = dataL1, file = saveFile)
+  cat(sprintf("[CHECK] saveFile : %s", saveFile), "\n")
 }
 
-# 엑셀 저장
+# 데이터 병합 
+fileList = Sys.glob(file.path(globalVar$outPath, serviceName, "dataL1-*-*.csv"))
+
+dataL1 = fileList %>%
+  purrr::map(readr::read_csv) %>%
+  purrr::reduce(dplyr::bind_rows)
+
 print(dataL1)
 
 saveXlsxFile = sprintf("%s/%s/%s.xlsx", globalVar$outPath, serviceName, "dataL1")
