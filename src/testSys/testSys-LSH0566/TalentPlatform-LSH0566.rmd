@@ -185,13 +185,13 @@ for (pageInfo in pageList) {
       httr::content(as = "text", encoding = "UTF-8") %>%
       jsonlite::fromJSON()
     
-    if (nrow(resDtlDevData) < 1) next
+    if (length(resDtlDevData) < 1) next
     
     resDtlToolData = httr::GET(apiDtlTool) %>% 
       httr::content(as = "text", encoding = "UTF-8") %>%
       jsonlite::fromJSON()
     
-    if (nrow(resDtlToolData) < 1) next
+    if (length(resDtlToolData) < 1) next
     
     # ******************************************************************************
     # 데이터 가공
@@ -273,7 +273,6 @@ for (pageInfo in pageList) {
     
     dataL1 = dplyr::bind_rows(dataL1, data)
   }
-
 
   readr::write_csv(x = dataL1, file = saveFile)
   cat(sprintf("[CHECK] saveFile : %s", saveFile), "\n")
