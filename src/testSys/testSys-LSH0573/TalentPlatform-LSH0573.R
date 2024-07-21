@@ -16,31 +16,31 @@
 # ================================================
 # 초기 환경변수 설정
 # ================================================
-# env = "local"  # 로컬 : 원도우 환경, 작업환경 (현재 소스 코드 환경 시 .) 설정
-# # env = "dev"  # 개발 : 원도우 환경, 작업환경 (사용자 환경 시 contextPath) 설정
-# # env = "oper"  # 운영 : 리눅스 환경, 작업환경 (사용자 환경 시 contextPath) 설정
-# 
-# prjName = "test"
-# serviceName = "LSH0573"
-# 
-# if (Sys.info()[["sysname"]] == "Windows") {
-#   contextPath = ifelse(env == "local", getwd(), "C:/SYSTEMS/PROG/R/TalentPlatform-R")
-# } else {
-#   contextPath = ifelse(env == "local", getwd(), "/SYSTEMS/PROG/R/PyCharm")
-# }
-# 
-# if (env == "local") {
-#   globalVar = list(
-#     "inpPath" = contextPath
-#     , "figPath" = contextPath
-#     , "outPath" = contextPath
-#     , "tmpPath" = contextPath
-#     , "logPath" = contextPath
-#   )
-# } else {
-#   # source(here::here(file.path(contextPath, "src"), "InitConfig.R"), encoding = "UTF-8")
-#   source(file.path(contextPath, "src", "InitConfig.R"))
-# }
+env = "local"  # 로컬 : 원도우 환경, 작업환경 (현재 소스 코드 환경 시 .) 설정
+# env = "dev"  # 개발 : 원도우 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+# env = "oper"  # 운영 : 리눅스 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+
+prjName = "test"
+serviceName = "LSH0573"
+
+if (Sys.info()[["sysname"]] == "Windows") {
+  contextPath = ifelse(env == "local", getwd(), "C:/SYSTEMS/PROG/R/TalentPlatform-R")
+} else {
+  contextPath = ifelse(env == "local", getwd(), "/SYSTEMS/PROG/R/PyCharm")
+}
+
+if (env == "local") {
+  globalVar = list(
+    "inpPath" = contextPath
+    , "figPath" = contextPath
+    , "outPath" = contextPath
+    , "tmpPath" = contextPath
+    , "logPath" = contextPath
+  )
+} else {
+  # source(here::here(file.path(contextPath, "src"), "InitConfig.R"), encoding = "UTF-8")
+  source(file.path(contextPath, "src", "InitConfig.R"))
+}
 
 # ================================================
 # 비즈니스 로직 수행
@@ -57,8 +57,7 @@ library(caret)
 library(rpart)
 
 # Load the data
-# fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "UniversalBank.xlsx"))
-fileInfo = Sys.glob(file.path(globalVar$inpPath, "LSH0573", "UniversalBank.xlsx"))
+fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "UniversalBank.xlsx"))
 data = openxlsx::read.xlsx(fileInfo, sheet = 1, startRow = 1) %>% 
   as.tibble()
 
