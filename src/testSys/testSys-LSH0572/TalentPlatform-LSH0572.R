@@ -67,8 +67,8 @@ library(RmecabKo)
 # 네이버 뉴스 API 수집
 # *************************************************************
 # 네이버 아이디/비밀번호
-reqId = ""
-reqPw = ""
+reqId = "BNDqTQqb0NECaQN56flk"
+reqPw = "5t2GECIt1m"
 
 # API 주소
 reqUrl = "https://openapi.naver.com/v1/search/news.json"
