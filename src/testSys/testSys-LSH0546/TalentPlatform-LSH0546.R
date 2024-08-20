@@ -78,7 +78,8 @@ ggplotDefaultColor = scales::hue_pal()(3)
 # ================================================
 # 파일 읽기
 # ================================================
-fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "20240307_엑셀-크몽.xlsx"))
+# fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "20240307_엑셀-크몽.xlsx"))
+fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "20240820_엑셀+크몽5.xlsx"))
 
 data = openxlsx::read.xlsx(fileInfo, sheet = 1)
 data$group = as.factor(data$group)
@@ -142,7 +143,8 @@ for (typeInfo in typeList) {
     
     plotSubTitle = sprintf("%s_%s%s-axis-error", typeInfo, colInfo[[1]], colInfo[[2]])
     # saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, plotSubTitle)
-    saveImg = sprintf("%s/%s/%s.tiff", globalVar$figPath, serviceName, plotSubTitle)
+    # saveImg = sprintf("%s/%s/%s.tiff", globalVar$figPath, serviceName, plotSubTitle)
+    saveImg = sprintf("%s/%s/FIG/%s.tiff", globalVar$figPath, serviceName, plotSubTitle)
     dir.create(fs::path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
     
     makePlot = ggplot() +
