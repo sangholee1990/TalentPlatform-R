@@ -13,25 +13,11 @@
 #================================================
 # R을 이용한 2차원 (X, Y, Z 평면) 내 산점도 및 신뢰구간 95% 시각화
 
-# 안녕하세요. 문의사항이 있어 연락드립니다.
-# 논문투고용 figure 가 필요한데, 해당 data 를 excel 로 가지고 있고 통계는 다 돌렸습니다.
-# 다만 scatterplot 및 95% confidence boundary 를 나타낸 그림이 필요한데, 다른 분께서 진행하신 기존 작업물들이 다 R program 으로 그리셨더라구요.
-# 그래서 R program 으로 제작의뢰드려고 하는데 가능한지 궁금합니다. figure 예시 첨부드립니다. 감사합니다.
+# 1. 점보다는 confidence boundary 인 점선이 더 눈에 띄고 싶습니다. 점의 크기를 지금보다 약 20-30% 정도 작게 할 수 있을까요.
 
-# 1. Group 명을 아래와 같이 변경해주세요.
-# 
-# 0 -> Maxilla-first
-# 1 -> Mandible-first
-# 2 -> Mandible only
-# 
-# 2. Group 색깔을 현재 보내주신 것에서 1번과 2번을 바꿔주세요.
-# 
-# 3. 95% confidence boundary 는 점선이 되게 해주세요. 그리고 예시처럼 점선이 조금만 더 촘촘하게 해주세요.
-# 
-# 
-# 4. 현재 그래프가 좀 큰 것 같습니다 (제가 보내드린 예시 그래프와 비교해보면 축 눈금에서 4mm보다 큰 부위와 -4mm 보다 작은 부위 여유공간이 적어보입니다.). 예시 보내주신 것과 같이 해주시면 감사하겠습니다.
+# 2. 점선의 색깔을 점보다는 더 눈에 띄게 채도? 등을 조금 변경할 수 있을까요. 그리고 점선이 더 촘촘하게 찍혔으면 좋겠습니다.
 
-# 다만 이게 논문에 싣을거라 TIF or TIFF 형태로 300DPI 이상으로 해주실 수 있을까요?
+# 3. Index 에 Mandible only 를 Mandible-only 로 수정해주시면 감사하겠습니다.
 
 # ================================================
 # 초기 환경변수 설정
@@ -44,9 +30,9 @@ prjName = "test"
 serviceName = "LSH0546"
 
 if (Sys.info()[["sysname"]] == "Windows") {
-  contextPath = ifelse(env == "local", ".", "C:/SYSTEMS/PROG/R/TalentPlatform-R")
+  contextPath = ifelse(env == "local", getwd(), "C:/SYSTEMS/PROG/R/TalentPlatform-R")
 } else {
-  contextPath = ifelse(env == "local", ".", "/SYSTEMS/PROG/R/PyCharm")
+  contextPath = ifelse(env == "local", getwd(), "/SYSTEMS/PROG/R/PyCharm")
 }
 
 if (env == "local") {
@@ -74,6 +60,13 @@ library(scales)
 library(fs)
 
 ggplotDefaultColor = scales::hue_pal()(3)
+# c("#F8766D", "#00BA38", "#619CFF")
+
+# ggplotDefaultColorNew = scales::muted(ggplotDefaultColor, l = 100)
+# "#82261D" "#005800" "#004696"
+# "#B85B55" "#088A29" "#4B76C1"
+# "#D47670" "#3BA44B" "#6A90DB"
+# "#FFE5DF" "#B6FFC0" "#DEFFFF"
 
 # ================================================
 # 파일 읽기
@@ -113,7 +106,6 @@ for (typeInfo in typeList) {
       )
     
     
-    # i = 1
     # groupInfo = 0
     statDataL1 = tibble::tibble()
     statDataL2 = tibble::tibble()
@@ -130,8 +122,10 @@ for (typeInfo in typeList) {
         dplyr::select(dplyr::ends_with(colInfo[[2]])) %>%
         magrittr::set_colnames(c("mean", "sd"))
       
-      x = cos(seq(0, 5 * pi, length.out = 100)) * (1.96 * statDataX$sd) + statDataX$mean
-      y = sin(seq(0, 5 * pi, length.out = 100)) * (1.96 * statDataY$sd) + statDataY$mean
+      # x = cos(seq(0, 5 * pi, length.out = 100)) * (1.96 * statDataX$sd) + statDataX$mean
+      # y = sin(seq(0, 5 * pi, length.out = 100)) * (1.96 * statDataY$sd) + statDataY$mean
+      x = cos(seq(0, 5 * pi, length.out = 10000)) * (1.96 * statDataX$sd) + statDataX$mean
+      y = sin(seq(0, 5 * pi, length.out = 10000)) * (1.96 * statDataY$sd) + statDataY$mean
       
       tmpData = tibble::tibble(group = groupInfo, x = x, y = y) %>% 
         dplyr::mutate(angle = atan2(y, x)) %>%
@@ -152,13 +146,15 @@ for (typeInfo in typeList) {
       geom_vline(xintercept = 0, colour = "grey", linetype = "dashed") +
       
       # geom_point(data = dataL1, aes(colInfo[[1]], colInfo[[2]], colour = group)) +
-      geom_point(data = dataL1, aes(x = !!sym(colInfo[[1]]), y = !!sym(colInfo[[2]]), colour = group)) +
+      geom_point(data = dataL1, aes(x = !!sym(colInfo[[1]]), y = !!sym(colInfo[[2]]), colour = factor(group)), size = 1, alpha = 0.4) +
       
       # geom_point(data = statDataL1, aes(x, y, color = group), shape=17, size=3, show.legend = FALSE) +
       geom_point(data = statDataL1 %>% dplyr::filter(group == 0), aes(x, y), color = "red", shape=17, size=3, show.legend = FALSE) +
       geom_point(data = statDataL1 %>% dplyr::filter(group == 1), aes(x, y), color = "blue", shape=17, size=3, show.legend = FALSE) +
       geom_point(data = statDataL1 %>% dplyr::filter(group == 2), aes(x, y), color = "green", shape=17, size=3, show.legend = FALSE) +
-      geom_path(data = statDataL2, aes(x, y, colour = group), size = 0.5, linetype = 2, show.legend = FALSE) +
+      # geom_path(data = statDataL2, aes(x, y, colour = factor(group)), size = 0.5, linetype = 2, show.legend = FALSE) +
+      geom_path(data = statDataL2, aes(x, y, colour = factor(group)), size = 0.5, linetype = 2, show.legend = FALSE) +
+      # geom_path(data = statDataL2, aes(x, y, colour = factor(group)), size = 0.5, linetype = 3, show.legend = FALSE) +
       labs(title = NULL, x = sprintf("%s-axis error (mm)", colInfo[[1]]), y =  sprintf("%s-axis error (mm)", colInfo[[2]]), color = "group") +
       # xlim(-5, 5) +
       # ylim(-5, 5) +
@@ -174,10 +170,14 @@ for (typeInfo in typeList) {
       scale_color_manual(
         name = NULL
         , na.value = "transparent"
-        , values = c("0" = ggplotDefaultColor[1], "1" = ggplotDefaultColor[3], "2" = ggplotDefaultColor[2])
-        , labels = c("Maxilla-first", "Mandible-first", "Mandible only")
+        , values = c(
+          "0" = ggplotDefaultColor[1]
+          , "1" = ggplotDefaultColor[3]
+          , "2" = ggplotDefaultColor[2]
+          )
+        , labels = c("Maxilla-first", "Mandible-first", "Mandible-only")
       )
-    
+      
     ggsave(makePlot, filename = saveImg, width = 5, height = 5, dpi = 600)
     
     # shell.exec(saveImg)
