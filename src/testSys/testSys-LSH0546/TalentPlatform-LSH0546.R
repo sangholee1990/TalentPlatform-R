@@ -19,6 +19,11 @@
 
 # 3. Index 에 Mandible only 를 Mandible-only 로 수정해주시면 감사하겠습니다.
 
+
+# 1. 각 점들의 크기가 줄고 연하게 표시된 것은 좋으나, 너무 작고 연한 색깔이 된 것 같습니다. 크기를 지금보다는 조금만 더 키워주시고 색깔은 조금만 덜 연하게 해주시면 감사하겠습니다.
+
+# 2. Boundary 가 너무 연하게 표시되었습니다. Boundary 가 점보다 더 진하게(더 쨍하게? 더 눈에띄게?)강조해주시면 감사하겠습니다. 그리고 Boundary 가 dot dot dot 으로 디자인된 점선인데, - - - - 이런식으로 표시된 점선이면 좋겠습니다.
+
 # ================================================
 # 초기 환경변수 설정
 # ================================================
@@ -146,15 +151,17 @@ for (typeInfo in typeList) {
       geom_vline(xintercept = 0, colour = "grey", linetype = "dashed") +
       
       # geom_point(data = dataL1, aes(colInfo[[1]], colInfo[[2]], colour = group)) +
-      geom_point(data = dataL1, aes(x = !!sym(colInfo[[1]]), y = !!sym(colInfo[[2]]), colour = factor(group)), size = 1, alpha = 0.4) +
+      # geom_point(data = dataL1, aes(x = !!sym(colInfo[[1]]), y = !!sym(colInfo[[2]]), colour = factor(group)), size = 1, alpha = 0.4) +
+      geom_point(data = dataL1, aes(x = !!sym(colInfo[[1]]), y = !!sym(colInfo[[2]]), colour = factor(group)), size = 1.5, alpha = 0.5) +
       
       # geom_point(data = statDataL1, aes(x, y, color = group), shape=17, size=3, show.legend = FALSE) +
       geom_point(data = statDataL1 %>% dplyr::filter(group == 0), aes(x, y), color = "red", shape=17, size=3, show.legend = FALSE) +
       geom_point(data = statDataL1 %>% dplyr::filter(group == 1), aes(x, y), color = "blue", shape=17, size=3, show.legend = FALSE) +
       geom_point(data = statDataL1 %>% dplyr::filter(group == 2), aes(x, y), color = "green", shape=17, size=3, show.legend = FALSE) +
       # geom_path(data = statDataL2, aes(x, y, colour = factor(group)), size = 0.5, linetype = 2, show.legend = FALSE) +
-      geom_path(data = statDataL2, aes(x, y, colour = factor(group)), size = 0.5, linetype = 2, show.legend = FALSE) +
+      # geom_path(data = statDataL2, aes(x, y, colour = factor(group)), size = 0.5, linetype = 2, show.legend = FALSE) +
       # geom_path(data = statDataL2, aes(x, y, colour = factor(group)), size = 0.5, linetype = 3, show.legend = FALSE) +
+      geom_path(data = statDataL2, aes(x, y, colour = factor(group)), size = 0.75, linetype = 11, show.legend = FALSE) +
       labs(title = NULL, x = sprintf("%s-axis error (mm)", colInfo[[1]]), y =  sprintf("%s-axis error (mm)", colInfo[[2]]), color = "group") +
       # xlim(-5, 5) +
       # ylim(-5, 5) +
