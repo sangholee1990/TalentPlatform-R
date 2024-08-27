@@ -90,7 +90,8 @@ dataL2 = dplyr::left_join(dataL1, statData, by = c("key" = "key")) %>%
 
 capacityScale = max(dataL2$Jobs_ths, na.rm = TRUE) / max(dataL2$Capacity_GW, na.rm = TRUE)
 lineOffset = max(dataL2$Jobs_ths, na.rm = TRUE) * 0.05
-secAxisOffset = 50
+# secAxisOffset = 50
+secAxisOffset = 0
 
 mainTitle = sprintf("%s", "China-India_Jobs")
 saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
@@ -100,6 +101,7 @@ ggplot(dataL2, aes(x = Year, color = key, fill = key)) +
   geom_bar(aes(y = Jobs_ths, color = NULL, group = interaction(Country)), stat = "identity", position = position_dodge(width = 0.9), alpha = 0.5) +
   geom_line(aes(y = val + secAxisOffset), linetype = "solid", size = 1, position = position_dodge(width = 0.9), show.legend = FALSE) +
   geom_point(aes(y = val + secAxisOffset), size = 3, shape = 18, position = position_dodge(width = 0.9), show.legend = FALSE) +
+  geom_text(aes(y = val, label = round(val, 1)), color = "black", position = position_dodge(width = 0.9), vjust = -1.0, size = 3, show.legend = FALSE) +
   scale_x_continuous(minor_breaks=seq(2010, 2020, 1), breaks=seq(2010, 2020, 1), limits=c(2014.5, 2020.5)) +
   scale_y_continuous(
     name = "Jobs (thousands)",
@@ -148,7 +150,8 @@ dataL2 = dplyr::left_join(dataL1, statData, by = c("key" = "key")) %>%
 
 capacityScale = max(dataL2$Earnings_billion, na.rm = TRUE) / max(dataL2$Earning_perGW, na.rm = TRUE)
 lineOffset = max(dataL2$Earning_perGW, na.rm = TRUE) * 0.05
-secAxisOffset = 2.5
+# secAxisOffset = 2.5
+secAxisOffset = 0
 
 mainTitle = sprintf("%s", "China-India_Ear")
 saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
@@ -158,6 +161,7 @@ ggplot(dataL2, aes(x = Year, color = key, fill = key)) +
   geom_bar(aes(y = Earnings_billion, group = interaction(Country), color = NULL), stat = "identity", position = position_dodge(width = 0.9), alpha = 0.5) +
   geom_line(aes(y = val + secAxisOffset), linetype = "solid", size = 1, position = position_dodge(width = 0.9), show.legend = FALSE) +
   geom_point(aes(y = val + secAxisOffset), size = 3, shape = 18, position = position_dodge(width = 0.9), show.legend = FALSE) +
+  geom_text(aes(y = val, label = round(val, 1)), color = "black", position = position_dodge(width = 0.9), vjust = -1.0, size = 3, show.legend = FALSE) +
   scale_x_continuous(minor_breaks=seq(2010, 2020, 1), breaks=seq(2010, 2020, 1), limits=c(2014.5, 2020.5)) +
   scale_y_continuous(
     name = "Job earnings (billion US$)",
