@@ -90,20 +90,22 @@ dataL2 = dplyr::left_join(dataL1, statData, by = c("key" = "key")) %>%
 
 capacityScale = max(dataL2$Jobs_ths, na.rm = TRUE) / max(dataL2$Capacity_GW, na.rm = TRUE)
 lineOffset = max(dataL2$Jobs_ths, na.rm = TRUE) * 0.05
+secAxisOffset = 50
 
 mainTitle = sprintf("%s", "China-India_Jobs")
 saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
 dir.create(fs::path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
 
 ggplot(dataL2, aes(x = Year, color = key, fill = key)) +
-  geom_bar(aes(y = Jobs_ths, color = NULL, group = interaction(Country)), stat = "identity", position = position_dodge(width = 0.9), alpha = 1) +
-  geom_line(aes(y = val), linetype = "solid", size = 1, position = position_dodge(width = 0.9), show.legend = FALSE) +
-  geom_point(aes(y = val), size = 3, shape = 18, position = position_dodge(width = 0.9), show.legend = FALSE) +
+  geom_bar(aes(y = Jobs_ths, color = NULL, group = interaction(Country)), stat = "identity", position = position_dodge(width = 0.9), alpha = 0.5) +
+  geom_line(aes(y = val + secAxisOffset), linetype = "solid", size = 1, position = position_dodge(width = 0.9), show.legend = FALSE) +
+  geom_point(aes(y = val + secAxisOffset), size = 3, shape = 18, position = position_dodge(width = 0.9), show.legend = FALSE) +
   scale_x_continuous(minor_breaks=seq(2010, 2020, 1), breaks=seq(2010, 2020, 1), limits=c(2014.5, 2020.5)) +
   scale_y_continuous(
     name = "Jobs (thousands)",
+    # limits=c(0, 1000),
     breaks = pretty_breaks(),
-    sec.axis = sec_axis(~ (. - lineOffset) / capacityScale, name = "Newly installed capacity (GW)", breaks = pretty_breaks())
+    sec.axis = sec_axis(trans = ~ ((. - lineOffset) / capacityScale) + secAxisOffset, name = "Newly installed capacity (GW)", breaks = pretty_breaks())
   ) +
   # labs(x = "Year", title = mainTitle) +
   labs(x = NULL, title = NULL) +
@@ -118,8 +120,10 @@ ggplot(dataL2, aes(x = Year, color = key, fill = key)) +
         text = element_text(size = 14, family = "serif", face = "bold")) +
   # scale_fill_manual(values = grDevices::colorRampPalette(c("#d65d48", "#599CB4"))(4)) +
   # scale_color_manual(values = grDevices::colorRampPalette(c("#EF8B67", "#92B5CA"))(4)) +
-  scale_fill_manual(values = c("China Solar" = "#ED7D31", "China Wind" = "#C55A11", "India Solar" = "#4472C4", "India Wind" = "#2F5597"), name = NULL, na.value = NA) +
-  scale_color_manual(values = c("China Solar" = "#F6BE98", "China Wind" = "#D68B58", "India Solar" = "#A1B8E1", "India Wind" = "#6D88B6"), name = NULL, na.value = NA) +
+  # scale_fill_manual(values = c("China Solar" = "#ED7D31", "China Wind" = "#C55A11", "India Solar" = "#4472C4", "India Wind" = "#2F5597"), name = NULL, na.value = NA) +
+  # scale_color_manual(values = c("China Solar" = "#F6BE98", "China Wind" = "#D68B58", "India Solar" = "#A1B8E1", "India Wind" = "#6D88B6"), name = NULL, na.value = NA) +
+  scale_fill_manual(values = c("China Solar" = "#a6cee3", "China Wind" = "#1f78b4", "India Solar" = "#b2df8a", "India Wind" = "#33a02c"), name = NULL, na.value = NA) +
+  scale_color_manual(values = c("China Solar" = "#a6cee3", "China Wind" = "#1f78b4", "India Solar" = "#b2df8a", "India Wind" = "#33a02c"), name = NULL, na.value = NA) +
   ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
 
 # shell.exec(saveImg)
@@ -144,20 +148,21 @@ dataL2 = dplyr::left_join(dataL1, statData, by = c("key" = "key")) %>%
 
 capacityScale = max(dataL2$Earnings_billion, na.rm = TRUE) / max(dataL2$Earning_perGW, na.rm = TRUE)
 lineOffset = max(dataL2$Earning_perGW, na.rm = TRUE) * 0.05
+secAxisOffset = 2.5
 
 mainTitle = sprintf("%s", "China-India_Ear")
 saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
 dir.create(fs::path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
 
 ggplot(dataL2, aes(x = Year, color = key, fill = key)) +
-  geom_bar(aes(y = Earnings_billion, group = interaction(Country), color = NULL), stat = "identity", position = position_dodge(width = 0.9), alpha = 1) +
-  geom_line(aes(y = val), linetype = "solid", size = 1, position = position_dodge(width = 0.9), show.legend = FALSE) +
-  geom_point(aes(y = val), size = 3, shape = 18, position = position_dodge(width = 0.9), show.legend = FALSE) +
+  geom_bar(aes(y = Earnings_billion, group = interaction(Country), color = NULL), stat = "identity", position = position_dodge(width = 0.9), alpha = 0.5) +
+  geom_line(aes(y = val + secAxisOffset), linetype = "solid", size = 1, position = position_dodge(width = 0.9), show.legend = FALSE) +
+  geom_point(aes(y = val + secAxisOffset), size = 3, shape = 18, position = position_dodge(width = 0.9), show.legend = FALSE) +
   scale_x_continuous(minor_breaks=seq(2010, 2020, 1), breaks=seq(2010, 2020, 1), limits=c(2014.5, 2020.5)) +
   scale_y_continuous(
     name = "Job earnings (billion US$)",
     breaks = pretty_breaks(),
-    sec.axis = sec_axis(~ (. - lineOffset) / capacityScale, name = "Job earnings per capacity (million US$/GW)", breaks = pretty_breaks())
+    sec.axis = sec_axis(trans = ~ ((. - lineOffset) / capacityScale) + secAxisOffset, name = "Job earnings per capacity (million US$/GW)", breaks = pretty_breaks())
   ) +
   # labs(x = "Year", title = mainTitle) +
   labs(x = NULL, title = NULL) +
@@ -172,8 +177,10 @@ ggplot(dataL2, aes(x = Year, color = key, fill = key)) +
         text = element_text(size = 14, family = "serif", face = "bold")) +
   # scale_fill_manual(values = grDevices::colorRampPalette(c("#d65d48", "#599CB4"))(4)) +
   # scale_color_manual(values = grDevices::colorRampPalette(c("#EF8B67", "#92B5CA"))(4)) +
-  scale_fill_manual(values = c("China Solar" = "#ED7D31", "China Wind" = "#C55A11", "India Solar" = "#4472C4", "India Wind" = "#2F5597"), name = NULL, na.value = NA) +
-  scale_color_manual(values = c("China Solar" = "#F6BE98", "China Wind" = "#D68B58", "India Solar" = "#A1B8E1", "India Wind" = "#6D88B6"), name = NULL, na.value = NA) +
+  # scale_fill_manual(values = c("China Solar" = "#ED7D31", "China Wind" = "#C55A11", "India Solar" = "#4472C4", "India Wind" = "#2F5597"), name = NULL, na.value = NA) +
+  # scale_color_manual(values = c("China Solar" = "#F6BE98", "China Wind" = "#D68B58", "India Solar" = "#A1B8E1", "India Wind" = "#6D88B6"), name = NULL, na.value = NA) +
+  scale_fill_manual(values = c("China Solar" = "#a6cee3", "China Wind" = "#1f78b4", "India Solar" = "#b2df8a", "India Wind" = "#33a02c"), name = NULL, na.value = NA) +
+  scale_color_manual(values = c("China Solar" = "#a6cee3", "China Wind" = "#1f78b4", "India Solar" = "#b2df8a", "India Wind" = "#33a02c"), name = NULL, na.value = NA) +
   ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
 
 # shell.exec(saveImg)
