@@ -26,6 +26,8 @@
 # 2. 예시와 유사하게 각 sample 을 나타내는 dot 을 지금보다 아주 조금만 크기를 줄일 수 있을까요?
 # 3. 예시와 유사하게 평균을 나타내는 삼각형의 크기를 조금만 줄일 수 있을까요?
 
+# 선생님 확인했습니다. 보내주신 Figure 4 가 다 맘에 드는데,, 혹시 mandible-only 그룹의 confidence boundary 색깔만 조금 수정가능할까요? 현재는 너무 형광색같은 초록색인데, 눈이 덜 아픈 녹색으로요.!
+  
 # ================================================
 # 초기 환경변수 설정
 # ================================================
@@ -180,7 +182,7 @@ for (typeInfo in typeList) {
       # geom_path(data = statDataL2, aes(x, y, colour = factor(group)), size = 0.35, linetype = 2, show.legend = FALSE, alpha = 1.0) +
       geom_path(data = statDataL2 %>% dplyr::filter(group == 0), aes(x, y), color = "red", size = 0.4, linetype = 2, show.legend = FALSE, alpha = 1.0) +
       geom_path(data = statDataL2 %>% dplyr::filter(group == 1), aes(x, y), color = "blue", size = 0.4, linetype = 2, show.legend = FALSE, alpha = 1.0) +
-      geom_path(data = statDataL2 %>% dplyr::filter(group == 2), aes(x, y), color = "green", size = 0.4, linetype = 2, show.legend = FALSE, alpha = 1.0) +
+      geom_path(data = statDataL2 %>% dplyr::filter(group == 2), aes(x, y), color = "#008000", size = 0.4, linetype = 2, show.legend = FALSE, alpha = 1.0) +
       # geom_segment(data = statDataL3, aes(x = x, y = y, xend = xend, yend = yend, colour = factor(group)), size = 0.75, linetype = 4, show.legend = FALSE) +
       labs(title = NULL, x = sprintf("%s-axis error (mm)", colInfo[[1]]), y =  sprintf("%s-axis error (mm)", colInfo[[2]]), color = "group") +
       # xlim(-5, 5) +
