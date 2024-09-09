@@ -64,7 +64,7 @@ fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "Employment_Result
 # FIG 3ab
 # ==============================================================================
 # Import data
-data <- read_excel(fileInfo, sheet = "Fig 2")
+data = read_excel(fileInfo, sheet = "Fig 2")
 
 dataL1 = data %>% 
   dplyr::mutate(key = sprintf("%s %s", Country, Type))
@@ -79,6 +79,7 @@ statData = dataL1 %>%
 dataL2 = dplyr::left_join(dataL1, statData, by = c("key" = "key")) %>% 
   dplyr::mutate(
     val = (Capacity_GW * maxJob / maxCap) + (maxJob * 0.05)
+    , year = ifelse(Country == "China", Year - 0.225, Year + 0.225)
   )
 
 # dataL2$key %>% unique() %>% sort()
@@ -98,11 +99,16 @@ saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
 dir.create(fs::path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
 
 ggplot(dataL2, aes(x = Year, color = key, fill = key)) +
-  geom_bar(aes(y = Jobs_ths, color = NULL, group = interaction(Country)), stat = "identity", position = position_dodge(width = 0.9), alpha = 0.5) +
-  geom_line(aes(y = val + secAxisOffset), linetype = "solid", size = 1, position = position_dodge(width = 0.9), show.legend = FALSE) +
-  geom_point(aes(y = val + secAxisOffset), size = 3, shape = 18, position = position_dodge(width = 0.9), show.legend = FALSE) +
-  geom_text(aes(y = val, label = round(val, 1)), color = "black", position = position_dodge(width = 0.9), vjust = -1.0, size = 3, show.legend = FALSE) +
-  scale_x_continuous(minor_breaks=seq(2010, 2020, 1), breaks=seq(2010, 2020, 1), limits=c(2014.5, 2020.5)) +
+  geom_bar(aes(x = Year, y = Jobs_ths, color = NULL, group = interaction(Country)), stat = "identity", position = position_dodge(width = 0.9), alpha = 0.5) +
+  # geom_line(aes(y = val + secAxisOffset), linetype = "solid", size = 1, position = position_dodge(width = 0.9), show.legend = FALSE) +
+  geom_line(data = dataL2 %>% dplyr::filter(Country == "China"), aes(x = year, y = val), linetype = "solid", size = 1, position = position_dodge(width = 0.0), show.legend = FALSE) +
+  geom_line(data = dataL2 %>% dplyr::filter(Country == "India"), aes(x = year, y = val), linetype = "solid", size = 1, position = position_dodge(width = 0.0), show.legend = FALSE) +
+  # geom_point(aes(y = val + secAxisOffset), size = 3, shape = 18, position = position_dodge(width = 0.9), show.legend = FALSE) +
+  geom_point(data = dataL2 %>% dplyr::filter(Country == "China"), aes(x = year, y = val), size = 3, shape = 18, position = position_dodge(width = 0.0), show.legend = FALSE) +
+  geom_point(data = dataL2 %>% dplyr::filter(Country == "India"), aes(x = year, y = val), size = 3, shape = 18, position = position_dodge(width = 0.0), show.legend = FALSE) +
+  # geom_text(aes(y = val, label = round(val, 1)), color = "black", position = position_dodge(width = 0.9), vjust = -1.0, size = 3, show.legend = FALSE) +
+  # scale_x_continuous(minor_breaks=seq(2010, 2020, 1), breaks=seq(2010, 2020, 1), limits=c(2014.5, 2020.5)) +
+  scale_x_continuous(minor_breaks=seq(2010, 2020, 1), breaks=seq(2010, 2020, 1), limits=c(2014.49, 2020.51)) +
   scale_y_continuous(
     name = "Jobs (thousands)",
     # limits=c(0, 1000),
@@ -144,12 +150,13 @@ statData = dataL1 %>%
 dataL2 = dplyr::left_join(dataL1, statData, by = c("key" = "key")) %>% 
   dplyr::mutate(
     val = (Capacity_GW * maxJob / maxCap) + (maxJob * 0.05)
+    , year = ifelse(Country == "China", Year - 0.225, Year + 0.225)
   )
 
 # cbCoolwarm = pals::warmcool(n = 4)
 
 capacityScale = max(dataL2$Earnings_billion, na.rm = TRUE) / max(dataL2$Earning_perGW, na.rm = TRUE)
-lineOffset = max(dataL2$Earning_perGW, na.rm = TRUE) * 0.05
+lineOffset = max(dataL2$Earnings_billion, na.rm = TRUE) * 0.05
 # secAxisOffset = 2.5
 secAxisOffset = 0
 
@@ -159,10 +166,14 @@ dir.create(fs::path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
 
 ggplot(dataL2, aes(x = Year, color = key, fill = key)) +
   geom_bar(aes(y = Earnings_billion, group = interaction(Country), color = NULL), stat = "identity", position = position_dodge(width = 0.9), alpha = 0.5) +
-  geom_line(aes(y = val + secAxisOffset), linetype = "solid", size = 1, position = position_dodge(width = 0.9), show.legend = FALSE) +
-  geom_point(aes(y = val + secAxisOffset), size = 3, shape = 18, position = position_dodge(width = 0.9), show.legend = FALSE) +
-  geom_text(aes(y = val, label = round(val, 1)), color = "black", position = position_dodge(width = 0.9), vjust = -1.0, size = 3, show.legend = FALSE) +
-  scale_x_continuous(minor_breaks=seq(2010, 2020, 1), breaks=seq(2010, 2020, 1), limits=c(2014.5, 2020.5)) +
+  geom_line(data = dataL2 %>% dplyr::filter(Country == "China"), aes(x = year, y = val), linetype = "solid", size = 1, position = position_dodge(width = 0.0), show.legend = FALSE) +
+  geom_line(data = dataL2 %>% dplyr::filter(Country == "India"), aes(x = year, y = val), linetype = "solid", size = 1, position = position_dodge(width = 0.0), show.legend = FALSE) +
+  # geom_point(aes(y = val + secAxisOffset), size = 3, shape = 18, position = position_dodge(width = 0.9), show.legend = FALSE) +
+  geom_point(data = dataL2 %>% dplyr::filter(Country == "China"), aes(x = year, y = val), size = 3, shape = 18, position = position_dodge(width = 0.0), show.legend = FALSE) +
+  geom_point(data = dataL2 %>% dplyr::filter(Country == "India"), aes(x = year, y = val), size = 3, shape = 18, position = position_dodge(width = 0.0), show.legend = FALSE) +
+  # geom_text(aes(y = val, label = round(val, 1)), color = "black", position = position_dodge(width = 0.9), vjust = -1.0, size = 3, show.legend = FALSE) +
+  # scale_x_continuous(minor_breaks=seq(2010, 2020, 1), breaks=seq(2010, 2020, 1), limits=c(2014.5, 2020.5)) +
+  scale_x_continuous(minor_breaks=seq(2010, 2020, 1), breaks=seq(2010, 2020, 1), limits=c(2014.49, 2020.51)) +
   scale_y_continuous(
     name = "Job earnings (billion US$)",
     breaks = pretty_breaks(),
