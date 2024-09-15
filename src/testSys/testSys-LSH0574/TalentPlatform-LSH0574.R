@@ -93,6 +93,8 @@ capacityScale = max(dataL2$Jobs_ths, na.rm = TRUE) / max(dataL2$Capacity_GW, na.
 lineOffset = max(dataL2$Jobs_ths, na.rm = TRUE) * 0.05
 # secAxisOffset = 50
 secAxisOffset = 0
+# fontSize = 14
+fontSize = 24
 
 mainTitle = sprintf("%s", "China-India_Jobs")
 saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
@@ -125,7 +127,7 @@ ggplot(dataL2, aes(x = Year, color = key, fill = key)) +
         legend.key.size = unit(0.6, 'cm'),
         legend.margin = margin(0, 0, 0, 0),
         legend.title = element_blank(),
-        text = element_text(size = 14, family = "serif", face = "bold")) +
+        text = element_text(size = fontSize, family = "serif", face = "bold")) +
   # scale_fill_manual(values = grDevices::colorRampPalette(c("#d65d48", "#599CB4"))(4)) +
   # scale_color_manual(values = grDevices::colorRampPalette(c("#EF8B67", "#92B5CA"))(4)) +
   # scale_fill_manual(values = c("China Solar" = "#ED7D31", "China Wind" = "#C55A11", "India Solar" = "#4472C4", "India Wind" = "#2F5597"), name = NULL, na.value = NA) +
@@ -189,7 +191,7 @@ ggplot(dataL2, aes(x = Year, color = key, fill = key)) +
         legend.key.size = unit(0.6, 'cm'),
         legend.margin = margin(0, 0, 0, 0),
         legend.title = element_blank(),
-        text = element_text(size = 14, family = "serif", face = "bold")) +
+        text = element_text(size = fontSize, family = "serif", face = "bold")) +
   # scale_fill_manual(values = grDevices::colorRampPalette(c("#d65d48", "#599CB4"))(4)) +
   # scale_color_manual(values = grDevices::colorRampPalette(c("#EF8B67", "#92B5CA"))(4)) +
   # scale_fill_manual(values = c("China Solar" = "#ED7D31", "China Wind" = "#C55A11", "India Solar" = "#4472C4", "India Wind" = "#2F5597"), name = NULL, na.value = NA) +
