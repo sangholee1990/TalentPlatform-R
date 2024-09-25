@@ -86,130 +86,139 @@ fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "20240820_엑셀+�
 data = openxlsx::read.xlsx(fileInfo, sheet = 1)
 data$group = as.factor(data$group)
 
+# fontSize = 10
 # colInfo = c("X", "Y")
 # typeInfo = 21
+fontSizeList = seq(10, 20, 2)
 typeList = data$type %>% unique() %>% sort()
 colList = list(c("X", "Y"), c("X", "Z"), c("Z", "Y"))
-for (typeInfo in typeList) {
-  for (colInfo in colList) {
-    
-    dataL1 = data %>%
-      dplyr::filter(
-        type == typeInfo
-      ) %>% 
-      dplyr::rename(
-        X = x
-        , Y = y
-        , Z = z
-      )
-    
-    statData = dataL1 %>% 
-      dplyr::group_by(group) %>% 
-      dplyr::summarise(
-        meanX = mean(X, na.rm = TRUE)
-        , meanY = mean(Y, na.rm = TRUE)
-        , meanZ = mean(Z, na.rm = TRUE)
-        , sdX = sd(X, na.rm = TRUE)
-        , sdY = sd(Y, na.rm = TRUE)
-        , sdZ = sd(Z, na.rm = TRUE)
-      )
-    
-    
-    # groupInfo = 0
-    statDataL1 = tibble::tibble()
-    statDataL2 = tibble::tibble()
-    groupList = statData$group %>% unique() %>% sort()
-    for (groupInfo in groupList) {
+
+for (fontSize in fontSizeList) {
+  for (typeInfo in typeList) {
+    for (colInfo in colList) {
       
-      statDataX = statData %>% 
-        dplyr::filter(group == groupInfo) %>% 
-        dplyr::select(dplyr::ends_with(colInfo[[1]])) %>%
-        magrittr::set_colnames(c("mean", "sd"))
+      dataL1 = data %>%
+        dplyr::filter(
+          type == typeInfo
+        ) %>% 
+        dplyr::rename(
+          X = x
+          , Y = y
+          , Z = z
+        )
       
-      statDataY = statData %>% 
-        dplyr::filter(group == groupInfo) %>% 
-        dplyr::select(dplyr::ends_with(colInfo[[2]])) %>%
-        magrittr::set_colnames(c("mean", "sd"))
+      statData = dataL1 %>% 
+        dplyr::group_by(group) %>% 
+        dplyr::summarise(
+          meanX = mean(X, na.rm = TRUE)
+          , meanY = mean(Y, na.rm = TRUE)
+          , meanZ = mean(Z, na.rm = TRUE)
+          , sdX = sd(X, na.rm = TRUE)
+          , sdY = sd(Y, na.rm = TRUE)
+          , sdZ = sd(Z, na.rm = TRUE)
+        )
       
-      # x = cos(seq(0, 5 * pi, length.out = 100)) * (1.96 * statDataX$sd) + statDataX$mean
-      # y = sin(seq(0, 5 * pi, length.out = 100)) * (1.96 * statDataY$sd) + statDataY$mean
-      x = cos(seq(0, 5 * pi, length.out = 10000)) * (1.96 * statDataX$sd) + statDataX$mean
-      y = sin(seq(0, 5 * pi, length.out = 10000)) * (1.96 * statDataY$sd) + statDataY$mean
-      # x = cos(seq(0, 5 * pi, length.out = 200)) * (1.96 * statDataX$sd) + statDataX$mean
-      # y = sin(seq(0, 5 * pi, length.out = 200)) * (1.96 * statDataY$sd) + statDataY$mean
       
-      tmpData = tibble::tibble(group = groupInfo, x = x, y = y) %>% 
-        dplyr::mutate(angle = atan2(y, x)) %>%
-        dplyr::arrange(angle)
+      # groupInfo = 0
+      statDataL1 = tibble::tibble()
+      statDataL2 = tibble::tibble()
+      groupList = statData$group %>% unique() %>% sort()
+      for (groupInfo in groupList) {
+        
+        statDataX = statData %>% 
+          dplyr::filter(group == groupInfo) %>% 
+          dplyr::select(dplyr::ends_with(colInfo[[1]])) %>%
+          magrittr::set_colnames(c("mean", "sd"))
+        
+        statDataY = statData %>% 
+          dplyr::filter(group == groupInfo) %>% 
+          dplyr::select(dplyr::ends_with(colInfo[[2]])) %>%
+          magrittr::set_colnames(c("mean", "sd"))
+        
+        # x = cos(seq(0, 5 * pi, length.out = 100)) * (1.96 * statDataX$sd) + statDataX$mean
+        # y = sin(seq(0, 5 * pi, length.out = 100)) * (1.96 * statDataY$sd) + statDataY$mean
+        x = cos(seq(0, 5 * pi, length.out = 10000)) * (1.96 * statDataX$sd) + statDataX$mean
+        y = sin(seq(0, 5 * pi, length.out = 10000)) * (1.96 * statDataY$sd) + statDataY$mean
+        # x = cos(seq(0, 5 * pi, length.out = 200)) * (1.96 * statDataX$sd) + statDataX$mean
+        # y = sin(seq(0, 5 * pi, length.out = 200)) * (1.96 * statDataY$sd) + statDataY$mean
+        
+        tmpData = tibble::tibble(group = groupInfo, x = x, y = y) %>% 
+          dplyr::mutate(angle = atan2(y, x)) %>%
+          dplyr::arrange(angle)
+        
+        statDataL1 = dplyr::bind_rows(statDataL1, tibble::tibble(group = groupInfo, x = statDataX$mean, y = statDataY$mean) )
+        statDataL2 = dplyr::bind_rows(statDataL2, tmpData)
+      }
       
-      statDataL1 = dplyr::bind_rows(statDataL1, tibble::tibble(group = groupInfo, x = statDataX$mean, y = statDataY$mean) )
-      statDataL2 = dplyr::bind_rows(statDataL2, tmpData)
-    }
-    
-    # statDataL3 = statDataL2 %>%
-    #   dplyr::group_by(group) %>%
-    #   dplyr::mutate(
-    #     xend = lead(x)
-    #     , yend = lead(y)
-    #   ) %>%
-    #   na.omit()
-    
-    plotSubTitle = sprintf("%s_%s%s-axis-error", typeInfo, colInfo[[1]], colInfo[[2]])
-    # saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, plotSubTitle)
-    # saveImg = sprintf("%s/%s/%s.tiff", globalVar$figPath, serviceName, plotSubTitle)
-    saveImg = sprintf("%s/%s/FIG/%s.tiff", globalVar$figPath, serviceName, plotSubTitle)
-    dir.create(fs::path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
-  
-    makePlot = ggplot() +
-      geom_hline(yintercept = 0, colour = "grey", linetype = "dashed") + 
-      geom_vline(xintercept = 0, colour = "grey", linetype = "dashed") +
+      # statDataL3 = statDataL2 %>%
+      #   dplyr::group_by(group) %>%
+      #   dplyr::mutate(
+      #     xend = lead(x)
+      #     , yend = lead(y)
+      #   ) %>%
+      #   na.omit()
+        
+      plotSubTitle = sprintf("%s_%s%s-axis-error", typeInfo, colInfo[[1]], colInfo[[2]])
+      # saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, plotSubTitle)
+      # saveImg = sprintf("%s/%s/%s.tiff", globalVar$figPath, serviceName, plotSubTitle)
+      # saveImg = sprintf("%s/%s/FIG/%s.tiff", globalVar$figPath, serviceName, plotSubTitle)
+      saveImg = sprintf("%s/%s/FIG/%sp/%s.tiff", globalVar$figPath, serviceName, fontSize, plotSubTitle)
       
-      # geom_point(data = dataL1, aes(colInfo[[1]], colInfo[[2]], colour = group)) +
-      # geom_point(data = dataL1, aes(x = !!sym(colInfo[[1]]), y = !!sym(colInfo[[2]]), colour = factor(group)), size = 1, alpha = 0.4) +
-      # geom_point(data = dataL1, aes(x = !!sym(colInfo[[1]]), y = !!sym(colInfo[[2]]), colour = factor(group)), size = 1.5, alpha = 0.5) +
-      geom_point(data = dataL1, aes(x = !!sym(colInfo[[1]]), y = !!sym(colInfo[[2]]), colour = factor(group)), size = 1.4, alpha = 0.5) +
+      dir.create(fs::path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
       
-      # geom_point(data = statDataL1, aes(x, y, color = group), shape=17, size=3, show.legend = FALSE) +
-      # geom_point(data = statDataL1 %>% dplyr::filter(group == 0), aes(x, y), color = "red", shape=17, size=3, show.legend = FALSE) +
-      # geom_point(data = statDataL1 %>% dplyr::filter(group == 1), aes(x, y), color = "blue", shape=17, size=3, show.legend = FALSE) +
-      # geom_point(data = statDataL1 %>% dplyr::filter(group == 2), aes(x, y), color = "green", shape=17, size=3, show.legend = FALSE) +
-      geom_point(data = statDataL1 %>% dplyr::filter(group == 0), aes(x, y), color = "red", shape=17, size=2.0, show.legend = FALSE) +
-      geom_point(data = statDataL1 %>% dplyr::filter(group == 1), aes(x, y), color = "blue", shape=17, size=2.0, show.legend = FALSE) +
-      geom_point(data = statDataL1 %>% dplyr::filter(group == 2), aes(x, y), color = "green", shape=17, size=2.0, show.legend = FALSE) +
-      # geom_path(data = statDataL2, aes(x, y, colour = factor(group)), size = 0.5, linetype = 2, show.legend = FALSE) +
-      # geom_path(data = statDataL2, aes(x, y, colour = factor(group)), size = 0.5, linetype = 2, show.legend = FALSE) +
-      # geom_path(data = statDataL2, aes(x, y, colour = factor(group)), size = 0.5, linetype = 3, show.legend = FALSE) +
-      # geom_path(data = statDataL2, aes(x, y, colour = factor(group)), size = 0.35, linetype = 2, show.legend = FALSE, alpha = 1.0) +
-      geom_path(data = statDataL2 %>% dplyr::filter(group == 0), aes(x, y), color = "red", size = 0.4, linetype = 2, show.legend = FALSE, alpha = 1.0) +
-      geom_path(data = statDataL2 %>% dplyr::filter(group == 1), aes(x, y), color = "blue", size = 0.4, linetype = 2, show.legend = FALSE, alpha = 1.0) +
-      geom_path(data = statDataL2 %>% dplyr::filter(group == 2), aes(x, y), color = "#008000", size = 0.4, linetype = 2, show.legend = FALSE, alpha = 1.0) +
-      # geom_segment(data = statDataL3, aes(x = x, y = y, xend = xend, yend = yend, colour = factor(group)), size = 0.75, linetype = 4, show.legend = FALSE) +
-      labs(title = NULL, x = sprintf("%s-axis error (mm)", colInfo[[1]]), y =  sprintf("%s-axis error (mm)", colInfo[[2]]), color = "group") +
-      # xlim(-5, 5) +
-      # ylim(-5, 5) +
-      scale_x_continuous(minor_breaks = seq(-4, 4, 2), breaks=seq(-4, 4, 2), limits=c(-5, 5)) +
-      scale_y_continuous(minor_breaks = seq(-4, 4, 2), breaks=seq(-4, 4, 2), limits=c(-5, 5)) +
-      theme_classic() +
-      theme(
-        panel.border = element_rect(colour = "black", fill = NA, size = 0.5)
-        , legend.background = element_rect(colour = "black", fill = NA, size = 0.5)
-        , legend.position = c(0.98, 0.98)
-        , legend.justification = c("right", "top")
-      ) +
-      scale_color_manual(
-        name = NULL
-        , na.value = "transparent"
-        , values = c(
-          "0" = ggplotDefaultColor[1]
-          , "1" = ggplotDefaultColor[3]
-          , "2" = ggplotDefaultColor[2]
+      makePlot = ggplot() +
+        geom_hline(yintercept = 0, colour = "grey", linetype = "dashed") + 
+        geom_vline(xintercept = 0, colour = "grey", linetype = "dashed") +
+        
+        # geom_point(data = dataL1, aes(colInfo[[1]], colInfo[[2]], colour = group)) +
+        # geom_point(data = dataL1, aes(x = !!sym(colInfo[[1]]), y = !!sym(colInfo[[2]]), colour = factor(group)), size = 1, alpha = 0.4) +
+        # geom_point(data = dataL1, aes(x = !!sym(colInfo[[1]]), y = !!sym(colInfo[[2]]), colour = factor(group)), size = 1.5, alpha = 0.5) +
+        geom_point(data = dataL1, aes(x = !!sym(colInfo[[1]]), y = !!sym(colInfo[[2]]), colour = factor(group)), size = 1.4, alpha = 0.5) +
+        
+        # geom_point(data = statDataL1, aes(x, y, color = group), shape=17, size=3, show.legend = FALSE) +
+        # geom_point(data = statDataL1 %>% dplyr::filter(group == 0), aes(x, y), color = "red", shape=17, size=3, show.legend = FALSE) +
+        # geom_point(data = statDataL1 %>% dplyr::filter(group == 1), aes(x, y), color = "blue", shape=17, size=3, show.legend = FALSE) +
+        # geom_point(data = statDataL1 %>% dplyr::filter(group == 2), aes(x, y), color = "green", shape=17, size=3, show.legend = FALSE) +
+        geom_point(data = statDataL1 %>% dplyr::filter(group == 0), aes(x, y), color = "red", shape=17, size=2.0, show.legend = FALSE) +
+        geom_point(data = statDataL1 %>% dplyr::filter(group == 1), aes(x, y), color = "blue", shape=17, size=2.0, show.legend = FALSE) +
+        geom_point(data = statDataL1 %>% dplyr::filter(group == 2), aes(x, y), color = "green", shape=17, size=2.0, show.legend = FALSE) +
+        # geom_path(data = statDataL2, aes(x, y, colour = factor(group)), size = 0.5, linetype = 2, show.legend = FALSE) +
+        # geom_path(data = statDataL2, aes(x, y, colour = factor(group)), size = 0.5, linetype = 2, show.legend = FALSE) +
+        # geom_path(data = statDataL2, aes(x, y, colour = factor(group)), size = 0.5, linetype = 3, show.legend = FALSE) +
+        # geom_path(data = statDataL2, aes(x, y, colour = factor(group)), size = 0.35, linetype = 2, show.legend = FALSE, alpha = 1.0) +
+        geom_path(data = statDataL2 %>% dplyr::filter(group == 0), aes(x, y), color = "red", size = 0.4, linetype = 2, show.legend = FALSE, alpha = 1.0) +
+        geom_path(data = statDataL2 %>% dplyr::filter(group == 1), aes(x, y), color = "blue", size = 0.4, linetype = 2, show.legend = FALSE, alpha = 1.0) +
+        geom_path(data = statDataL2 %>% dplyr::filter(group == 2), aes(x, y), color = "#008000", size = 0.4, linetype = 2, show.legend = FALSE, alpha = 1.0) +
+        # geom_segment(data = statDataL3, aes(x = x, y = y, xend = xend, yend = yend, colour = factor(group)), size = 0.75, linetype = 4, show.legend = FALSE) +
+        # labs(title = NULL, x = sprintf("%s-axis error (mm)", colInfo[[1]]), y =  sprintf("%s-axis error (mm)", colInfo[[2]]), color = "group") +
+        labs(title = NULL, x = sprintf("%s-axis discrepancy (mm)", colInfo[[1]]), y =  sprintf("%s-axis discrepancy (mm)", colInfo[[2]]), color = "group") +
+        # xlim(-5, 5) +
+        # ylim(-5, 5) +
+        scale_x_continuous(minor_breaks = seq(-4, 4, 2), breaks=seq(-4, 4, 2), limits=c(-5, 5)) +
+        scale_y_continuous(minor_breaks = seq(-4, 4, 2), breaks=seq(-4, 4, 2), limits=c(-5, 5)) +
+        theme_classic() +
+        theme(
+          panel.border = element_rect(colour = "black", fill = NA, size = 0.5)
+          , legend.background = element_rect(colour = "black", fill = NA, size = 0.5)
+          , legend.position = c(0.98, 0.98)
+          , legend.justification = c("right", "top")
+          , text = element_text(size = fontSize)
+        ) +
+        scale_color_manual(
+          name = NULL
+          , na.value = "transparent"
+          , values = c(
+            "0" = ggplotDefaultColor[1]
+            , "1" = ggplotDefaultColor[3]
+            , "2" = ggplotDefaultColor[2]
           )
-        , labels = c("Maxilla-first", "Mandible-first", "Mandible-only")
-      )
+          , labels = c("Maxilla-first", "Mandible-first", "Mandible-only")
+        )
       
-    ggsave(makePlot, filename = saveImg, width = 5, height = 5, dpi = 600)
-    
-    # shell.exec(saveImg)
-    cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+      ggsave(makePlot, filename = saveImg, width = 5, height = 5, dpi = 600)
+      
+      # shell.exec(saveImg)
+      cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+    }
   }
 }
