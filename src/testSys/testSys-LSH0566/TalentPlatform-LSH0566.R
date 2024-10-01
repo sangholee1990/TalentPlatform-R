@@ -36,6 +36,8 @@
 
 # 그리고, 혹시 3개 컬럼을 추가로 요청드려도 될지도 여쭈어요 (1. Basic UDI-DI details 섹션 내 Version, 2. Last update date, 3. UDI-DI details 섹션 내 additional product description)
 
+# 혹시 지난번 짜주신 코드에서 2개 항목만 더 수집할 수 있도록 추가해주실 수 있을까요? Manufacturer details 내에서 Address 부분이랑 Mandate validity dates 에서 From과 To 에 있는 날짜에요!
+
 # ================================================
 # 초기 환경변수 설정
 # ================================================
@@ -81,7 +83,7 @@ errorHandler = function(x) {
 
 allCnt = 464573
 # pageSize = 300
-pageSize = 25
+pageSize = 10
 
 pageMax = ceiling(allCnt / pageSize)
 pageList = 0:pageMax
@@ -105,6 +107,7 @@ resCodeP = httr::GET(apiCodeP) %>%
 # ******************************************************************************
 # 기본 API 요청
 # ******************************************************************************
+pageInfo = 1
 for (pageInfo in pageList) {
   
   # 테스트 조건
@@ -161,10 +164,19 @@ for (pageInfo in pageList) {
     
     if (length(resDtlToolData) < 1) next
     
+    
     # ******************************************************************************
     # 데이터 가공
     # ******************************************************************************
     manDtlInfo = resDtlDevData$manufacturer
+    
+    apiDtlMan = sprintf("https://ec.europa.eu/tools/eudamed/api/actors/%s/publicInformation?languageIso2Code=en", manDtlInfo$uuid)
+    
+    resDtlManData = httr::GET(apiDtlMan) %>% 
+      httr::content(as = "text", encoding = "UTF-8") %>%
+      jsonlite::fromJSON()
+    
+    if (length(resDtlManData) < 1) next
     
     # 1) Actor/Organisation name
     acrOrgName = tryCatch({
@@ -174,6 +186,19 @@ for (pageInfo in pageList) {
     # 2) Actor ID/SRN
     actIdSrn = tryCatch({
       sprintf("%s", manDtlInfo$srn) %>% errorHandler()
+    }, error = function(e) {NA})
+    
+    # 14) Address
+    address = tryCatch({
+      sprintf("%s", manDtlInfo$geographicalAddress) %>% errorHandler()
+    }, error = function(e) {NA})
+    
+    # 15) Mandate validity dates
+    manDate = tryCatch({
+      autRepInfo = resDtlManData$actorDataPublicView$authorisedRepresentatives
+      srtDate = ifelse(is.na(autRepInfo$startDate), "-", autRepInfo$startDate)
+      endDate = ifelse(is.na(autRepInfo$endDate), "-", autRepInfo$endDate)
+      sprintf("From %s To %s", srtDate, endDate) %>% errorHandler()
     }, error = function(e) {NA})
     
     # 3) Applicable legislation
@@ -235,9 +260,13 @@ for (pageInfo in pageList) {
     
     # 데이터 변환
     data = data.frame(
-      pageInfo, uuidInfo, api, urlDtl, apiDtlDev, apiDtlTool
-      , acrOrgName, actIdSrn, appLeg, udiDu, riskCls, devName, udiDi, status, tradeName, memberState, version, lastUpdData, addProDesc
-    )
+      # pageInfo, uuidInfo, api, urlDtl, apiDtlDev, apiDtlTool
+      pageInfo, uuidInfo, urlDtl
+      , acrOrgName, actIdSrn, address, manDate, appLeg, udiDu, riskCls, devName, udiDi, status, tradeName, memberState, version, lastUpdData, addProDesc
+    ) %>% 
+      dplyr::mutate(
+        regDate = Sys.time()
+      )
     
     if (nrow(data) < 1) next
     
