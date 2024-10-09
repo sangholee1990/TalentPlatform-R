@@ -68,9 +68,13 @@ dataL1 = data %>%
 
 # fontSize = 16
 # colorAlpha = 0.5
-# colorAlpha = 0.75
-colorAlpha = 1.0
+colorAlpha = 0.75
+# colorAlpha = 1.0
+
+colorAlphaList = seq(0.5, 1.0, 0.25)
 fontSizeList = seq(16, 24, 2)
+# fontSizeList = seq(20, 20, 2)
+for (colorAlpha in colorAlphaList) {
 for (fontSize in fontSizeList) {
   
   # ==============================================================================
@@ -87,14 +91,8 @@ for (fontSize in fontSizeList) {
     dplyr::mutate(
       val = (Capacity_GW * maxJob / maxCap) + (maxJob * 0.05)
       , year = ifelse(Country == "China", Year - 0.225, Year + 0.225)
+      , year2 = ifelse(Type == "Solar", Year - 0.225, Year + 0.225)
     )
-  
-  # dataL2$key %>% unique() %>% sort()
-  
-  # ggplot(dataL1, aes(x = as.factor(Year), fill = key)) +
-  #   geom_bar(aes(y = Jobs_ths, group = interaction(Country)), stat = "identity", position = position_dodge(width = 0.9), alpha = 1)
-  
-  # cbCoolwarm = pals::warmcool(n = 4)
   
   capacityScale = max(dataL2$Jobs_ths, na.rm = TRUE) / max(dataL2$Capacity_GW, na.rm = TRUE)
   lineOffset = max(dataL2$Jobs_ths, na.rm = TRUE) * 0.05
@@ -105,15 +103,15 @@ for (fontSize in fontSizeList) {
   # saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
   saveImg = sprintf("%s/%s/%sp/%s.png", globalVar$figPath, serviceName, fontSize, mainTitle)
   dir.create(fs::path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
-  
   makePlot = ggplot(dataL2, aes(x = Year, color = key, fill = key)) +
-    geom_bar(aes(x = Year, y = Jobs_ths, color = NULL, group = interaction(Country)), stat = "identity", position = position_dodge(width = 0.9), alpha = colorAlpha) +
+    geom_bar(aes(x = Year, y = Jobs_ths, color = NULL), stat = "identity", position = position_dodge(width = 0.9), alpha = colorAlpha) +
+  # geom_bar(aes(x = Year, y = Jobs_ths, color = NULL, group = Country), stat = "identity", position = position_stack(), alpha = colorAlpha) +
     # geom_line(aes(y = val + secAxisOffset), linetype = "solid", size = 1, position = position_dodge(width = 0.9), show.legend = FALSE) +
-    geom_line(data = dataL2 %>% dplyr::filter(Country == "China"), aes(x = year, y = val), linetype = "solid", size = 1, position = position_dodge(width = 0.0), show.legend = FALSE) +
-    geom_line(data = dataL2 %>% dplyr::filter(Country == "India"), aes(x = year, y = val), linetype = "solid", size = 1, position = position_dodge(width = 0.0), show.legend = FALSE) +
+    geom_line(data = dataL2, aes(x = year2, y = val), linetype = "solid", size = 1, show.legend = FALSE) +
+    # geom_line(data = dataL2, aes(x = year, y = val), linetype = "solid", size = 1, position = position_dodge(width = 0.0), show.legend = FALSE) +
     # geom_point(aes(y = val + secAxisOffset), size = 3, shape = 18, position = position_dodge(width = 0.9), show.legend = FALSE) +
-    geom_point(data = dataL2 %>% dplyr::filter(Country == "China"), aes(x = year, y = val), size = 3, shape = 18, position = position_dodge(width = 0.0), show.legend = FALSE) +
-    geom_point(data = dataL2 %>% dplyr::filter(Country == "India"), aes(x = year, y = val), size = 3, shape = 18, position = position_dodge(width = 0.0), show.legend = FALSE) +
+    geom_point(data = dataL2, aes(x = year2, y = val), size = 3, shape = 18, show.legend = FALSE) +
+    # geom_point(data = dataL2, aes(x = year, y = val), size = 3, shape = 18, position = position_dodge(width = 0.0), show.legend = FALSE) +
     # geom_text(aes(y = val, label = round(val, 1)), color = "black", position = position_dodge(width = 0.9), vjust = -1.0, size = 3, show.legend = FALSE) +
     # scale_x_continuous(minor_breaks=seq(2010, 2020, 1), breaks=seq(2010, 2020, 1), limits=c(2014.5, 2020.5)) +
     scale_x_continuous(minor_breaks=seq(2010, 2020, 1), breaks=seq(2010, 2020, 1), limits=c(2014.49, 2020.51)) +
@@ -129,7 +127,7 @@ for (fontSize in fontSizeList) {
     theme(panel.border = element_rect(linewidth = 1.0),
           panel.grid.major = element_blank(),
           panel.grid.minor = element_blank(),
-          legend.position = c(0.1, 0.9), 
+          legend.position = c(0.90, 0.90), 
           legend.key.size = unit(0.6, 'cm'),
           legend.margin = margin(0, 0, 0, 0),
           legend.title = element_blank(),
@@ -141,7 +139,8 @@ for (fontSize in fontSizeList) {
     # scale_fill_manual(values = c("China Solar" = "#a6cee3", "China Wind" = "#1f78b4", "India Solar" = "#b2df8a", "India Wind" = "#33a02c"), name = NULL, na.value = NA) +
     # scale_color_manual(values = c("China Solar" = "#a6cee3", "China Wind" = "#1f78b4", "India Solar" = "#b2df8a", "India Wind" = "#33a02c"), name = NULL, na.value = NA) +
     scale_fill_manual(values = c("China Solar" = "#a53024", "China Wind" = "#e16327", "India Solar" = "#009395", "India Wind" = "#165a71"), name = NULL, na.value = NA) +
-    scale_color_manual(values = c("China Solar" = "#a53024", "China Wind" = "#e16327", "India Solar" = "#009395", "India Wind" = "#165a71"), name = NULL, na.value = NA)
+    scale_color_manual(values = c("China Solar" = "#a53024", "China Wind" = "#e16327", "India Solar" = "#009395", "India Wind" = "#165a71"), name = NULL, na.value = NA) +
+    facet_grid(~Country)
   
   ggsave(makePlot, filename = saveImg, width = 10, height = 6, dpi = 600)
   
@@ -162,6 +161,7 @@ for (fontSize in fontSizeList) {
     dplyr::mutate(
       val = (Capacity_GW * maxJob / maxCap) + (maxJob * 0.05)
       , year = ifelse(Country == "China", Year - 0.225, Year + 0.225)
+      , year2 = ifelse(Type == "Solar", Year - 0.225, Year + 0.225)
     )
   
   # cbCoolwarm = pals::warmcool(n = 4)
@@ -177,12 +177,16 @@ for (fontSize in fontSizeList) {
   dir.create(fs::path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
   
   makePlot = ggplot(dataL2, aes(x = Year, color = key, fill = key)) +
-    geom_bar(aes(y = Earnings_billion, group = interaction(Country), color = NULL), stat = "identity", position = position_dodge(width = 0.9), alpha = colorAlpha) +
-    geom_line(data = dataL2 %>% dplyr::filter(Country == "China"), aes(x = year, y = val), linetype = "solid", size = 1, position = position_dodge(width = 0.0), show.legend = FALSE) +
-    geom_line(data = dataL2 %>% dplyr::filter(Country == "India"), aes(x = year, y = val), linetype = "solid", size = 1, position = position_dodge(width = 0.0), show.legend = FALSE) +
+    # geom_bar(aes(y = Earnings_billion, group = interaction(Country), color = NULL), stat = "identity", position = position_dodge(width = 0.9), alpha = colorAlpha) +
+    geom_bar(aes(y = Earnings_billion, color = NULL), stat = "identity", position = position_dodge(width = 0.9), alpha = colorAlpha) +
+    geom_line(data = dataL2, aes(x = year2, y = val), linetype = "solid", size = 1, show.legend = FALSE) +
+
+    # geom_line(data = dataL2 %>% dplyr::filter(Country == "China"), aes(x = year, y = val), linetype = "solid", size = 1, position = position_dodge(width = 0.0), show.legend = FALSE) +
+    # geom_line(data = dataL2 %>% dplyr::filter(Country == "India"), aes(x = year, y = val), linetype = "solid", size = 1, position = position_dodge(width = 0.0), show.legend = FALSE) +
     # geom_point(aes(y = val + secAxisOffset), size = 3, shape = 18, position = position_dodge(width = 0.9), show.legend = FALSE) +
-    geom_point(data = dataL2 %>% dplyr::filter(Country == "China"), aes(x = year, y = val), size = 3, shape = 18, position = position_dodge(width = 0.0), show.legend = FALSE) +
-    geom_point(data = dataL2 %>% dplyr::filter(Country == "India"), aes(x = year, y = val), size = 3, shape = 18, position = position_dodge(width = 0.0), show.legend = FALSE) +
+    # geom_point(data = dataL2 %>% dplyr::filter(Country == "China"), aes(x = year, y = val), size = 3, shape = 18, position = position_dodge(width = 0.0), show.legend = FALSE) +
+    # geom_point(data = dataL2 %>% dplyr::filter(Country == "India"), aes(x = year, y = val), size = 3, shape = 18, position = position_dodge(width = 0.0), show.legend = FALSE) +
+    geom_point(data = dataL2, aes(x = year2, y = val), size = 3, shape = 18, show.legend = FALSE) +
     # geom_text(aes(y = val, label = round(val, 1)), color = "black", position = position_dodge(width = 0.9), vjust = -1.0, size = 3, show.legend = FALSE) +
     # scale_x_continuous(minor_breaks=seq(2010, 2020, 1), breaks=seq(2010, 2020, 1), limits=c(2014.5, 2020.5)) +
     scale_x_continuous(minor_breaks=seq(2010, 2020, 1), breaks=seq(2010, 2020, 1), limits=c(2014.49, 2020.51)) +
@@ -197,7 +201,7 @@ for (fontSize in fontSizeList) {
     theme(panel.border = element_rect(linewidth = 1.0),
           panel.grid.major = element_blank(),
           panel.grid.minor = element_blank(),
-          legend.position = c(0.1, 0.9), 
+          legend.position = c(0.90, 0.90), 
           legend.key.size = unit(0.6, 'cm'),
           legend.margin = margin(0, 0, 0, 0),
           legend.title = element_blank(),
@@ -209,13 +213,168 @@ for (fontSize in fontSizeList) {
     # scale_fill_manual(values = c("China Solar" = "#a6cee3", "China Wind" = "#1f78b4", "India Solar" = "#b2df8a", "India Wind" = "#33a02c"), name = NULL, na.value = NA) +
     # scale_color_manual(values = c("China Solar" = "#a6cee3", "China Wind" = "#1f78b4", "India Solar" = "#b2df8a", "India Wind" = "#33a02c"), name = NULL, na.value = NA) +
     scale_fill_manual(values = c("China Solar" = "#a53024", "China Wind" = "#e16327", "India Solar" = "#009395", "India Wind" = "#165a71"), name = NULL, na.value = NA) +
-    scale_color_manual(values = c("China Solar" = "#a53024", "China Wind" = "#e16327", "India Solar" = "#009395", "India Wind" = "#165a71"), name = NULL, na.value = NA)
+    scale_color_manual(values = c("China Solar" = "#a53024", "China Wind" = "#e16327", "India Solar" = "#009395", "India Wind" = "#165a71"), name = NULL, na.value = NA) +
+    facet_grid(~Country)
   
   ggsave(makePlot, filename = saveImg, width = 10, height = 6, dpi = 600)
   
   # shell.exec(saveImg)
   cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 }
+}
+
+# ==============================================================================
+# 2024.10.09 막대그래프 중첩
+# ==============================================================================
+# # colorAlpha = 0.5
+# # colorAlpha = 0.75
+# colorAlpha = 1.0
+# fontSizeList = seq(16, 24, 2)
+# for (fontSize in fontSizeList) {
+#   
+#   # ==============================================================================
+#   # FIG 3ab
+#   # ==============================================================================
+#   statData = dataL1 %>% 
+#     dplyr::group_by(key) %>% 
+#     dplyr::summarise(
+#       maxJob = max(Jobs_ths, na.rm = TRUE)
+#       , maxCap = max(Capacity_GW, na.rm = TRUE)
+#     )
+#   
+#   dataL2 = dplyr::left_join(dataL1, statData, by = c("key" = "key")) %>% 
+#     dplyr::mutate(
+#       val = (Capacity_GW * maxJob / maxCap) + (maxJob * 0.05)
+#       , year = ifelse(Country == "China", Year - 0.225, Year + 0.225)
+#     )
+#   
+#   # dataL2$key %>% unique() %>% sort()
+#   
+#   # ggplot(dataL1, aes(x = as.factor(Year), fill = key)) +
+#   #   geom_bar(aes(y = Jobs_ths, group = interaction(Country)), stat = "identity", position = position_dodge(width = 0.9), alpha = 1)
+#   
+#   # cbCoolwarm = pals::warmcool(n = 4)
+#   
+#   capacityScale = max(dataL2$Jobs_ths, na.rm = TRUE) / max(dataL2$Capacity_GW, na.rm = TRUE)
+#   lineOffset = max(dataL2$Jobs_ths, na.rm = TRUE) * 0.05
+#   # secAxisOffset = 50
+#   secAxisOffset = 0
+#   
+#   mainTitle = sprintf("%s", "China-India_Jobs")
+#   # saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
+#   saveImg = sprintf("%s/%s/%sp/%s.png", globalVar$figPath, serviceName, fontSize, mainTitle)
+#   dir.create(fs::path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
+#   
+#   makePlot = ggplot(dataL2, aes(x = Year, color = key, fill = key)) +
+#     geom_bar(aes(x = Year, y = Jobs_ths, color = NULL, group = interaction(Country)), stat = "identity", position = position_dodge(width = 0.9), alpha = colorAlpha) +
+#     # geom_line(aes(y = val + secAxisOffset), linetype = "solid", size = 1, position = position_dodge(width = 0.9), show.legend = FALSE) +
+#     geom_line(data = dataL2 %>% dplyr::filter(Country == "China"), aes(x = year, y = val), linetype = "solid", size = 1, position = position_dodge(width = 0.0), show.legend = FALSE) +
+#     geom_line(data = dataL2 %>% dplyr::filter(Country == "India"), aes(x = year, y = val), linetype = "solid", size = 1, position = position_dodge(width = 0.0), show.legend = FALSE) +
+#     # geom_point(aes(y = val + secAxisOffset), size = 3, shape = 18, position = position_dodge(width = 0.9), show.legend = FALSE) +
+#     geom_point(data = dataL2 %>% dplyr::filter(Country == "China"), aes(x = year, y = val), size = 3, shape = 18, position = position_dodge(width = 0.0), show.legend = FALSE) +
+#     geom_point(data = dataL2 %>% dplyr::filter(Country == "India"), aes(x = year, y = val), size = 3, shape = 18, position = position_dodge(width = 0.0), show.legend = FALSE) +
+#     # geom_text(aes(y = val, label = round(val, 1)), color = "black", position = position_dodge(width = 0.9), vjust = -1.0, size = 3, show.legend = FALSE) +
+#     # scale_x_continuous(minor_breaks=seq(2010, 2020, 1), breaks=seq(2010, 2020, 1), limits=c(2014.5, 2020.5)) +
+#     scale_x_continuous(minor_breaks=seq(2010, 2020, 1), breaks=seq(2010, 2020, 1), limits=c(2014.49, 2020.51)) +
+#     scale_y_continuous(
+#       name = "Jobs (thousands)",
+#       # limits=c(0, 1000),
+#       breaks = pretty_breaks(),
+#       sec.axis = sec_axis(trans = ~ ((. - lineOffset) / capacityScale) + secAxisOffset, name = "Newly installed capacity (GW)", breaks = pretty_breaks())
+#     ) +
+#     # labs(x = "Year", title = mainTitle) +
+#     labs(x = NULL, title = NULL) +
+#     theme_bw() +
+#     theme(panel.border = element_rect(linewidth = 1.0),
+#           panel.grid.major = element_blank(),
+#           panel.grid.minor = element_blank(),
+#           legend.position = c(0.1, 0.9), 
+#           legend.key.size = unit(0.6, 'cm'),
+#           legend.margin = margin(0, 0, 0, 0),
+#           legend.title = element_blank(),
+#           text = element_text(size = fontSize, family = "serif", face = "bold")) +
+#     # scale_fill_manual(values = grDevices::colorRampPalette(c("#d65d48", "#599CB4"))(4)) +
+#     # scale_color_manual(values = grDevices::colorRampPalette(c("#EF8B67", "#92B5CA"))(4)) +
+#     # scale_fill_manual(values = c("China Solar" = "#ED7D31", "China Wind" = "#C55A11", "India Solar" = "#4472C4", "India Wind" = "#2F5597"), name = NULL, na.value = NA) +
+#     # scale_color_manual(values = c("China Solar" = "#F6BE98", "China Wind" = "#D68B58", "India Solar" = "#A1B8E1", "India Wind" = "#6D88B6"), name = NULL, na.value = NA) +
+#     # scale_fill_manual(values = c("China Solar" = "#a6cee3", "China Wind" = "#1f78b4", "India Solar" = "#b2df8a", "India Wind" = "#33a02c"), name = NULL, na.value = NA) +
+#     # scale_color_manual(values = c("China Solar" = "#a6cee3", "China Wind" = "#1f78b4", "India Solar" = "#b2df8a", "India Wind" = "#33a02c"), name = NULL, na.value = NA) +
+#     scale_fill_manual(values = c("China Solar" = "#a53024", "China Wind" = "#e16327", "India Solar" = "#009395", "India Wind" = "#165a71"), name = NULL, na.value = NA) +
+#     scale_color_manual(values = c("China Solar" = "#a53024", "China Wind" = "#e16327", "India Solar" = "#009395", "India Wind" = "#165a71"), name = NULL, na.value = NA)
+#   
+#   ggsave(makePlot, filename = saveImg, width = 10, height = 6, dpi = 600)
+#   
+#   # shell.exec(saveImg)
+#   cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+#   
+#   # ==============================================================================
+#   # FIG 3cd
+#   # ==============================================================================
+#   statData = dataL1 %>% 
+#     dplyr::group_by(key) %>% 
+#     dplyr::summarise(
+#       maxJob = max(Earnings_billion, na.rm = TRUE)
+#       , maxCap = max(Earning_perGW, na.rm = TRUE)
+#     )
+#   
+#   dataL2 = dplyr::left_join(dataL1, statData, by = c("key" = "key")) %>% 
+#     dplyr::mutate(
+#       val = (Capacity_GW * maxJob / maxCap) + (maxJob * 0.05)
+#       , year = ifelse(Country == "China", Year - 0.225, Year + 0.225)
+#     )
+#   
+#   # cbCoolwarm = pals::warmcool(n = 4)
+#   
+#   capacityScale = max(dataL2$Earnings_billion, na.rm = TRUE) / max(dataL2$Earning_perGW, na.rm = TRUE)
+#   lineOffset = max(dataL2$Earnings_billion, na.rm = TRUE) * 0.05
+#   # secAxisOffset = 2.5
+#   secAxisOffset = 0
+#   
+#   mainTitle = sprintf("%s", "China-India_Ear")
+#   # saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
+#   saveImg = sprintf("%s/%s/%sp/%s.png", globalVar$figPath, serviceName, fontSize, mainTitle)
+#   dir.create(fs::path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
+#   
+#   makePlot = ggplot(dataL2, aes(x = Year, color = key, fill = key)) +
+#     geom_bar(aes(y = Earnings_billion, group = interaction(Country), color = NULL), stat = "identity", position = position_dodge(width = 0.9), alpha = colorAlpha) +
+#     geom_line(data = dataL2 %>% dplyr::filter(Country == "China"), aes(x = year, y = val), linetype = "solid", size = 1, position = position_dodge(width = 0.0), show.legend = FALSE) +
+#     geom_line(data = dataL2 %>% dplyr::filter(Country == "India"), aes(x = year, y = val), linetype = "solid", size = 1, position = position_dodge(width = 0.0), show.legend = FALSE) +
+#     # geom_point(aes(y = val + secAxisOffset), size = 3, shape = 18, position = position_dodge(width = 0.9), show.legend = FALSE) +
+#     geom_point(data = dataL2 %>% dplyr::filter(Country == "China"), aes(x = year, y = val), size = 3, shape = 18, position = position_dodge(width = 0.0), show.legend = FALSE) +
+#     geom_point(data = dataL2 %>% dplyr::filter(Country == "India"), aes(x = year, y = val), size = 3, shape = 18, position = position_dodge(width = 0.0), show.legend = FALSE) +
+#     # geom_text(aes(y = val, label = round(val, 1)), color = "black", position = position_dodge(width = 0.9), vjust = -1.0, size = 3, show.legend = FALSE) +
+#     # scale_x_continuous(minor_breaks=seq(2010, 2020, 1), breaks=seq(2010, 2020, 1), limits=c(2014.5, 2020.5)) +
+#     scale_x_continuous(minor_breaks=seq(2010, 2020, 1), breaks=seq(2010, 2020, 1), limits=c(2014.49, 2020.51)) +
+#     scale_y_continuous(
+#       name = "Job earnings (billion US$)",
+#       breaks = pretty_breaks(),
+#       sec.axis = sec_axis(trans = ~ ((. - lineOffset) / capacityScale) + secAxisOffset, name = "Job earnings per capacity (million US$/GW)", breaks = pretty_breaks())
+#     ) +
+#     # labs(x = "Year", title = mainTitle) +
+#     labs(x = NULL, title = NULL) +
+#     theme_bw() +
+#     theme(panel.border = element_rect(linewidth = 1.0),
+#           panel.grid.major = element_blank(),
+#           panel.grid.minor = element_blank(),
+#           legend.position = c(0.1, 0.9), 
+#           legend.key.size = unit(0.6, 'cm'),
+#           legend.margin = margin(0, 0, 0, 0),
+#           legend.title = element_blank(),
+#           text = element_text(size = fontSize, family = "serif", face = "bold")) +
+#     # scale_fill_manual(values = grDevices::colorRampPalette(c("#d65d48", "#599CB4"))(4)) +
+#     # scale_color_manual(values = grDevices::colorRampPalette(c("#EF8B67", "#92B5CA"))(4)) +
+#     # scale_fill_manual(values = c("China Solar" = "#ED7D31", "China Wind" = "#C55A11", "India Solar" = "#4472C4", "India Wind" = "#2F5597"), name = NULL, na.value = NA) +
+#     # scale_color_manual(values = c("China Solar" = "#F6BE98", "China Wind" = "#D68B58", "India Solar" = "#A1B8E1", "India Wind" = "#6D88B6"), name = NULL, na.value = NA) +
+#     # scale_fill_manual(values = c("China Solar" = "#a6cee3", "China Wind" = "#1f78b4", "India Solar" = "#b2df8a", "India Wind" = "#33a02c"), name = NULL, na.value = NA) +
+#     # scale_color_manual(values = c("China Solar" = "#a6cee3", "China Wind" = "#1f78b4", "India Solar" = "#b2df8a", "India Wind" = "#33a02c"), name = NULL, na.value = NA) +
+#     scale_fill_manual(values = c("China Solar" = "#a53024", "China Wind" = "#e16327", "India Solar" = "#009395", "India Wind" = "#165a71"), name = NULL, na.value = NA) +
+#     scale_color_manual(values = c("China Solar" = "#a53024", "China Wind" = "#e16327", "India Solar" = "#009395", "India Wind" = "#165a71"), name = NULL, na.value = NA)
+#   
+#   ggsave(makePlot, filename = saveImg, width = 10, height = 6, dpi = 600)
+#   
+#   # shell.exec(saveImg)
+#   cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+# }
 
 # ==============================================================================
 # 원본 코드
