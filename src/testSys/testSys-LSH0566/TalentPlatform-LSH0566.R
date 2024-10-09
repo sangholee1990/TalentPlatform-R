@@ -75,6 +75,21 @@ library(tidyverse)
 library(httr)
 library(jsonlite)
 library(rvest)
+library(DBI)
+library(odbc)
+library(readxl)
+
+# MSSQL 연결 설정
+con = odbc::dbConnect(
+  odbc::odbc()
+  , Driver = "SQL Server"
+  , Server = "서버주소"
+  , Database = "데이터베이스이름"
+  , UID = "사용자이름"
+  , PWD = "비밀번호"
+  , Port = 1433
+  )
+
 
 # 함수 선언
 errorHandler = function(x) {
@@ -286,7 +301,7 @@ dataL1 = fileList %>%
   purrr::map(readr::read_csv) %>%
   purrr::reduce(dplyr::bind_rows)
 
-print(dataL1)
+# print(dataL1)
 
 saveXlsxFile = sprintf("%s/%s/%s.xlsx", globalVar$outPath, serviceName, "dataL1")
 dir.create(fs::path_dir(saveXlsxFile), showWarnings = FALSE, recursive = TRUE)
