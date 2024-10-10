@@ -38,6 +38,34 @@
 
 # 혹시 지난번 짜주신 코드에서 2개 항목만 더 수집할 수 있도록 추가해주실 수 있을까요? Manufacturer details 내에서 Address 부분이랑 Mandate validity dates 에서 From과 To 에 있는 날짜에요!
 
+# 계정 로그인 방법
+# https://aurumguide.tistory.com/2
+# sa /dms01user01
+
+# dbo.TB_EUDAMED
+
+# 테이블 생성
+# CREATE TABLE TB_EUDAMED (
+#   uuidInfo NVARCHAR(255) PRIMARY KEY,
+#   urlDtl NVARCHAR(MAX),
+#   acrOrgName NVARCHAR(255),
+#   actIdSrn NVARCHAR(255),
+#   address NVARCHAR(255),
+#   manDate NVARCHAR(255),
+#   appLeg NVARCHAR(255),
+#   udiDu NVARCHAR(255),
+#   riskCls NVARCHAR(255),
+#   devName NVARCHAR(255),
+#   udiDi NVARCHAR(255),
+#   status NVARCHAR(255),
+#   tradeName NVARCHAR(255),
+#   memberState NVARCHAR(255),
+#   version NVARCHAR(255),
+#   lastUpdData NVARCHAR(255),
+#   addProDesc NVARCHAR(255),
+#   regDate NVARCHAR(255)
+# );
+
 # ================================================
 # 초기 환경변수 설정
 # ================================================
@@ -78,17 +106,28 @@ library(rvest)
 library(DBI)
 library(odbc)
 library(readxl)
+library(glue)
 
 # MSSQL 연결 설정
 con = odbc::dbConnect(
   odbc::odbc()
   , Driver = "SQL Server"
-  , Server = "서버주소"
-  , Database = "데이터베이스이름"
-  , UID = "사용자이름"
-  , PWD = "비밀번호"
+  # , Server = "SHLEE"
+  , Server = "localhost"
+  , Database = "master"
+  , UID = "sa"
+  , PWD = "dms01user01"
+  , encoding = "UTF-8"
   , Port = 1433
   )
+
+# # 특정 컬럼만 선택하여 쿼리 실행
+query = "SELECT uuidInfo, acrOrgName, actIdSrn, memberState FROM dbo.TB_EUDAMED;"
+data = DBI::dbGetQuery(con, query)
+print(data)
+
+
+
 
 
 # 함수 선언
@@ -284,8 +323,166 @@ for (pageInfo in pageList) {
       )
     
     if (nrow(data) < 1) next
+    # dataL1 = dplyr::bind_rows(dataL1, data)
     
-    dataL1 = dplyr::bind_rows(dataL1, data)
+    
+    
+    
+    
+    
+    
+    # R의 NULL 값 및 특수 문자 처리 함수
+    handle_na <- function(x) {
+      if (is.na(x)) {
+        return("NULL")
+      } else {
+        # 문자열 내부의 따옴표 처리 및 SQL 형식 맞추기
+        return(paste0("'", gsub("'", "''", x), "'"))
+      }
+    }
+    
+    # 날짜 형식 올바르게 변환 함수
+    format_datetime <- function(dt) {
+      if (is.na(dt)) {
+        return("NULL")
+      } else {
+        # 날짜 형식을 'YYYY-MM-DD HH:MM:SS'로 변환
+        return(paste0("'", format(as.POSIXct(dt, format = "%Y-%m-%d %H:%M:%S"), "%Y-%m-%d %H:%M:%S"), "'"))
+      }
+    }
+    
+    # 데이터프레임의 각 행에 대해 MERGE 쿼리 생성 및 실행
+  
+    
+    data[] <- lapply(data, function(col) {
+      if (is.character(col)) {
+        return(iconv(col, from = "UTF-8", to = "CP949", sub = ""))
+      } else {
+        return(col)
+      }
+    })
+    row_data <- data[1, ]
+    
+    # 동적 MERGE 쿼리 생성
+    merge_query <- glue::glue("
+    MERGE INTO dbo.TB_EUDAMED AS Target
+    USING (SELECT
+            {handle_na(row_data$uuidInfo)} AS uuidInfo,
+            {handle_na(row_data$urlDtl)} AS urlDtl,
+            {handle_na(row_data$acrOrgName)} AS acrOrgName,
+            {handle_na(row_data$actIdSrn)} AS actIdSrn,
+            {handle_na(row_data$address)} AS address,
+            {format_datetime(row_data$manDate)} AS manDate,
+            {handle_na(row_data$appLeg)} AS appLeg,
+            {handle_na(row_data$udiDu)} AS udiDu,
+            {handle_na(row_data$riskCls)} AS riskCls,
+            {handle_na(row_data$devName)} AS devName,
+            {handle_na(row_data$udiDi)} AS udiDi,
+            {handle_na(row_data$status)} AS status,
+            {handle_na(row_data$tradeName)} AS tradeName,
+            {handle_na(row_data$memberState)} AS memberState,
+            {handle_na(row_data$version)} AS version,
+            {format_datetime(row_data$lastUpdData)} AS lastUpdData,
+            {handle_na(row_data$addProDesc)} AS addProDesc,
+            {format_datetime(row_data$regDate)} AS regDate
+          ) AS Source
+    ON Target.uuidInfo = Source.uuidInfo
+    WHEN MATCHED THEN
+      UPDATE SET
+        Target.urlDtl = Source.urlDtl,
+        Target.acrOrgName = Source.acrOrgName,
+        Target.actIdSrn = Source.actIdSrn,
+        Target.address = Source.address,
+        Target.manDate = Source.manDate,
+        Target.appLeg = Source.appLeg,
+        Target.udiDu = Source.udiDu,
+        Target.riskCls = Source.riskCls,
+        Target.devName = Source.devName,
+        Target.udiDi = Source.udiDi,
+        Target.status = Source.status,
+        Target.tradeName = Source.tradeName,
+        Target.memberState = Source.memberState,
+        Target.version = Source.version,
+        Target.lastUpdData = Source.lastUpdData,
+        Target.addProDesc = Source.addProDesc,
+        Target.regDate = Source.regDate
+    WHEN NOT MATCHED BY TARGET THEN
+      INSERT (uuidInfo, urlDtl, acrOrgName, actIdSrn, address, manDate, appLeg, udiDu, riskCls, devName, udiDi, status, tradeName, memberState, version, lastUpdData, addProDesc, regDate)
+      VALUES (Source.uuidInfo, Source.urlDtl, Source.acrOrgName, Source.actIdSrn, Source.address, Source.manDate, Source.appLeg, Source.udiDu, Source.riskCls, Source.devName, Source.udiDi, Source.status, Source.tradeName, Source.memberState, Source.version, Source.lastUpdData, Source.addProDesc, Source.regDate);
+  ")
+    
+    # iconv(merge_query, from = "CP949", to = "UTF-8", sub = "")
+    dbExecute(con, merge_query)
+    
+      
+      # MERGE 쿼리 실행
+      tryCatch({
+        dbExecute(con, merge_query)
+      }, error = function(e) {
+        message(glue("Row {1}: Error occurred - {e$message}"))
+      })
+    }
+    
+    
+    
+    
+    # 동적 MERGE 쿼리 생성
+    merge_query <- glue_sql("
+    MERGE INTO dbo.TB_EUDAMED AS Target
+    USING (SELECT
+            '{data$uuidInfo}' AS uuidInfo,
+            '{data$urlDtl}' AS urlDtl,
+            '{data$acrOrgName}' AS acrOrgName,
+            '{data$actIdSrn}' AS actIdSrn,
+            '{data$address}' AS address,
+            '{data$manDate}' AS manDate,
+            '{data$appLeg}' AS appLeg,
+            '{data$udiDu}' AS udiDu,
+            '{data$riskCls}' AS riskCls,
+            '{data$devName}' AS devName,
+            '{data$udiDi}' AS udiDi,
+            '{data$status}' AS status,
+            '{data$tradeName}' AS tradeName,
+            '{data$memberState}' AS memberState,
+            '{data$version}' AS version,
+            '{data$lastUpdData}' AS lastUpdData,
+            '{data$addProDesc}' AS addProDesc,
+            '{data$regDate}' AS regDate
+          ) AS Source
+    ON Target.uuidInfo = Source.uuidInfo
+    WHEN MATCHED THEN
+      UPDATE SET
+        Target.urlDtl = Source.urlDtl,
+        Target.acrOrgName = Source.acrOrgName,
+        Target.actIdSrn = Source.actIdSrn,
+        Target.address = Source.address,
+        Target.manDate = Source.manDate,
+        Target.appLeg = Source.appLeg,
+        Target.udiDu = Source.udiDu,
+        Target.riskCls = Source.riskCls,
+        Target.devName = Source.devName,
+        Target.udiDi = Source.udiDi,
+        Target.status = Source.status,
+        Target.tradeName = Source.tradeName,
+        Target.memberState = Source.memberState,
+        Target.version = Source.version,
+        Target.lastUpdData = Source.lastUpdData,
+        Target.addProDesc = Source.addProDesc,
+        Target.regDate = Source.regDate
+    WHEN NOT MATCHED BY TARGET THEN
+      INSERT (uuidInfo, urlDtl, acrOrgName, actIdSrn, address, manDate, appLeg, udiDu, riskCls, devName, udiDi, status, tradeName, memberState, version, lastUpdData, addProDesc, regDate)
+      VALUES (Source.uuidInfo, Source.urlDtl, Source.acrOrgName, Source.actIdSrn, Source.address, Source.manDate, Source.appLeg, Source.udiDu, Source.riskCls, Source.devName, Source.udiDi, Source.status, Source.tradeName, Source.memberState, Source.version, Source.lastUpdData, Source.addProDesc, Source.regDate);
+  ", .con = con)
+    
+    DBI::dbExecute(con, merge_query)
+    
+    # MERGE 쿼리 실행
+    tryCatch({
+      DBI::dbExecute(con, merge_query)
+    }, error = function(e) {
+      cat(sprintf("[ERROR] pageInfo : %s / uuidInfo : %s", pageInfo, uuidInfo), "\n")
+      # message(glue("Row {i}: Error occurred - {e$message}"))
+    })
   }
 
   if (nrow(dataL1) > 0) {
