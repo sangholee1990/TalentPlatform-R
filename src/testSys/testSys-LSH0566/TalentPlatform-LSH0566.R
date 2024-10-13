@@ -50,7 +50,7 @@
 #   urlDtl NVARCHAR(MAX),
 #   acrOrgName NVARCHAR(255),
 #   actIdSrn NVARCHAR(255),
-#   address NVARCHAR(255),
+#   address NVARCHAR(MAX),
 #   manDate NVARCHAR(255),
 #   appLeg NVARCHAR(255),
 #   udiDu NVARCHAR(255),
@@ -62,7 +62,7 @@
 #   memberState NVARCHAR(255),
 #   version NVARCHAR(255),
 #   lastUpdData NVARCHAR(255),
-#   addProDesc NVARCHAR(255),
+#   addProDesc NVARCHAR(MAX),
 #   regDate NVARCHAR(255)
 # );
 
