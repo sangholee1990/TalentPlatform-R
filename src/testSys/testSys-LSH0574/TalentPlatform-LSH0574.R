@@ -74,6 +74,8 @@ dataL1 = data %>%
 colorAlphaList = seq(0.5, 1.0, 0.25)
 fontSizeList = seq(16, 24, 2)
 # fontSizeList = seq(20, 20, 2)
+colorAlpha = colorAlphaList[1]
+fontSize = fontSizeList[1]
 for (colorAlpha in colorAlphaList) {
   for (fontSize in fontSizeList) {
     
@@ -141,7 +143,8 @@ for (colorAlpha in colorAlphaList) {
         legend.margin = margin(0, 0, 0, 0),
         legend.title = element_blank(),
         text = element_text(size = fontSize, family = "serif", face = "bold"), 
-        axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
+        # axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)
+        axis.text.x = element_text(angle = 0, hjust = -0.5, vjust = 1)
         ) +
       scale_fill_manual(values = c("China Solar" = "#a53024", "China Wind" = "#e16327", "India Solar" = "#009395", "India Wind" = "#165a71"), name = NULL, na.value = NA) +
       scale_color_manual(values = c("China Solar" = "#a53024", "China Wind" = "#e16327", "India Solar" = "#009395", "India Wind" = "#165a71"), name = NULL, na.value = NA)
@@ -214,7 +217,8 @@ for (colorAlpha in colorAlphaList) {
         legend.margin = margin(0, 0, 0, 0),
         legend.title = element_blank(),
         text = element_text(size = fontSize, family = "serif", face = "bold"), 
-        axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
+        # axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)
+        axis.text.x = element_text(angle = 0, hjust = -0.5, vjust = 1)
       ) +
       # scale_fill_manual(values = grDevices::colorRampPalette(c("#d65d48", "#599CB4"))(4)) +
       # scale_color_manual(values = grDevices::colorRampPalette(c("#EF8B67", "#92B5CA"))(4)) +
