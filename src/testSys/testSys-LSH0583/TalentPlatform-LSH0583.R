@@ -37,10 +37,7 @@ if (Sys.info()[["sysname"]] == "Windows") {
 if (env == "local") {
   globalVar = list(
     "inpPath" = contextPath
-    , "figPath" = contextPath
     , "outPath" = contextPath
-    , "tmpPath" = contextPath
-    , "logPath" = contextPath
   )
 } else {
   # source(here::here(file.path(contextPath, "src"), "InitConfig.R"), encoding = "UTF-8")
@@ -104,6 +101,136 @@ library(ggmap)
 library(readxl)
 library(ggrepel)
 
+# 함수 정의
+perfEval = function(x, y) {
+  
+  if (length(x) < 1) { return(sprintf("%s", "x 값 없음")) }
+  if (length(y) < 1) { return(sprintf("%s", "y 값 없음")) }
+  
+  slope = coef(lm(y ~ x))[2]
+  interp = coef(lm(y ~ x))[1]
+  xMean = mean(x, na.rm = TRUE)
+  yMean = mean(y, na.rm = TRUE)
+  xSd = sd(x, na.rm = TRUE)
+  ySd = sd(y, na.rm = TRUE)
+  cnt = length(x)
+  bias = mean(x - y, na.rm = TRUE)
+  rBias = (bias / yMean) * 100.0
+  rmse = sqrt(mean((x - y)^2, na.rm = TRUE))
+  rRmse = (rmse / yMean) * 100.0
+  r = cor.test(x, y)$estimate
+  p = cor.test(x, y)$p.value
+  diffMean = mean(x - y, na.rm = TRUE)
+  diffSd = sd(x - y, na.rm = TRUE)
+  # perDiffMean = mean((x - y) / y, na.rm = TRUE) * 100.0
+  
+  return(c(slope, interp, xMean, yMean, xSd, ySd, cnt, bias, rBias, rmse, rRmse, r, p, diffMean, diffSd))
+}
+
+
+fnHeatIndex = function(temp, rh) {
+  
+  tryCatch({
+    temp = (temp * 1.8) + 32
+    
+    alpha = 61 + ((temp - 68) * 1.2) + (rh * 0.094)
+    hi = 0.5 * (temp + alpha)
+    
+    # if (hi > 79) {
+    #   hi = -42.379 + 2.04901523 * temp + 10.14333127 * rh -
+    #     0.22475541 * temp * rh -
+    #     0.00683783 * (temp^2) -
+    #     0.05481717 * (rh^2) +
+    #     0.00122874 * (temp^2) * rh +
+    #     0.00085282 * temp * (rh^2) - 0.00000199 * (temp^2) * (rh^2)
+    #   if (rh <= 13 && temp >= 80 && temp <= 112) {
+    #     adjustment1 = (13 - rh) / 4
+    #     adjustment2 = sqrt((17 - abs(temp - 95)) / 17)
+    #     total.adjustment = adjustment1 * adjustment2
+    #     hi = hi - total.adjustment
+    #   } else if (rh > 85 && temp >= 80 && temp <= 87) {
+    #     adjustment1 = (rh - 85) / 10
+    #     adjustment2 = (87 - temp) / 5
+    #     total.adjustment = adjustment1 * adjustment2
+    #     hi = hi + total.adjustment
+    #   }
+    # }
+    
+    hi = ifelse(hi > 79, 
+                -42.379 + 2.04901523 * temp + 10.14333127 * rh -
+                  0.22475541 * temp * rh -
+                  0.00683783 * (temp^2) -
+                  0.05481717 * (rh^2) +
+                  0.00122874 * (temp^2) * rh +
+                  0.00085282 * temp * (rh^2) - 0.00000199 * (temp^2) * (rh^2),
+                hi)
+    
+    adjustment1 = (13 - rh) / 4
+    # adjustment2 = sqrt((17 - abs(temp - 95)) / 17)
+    adjustment2 = sqrt(pmax((17 - abs(temp - 95)) / 17, NA))
+    total.adjustment = adjustment1 * adjustment2
+    hi = ifelse(hi > 79 & rh <= 13 & temp >= 80 & temp <= 112, hi - total.adjustment, hi)
+    
+    adjustment1 = (rh - 85) / 10
+    adjustment2 = (87 - temp) / 5
+    total.adjustment = adjustment1 * adjustment2
+    hi = ifelse(hi > 79 & rh > 85 & temp >= 80 & temp <= 87, hi + total.adjustment, hi)
+    
+    heatIndex = (hi - 32) / 1.8
+  
+    return(heatIndex)
+  }, error = function(e) {
+    return(NA)
+  })
+}
+
+
+fnHumidIndex = function(temp, rh) {
+  
+  vp = rh / 100 *
+    6.105 *
+    exp(17.27 * temp / (237.7 + temp))
+  humidIndex = temp + 0.5555 * (vp - 10)
+  
+  return(humidIndex)
+}
+
+fnAppTempIndex = function(temp, rh, ws) {
+  
+  vp = rh / 100 *
+    6.105 *
+    exp(17.27 * temp / (237.7 + temp))
+  appTempIndex = temp + 0.33 * vp - 0.7 * ws + 4.0
+  
+  return(appTempIndex)
+}
+
+fnAppTempRadIndex = function(temp, rh, ws, sr) {
+  
+  sr = sr * 86400 / (10^6)
+  alb = 0.2
+  vp = rh / 100 *
+    6.105 *
+    exp(17.27 * temp / (237.7 + temp))
+  appTempRadIndex = temp + 0.33 * vp - 0.7 * ws + 0.7 * (sr * (1 - alb))
+  
+  return(appTempRadIndex)
+}
+
+fnWetBulbGolbalTempIndex = function(temp, rh, ws, sr) {
+  
+  sr = sr * (10^3) / 86400
+  wetBulbGolbalTempIndex = 0.735 * temp +
+    0.0374 * rh +
+    0.00292 * temp * rh +
+    7.619 * sr -
+    4.557 * (sr^2) -
+    0.0572 * ws -
+    4.064
+  
+  return(wetBulbGolbalTempIndex)
+}
+
 
 #==================================================================================================
 #  파일 읽기
@@ -115,9 +242,10 @@ library(ggrepel)
 # ,전운량(10분위), 중하층운량(10분위), 운형(운형약어), 최저운고(100m ), 시정(10m), 지면상태(지면상태코드)
 # ,현상번호(국내식), 지면온도(°C), 지면온도 QC플래그, 5cm 지중온도(°C), 10cm 지중온도(°C)
 # ,20cm 지중온도(°C), 30cm 지중온도(°C)
-
+c
 fileInfo = Sys.glob(file.path(globalVar$inpPath, "INPUT/Big_Data_For_Input_ASOS_2011-2019_QC.inp"))
-data = data.table::fread(fileInfo, sep = ",", header = FALSE, stringsAsFactors = FALSE)
+data = data.table::fread(fileInfo, sep = ",", header = FALSE, stringsAsFactors = FALSE) %>% 
+  tibble::as.tibble()
 # data = readr::read_csv(file = fileInfo, locale = locale("ko", encoding = "EUC-KR"))
 
 colnames(data) = c("rowNum", "stationNum", "dateTimeOri", "temp", "tempQc", "prec", "precQc", "ws", "wsQc", "wd", "wdQc", "rh", "rhQc", "waterRh", "dewTemp", "localPres", "localPresQc", "seaPres", "seaPresQc", "daylight", "daylightQc", "sr", "snowfall", "v3hrSnowfall", "allCloudAmount", "middleCloudAmount", "cloudType", "cloudBottomHeight", "vis", "landType", "weatherType", "surfaceTemp", "surfaceTempQc", "surface5mTemp", "surface10mTemp", "surface20mTem", "surface30mTemp", "dateTime", "year", "month", "day", "hour", "minute")
@@ -137,7 +265,7 @@ dplyr::tbl_df(stationData)
 # ************************************************************************
 # 온열질환자 자료 읽기
 # ************************************************************************
-fileInfo = Sys.glob(paste(globalVar$inpConfig, "Big_Data_For_Validation_QC_L2_2015-2019.val", sep = "/"))
+fileInfo = Sys.glob(file.path(globalVar$inpPath, "INPUT/Big_Data_For_Validation_QC_L2_2015-2019.val"))
 valData = data.table::fread(fileInfo, sep = " ", header = FALSE)
 colnames(valData) = c("year", "month", "day", "metroStationName", "hwanja", "death")
 
@@ -147,12 +275,16 @@ dplyr::tbl_df(valData)
 # 일평균 수행
 # ************************************************************************
 dataL1 = data %>%
-  dplyr::na_if(-999.0) %>%
   dplyr::select(dateTime, year, month, day, hour, stationNum, temp, ws, rh, sr) %>%
+  # dplyr::na_if(-999.s0) %>%
   dplyr::filter(
     dplyr::between(year, 2015, 2019)
     , dplyr::between(month, 5, 9)
     , dplyr::between(hour, 9, 18)
+    , ! is.na(temp)
+    , ! is.na(ws)
+    , ! is.na(rh)
+    , ! is.na(sr)
   ) %>%
   dplyr::group_by(year, month, day, stationNum) %>%
   dplyr::summarise(
@@ -169,6 +301,7 @@ dplyr::glimpse(dataL1)
 # 4종 폭염지수 계산
 # ************************************************************************
 dataL2 = dataL1 %>%
+  dplyr::ungroup() %>% 
   dplyr::filter(sumSr > 0) %>%
   dplyr::mutate(
     heatIndex = fnHeatIndex(meanTemp, meanRh)
@@ -176,9 +309,9 @@ dataL2 = dataL1 %>%
     , appTempIndex = fnAppTempIndex(meanTemp, meanRh, meanWs)
     , appTempRadIndex = fnAppTempRadIndex(meanTemp, meanRh, meanWs, sumSr)
     , wetBulbGolbalTempIndex = fnWetBulbGolbalTempIndex(meanTemp, meanRh, meanWs, sumSr)
-  )
+  ) 
 
-dplyr::glimpse(dataL1)
+dplyr::glimpse(dataL2)
 
 # ************************************************************************
 # 자료 병합 (기상 자료, 기상 관측소, 온열질환자 자료)
@@ -204,14 +337,22 @@ dataL4 = dataL3 %>%
   na.omit() %>%
   dplyr::select(maxTemp, meanTemp, meanRh, meanWs, sumSr, heatIndex, humidIndex, appTempIndex, appTempRadIndex, wetBulbGolbalTempIndex, jd, hwanja, death)
 
+# summary(dataL4)
+
 dplyr::glimpse(dataL4)
 
 # 상관계수 행렬
 corMat = cor(dataL4)
 
+saveImg = sprintf("%s/%s.png", globalVar$outPath, "상관계수 행렬")
+dir.create(dirname(saveImg), showWarnings = FALSE, recursive = TRUE)
+
 ggcorrplot(corMat, outline.col = "white", lab = FALSE) +
   scale_fill_gradientn(colours = colorRamps::matlab.like(10)) +
-  labs(fill = "Cor")
+  labs(fill = "Cor") +
+  ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
+
+cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n") 
 
 # 폭염 기준 상관계수 행렬
 dataL5 = dataL4 %>%
@@ -220,11 +361,22 @@ dataL5 = dataL4 %>%
     , heatIndex >= 32
   )
 
+# summary(dataL5)
+
 corMat = cor(dataL5)
+
+corMat %>% round(2)
+
+saveImg = sprintf("%s/%s.png", globalVar$outPath, "OUTPUT/폭염 상관계수 행렬")
+dir.create(dirname(saveImg), showWarnings = FALSE, recursive = TRUE)
 
 ggcorrplot(corMat, outline.col = "white", lab = FALSE) +
   scale_fill_gradientn(colours = colorRamps::matlab.like(10)) +
-  labs(fill = "Cor")
+  labs(fill = "Cor") +
+  ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
+
+cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n") 
+
 
 # 각 지점에 따른 다중선형회귀모형/딥러닝 학습
 stationNameList = sort(unique(dataL3$metroStationName))
@@ -355,7 +507,8 @@ for (stationNameInfo in stationNameList) {
   dataL6 = dplyr::bind_rows(dataL6, dataL5)
 }
 
-saveFile = sprintf("%s/%s_%s", globalVar$outConfig, serviceName, "Big_Data_For_Output_ASOS_2015-2019.out")
+saveFile = sprintf("%s/%s", globalVar$outPath, "OUTPUT/Big_Data_For_Output_ASOS_2015-2019.out")
+dir.create(dirname(saveFile), showWarnings = FALSE, recursive = TRUE)
 readr::write_csv(dataL6, file = saveFile)
 
 dataL7 = dataL6
@@ -363,7 +516,11 @@ dataL7 = dataL6
 #==================================================================================================
 # 시각화를 위한 파일 읽기
 #==================================================================================================
-fileInfo = Sys.glob(paste(globalVar$outConfig, "LSH0079_Big_Data_For_Output_ASOS_2015-2019.out", sep = "/"))
+font = "New Century Schoolbook"
+cbViridis = viridis::viridis(11)
+cbMatlab = colorRamps::matlab.like(11)
+
+fileInfo = Sys.glob(file.path(globalVar$outPath, "OUTPUT/Big_Data_For_Output_ASOS_2015-2019.out"))
 dataL7 = readr::read_csv(file = fileInfo, locale = locale("ko", encoding = "EUC-KR")) %>%
   na.omit() %>%
   dplyr::rename(
@@ -433,13 +590,14 @@ Y = dayData$kcdc
 # X = monthData$meanDl
 # Y = monthData$meanKcdc
 
-val = fnStats(X, Y)
+val = perfEval(X, Y)
 sprintf("%.3f", val)
 
 xcord = 1
 ycord = seq(48, 0, -3)
 
-saveImg = sprintf("%s/Img_%s_%s.png", globalVar$figConfig, serviceName, 1)
+saveImg = sprintf("%s/OUTPUT/Img_%s.png", globalVar$outPath, 1)
+dir.create(dirname(saveImg), showWarnings = FALSE, recursive = TRUE)
 
 ggplot() +
   coord_fixed(ratio = 1) +
@@ -504,10 +662,11 @@ Y = dayData$kcdc
 xcord = 10.5
 ycord = seq(48, 0, -3)
 
-val = fnStats(X, Y)
+val = perfEval(X, Y)
 sprintf("%.3f", val)
 
-saveImg = sprintf("%s/Img_%s_%s.png", globalVar$figConfig, serviceName, 2)
+saveImg = sprintf("%s/OUTPUT/Img_%s.png", globalVar$outPath, 2)
+dir.create(dirname(saveImg), showWarnings = FALSE, recursive = TRUE)
 
 ggplot() +
   coord_fixed(ratio = 1) +
@@ -566,7 +725,8 @@ mapData = dayData
 # 월별
 # mapData = monthData
 
-saveImg = sprintf("%s/Img_%s_%s.png", globalVar$figConfig, serviceName, 2)
+saveImg = sprintf("%s/OUTPUT/Img_%s.png", globalVar$outPath, 3)
+dir.create(dirname(saveImg), showWarnings = FALSE, recursive = TRUE)
 
 coordinates(mapData) = ~lon + lat
 plot(mapData)
@@ -574,11 +734,9 @@ plot(mapData)
 mapDataL1 = mapData %>%
   as.tibble()
 
-globalVar$mapConfig
-
-mapKor = read_sf(paste(globalVar$mapConfig, "gadm36_KOR_shp/gadm36_KOR_1.shp", sep = "/"))
-mapPrk = read_sf(paste(globalVar$mapConfig, "gadm36_PRK_shp/gadm36_PRK_1.shp", sep = "/"))
-mapJpn = read_sf(paste(globalVar$mapConfig, "gadm36_JPN_shp/gadm36_JPN_1.shp", sep = "/"))
+mapKor = read_sf(file.path(globalVar$inpPath, "INPUT/gadm36_KOR_shp/gadm36_KOR_1.shp"))
+mapPrk = read_sf(file.path(globalVar$inpPath, "INPUT/gadm36_PRK_shp/gadm36_PRK_1.shp"))
+mapJpn = read_sf(file.path(globalVar$inpPath, "INPUT/gadm36_JPN_shp/gadm36_JPN_1.shp"))
 
 yRange = as.numeric(c(33, 39))    # min/max latitude  of the interpolation area
 xRange = as.numeric(c(124, 132))  # min/max longitude of the interpolation area
@@ -599,10 +757,10 @@ gridded(gridData) = TRUE
 # 일별
 #+++++++++++++++++++++
 # 일별 다중선형회귀 예측
-spData = gstat::idw(formula = mlr ~ 1, locations = mapData, newdata = gridData)
+# spData = gstat::idw(formula = mlr ~ 1, locations = mapData, newdata = gridData)
 
 # 일별 딥러닝 예측
-# spData = gstat::idw(formula = dl ~ 1, locations = mapData, newdata = gridData)
+spData = gstat::idw(formula = dl ~ 1, locations = mapData, newdata = gridData)
 
 # 일별 환자 관측
 # spData = gstat::idw(formula = kcdc ~ 1, locations = mapData, newdata = gridData)
@@ -637,7 +795,8 @@ spDataL1 = spData %>%
   ) %>%
   dplyr::filter(isMaskLand == TRUE)
 
-saveImg = sprintf("%s/Img_%s_%s.png", globalVar$figConfig, serviceName, 3)
+saveImg = sprintf("%s/OUTPUT/Img_%s.png", globalVar$outPath, 3)
+dir.create(dirname(saveImg), showWarnings = FALSE, recursive = TRUE)
 
 ggplot() +
   coord_fixed(ratio = 1.1) +
@@ -729,26 +888,26 @@ pROC::ggroc(rocYearData)
 
 # glimpse(dataL7)
 # Figure
-korea = c(left = 124, bottom = 32, right = 132, top = 40)    # Korea
-map = get_googlemap(korea, zoom = 7, maptype = 'hybrid')
-
-ggmap(map, extent = 'hybrid') +
-  # ggmap(map) +
-  geom_point(aes(x = log, y = lat, colour = hight), data = dataL7, size = 4) +
-  geom_text_repel(aes(x = log, y = lat, label = stationName, colour = hight),
-                  point.padding = 0.25, box.padding = 0.25, nudge_y = 0.1,
-                  data = dataL7, size = 4, colour = "white", fontface = "bold") +
-  labs(colour = "Altitude [m]") +
-  scale_colour_gradientn(colours = rainbow(11), limits = c(0, 800)) +
-  theme(axis.title.x = element_text(face = "bold", size = 15, colour = "black")) +
-  theme(axis.title.y = element_text(face = "bold", size = 15, colour = "black", angle = 90)) +
-  theme(axis.text.x = element_text(face = "bold", size = 15, colour = "black")) +
-  theme(axis.text.y = element_text(face = "bold", size = 15, colour = "black")) +
-  theme(legend.position = c(0, 1), legend.justification = c(0, 1)) +
-  theme(legend.key = element_blank()) +
-  theme(legend.text = element_text(size = 12, face = "bold", color = "white")) +
-  theme(legend.title = element_text(size = 14, face = "bold", colour = "white")) +
-  theme(legend.background = element_blank())
-
-+
-  ggsave("Map.png", width = 6, height = 6, dpi = 600)
+# korea = c(left = 124, bottom = 32, right = 132, top = 40)    # Korea
+# map = get_googlemap(korea, zoom = 7, maptype = 'hybrid')
+# 
+# ggmap(map, extent = 'hybrid') +
+#   # ggmap(map) +
+#   geom_point(aes(x = log, y = lat, colour = hight), data = dataL7, size = 4) +
+#   geom_text_repel(aes(x = log, y = lat, label = stationName, colour = hight),
+#                   point.padding = 0.25, box.padding = 0.25, nudge_y = 0.1,
+#                   data = dataL7, size = 4, colour = "white", fontface = "bold") +
+#   labs(colour = "Altitude [m]") +
+#   scale_colour_gradientn(colours = rainbow(11), limits = c(0, 800)) +
+#   theme(axis.title.x = element_text(face = "bold", size = 15, colour = "black")) +
+#   theme(axis.title.y = element_text(face = "bold", size = 15, colour = "black", angle = 90)) +
+#   theme(axis.text.x = element_text(face = "bold", size = 15, colour = "black")) +
+#   theme(axis.text.y = element_text(face = "bold", size = 15, colour = "black")) +
+#   theme(legend.position = c(0, 1), legend.justification = c(0, 1)) +
+#   theme(legend.key = element_blank()) +
+#   theme(legend.text = element_text(size = 12, face = "bold", color = "white")) +
+#   theme(legend.title = element_text(size = 14, face = "bold", colour = "white")) +
+#   theme(legend.background = element_blank())
+# 
+# +
+#   ggsave("Map.png", width = 6, height = 6, dpi = 600)
