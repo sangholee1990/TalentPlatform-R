@@ -73,7 +73,8 @@ dir.create(dirname(saveImg), showWarnings = FALSE, recursive = TRUE)
 
 ggplot(dataL1, aes(x = RH, y = bext)) +
   geom_point(aes(size = 3, color = PM2.5), alpha = 0.8) + 
-  scale_color_gradient2(low = "blue", mid = "#50F8F5", high = "red", midpoint = 60, name = "PM2.5", limits = c(0, 120), breaks = seq(0, 120, by = 30), na.value = NA) +
+  # scale_color_gradient2(low = "blue", mid = "#50F8F5", high = "red", midpoint = 60, name = "PM2.5", limits = c(0, 120), breaks = seq(0, 120, by = 30), na.value = NA) +
+  scale_color_gradient2(low = "blue", mid = "#50F8F5", high = "red", midpoint = 60, name = "PM2.5", limits = c(0, 120), breaks = seq(0, 120, by = 30)) +
   labs(
     x = "RH (%)",
     y = "광학시정 bext (Mm⁻¹)",
