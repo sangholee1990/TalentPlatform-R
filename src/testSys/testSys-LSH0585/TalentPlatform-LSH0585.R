@@ -84,7 +84,7 @@ ggplot(dataL1, aes(x = RH, y = bext)) +
   theme_classic() +
   theme(
     , text = element_text(size = 16)
-    , legend.position = c(0.06, 0.75)
+    , legend.position = c(0.07, 0.70)
     , legend.title = element_text(face = "bold", size = 16, color="black")
     , legend.text = element_text(size = 12)
     , axis.title = element_text(face = "bold", size=18, color="black")
@@ -93,7 +93,7 @@ ggplot(dataL1, aes(x = RH, y = bext)) +
     , panel.grid.major = element_line(size = 0.2, color = "gray90")
     , panel.grid.minor = element_line(size = 0.2, color = "gray90") 
   ) +
-  ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
+  ggsave(filename = saveImg, width = 8, height = 5, dpi = 300)
 
 # shell.exec(saveImg)
 cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
