@@ -51,7 +51,8 @@ library(ggplot2)
 library(openxlsx)
 
 # 데이터 검색/읽기
-fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "예시파일.xlsx"))
+# fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "예시파일.xlsx"))
+fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "예시파일_수정.xlsx"))
 data = openxlsx::read.xlsx(fileInfo, sheet = 1, startRow = 1)
 
 dataL1 = data %>% 
@@ -67,14 +68,47 @@ dataL1 = data %>%
 summary(dataL1)
 
 # 데이터 시각화
-mainTitle = sprintf("%s", "광학시정")
+mainTitle = sprintf("%s", "광학시정ORG")
 saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
 dir.create(dirname(saveImg), showWarnings = FALSE, recursive = TRUE)
 
 ggplot(dataL1, aes(x = RH, y = bext)) +
   geom_point(aes(size = 3, color = PM2.5), alpha = 0.8) + 
-  # scale_color_gradient2(low = "blue", mid = "#50F8F5", high = "red", midpoint = 60, name = "PM2.5", limits = c(0, 120), breaks = seq(0, 120, by = 30), na.value = NA) +
   scale_color_gradient2(low = "blue", mid = "#50F8F5", high = "red", midpoint = 60, name = "PM2.5", limits = c(0, 120), breaks = seq(0, 120, by = 30)) +
+  # scale_color_gradient2(low = "blue", mid = "#50F8F5", high = "red", midpoint = 60, name = "PM2.5", limits = c(0, 120), breaks = seq(0, 120, by = 30), na.value = NA) +
+  labs(
+    x = "RH (%)",
+    y = "광학시정 bext (Mm⁻¹)",
+    color = "PM2.5",
+    size = "size"
+  ) +
+  theme_classic() +
+  theme(
+    , text = element_text(size = 16)
+    , legend.position = c(0.07, 0.70)
+    , legend.title = element_text(face = "bold", size = 16, color="black")
+    , legend.text = element_text(size = 12)
+    , axis.title = element_text(face = "bold", size=18, color="black")
+    , axis.text = element_text(face = "bold", size=18, color="black")
+    , axis.line = element_line(size = 1.0)
+    , panel.grid.major = element_line(size = 0.2, color = "gray90")
+    , panel.grid.minor = element_line(size = 0.2, color = "gray90") 
+  ) +
+  ggsave(filename = saveImg, width = 8, height = 5, dpi = 300)
+
+# shell.exec(saveImg)
+cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+
+
+# 데이터 시각화
+mainTitle = sprintf("%s", "광학시정NEW")
+saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
+dir.create(dirname(saveImg), showWarnings = FALSE, recursive = TRUE)
+
+ggplot(dataL1, aes(x = RH, y = bext)) +
+  geom_point(aes(size = 3, color = PM2.5), alpha = 0.8) + 
+  # scale_color_gradient2(low = "blue", mid = "#50F8F5", high = "red", midpoint = 60, name = "PM2.5", limits = c(0, 120), breaks = seq(0, 120, by = 30)) +
+  scale_color_gradient2(low = "blue", mid = "#50F8F5", high = "red", midpoint = 60, name = "PM2.5", limits = c(0, 120), breaks = seq(0, 120, by = 30), na.value = NA) +
   labs(
     x = "RH (%)",
     y = "광학시정 bext (Mm⁻¹)",
