@@ -1,0 +1,244 @@
+---
+title: "KeyMedi 회원 데이터를 활용한 이탈 예측 및 리텐션 전략 수립"
+author: "이름"
+date: "`r Sys.Date()`"
+output:
+  pdf_document:
+    # latex_engine: xelatex
+    latex_engine: lualatex
+    toc: false
+    number_sections: false
+mainfont: "Malgun Gothic"
+geometry: margin=1in
+fontsize: 11pt
+---
+
+## 1. 라이브러리 설치 및 불러오기
+- 분석을 위한 주요 R 라이브러리를 설치하고 로드합니다.
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  eval = TRUE,
+  fig.width = 5,
+  fig.asp = 0.618,
+  out.width = "70%",
+  dpi = 120,
+  fig.align = "center",
+  cache = FALSE
+)
+
+# 필요한 라이브러리 설치
+# install.packages(c("tidyverse", "caret", "randomForest", "e1071", "ROCR"))
+
+# 라이브러리 불러오기
+library(tidyverse)    # 데이터 정제 및 시각화
+library(caret)        # 머신러닝 모델링
+library(randomForest) # 랜덤 포레스트 모델
+library(e1071)        # SVM 모델
+library(ROCR)         # AUC 및 ROC 곡선
+library(openxlsx)
+library(lubridate)
+library(car)
+```
+
+
+## 2. 데이터 불러오기 및 탐색
+- KeyMedi 회원 데이터를 불러오고 데이터의 구조를 파악합니다.
+```{r}
+# 데이터 불러오기
+# keymedi_data <- read.csv("KeyMedi_Member_Data.csv", header = TRUE, fileEncoding = "UTF-8")
+orgData = openxlsx::read.xlsx("2024_doctor.rawDB.xlsx", sheet = 1, startRow = 1)
+
+# 데이터 탐색
+str(orgData)    # 데이터 구조
+summary(orgData) # 주요 통계 확인
+head(orgData)    # 데이터 샘플 확인
+```
+
+## 3. 데이터 정제
+- 결측치 처리, 이상치 확인, 및 범주형 변수 변환을 통해 데이터를 정리합니다.
+```{r}
+keymedi_data = orgData
+
+# 결측치 확인 및 제거
+# sum(is.na(keymedi_data))  # 총 결측치 확인
+colSums(is.na(keymedi_data))
+
+# 결측치 제거
+keymedi_data <- keymedi_data %>% 
+  na.omit()
+
+# 범주형 변수 변환
+# keymedi_data$Gender <- as.factor(keymedi_data$Gender)
+keymedi_data$Gender <- as.factor(keymedi_data$성별)
+# keymedi_data$Gender <- keymedi_data$성별
+
+# 나이
+keymedi_data$Age = as.numeric(as.period(lubridate::interval(lubridate::ymd(keymedi_data$생년월일), Sys.Date()))$year)
+
+# 유형
+keymedi_data$Type = as.factor(keymedi_data$유형)
+
+# 포인트
+keymedi_data$Point = keymedi_data$포인트
+
+# 누적연도
+# keymedi_data$Year = lubridate::year(lubridate::ymd_hms(keymedi_data$최종접속))
+keymedi_data$Year = as.period(lubridate::interval(lubridate::ymd_hms(keymedi_data$가입일), lubridate::ymd_hms(keymedi_data$최종접속)))$day
+
+# 이탈 여부 (이탈 1, 활동 0)
+keymedi_data$Attrition = ifelse(keymedi_data$최종접속 < 2024, 1, 0)
+keymedi_data$Attrition <- as.factor(keymedi_data$Attrition)
+
+# 데이터 정규화 (숫자형 변수)
+num_cols <- sapply(keymedi_data, is.numeric)
+keymedi_data[num_cols] <- scale(keymedi_data[num_cols])  # 정규화 처리
+
+
+# 결측치 제거
+keymedi_data <- keymedi_data %>% 
+  dplyr::filter(
+    ! is.na(Gender)
+    , ! is.na(Age)
+    , ! is.na(Type)
+    , ! is.na(Point)
+    , ! is.na(Year)
+    )
+
+# 독립변수 간의 종속성을 정량적으로 평가하기 위해서 다중공선성 수행
+# 그 결과 모든 독립변수의 VIF는 1.05이하로서 다중공선성이 미비하여 서로 간의 독립적임
+glmModel = glm(Attrition ~ Gender + Age + Type + Point + Year, data = keymedi_data, family = binomial)
+
+vifRes = car::vif(glmModel)
+vifData = data.frame(
+  # Variable = row.names(vifRes),
+  Variable = names(vifRes),
+  VIF = vifRes
+)
+
+ggplot(vifData, aes(x = Variable, y = VIF, fill = Variable)) +
+  geom_bar(stat = "identity") +
+  labs(title = "VIF 다중공선성", x = "변수", y = "VIF") +
+  theme_minimal()
+```
+
+
+## 4. 데이터 시각화
+- 변수 간의 관계를 시각적으로 확인하여 인사이트를 도출합니다.
+```{r}
+# 성별 및및 이탈 회원 간의 관계
+ggplot(keymedi_data, aes(x = Gender, fill = Attrition)) +
+  geom_histogram(binwidth = 1, position = "dodge", stat="count") +
+  labs(title = "성별 및 이탈 회원 간의 관계", x = "성별", y = "이탈 회수") +
+  theme_minimal()
+
+# 직업유형 및 이탈 회원 간의 관계
+# keymedi_data$Type = forcats::fct_rev(forcats::fct_infreq(keymedi_data$Type))
+keymedi_data$Type = fct_infreq(keymedi_data$Type)
+
+ggplot(keymedi_data, aes(x = Type, fill = Attrition)) +
+  geom_histogram(binwidth = 1, position = "dodge", stat="count") +
+  labs(title = "직업유형 및 이탈 회원 간의 관계", x = "성별", y = "이탈 회원") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 5))
+
+# 나이 및 이탈 회원 관계
+ggplot(keymedi_data, aes(x = Age, fill = Attrition)) +
+  geom_density(alpha = 0.5) +
+  labs(title = "나이 및 이탈 회원 간의 관계", x = "나이", y = "밀도") +
+  theme_minimal()
+
+# 포인트 및 이탈 회원 관계
+ggplot(keymedi_data, aes(x = Point, fill = Attrition)) +
+  geom_density(alpha = 0.5) +
+  labs(title = "포인트 및 이탈 회원 간의 관계", x = "포인트", y = "밀도") +
+  theme_minimal()
+```
+
+
+## 5. 데이터 분할
+- 훈련 데이터와 테스트 데이터를 분리합니다.
+```{r}
+# 데이터 분할
+set.seed(123)  # 재현성을 위한 설정
+trainIndex <- createDataPartition(keymedi_data$Attrition, p = 0.7, list = FALSE)
+trainData <- keymedi_data[trainIndex, ]
+testData <- keymedi_data[-trainIndex, ]
+
+colSums(is.na(trainData))
+colSums(is.na(testData))
+```
+
+
+## 6. 모델링
+- Logistic Regression, Random Forest, 및 SVM 모델을 생성하여 이탈 예측을 시도합니다.
+  - 독립변수: Attrition
+  - 종속변수: Gender + Age + Type + Point + Year
+  
+  - 6.1 Logistic Regression
+  - 6.2 Random Forest
+  - 6.3 Support Vector Machine (SVM)
+```{r, warning=FALSE}
+# Logistic Regression
+logistic_model <- glm(Attrition ~ Gender + Age + Type + Point + Year, data = trainData, family = "binomial")
+summary(logistic_model)
+
+# Random Forest
+rf_model <- randomForest(Attrition ~ Gender + Age + Type + Point + Year, data = trainData, ntree = 100)
+print(rf_model)
+
+# Support Vector Machine
+svm_model <- svm(Attrition ~ Gender + Age + Type + Point + Year, data = trainData, kernel = "radial", cost = 1, scale = TRUE)
+summary(svm_model)
+```
+
+## 7. 모델 성능 평가
+### 7.1 Logistic Regression
+- Logistic Regression, Random Forest, 및 SVM 모델을 생성하여 이탈 예측을 시도합니다.
+```{r}
+# Logistic Regression 예측
+logistic_pred <- predict.glm(logistic_model, testData, type = "response")
+logistic_class <- ifelse(logistic_pred > 0.5, 1, 0)
+confusionMatrix(factor(logistic_class, levels = levels(testData$Attrition)), testData$Attrition)
+
+# 검증 측정 및 ROC 커브
+glmPrd = ROCR::prediction(as.numeric(logistic_class), testData$Attrition)
+glmPerm = ROCR::performance(glmPrd, "tpr", "fpr")
+plot(glmPerm, main = 'ROC Curve')
+
+# AUC 측정 : 1에 가까울수록 최고 성능 0.5011276
+ROCR::performance(glmPrd, "auc")@y.values[[1]]
+```
+
+
+### 7.2 Random Forest
+```{r}
+# SVM 예측
+svm_pred <- predict(svm_model, testData)
+confusionMatrix(svm_pred, testData$Attrition)
+
+# 검증 측정 및 ROC 커브
+svmPrd = ROCR::prediction(as.numeric(svm_pred), testData$Attrition)
+svmPerm = ROCR::performance(svmPrd, "tpr", "fpr")
+plot(svmPerm, main = 'ROC Curve')
+
+# AUC 측정 : 1에 가까울수록 최고 성능 0.5
+ROCR::performance(svmPrd, "auc")@y.values[[1]]
+```
+
+
+### 7.3 Support Vector Machine (SVM)
+```{r}
+# Random Forest 예측
+rf_pred <- predict(rf_model, testData)
+confusionMatrix(rf_pred, testData$Attrition)
+
+# 검증 측정 및 ROC 커브
+rfPrd = ROCR::prediction(as.numeric(rf_pred), testData$Attrition)
+rfPerm = ROCR::performance(rfPrd, "tpr", "fpr")
+plot(rfPerm, main = 'ROC Curve')
+
+# AUC 측정 : 1에 가까울수록 최고 성능 0.6050587
+ROCR::performance(rfPrd, "auc")@y.values[[1]]
+```
+
