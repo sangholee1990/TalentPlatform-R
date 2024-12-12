@@ -3,12 +3,14 @@ title: "KeyMedi 회원 데이터를 활용한 이탈 예측 및 리텐션 전략
 author: "이름"
 date: "`r Sys.Date()`"
 output:
+  html_document:
+    toc: false
+    df_print: paged
   pdf_document:
-    # latex_engine: xelatex
     latex_engine: lualatex
     toc: false
     number_sections: false
-mainfont: "Malgun Gothic"
+mainfont: Malgun Gothic
 geometry: margin=1in
 fontsize: 11pt
 ---
