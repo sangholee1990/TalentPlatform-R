@@ -65,6 +65,7 @@ data = dplyr::bind_rows(
   , tibble::tibble(prjDir = fs::path_file(list.dirs(file.path(globalVar$inpPath, "[완료]"), recursive = FALSE)))
   , tibble::tibble(prjDir = fs::path_file(list.dirs(file.path(globalVar$inpPath, "[완료-미입금]"), recursive = FALSE)))
   , tibble::tibble(prjDir = fs::path_file(list.dirs(file.path(globalVar$inpPath, "[완료-미응답]"), recursive = FALSE)))
+  , tibble::tibble(prjDir = fs::path_file(list.dirs(file.path(globalVar$inpPath, "[완료-취소]"), recursive = FALSE)))
 )
 
 # 자료 가공
@@ -78,7 +79,8 @@ dataL1 = data %>%
   ) %>% 
   dplyr::select(-prjDir) %>% 
   dplyr::filter(
-    ! stringr::str_detect(prjName, regex("요구사항"))
+    ! stringr::str_detect(prjName, regex("요구사항")),
+    ! stringr::str_detect(prjName, regex("템플릿")),
   ) %>% 
   tidyr::separate(prjName, sep = "\\. ", into = c("serviceNum", "serviceName") ) %>% 
   dplyr::arrange(serviceNum) %>% 
