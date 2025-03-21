@@ -76,17 +76,24 @@ for (dateInfo in dateList) {
   #   read_html()
   res = read_html(URL)
   
-  # 상위 제목
-  pattern = '//*[@id="newsContents"]/div/div[2]/div[*]/div/a/span[2]/h2'
+  # Case 2. Element
+  # 제목 30개
+  pattern = "h2"
   titleTopList = res %>%
-    html_nodes(xpath = pattern) %>%
+    html_nodes(pattern) %>%
     html_text(trim=TRUE)
   
-  # 하단 제목
-  pattern = '//*[@id="postRankSubject"]/ul[*]/li[*]/a/h2'
-  titleBotList = res %>% 
-    html_nodes(xpath = pattern) %>%
-    html_text(trim=TRUE)
+  # 상단 5개 제목
+  # pattern = '//*[@id="newsContents"]/div/div[2]/div[*]/div/a/span[2]/h2'
+  # titleTopList = res %>%
+  #   html_nodes(xpath = pattern) %>%
+  #   html_text(trim=TRUE)
+  
+  # 하단 25개 제목
+  # pattern = '//*[@id="postRankSubject"]/ul[*]/li[*]/a/h2'
+  # titleBotList = res %>% 
+  #   html_nodes(xpath = pattern) %>%
+  #   html_text(trim=TRUE)
 
   if (length(titleTopList) < 1) next
   if (length(titleBotList) < 1) next
