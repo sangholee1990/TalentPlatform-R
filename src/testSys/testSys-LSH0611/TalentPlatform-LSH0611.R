@@ -16,31 +16,31 @@
 # ================================================
 # 초기 환경변수 설정
 # ================================================
-env = "local"  # 로컬 : 원도우 환경, 작업환경 (현재 소스 코드 환경 시 .) 설정
-# env = "dev"  # 개발 : 원도우 환경, 작업환경 (사용자 환경 시 contextPath) 설정
-# env = "oper"  # 운영 : 리눅스 환경, 작업환경 (사용자 환경 시 contextPath) 설정
-
-prjName = "test"
-serviceName = "LSH0611"
-
-if (Sys.info()[["sysname"]] == "Windows") {
-  contextPath = ifelse(env == "local", getwd(), "C:/SYSTEMS/PROG/R/TalentPlatform-R")
-} else {
-  contextPath = ifelse(env == "local", getwd(), "/SYSTEMS/PROG/R/PyCharm")
-}
-
-if (env == "local") {
-  globalVar = list(
-    "inpPath" = contextPath
-    , "figPath" = contextPath
-    , "outPath" = contextPath
-    , "tmpPath" = contextPath
-    , "logPath" = contextPath
-  )
-} else {
-  # source(here::here(file.path(contextPath, "src"), "InitConfig.R"), encoding = "UTF-8")
-  source(file.path(contextPath, "src", "InitConfig.R"))
-}
+# env = "local"  # 로컬 : 원도우 환경, 작업환경 (현재 소스 코드 환경 시 .) 설정
+# # env = "dev"  # 개발 : 원도우 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+# # env = "oper"  # 운영 : 리눅스 환경, 작업환경 (사용자 환경 시 contextPath) 설정
+# 
+# prjName = "test"
+# serviceName = "LSH0611"
+# 
+# if (Sys.info()[["sysname"]] == "Windows") {
+#   contextPath = ifelse(env == "local", getwd(), "C:/SYSTEMS/PROG/R/TalentPlatform-R")
+# } else {
+#   contextPath = ifelse(env == "local", getwd(), "/SYSTEMS/PROG/R/PyCharm")
+# }
+# 
+# if (env == "local") {
+#   globalVar = list(
+#     "inpPath" = contextPath
+#     , "figPath" = contextPath
+#     , "outPath" = contextPath
+#     , "tmpPath" = contextPath
+#     , "logPath" = contextPath
+#   )
+# } else {
+#   # source(here::here(file.path(contextPath, "src"), "InitConfig.R"), encoding = "UTF-8")
+#   source(file.path(contextPath, "src", "InitConfig.R"))
+# }
 
 # ================================================
 # 비즈니스 로직 수행
@@ -79,7 +79,7 @@ for (dateInfo in dateList) {
   # Case 2. Element
   # 제목 30개
   pattern = "h2"
-  titleTopList = res %>%
+  titleList = res %>%
     html_nodes(pattern) %>%
     html_text(trim=TRUE)
   
@@ -95,19 +95,23 @@ for (dateInfo in dateList) {
   #   html_nodes(xpath = pattern) %>%
   #   html_text(trim=TRUE)
 
-  if (length(titleTopList) < 1) next
-  if (length(titleBotList) < 1) next
+  # if (length(titleTopList) < 1) next
+  # if (length(titleBotList) < 1) next
+  
+  if (length(titleList) < 1) next
     
   # 데이터 병합
   data = tibble(
     date = dateInfo,
-    title = c(titleTopList, titleBotList)
+    # title = c(titleTopList, titleBotList)
+    title = c(titleList)
   )
   
   dataL1 = dplyr::bind_rows(dataL1, data)
 }
 
-saveFile = sprintf("%s/%s.xlsx", globalVar$outPath, "colctData_20250301-20250307")
+# saveFile = sprintf("%s/%s.xlsx", globalVar$outPath, "colctData_20250301-20250307")
+saveFile = sprintf("%s.xlsx", "colctData_20250301-20250307")
 dir.create(fs::path_dir(saveFile), showWarnings = FALSE, recursive = TRUE)
 write_xlsx(dataL1, saveFile)
 cat(sprintf("[CHECK] saveFile : %s", saveFile), "\n")
