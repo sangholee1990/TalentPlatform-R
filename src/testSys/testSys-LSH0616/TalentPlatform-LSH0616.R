@@ -19,6 +19,15 @@
 # 우선 수술방법에 따라 0,1,2 그룹으로 구분한 것을 먼저 보면, 전치부의 XY plane, ZY plane, XZ plane 3개의 figure 에 각각 0,1,2 그룹이 다른 색으로 표시되게끔 부탁드립니다. 
 # 마찬가지 과정을 우측구치부, 좌측구치부에 하면 총 9개의 figure 가 나옵니다. 마찬가지 방법으로 비대칭유무 그룹 0,1,2 도 해주시면 9개의 figure가 나와서 총 18개의 figure 가 됩니다. 우선은 예시로 하나만 보내주시면 확인하고 피드백드리겠습니다. 감사합니다.
 
+# 1) 수술방법에 따라 세 그룹은 현재 잘되어있는 것 같습니다. 다만 비대칭유무에 따른 그룹은 0,1,2 세 그룹을 각각 Symmetry / Leftward asymmetry / Rightward asymmetry 로 표기해주세요. 그리고 빨강/파랑/초록 이 아니라, 다른 3가지 색깔(구분잘되는것으로) 부탁드립니다.
+# 
+# 2) 그리고 제가 깜박잊고 전치/우측구치/좌측구치 평균 data 를 안보내드렸네요. 평균데이터 추가한 엑셀파일 다시 송부드리겠습니다. 평균으로도 scatterplot 제작해주시면 감사하겠습니다. 수술그룹 3개평면, 비대칭그룹 3개평면이니까 그래프가 6개가 추가되겠네요.
+# 
+# 3) 마지막으로 scatterplot 자체 크기가 더 확대되서 보였으면 합니다. 현재 각 축 마다 0,2,4 mm 까지 축표시가 되어있고 그거보다 더 크게 그래프가(거의 5이상) 그려져있는 것으로 보입니다. 축마다 눈금을 0,1,2 로하고 실제로는 약 3이상 정도 표시되게끔 해주실 수 있으실까요?
+#   
+#   그리고 포인트는 여러개 보내주실 필요 없이 14p 하나만해도 충분할 것 같습니다.
+# 항상 감사드립니다. 문의사항 있으면 알려주시면 감사하겠습니다.
+
 # ================================================
 # 초기 환경변수 설정
 # ================================================
@@ -59,7 +68,7 @@ library(magrittr)
 library(scales)
 library(fs)
 
-ggplotDefaultColor = scales::hue_pal()(3)
+# ggplotDefaultColor = scales::hue_pal()(3)
 # c("#F8766D", "#00BA38", "#619CFF")
 
 # ggplotDefaultColorNew = scales::muted(ggplotDefaultColor, l = 100)
@@ -82,8 +91,8 @@ data$group = as.factor(data$group)
 # colInfo = c("X", "Y")
 # typeInfo = "우측구치"
 # keyInfo = "수술"
-fontSizeList = seq(10, 20, 2)
-# fontSizeList = seq(16, 16, 2)
+# fontSizeList = seq(10, 20, 2)
+fontSizeList = seq(14, 14, 2)
 typeList = data$type %>% unique() %>% sort()
 keyList = c("비대칭", "수술")
 colList = list(c("X", "Y"), c("X", "Z"), c("Z", "Y"))
@@ -92,6 +101,8 @@ for (fontSize in fontSizeList) {
   for (typeInfo in typeList) {
     for (keyInfo in keyList) {
       for (colInfo in colList) {
+        
+        # summary(data)
         
         dataL1 = data %>%
           dplyr::filter(
@@ -160,8 +171,22 @@ for (fontSize in fontSizeList) {
         # saveImg = sprintf("%s/%s/%s.tiff", globalVar$figPath, serviceName, plotSubTitle)
         # saveImg = sprintf("%s/%s/FIG/%s.tiff", globalVar$figPath, serviceName, plotSubTitle)
         saveImg = sprintf("%s/%s/FIG/%sp/%s.tiff", globalVar$figPath, serviceName, fontSize, plotSubTitle)
-        
         dir.create(fs::path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
+        
+
+        # 비동기의 경우 라벨, 색상 설정
+        isAsync = stringr::str_detect("비대칭", regex(keyInfo, ignore_case = TRUE))
+        labelList = ifelse(isAsync, list(c("Symmetry", "Leftward asymmetry", "Rightward asymmetry")), list(c("Maxilla-first", "Mandible-first", "Mandible-only"))) %>% 
+          unlist()
+        
+        pointColList = ifelse(isAsync, list(c("#E69F00", "#56B4E9", "#009E73")), list(c("red", "blue", "green"))) %>% 
+          unlist()
+        
+        pathColList = ifelse(isAsync, list(c("#E69F00", "#56B4E9", "#009E73")), list(c("red", "blue", "#008000"))) %>% 
+          unlist()
+        
+        ggplotDefaultColor = ifelse(isAsync, list(c("#FFA54F", "#6AADD3", "#66CDAA")), list(c("#F8766D", "#619CFF", "#00BA38"))) %>% 
+          unlist()
         
         makePlot = ggplot() +
           geom_hline(yintercept = 0, colour = "grey", linetype = "dashed") + 
@@ -170,29 +195,32 @@ for (fontSize in fontSizeList) {
           # geom_point(data = dataL1, aes(colInfo[[1]], colInfo[[2]], colour = group)) +
           # geom_point(data = dataL1, aes(x = !!sym(colInfo[[1]]), y = !!sym(colInfo[[2]]), colour = factor(group)), size = 1, alpha = 0.4) +
           # geom_point(data = dataL1, aes(x = !!sym(colInfo[[1]]), y = !!sym(colInfo[[2]]), colour = factor(group)), size = 1.5, alpha = 0.5) +
-          geom_point(data = dataL1, aes(x = !!sym(colInfo[[1]]), y = !!sym(colInfo[[2]]), colour = factor(group)), size = 1.4, alpha = 0.5) +
+          # geom_point(data = dataL1, aes(x = !!sym(colInfo[[1]]), y = !!sym(colInfo[[2]]), colour = factor(group)), size = 1.4, alpha = 0.5) +
+          geom_point(data = dataL1, aes(x = !!sym(colInfo[[1]]), y = !!sym(colInfo[[2]]), colour = factor(group)), size = 2, alpha = 0.5) +
           
           # geom_point(data = statDataL1, aes(x, y, color = group), shape=17, size=3, show.legend = FALSE) +
           # geom_point(data = statDataL1 %>% dplyr::filter(group == 0), aes(x, y), color = "red", shape=17, size=3, show.legend = FALSE) +
           # geom_point(data = statDataL1 %>% dplyr::filter(group == 1), aes(x, y), color = "blue", shape=17, size=3, show.legend = FALSE) +
           # geom_point(data = statDataL1 %>% dplyr::filter(group == 2), aes(x, y), color = "green", shape=17, size=3, show.legend = FALSE) +
-          geom_point(data = statDataL1 %>% dplyr::filter(group == 0), aes(x, y), color = "red", shape=17, size=2.0, show.legend = FALSE) +
-          geom_point(data = statDataL1 %>% dplyr::filter(group == 1), aes(x, y), color = "blue", shape=17, size=2.0, show.legend = FALSE) +
-          geom_point(data = statDataL1 %>% dplyr::filter(group == 2), aes(x, y), color = "green", shape=17, size=2.0, show.legend = FALSE) +
+          geom_point(data = statDataL1 %>% dplyr::filter(group == 0), aes(x, y), color = pointColList[1], shape=17, size=3, show.legend = FALSE) +
+          geom_point(data = statDataL1 %>% dplyr::filter(group == 1), aes(x, y), color = pointColList[2], shape=17, size=3, show.legend = FALSE) +
+          geom_point(data = statDataL1 %>% dplyr::filter(group == 2), aes(x, y), color = pointColList[3], shape=17, size=3, show.legend = FALSE) +
           # geom_path(data = statDataL2, aes(x, y, colour = factor(group)), size = 0.5, linetype = 2, show.legend = FALSE) +
           # geom_path(data = statDataL2, aes(x, y, colour = factor(group)), size = 0.5, linetype = 2, show.legend = FALSE) +
           # geom_path(data = statDataL2, aes(x, y, colour = factor(group)), size = 0.5, linetype = 3, show.legend = FALSE) +
           # geom_path(data = statDataL2, aes(x, y, colour = factor(group)), size = 0.35, linetype = 2, show.legend = FALSE, alpha = 1.0) +
-          geom_path(data = statDataL2 %>% dplyr::filter(group == 0), aes(x, y), color = "red", size = 0.4, linetype = 2, show.legend = FALSE, alpha = 1.0) +
-          geom_path(data = statDataL2 %>% dplyr::filter(group == 1), aes(x, y), color = "blue", size = 0.4, linetype = 2, show.legend = FALSE, alpha = 1.0) +
-          geom_path(data = statDataL2 %>% dplyr::filter(group == 2), aes(x, y), color = "#008000", size = 0.4, linetype = 2, show.legend = FALSE, alpha = 1.0) +
+          geom_path(data = statDataL2 %>% dplyr::filter(group == 0), aes(x, y), color = pathColList[1], size = 0.4, linetype = 2, show.legend = FALSE, alpha = 1.0) +
+          geom_path(data = statDataL2 %>% dplyr::filter(group == 1), aes(x, y), color = pathColList[2], size = 0.4, linetype = 2, show.legend = FALSE, alpha = 1.0) +
+          geom_path(data = statDataL2 %>% dplyr::filter(group == 2), aes(x, y), color = pathColList[3], size = 0.4, linetype = 2, show.legend = FALSE, alpha = 1.0) +
           # geom_segment(data = statDataL3, aes(x = x, y = y, xend = xend, yend = yend, colour = factor(group)), size = 0.75, linetype = 4, show.legend = FALSE) +
           # labs(title = NULL, x = sprintf("%s-axis error (mm)", colInfo[[1]]), y =  sprintf("%s-axis error (mm)", colInfo[[2]]), color = "group") +
           labs(title = NULL, x = sprintf("%s-axis discrepancy (mm)", colInfo[[1]]), y =  sprintf("%s-axis discrepancy (mm)", colInfo[[2]]), color = "group") +
           # xlim(-5, 5) +
           # ylim(-5, 5) +
-          scale_x_continuous(minor_breaks = seq(-4, 4, 2), breaks=seq(-4, 4, 2), limits=c(-5, 5)) +
-          scale_y_continuous(minor_breaks = seq(-4, 4, 2), breaks=seq(-4, 4, 2), limits=c(-5, 5)) +
+          # scale_x_continuous(minor_breaks = seq(-4, 4, 2), breaks=seq(-4, 4, 2), limits=c(-5, 5)) +
+          # scale_y_continuous(minor_breaks = seq(-4, 4, 2), breaks=seq(-4, 4, 2), limits=c(-5, 5)) +
+          scale_x_continuous(minor_breaks = seq(-3, 3, 1), breaks=seq(-3, 3, 1), limits=c(-3, 3)) +
+          scale_y_continuous(minor_breaks = seq(-3, 3, 1), breaks=seq(-3, 3, 1), limits=c(-3, 3)) +
           theme_classic() +
           theme(
             panel.border = element_rect(colour = "black", fill = NA, size = 0.5)
@@ -206,10 +234,11 @@ for (fontSize in fontSizeList) {
             , na.value = "transparent"
             , values = c(
               "0" = ggplotDefaultColor[1]
-              , "1" = ggplotDefaultColor[3]
-              , "2" = ggplotDefaultColor[2]
+              , "1" = ggplotDefaultColor[2]
+              , "2" = ggplotDefaultColor[3]
             )
-            , labels = c("Maxilla-first", "Mandible-first", "Mandible-only")
+            # , labels = c("Maxilla-first", "Mandible-first", "Mandible-only")
+            , labels = labelList
           )
         
         ggsave(makePlot, filename = saveImg, width = 5, height = 5, dpi = 600)
