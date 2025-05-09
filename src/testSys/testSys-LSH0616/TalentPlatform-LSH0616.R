@@ -32,6 +32,8 @@
   
 # 그리고 비대칭그룹 색깔을 변경해주신 것은 좋은데 주황색을 제외하면(파랑,초록은..) 기존 수술그룹과 크게 차이가 안나는 것 같습니다. 조금더 다르게 해주시면 감사하겠습니다.
 
+# 선생님 확인했습니다. 크기는 딱 좋은 것 같습니다. 다만 비대칭그룹 색깔이 좀 어둡고 가시성이 떨어지는 것 같아서,, symmetry 연보라 / leftward 노랑 / rightward 주황 계열로 변경해주실 수 있을까요? 조금 더 가시성 있게 해주시면 감사하겠습니다.
+
 # ================================================
 # 초기 환경변수 설정
 # ================================================
@@ -183,13 +185,13 @@ for (fontSize in fontSizeList) {
         labelList = ifelse(isAsync, list(c("Symmetry", "Leftward asymmetry", "Rightward asymmetry")), list(c("Maxilla-first", "Mandible-first", "Mandible-only"))) %>% 
           unlist()
         
-        pointColList = ifelse(isAsync, list(c("#E69F00", "#6A0DAD", "black")), list(c("red", "blue", "green"))) %>% 
+        pointColList = ifelse(isAsync, list(c("#9D7C9D", "#6B8E23", "#C38000")), list(c("red", "blue", "green"))) %>% 
           unlist()
         
-        pathColList = ifelse(isAsync, list(c("#E69F00", "#6A0DAD", "black")), list(c("red", "blue", "#008000"))) %>% 
+        pathColList = ifelse(isAsync, list(c("#9D7C9D", "#6B8E23", "#C38000")), list(c("red", "blue", "#008000"))) %>% 
           unlist()
         
-        ggplotDefaultColor = ifelse(isAsync, list(c("#FFC573", "#B589D9", "#8E8E8E")), list(c("#F8766D", "#619CFF", "#00BA38"))) %>% 
+        ggplotDefaultColor = ifelse(isAsync, list(c("#C8A2C8", "#98BF64", "#FFA500")), list(c("#F8766D", "#619CFF", "#00BA38"))) %>% 
           unlist()
         
         makePlot = ggplot() +
