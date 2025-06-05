@@ -87,7 +87,8 @@ fnGetCalibFactor = function(nActual, nPredicted, nMin, nMax, nInterval, isPlot =
 
 
 # 기준자료
-fileList = Sys.glob(file.path(globalVar$inpPath, serviceName, "20250507_KOTITI_PM25/*/기준측정기 데이터_250423-250504.xlsx"))
+# fileList = Sys.glob(file.path(globalVar$inpPath, serviceName, "20250507_KOTITI_PM25/*/기준측정기 데이터_250423-250504.xlsx"))
+fileList = Sys.glob(file.path(globalVar$inpPath, serviceName, "20250507_KOTITI_PM25/3차/기준측정기 데이터_*.xlsx"))
 
 # fileInfo = fileList[1]
 refData = tibble::tibble()
@@ -113,7 +114,8 @@ refDataL2 = refDataL1 %>%
 
 # 측정자료
 # 193037, 193044, 193049
-fileList = Sys.glob(file.path(globalVar$inpPath, serviceName, "20250507_KOTITI_PM25/*/*_*.csv"))
+# fileList = Sys.glob(file.path(globalVar$inpPath, serviceName, "20250507_KOTITI_PM25/*/*_*.csv"))
+fileList = Sys.glob(file.path(globalVar$inpPath, serviceName, "20250507_KOTITI_PM25/3차/*_*.csv"))
 
 # fileInfo = fileList[1]
 mesData = tibble::tibble()
@@ -174,10 +176,11 @@ openxlsx::saveWorkbook(wb, file = saveFile, overwrite = TRUE)
 cat(sprintf("[CHECK] saveFile : %s", saveFile), "\n")
 
 
-dataL1 = data %>% 
-  na.omit()
+# dataL1 = data %>% 
+#   na.omit()
 
-dataL2 = dataL1 %>%
+# dataL2 = dataL1 %>%
+dataL2 = data %>%
   dplyr::select(-starts_with("cnt_")) %>% 
   tidyr::pivot_longer(
     cols = c(val, starts_with("meanVal_")),
@@ -203,8 +206,9 @@ ggplot(dataL2, aes(x = dtHour, y = val, color = key, group = key)) +
     axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
     legend.position = "top"
   ) +
-  scale_x_datetime(date_breaks = "12 hour", date_labels = "%m-%d %H") +
-  ggsave(filename = saveImg, width = 12, height = 6, dpi = 600)
+   scale_x_datetime(breaks = "12 hours", date_breaks = "12 hours", date_labels = "%m-%d %H", limits = c(as.POSIXct("2025-05-28 00:00:00", tz="KST"), as.POSIXct("2025-06-06 23:59:59", tz="KST"))) +
+  # scale_x_datetime(date_breaks = "1 days", date_labels = "%m-%d") +
+  ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
 
 # shell.exec(saveImg)
 cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
