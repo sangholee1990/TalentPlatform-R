@@ -28,6 +28,14 @@
 #   그리고 포인트는 여러개 보내주실 필요 없이 14p 하나만해도 충분할 것 같습니다.
 # 항상 감사드립니다. 문의사항 있으면 알려주시면 감사하겠습니다.
 
+# 선생님 확인했습니다. 감사합니다. 다만 이게 너무 확대를 해버리니까 confidence boundary 가 짤리는 현상(ex. 전치)이 발생하는군요ㅠ 혹시 그래프가 짤리지는 않게끔 4에 가깝게까지 보이게할 수 있나요? 4 라는 숫자를 굳이 쓰지 않더라도 3이후로 좀 더 넓게까지 포함되게요!
+  
+# 그리고 비대칭그룹 색깔을 변경해주신 것은 좋은데 주황색을 제외하면(파랑,초록은..) 기존 수술그룹과 크게 차이가 안나는 것 같습니다. 조금더 다르게 해주시면 감사하겠습니다.
+
+# 선생님 확인했습니다. 크기는 딱 좋은 것 같습니다. 다만 비대칭그룹 색깔이 좀 어둡고 가시성이 떨어지는 것 같아서,, symmetry 연보라 / leftward 노랑 / rightward 주황 계열로 변경해주실 수 있을까요? 조금 더 가시성 있게 해주시면 감사하겠습니다.
+
+# 선생님~~ 지금 제가 발견했는데, 뭔가 잘못된 것 같습니다. Y,Z축 값이 혹시 바뀌었는지 확인 부탁드립니다. 제가 보내드린 excel file 에서 전치/우측구치/좌측구치/평균에서 x,z,y 로 적혀있을 겁니다!
+
 # ================================================
 # 초기 환경변수 설정
 # ================================================
@@ -179,13 +187,13 @@ for (fontSize in fontSizeList) {
         labelList = ifelse(isAsync, list(c("Symmetry", "Leftward asymmetry", "Rightward asymmetry")), list(c("Maxilla-first", "Mandible-first", "Mandible-only"))) %>% 
           unlist()
         
-        pointColList = ifelse(isAsync, list(c("#E69F00", "#56B4E9", "#009E73")), list(c("red", "blue", "green"))) %>% 
+        pointColList = ifelse(isAsync, list(c("#9D7C9D", "#6B8E23", "#C38000")), list(c("red", "blue", "green"))) %>% 
           unlist()
         
-        pathColList = ifelse(isAsync, list(c("#E69F00", "#56B4E9", "#009E73")), list(c("red", "blue", "#008000"))) %>% 
+        pathColList = ifelse(isAsync, list(c("#9D7C9D", "#6B8E23", "#C38000")), list(c("red", "blue", "#008000"))) %>% 
           unlist()
         
-        ggplotDefaultColor = ifelse(isAsync, list(c("#FFA54F", "#6AADD3", "#66CDAA")), list(c("#F8766D", "#619CFF", "#00BA38"))) %>% 
+        ggplotDefaultColor = ifelse(isAsync, list(c("#C8A2C8", "#98BF64", "#FFA500")), list(c("#F8766D", "#619CFF", "#00BA38"))) %>% 
           unlist()
         
         makePlot = ggplot() +
@@ -219,8 +227,8 @@ for (fontSize in fontSizeList) {
           # ylim(-5, 5) +
           # scale_x_continuous(minor_breaks = seq(-4, 4, 2), breaks=seq(-4, 4, 2), limits=c(-5, 5)) +
           # scale_y_continuous(minor_breaks = seq(-4, 4, 2), breaks=seq(-4, 4, 2), limits=c(-5, 5)) +
-          scale_x_continuous(minor_breaks = seq(-3, 3, 1), breaks=seq(-3, 3, 1), limits=c(-3, 3)) +
-          scale_y_continuous(minor_breaks = seq(-3, 3, 1), breaks=seq(-3, 3, 1), limits=c(-3, 3)) +
+          scale_x_continuous(minor_breaks = seq(-3, 3, 1), breaks=seq(-3, 3, 1), limits=c(-3.5, 3.5)) +
+          scale_y_continuous(minor_breaks = seq(-3, 3, 1), breaks=seq(-3, 3, 1), limits=c(-3.5, 3.5)) +
           theme_classic() +
           theme(
             panel.border = element_rect(colour = "black", fill = NA, size = 0.5)
@@ -249,3 +257,4 @@ for (fontSize in fontSizeList) {
     }
   }
 }
+
