@@ -66,7 +66,7 @@ library(readxl)
 library(lubridate)
 
 # 함수 정의
-fnGetCalibFactor = function(nActual, nPredicted, nMin, nMax, nInterval, isPlot = FALSE) {
+getCalibFactor = function(nActual, nPredicted, nMin, nMax, nInterval, isPlot = FALSE) {
   
   nFactor = seq(nMin, nMax, by = nInterval)
   
@@ -88,12 +88,14 @@ fnGetCalibFactor = function(nActual, nPredicted, nMin, nMax, nInterval, isPlot =
 
 # 기준자료
 # fileList = Sys.glob(file.path(globalVar$inpPath, serviceName, "20250507_KOTITI_PM25/*/기준측정기 데이터_250423-250504.xlsx"))
-fileList = Sys.glob(file.path(globalVar$inpPath, serviceName, "20250507_KOTITI_PM25/3차/기준측정기 데이터_*.xlsx"))
+# fileList = Sys.glob(file.path(globalVar$inpPath, serviceName, "20250507_KOTITI_PM25/3차/기준측정기 데이터_*.xlsx"))
+fileList = Sys.glob(file.path(globalVar$inpPath, serviceName, "20250507_KOTITI_PM25/4차/기준측정기 데이터_*.xlsx"))
 
 # fileInfo = fileList[1]
 refData = tibble::tibble()
 for (fileInfo in fileList) {
-  orgData = openxlsx::read.xlsx(fileInfo, sheet = "Sheet2")
+  # orgData = openxlsx::read.xlsx(fileInfo, sheet = "Sheet2")
+  orgData = openxlsx::read.xlsx(fileInfo, sheet = "Sheet1")
   refData = dplyr::bind_rows(refData, orgData)
 }
 
@@ -103,7 +105,8 @@ refDataL1 = refData %>%
     dtHour = readr::parse_datetime(sYmd, format = "%Y-%m-%d-%H")
   ) %>% 
     dplyr::rename(
-      val = "KOTITI기준측정기.농도"
+      # val = "KOTITI기준측정기.농도"
+      val = "KOTITI.기준측정기.데이터"
     )
 
 refDataL2 = refDataL1 %>% 
@@ -115,48 +118,55 @@ refDataL2 = refDataL1 %>%
 # 측정자료
 # 193037, 193044, 193049
 # fileList = Sys.glob(file.path(globalVar$inpPath, serviceName, "20250507_KOTITI_PM25/*/*_*.csv"))
-fileList = Sys.glob(file.path(globalVar$inpPath, serviceName, "20250507_KOTITI_PM25/3차/*_*.csv"))
+# fileList = Sys.glob(file.path(globalVar$inpPath, serviceName, "20250507_KOTITI_PM25/3차/*_*.csv"))
+fileList = Sys.glob(file.path(globalVar$inpPath, serviceName, "20250507_KOTITI_PM25/4차/*.csv"))
 
 # fileInfo = fileList[1]
-mesData = tibble::tibble()
-for (fileInfo in fileList) {
-  fileNameSplit = fileInfo %>% 
-    fs::path_file() %>% 
-    tools::file_path_sans_ext() %>% 
-    tools::file_path_sans_ext() %>% 
-    stringr::str_split(pattern = "_") %>% 
-    unlist()
-  
-  orgData = readr::read_csv(fileInfo, col_names = FALSE, skip = 1, show_col_types = FALSE) %>% 
-    dplyr::mutate(
-      sYmd = stringr::str_c(fileNameSplit[2], X2, sep = " "),
-      key = fileNameSplit[3]
-    ) %>% 
-    dplyr::mutate(
-      dtYmd = readr::parse_datetime(sYmd, format = "%Y%m%d %H:%M:%S")
-    ) %>% 
-    tidyr::separate(col = X3, into = c("type", "val"), sep = "=", convert = TRUE)
-    
-  mesData = dplyr::bind_rows(mesData, orgData)
-}
+# mesData = tibble::tibble()
+# for (fileInfo in fileList) {
+#   fileNameSplit = fileInfo %>% 
+#     fs::path_file() %>% 
+#     tools::file_path_sans_ext() %>% 
+#     tools::file_path_sans_ext() %>% 
+#     stringr::str_split(pattern = "_") %>% 
+#     unlist()
+#   
+#   orgData = readr::read_csv(fileInfo, col_names = FALSE, skip = 1, show_col_types = FALSE) %>% 
+#     dplyr::mutate(
+#       sYmd = stringr::str_c(fileNameSplit[2], X2, sep = " "),
+#       key = fileNameSplit[3]
+#     ) %>% 
+#     dplyr::mutate(
+#       dtYmd = readr::parse_datetime(sYmd, format = "%Y%m%d %H:%M:%S")
+#     ) %>% 
+#     tidyr::separate(col = X3, into = c("type", "val"), sep = "=", convert = TRUE)
+#     
+#   mesData = dplyr::bind_rows(mesData, orgData)
+# }
+
+# fileInfo = fileList[1]
+mesData = readr::read_csv(fileInfo, col_names = TRUE, skip = 2, show_col_types = FALSE)
 
 mesDataL1 = mesData %>% 
   dplyr::mutate(
-    dtHour = lubridate::floor_date(dtYmd, unit = "hour")
+    dtHour = lubridate::floor_date(MeasuredTime, unit = "hour"),
+    key = "solarmy",
   ) %>%
   dplyr::group_by(key, dtHour) %>%
   dplyr::summarise(
-    meanVal = mean(val, na.rm = TRUE),
+    meanVal = mean(PM2.5, na.rm = TRUE),
     cnt = n()
   ) %>%
   dplyr::ungroup()
 
-mesDataL2 = mesDataL1 %>% 
+mesDataL2 = mesDataL1 %>%
   tidyr::pivot_wider(
     id_cols = dtHour,
     names_from = key,
     values_from = c(meanVal, cnt)
   )
+
+# mesDataL2 = mesDataL1
 
 # plot(refDataL2$dtHour, refDataL2$val)
 # plot(mesDataL2$dtHour, mesDataL2$meanVal_193037)
@@ -165,7 +175,6 @@ mesDataL2 = mesDataL1 %>%
 
 # 데이터 병합
 data = dplyr::left_join(refDataL2, mesDataL2, by = c("dtHour" = "dtHour"))
-
 
 saveFile = sprintf("%s/%s/%s.xlsx", globalVar$outPath, serviceName, "KOTITI 시간에 따른 PM25 시계열")
 dir.create(fs::path_dir(saveFile), showWarnings = FALSE, recursive = TRUE)
@@ -206,9 +215,34 @@ ggplot(dataL2, aes(x = dtHour, y = val, color = key, group = key)) +
     axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
     legend.position = "top"
   ) +
-   scale_x_datetime(breaks = "12 hours", date_breaks = "12 hours", date_labels = "%m-%d %H", limits = c(as.POSIXct("2025-05-28 00:00:00", tz="KST"), as.POSIXct("2025-06-06 23:59:59", tz="KST"))) +
+   scale_x_datetime(breaks = "1 days", date_breaks = "1 days", date_labels = "%m-%d", limits = c(as.POSIXct("2025-06-12 00:00:00", tz="KST"), as.POSIXct("2025-06-27 00:00:00", tz="KST"))) +
   # scale_x_datetime(date_breaks = "1 days", date_labels = "%m-%d") +
   ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
 
 # shell.exec(saveImg)
 cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+
+# 보정 데이터
+dataL3 = data %>% 
+  dplyr::select(dtHour, val, meanVal_solarmy) %>% 
+  na.omit()
+  
+# 함수 정의
+getCalibFactor = function(nActual, nPredicted, nMin, nMax, nInterval, isPlot = FALSE) {
+  
+  nFactor = seq(nMin, nMax, by = nInterval)
+  
+  # RMSE Fitting
+  liResultTmp = lapply(1:length(nFactor), function(iCount) Metrics::rmse(nActual, nPredicted * nFactor[iCount]))   
+  
+  liResult = unlist(liResultTmp)
+  
+  if (isPlot == TRUE) {
+    plot(liResult)   
+  }
+  
+  # Best Factor Index
+  iIndex = which(liResult == min(liResult, na.rm = TRUE))
+  
+  return (nFactor[[iIndex]])
+}
