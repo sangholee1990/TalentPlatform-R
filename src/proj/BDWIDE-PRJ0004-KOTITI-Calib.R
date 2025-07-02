@@ -66,7 +66,7 @@ library(readxl)
 library(lubridate)
 
 # 함수 정의
-getCalibFactor = function(nActual, nPredicted, nMin, nMax, nInterval, isPlot = FALSE) {
+calibFactor = function(nActual, nPredicted, nMin, nMax, nInterval, isPlot = FALSE) {
   
   nFactor = seq(nMin, nMax, by = nInterval)
   
@@ -82,9 +82,99 @@ getCalibFactor = function(nActual, nPredicted, nMin, nMax, nInterval, isPlot = F
   # Best Factor Index
   iIndex = which(liResult == min(liResult, na.rm = TRUE))
   
-  return (nFactor[[iIndex]])
+  slope = nFactor[[iIndex]]
+  prd = nPredicted * slope
+  offset = mean(nActual - prd, na.rm = TRUE)
+  
+  return(c(slope = slope, offset = offset))
 }
 
+
+# 등급 판정 함수
+determineGrade = function(results) {
+  # 평가 결과에서 값 추출
+  accuracy = results[["정확도(%)"]]
+  rSquared = results[["결정계수(r²)"]]
+  acquisitionRate = results[["자료획득률(%)"]]
+  
+  # 필수 값이 없으면 등급 판정 불가
+  if (is.na(accuracy) || is.na(rSquared) || is.na(acquisitionRate)) {
+    return("등급 판정 불가 (필수 항목 누락)")
+  }
+  
+  # 각 항목별 등급을 숫자로 변환 (1, 2, 3, 4=등급 외)
+  # 
+  accuracyGrade = if (accuracy > 80) { 1 } else if (accuracy > 70) { 2 } else if (accuracy > 50) { 3 } else { 4 }
+  rSquaredGrade = if (rSquared > 0.8) { 1 } else if (rSquared > 0.7) { 2 } else if (rSquared > 0.6) { 3 } else { 4 }
+  acquisitionRateGrade = if (acquisitionRate > 80) { 1 } else { 4 }
+  # 
+  
+  # 가장 낮은 등급(가장 큰 숫자)을 최종 등급으로 결정
+  finalNumericGrade = max(accuracyGrade, rSquaredGrade, acquisitionRateGrade)
+  
+  # 숫자 등급을 문자열로 변환하여 반환
+  gradeMap = c("1등급", "2등급", "3등급", "등급 외")
+  return(gradeMap[finalNumericGrade])
+}
+
+# 성능 평가 함수
+evaluateDevicePerformance = function(data, refCol, deviceCols) {
+  # --- 데이터 준비 ---
+  referenceData = data[[refCol]]
+  devicesData = data[, deviceCols, drop = FALSE]
+  
+  # --- 1. 정확도 (Accuracy) ---
+  deviceMean = rowMeans(devicesData, na.rm = TRUE)
+  accuracy = mean(1 - abs(referenceData - deviceMean) / referenceData, na.rm = TRUE) * 100
+  finalAccuracy = round(accuracy, 1)
+  
+  # --- 2. 결정계수 (R-squared) ---
+  corR = cor(referenceData, deviceMean, use = "complete.obs")
+  rSquared = corR^2
+  finalRSquared = round(rSquared, 2)
+  
+  # --- 3. 상대정밀도 (Relative Precision) ---
+  if (length(deviceCols) > 1) {
+    rsdValues = apply(devicesData, 1, function(row) {
+      meanVal = mean(row, na.rm = TRUE)
+      if (is.na(meanVal) || meanVal == 0) return(NA)
+      sdVal = sd(row, na.rm = TRUE)
+      return((sdVal / meanVal) * 100)
+    })
+    precision = 100 - mean(rsdValues, na.rm = TRUE)
+    finalPrecision = round(precision, 1)
+  } else {
+    finalPrecision = NA
+  }
+  
+  # --- 4. 자료획득률 (Data Acquisition Rate) ---
+  refCount = sum(!is.na(referenceData))
+  deviceCounts = colSums(!is.na(devicesData))
+  acquisitionRates = (deviceCounts / refCount) * 100
+  minAcquisitionRate = min(acquisitionRates)
+  finalAcquisitionRate = round(minAcquisitionRate, 1)
+  
+  # --- 5. 기울기(Slope) 및 절편(Intercept) 계산 ---
+  model = lm(deviceMean ~ referenceData)
+  coeffs = coef(model)
+  slope = coeffs[2]
+  intercept = coeffs[1]
+  finalSlope = round(slope, 2)
+  finalIntercept = round(intercept, 2)
+  
+  # --- 결과 반환 ---
+  results = list(
+    "정확도(%)" = finalAccuracy,
+    "결정계수(r²)" = finalRSquared,
+    # "상대정밀도(%)" = finalPrecision, # 상대정밀도는 등급 판정에서 제외됨
+    "자료획득률(%)" = finalAcquisitionRate
+  )
+  
+  # 등급 판정 함수 호출
+  results[["등급"]] = determineGrade(results)
+  
+  return(results)
+}
 
 # 기준자료
 # fileList = Sys.glob(file.path(globalVar$inpPath, serviceName, "20250507_KOTITI_PM25/*/기준측정기 데이터_250423-250504.xlsx"))
@@ -144,7 +234,7 @@ fileList = Sys.glob(file.path(globalVar$inpPath, serviceName, "20250507_KOTITI_P
 #   mesData = dplyr::bind_rows(mesData, orgData)
 # }
 
-# fileInfo = fileList[1]
+fileInfo = fileList[1]
 mesData = readr::read_csv(fileInfo, col_names = TRUE, skip = 2, show_col_types = FALSE)
 
 mesDataL1 = mesData %>% 
@@ -176,20 +266,12 @@ mesDataL2 = mesDataL1 %>%
 # 데이터 병합
 data = dplyr::left_join(refDataL2, mesDataL2, by = c("dtHour" = "dtHour"))
 
-saveFile = sprintf("%s/%s/%s.xlsx", globalVar$outPath, serviceName, "KOTITI 시간에 따른 PM25 시계열")
-dir.create(fs::path_dir(saveFile), showWarnings = FALSE, recursive = TRUE)
-wb = openxlsx::createWorkbook()
-openxlsx::addWorksheet(wb, "Sheet1")
-openxlsx::writeData(wb, "Sheet1", data, startRow = 1, startCol = 1, colNames = TRUE, rowNames = FALSE)
-openxlsx::saveWorkbook(wb, file = saveFile, overwrite = TRUE)
-cat(sprintf("[CHECK] saveFile : %s", saveFile), "\n")
 
+dataL1 = data %>%
+  dplyr::select(dtHour, val, meanVal_solarmy) %>% 
+  na.omit()
 
-# dataL1 = data %>% 
-#   na.omit()
-
-# dataL2 = dataL1 %>%
-dataL2 = data %>%
+dataL2 = dataL1 %>%
   dplyr::select(-starts_with("cnt_")) %>% 
   tidyr::pivot_longer(
     cols = c(val, starts_with("meanVal_")),
@@ -215,7 +297,7 @@ ggplot(dataL2, aes(x = dtHour, y = val, color = key, group = key)) +
     axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
     legend.position = "top"
   ) +
-   scale_x_datetime(breaks = "1 days", date_breaks = "1 days", date_labels = "%m-%d", limits = c(as.POSIXct("2025-06-12 00:00:00", tz="KST"), as.POSIXct("2025-06-27 00:00:00", tz="KST"))) +
+   scale_x_datetime(breaks = "1 days", date_breaks = "1 days", date_labels = "%m-%d", limits = c(as.POSIXct("2025-06-13 00:00:00", tz="KST"), as.POSIXct("2025-06-27 00:00:00", tz="KST"))) +
   # scale_x_datetime(date_breaks = "1 days", date_labels = "%m-%d") +
   ggsave(filename = saveImg, width = 10, height = 6, dpi = 600)
 
@@ -223,26 +305,72 @@ ggplot(dataL2, aes(x = dtHour, y = val, color = key, group = key)) +
 cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
 
 # 보정 데이터
-dataL3 = data %>% 
-  dplyr::select(dtHour, val, meanVal_solarmy) %>% 
-  na.omit()
-  
-# 함수 정의
-getCalibFactor = function(nActual, nPredicted, nMin, nMax, nInterval, isPlot = FALSE) {
-  
-  nFactor = seq(nMin, nMax, by = nInterval)
-  
-  # RMSE Fitting
-  liResultTmp = lapply(1:length(nFactor), function(iCount) Metrics::rmse(nActual, nPredicted * nFactor[iCount]))   
-  
-  liResult = unlist(liResultTmp)
-  
-  if (isPlot == TRUE) {
-    plot(liResult)   
-  }
-  
-  # Best Factor Index
-  iIndex = which(liResult == min(liResult, na.rm = TRUE))
-  
-  return (nFactor[[iIndex]])
-}
+calibFactor = getCalibFactor(dataL1$val, dataL1$meanVal_solarmy, -10, 10, 0.001, isPlot=TRUE)
+
+
+dataL3 = dataL1 %>%
+  dplyr::mutate(
+    refVal_solarmy = (calibFactor['slope'] * meanVal_solarmy) + calibFactor['offset']
+  ) 
+
+# 평균제곱근오차
+Metrics::rmse(dataL3$val, dataL3$meanVal_solarmy)
+Metrics::rmse(dataL3$val, dataL3$refVal_solarmy)
+
+dataL4 = dataL3 %>% 
+  tidyr::pivot_longer(
+    cols = c(val, starts_with("meanVal_"), starts_with("refVal_")),
+    # cols = c(val, starts_with("refVal_")),
+    names_to = "key",
+    values_to = "val"
+  )
+
+saveFile = sprintf("%s/%s/%s.xlsx", globalVar$outPath, serviceName, "KOTITI 시간에 따른 PM25 시계열")
+dir.create(fs::path_dir(saveFile), showWarnings = FALSE, recursive = TRUE)
+wb = openxlsx::createWorkbook()
+openxlsx::addWorksheet(wb, "Sheet1")
+openxlsx::writeData(wb, "Sheet1", dataL3, startRow = 1, startCol = 1, colNames = TRUE, rowNames = FALSE)
+openxlsx::saveWorkbook(wb, file = saveFile, overwrite = TRUE)
+cat(sprintf("[CHECK] saveFile : %s", saveFile), "\n")
+
+
+mainTitle = sprintf("%s", "KOTITI 시간에 따른 PM25 시계열")
+saveImg = sprintf("%s/%s/%s.png", globalVar$figPath, serviceName, mainTitle)
+dir.create(fs::path_dir(saveImg), showWarnings = FALSE, recursive = TRUE)
+
+ggplot(dataL4, aes(x = dtHour, y = val, color = key, group = key)) +
+  geom_line() +
+  geom_point() +
+  labs(
+    # title = "시간에 따른 값 변화",
+    x = "시간 [월-일 시]",
+    y = "PM2.5",
+    color = NULL
+  ) +
+  theme(
+    # plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),
+    axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
+    legend.position = "top"
+  ) +
+  scale_x_datetime(breaks = "1 days", date_breaks = "1 days", date_labels = "%m-%d", limits = c(as.POSIXct("2025-06-13 00:00:00", tz="KST"), as.POSIXct("2025-06-27 00:00:00", tz="KST"))) +
+  # scale_x_datetime(date_breaks = "1 days", date_labels = "%m-%d") +
+  ggsave(filename = saveImg, width = 12, height = 6, dpi = 600)
+
+# shell.exec(saveImg)
+cat(sprintf("[CHECK] saveImg : %s", saveImg), "\n")
+
+dataL3
+
+# 보정 이전 2등급 (정확도 79.9%, 결정계수 0.88, 자료획득률 100%)
+evaluateDevicePerformance (
+  data = dataL3,
+  refCol = "val",
+  deviceCols = c("meanVal_solarmy")
+)
+
+# 보정 이후 1등급 (정확도 83.5%, 결정계수 0.88, 자료획득률 100%)
+evaluateDevicePerformance (
+  data = dataL3,
+  refCol = "val",
+  deviceCols = c("refVal_solarmy")
+)
