@@ -266,7 +266,6 @@ mesDataL2 = mesDataL1 %>%
 # 데이터 병합
 data = dplyr::left_join(refDataL2, mesDataL2, by = c("dtHour" = "dtHour"))
 
-
 dataL1 = data %>%
   dplyr::select(dtHour, val, meanVal_solarmy) %>% 
   na.omit()
