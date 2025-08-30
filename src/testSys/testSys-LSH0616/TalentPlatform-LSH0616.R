@@ -75,6 +75,7 @@ library(rlang)
 library(magrittr)
 library(scales)
 library(fs)
+library(ellipse)
 
 # ggplotDefaultColor = scales::hue_pal()(3)
 # c("#F8766D", "#00BA38", "#619CFF")
@@ -90,7 +91,8 @@ library(fs)
 # ================================================
 # fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "20240307_엑셀-크몽.xlsx"))
 # fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "20240820_엑셀+크몽5.xlsx"))
-fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "20250502_크몽+wafer+fitting+error+의뢰.xlsx"))
+# fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "20250502_크몽+wafer+fitting+error+의뢰.xlsx"))
+fileInfo = Sys.glob(file.path(globalVar$inpPath, serviceName, "20250515_크몽+wafer+fitting+error+의뢰.xlsx"))
 
 data = openxlsx::read.xlsx(fileInfo, sheet = 1)
 data$group = as.factor(data$group)
@@ -104,6 +106,7 @@ fontSizeList = seq(14, 14, 2)
 typeList = data$type %>% unique() %>% sort()
 keyList = c("비대칭", "수술")
 colList = list(c("X", "Y"), c("X", "Z"), c("Z", "Y"))
+# colList = list(c("Z", "Y"))
 
 for (fontSize in fontSizeList) {
   for (typeInfo in typeList) {
@@ -151,12 +154,35 @@ for (fontSize in fontSizeList) {
             dplyr::select(dplyr::ends_with(colInfo[[2]])) %>%
             magrittr::set_colnames(c("mean", "sd"))
           
-          # x = cos(seq(0, 5 * pi, length.out = 100)) * (1.96 * statDataX$sd) + statDataX$mean
-          # y = sin(seq(0, 5 * pi, length.out = 100)) * (1.96 * statDataY$sd) + statDataY$mean
-          x = cos(seq(0, 5 * pi, length.out = 10000)) * (1.96 * statDataX$sd) + statDataX$mean
-          y = sin(seq(0, 5 * pi, length.out = 10000)) * (1.96 * statDataY$sd) + statDataY$mean
-          # x = cos(seq(0, 5 * pi, length.out = 200)) * (1.96 * statDataX$sd) + statDataX$mean
-          # y = sin(seq(0, 5 * pi, length.out = 200)) * (1.96 * statDataY$sd) + statDataY$mean
+          # x = cos(seq(0, 5 * pi, length.out = 10000)) * (1.96 * statDataX$sd) + statDataX$mean
+          # y = sin(seq(0, 5 * pi, length.out = 10000)) * (1.96 * statDataY$sd) + statDataY$mean
+          
+          # 2025.08.30
+          statCorData = dataL1 %>% 
+            dplyr::filter(group == groupInfo) %>% 
+            dplyr::rename(
+              var1 = colInfo[[1]],
+              var2 = colInfo[[2]]
+            ) %>% 
+            dplyr::select(var1, var2) %>% 
+            # dplyr::group_by(group) %>% 
+            dplyr::summarise(
+              cor = cor(var1, var2),
+            )
+          
+          statMatData = matrix(c(1, statCorData$cor, statCorData$cor, 1), nrow = 2)
+          statMatDataL1 = data.frame(
+            ellipse::ellipse(
+              statMatData, 
+              scale = c(statDataX$sd, statDataY$sd), 
+              centre = c(statDataX$mean, statDataY$mean),
+              level = 0.95, 
+              npoints = 1000,
+              )
+            )
+          
+          x = statMatDataL1$x
+          y = statMatDataL1$y
           
           tmpData = tibble::tibble(group = groupInfo, x = x, y = y) %>% 
             dplyr::mutate(angle = atan2(y, x)) %>%
@@ -227,8 +253,10 @@ for (fontSize in fontSizeList) {
           # ylim(-5, 5) +
           # scale_x_continuous(minor_breaks = seq(-4, 4, 2), breaks=seq(-4, 4, 2), limits=c(-5, 5)) +
           # scale_y_continuous(minor_breaks = seq(-4, 4, 2), breaks=seq(-4, 4, 2), limits=c(-5, 5)) +
-          scale_x_continuous(minor_breaks = seq(-3, 3, 1), breaks=seq(-3, 3, 1), limits=c(-3.5, 3.5)) +
-          scale_y_continuous(minor_breaks = seq(-3, 3, 1), breaks=seq(-3, 3, 1), limits=c(-3.5, 3.5)) +
+          # scale_x_continuous(minor_breaks = seq(-3, 3, 1), breaks=seq(-3, 3, 1), limits=c(-3.5, 3.5)) +
+          # scale_y_continuous(minor_breaks = seq(-3, 3, 1), breaks=seq(-3, 3, 1), limits=c(-3.5, 3.5)) +
+          scale_x_continuous(minor_breaks = seq(-3, 3, 1), breaks=seq(-3, 3, 1), limits=c(-4, 4)) +
+          scale_y_continuous(minor_breaks = seq(-3, 3, 1), breaks=seq(-3, 3, 1), limits=c(-4, 4)) +
           theme_classic() +
           theme(
             panel.border = element_rect(colour = "black", fill = NA, size = 0.5)
@@ -257,4 +285,3 @@ for (fontSize in fontSizeList) {
     }
   }
 }
-
